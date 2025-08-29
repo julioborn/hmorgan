@@ -20,8 +20,15 @@ export async function POST(req: NextRequest) {
     if (!ok) return NextResponse.json({ error: "Credenciales inválidas" }, { status: 401 });
 
     const token = jwt.sign({ sub: user._id.toString(), role: user.role }, JWT_SECRET, { expiresIn: "7d" });
+    const isProd = process.env.NODE_ENV === "production";
     const res = NextResponse.json({ ok: true });
-    res.cookies.set("session", token, { httpOnly: true, sameSite: "lax", secure: true, path: "/" });
+    res.cookies.set("session", token, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: isProd,         // 👈 solo secure en prod
+      path: "/",
+    });
+    return res;
     return res;
   } catch (e) {
     console.error(e);

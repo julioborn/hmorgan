@@ -1,26 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
-import jwt from "jsonwebtoken";
+import { jwtVerify } from "jose";
 
-const JWT_SECRET = process.env.JWT_SECRET!;
+const secret = new TextEncoder().encode(process.env.JWT_SECRET || "");
 
-export function middleware(req: NextRequest) {
+async function verifyJWT(token: string) {
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, secret);
+    return payload as any; // { sub, role, ... }
+  } catch {
+    return null;
+  }
+}
+
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // Proteger rutas de admin
   if (pathname.startsWith("/admin")) {
-    const token = req.cookies.get("session")?.value;
-    if (!token) return NextResponse.redirect(new URL("/login", req.url));
-    try {
-      const payload = jwt.verify(token, JWT_SECRET) as any;
-      if (payload.role !== "admin") return NextResponse.redirect(new URL("/login", req.url));
-      return NextResponse.next();
-    } catch {
+    const token = req.cookies.get("session")?.value || "";
+    const payload = await verifyJWT(token);
+
+    if (!payload || payload.role !== "admin") {
       return NextResponse.redirect(new URL("/login", req.url));
     }
+
+    return NextResponse.next();
   }
 
+  // Proteger rutas de cliente
   if (pathname.startsWith("/cliente")) {
-    const token = req.cookies.get("session")?.value;
-    if (!token) return NextResponse.redirect(new URL("/login", req.url));
+    const token = req.cookies.get("session")?.value || "";
+    const payload = await verifyJWT(token);
+
+    if (!payload) {
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
+
     return NextResponse.next();
   }
 
@@ -28,5 +44,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/cliente/:path*"]
+  matcher: ["/admin/:path*", "/cliente/:path*"],
 };
