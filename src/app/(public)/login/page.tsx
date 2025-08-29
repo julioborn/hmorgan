@@ -27,8 +27,11 @@ export default function LoginPage() {
     // Traigo el user y redirijo por rol
     await refresh();
     const me = await fetch("/api/auth/me", { cache: "no-store" }).then(r => r.json());
-    if (me?.user?.role === "admin") router.push("/admin/scan");
-    else router.push("/cliente/qr");
+    if (me?.user?.role === "admin") {
+      window.location.href = "/admin/scan";   // 👈 forzar reload (no router.push)
+    } else {
+      window.location.href = "/cliente/qr";   // 👈 idem
+    }
   }
 
   return (
