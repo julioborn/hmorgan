@@ -9,14 +9,48 @@ const RATIO = Number(process.env.NEXT_PUBLIC_POINTS_PER_ARS ?? 0.001); // opcion
 export default function ScanPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const zxingReaderRef = useRef<any>(null); // BrowserMultiFormatReader
+  const seenIdsRef = useRef<Set<string>>(new Set());   // usuarios ya agregados
+  const busyRef = useRef(false);                       // antirrebote entre frames
+  const inFlightTokensRef = useRef<Set<string>>(new Set()); // tokens resolviéndose
   const [camState, setCamState] = useState<CamState>("idle");
   const [status, setStatus] = useState("");
   const [errMsg, setErrMsg] = useState("");
+  // agregado:
+  const [consumoStr, setConsumoStr] = useState<string>("");
 
+  // ya lo tenés:
   const [mesa, setMesa] = useState<string>("");
-  const [consumo, setConsumo] = useState<number>(0);
 
   const [people, setPeople] = useState<Person[]>([]);
+
+  // helpers de sanitización
+  function sanitizeMesa(v: string) {
+    // solo dígitos, sin ceros a la izquierda (excepto cuando el valor final sea "0")
+    let s = v.replace(/\D/g, "");
+    s = s.replace(/^0+(?=\d)/, "");
+    return s;
+  }
+
+  function sanitizeMoney(v: string) {
+    // teclado decimal: permitir dígitos y un solo separador (.,) -> lo normalizamos a '.'
+    let s = v.replace(/,/g, ".").replace(/[^0-9.]/g, "");
+    // si empieza con '.' -> '0.'
+    if (s.startsWith(".")) s = "0" + s;
+    // solo un punto
+    const parts = s.split(".");
+    if (parts.length > 2) s = parts[0] + "." + parts.slice(1).join("");
+    // quitar ceros a la izquierda salvo "0" o "0.x"
+    if (s.includes(".")) {
+      const [int, dec] = s.split(".");
+      s = int.replace(/^0+(?=\d)/, "") + "." + (dec ?? "");
+      if (s.startsWith(".")) s = "0" + s;
+    } else {
+      s = s.replace(/^0+(?=\d)/, "");
+    }
+    return s;
+  }
+
+  const consumo = consumoStr ? Number(consumoStr) : 0;
 
   function stopCamera() {
     // parar getUserMedia
@@ -109,42 +143,75 @@ export default function ScanPage() {
 
   // Acepta JSON {qrToken} o token plano
   async function onRawQr(raw: string) {
+    if (busyRef.current) return;
+    busyRef.current = true;
+
     let token = raw.trim();
-    try {
-      const parsed = JSON.parse(raw);
-      if (parsed?.qrToken) token = String(parsed.qrToken);
-    } catch { }
+    try { const parsed = JSON.parse(raw); if (parsed?.qrToken) token = String(parsed.qrToken); } catch { }
+
+    if (inFlightTokensRef.current.has(token)) { busyRef.current = false; return; }
+    inFlightTokensRef.current.add(token);
+
     try {
       const res = await fetch(`/api/scan/resolve?qrToken=${encodeURIComponent(token)}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "QR inválido");
       const user: Person = data.user;
-      if (!people.some((p) => p.id === user.id)) {
-        setPeople((prev) => [...prev, user]);
+
+      if (!seenIdsRef.current.has(user.id)) {
+        seenIdsRef.current.add(user.id);                 // marcar primero
+        setPeople(prev => [...prev, user]);              // luego estado
         setStatus(`Agregado: ${user.nombre} ${user.apellido} (${user.dni})`);
       } else {
         setStatus("Ya estaba escaneado.");
       }
     } catch (e: any) {
       setStatus(e?.message || "QR inválido");
+    } finally {
+      inFlightTokensRef.current.delete(token);
+      setTimeout(() => { busyRef.current = false; }, 700); // pequeña pausa anti relectura
     }
   }
 
   async function finalizeTable() {
-    if (!consumo || consumo <= 0) { alert("Ingresá el consumo total de la mesa."); return; }
-    if (people.length === 0) { alert("Escaneá al menos un cliente."); return; }
+    if (!consumo || consumo <= 0) {
+      alert("Ingresá el consumo total de la mesa.");
+      return;
+    }
+    if (people.length === 0) {
+      alert("Escaneá al menos un cliente.");
+      return;
+    }
 
     const userIds = people.map((p) => p.id);
+
     const res = await fetch("/api/scan/finalize", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ consumoARS: Number(consumo), userIds, mesa: mesa || undefined }),
+      body: JSON.stringify({
+        consumoARS: Number(consumo),
+        userIds,
+        mesa: mesa || undefined,
+      }),
     });
+
     const data = await res.json();
+
     if (res.ok) {
-      setStatus(`OK: ${data.totalPoints} puntos repartidos entre ${data.repartidos}.`);
-      setPeople([]); setConsumo(0); setMesa("");
-      stopCamera(); setCamState("idle");
+      setStatus(
+        `OK: ${data.totalPoints} puntos repartidos entre ${data.repartidos}.`
+      );
+
+      // 🔹 Limpiar estados visuales
+      setPeople([]);
+      setConsumoStr("");
+      setMesa("");
+      stopCamera();
+      setCamState("idle");
+
+      // 🔹 Limpiar sets internos para evitar duplicados en la próxima mesa
+      seenIdsRef.current.clear();
+      inFlightTokensRef.current.clear();
     } else {
       alert(data.error || "Error finalizando mesa");
     }
@@ -172,26 +239,27 @@ export default function ScanPage() {
 
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2">
-            {/* teclado numérico para mesa */}
+            {/* Nº de mesa: teclado numérico */}
             <input
               className="p-3 rounded bg-white/10"
               placeholder="Nº de mesa"
               value={mesa}
-              onChange={(e) => setMesa(e.target.value.replace(/\D/g, ""))}
+              onChange={(e) => setMesa(sanitizeMesa(e.target.value))}
               inputMode="numeric"
+              type="text"
               pattern="[0-9]*"
             />
-            {/* teclado numérico para consumo */}
+
+            {/* Consumo total ARS: teclado decimal */}
             <input
-              type="number"
               className="p-3 rounded bg-white/10"
               placeholder="Consumo total ARS"
-              value={Number.isNaN(consumo) ? "" : consumo}
-              onChange={(e) => setConsumo(Number(e.target.value))}
+              value={consumoStr}
+              onChange={(e) => setConsumoStr(sanitizeMoney(e.target.value))}
               inputMode="decimal"
-              step="1"
-              min="0"
+              type="text"
             />
+
           </div>
 
           {/* PREVIEW puntos */}
@@ -233,7 +301,10 @@ export default function ScanPage() {
                 </div>
                 <button
                   className="px-3 py-1 rounded bg-white/10 hover:bg-white/15 text-sm"
-                  onClick={() => setPeople(prev => prev.filter(x => x.id !== p.id))}
+                  onClick={() => {
+                    setPeople(prev => prev.filter(x => x.id !== p.id));
+                    seenIdsRef.current.delete(p.id);
+                  }}
                 >
                   Quitar
                 </button>
