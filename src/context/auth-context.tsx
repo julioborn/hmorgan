@@ -2,7 +2,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
 type User = {
-    _id: string;
+    id: string;
     nombre: string;
     apellido: string;
     dni: string;
@@ -19,12 +19,18 @@ type Ctx = {
     logout: () => Promise<void>;
 };
 
-const AuthCtx = createContext<Ctx>({ user: null, loading: true, refresh: async () => { }, logout: async () => { } });
+const AuthCtx = createContext<Ctx>({
+    user: null,
+    loading: true,
+    refresh: async () => { },
+    logout: async () => { },
+});
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User>(null);
     const [loading, setLoading] = useState(true);
 
+    // 🔄 Refrescar datos del usuario actual
     const refresh = async () => {
         setLoading(true);
         try {
@@ -36,13 +42,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    // 🔓 Cerrar sesión
     const logout = async () => {
         await fetch("/api/auth/logout", { method: "POST" });
         setUser(null);
-        window.location.href = "/";
+        window.location.href = "/login"; // o "/" si preferís
     };
 
-    useEffect(() => { refresh(); }, []);
+    // ⏳ Cargar usuario al inicio
+    useEffect(() => {
+        refresh();
+    }, []);
+
+    // 🔄 Mantener la sesión activa automáticamente
+    useEffect(() => {
+        let t: NodeJS.Timeout;
+
+        const ping = async () => {
+            try {
+                await fetch("/api/auth/me", { cache: "no-store" });
+            } catch { }
+            // renovar cada 12 horas
+            t = setTimeout(ping, 1000 * 60 * 60 * 12);
+        };
+
+        const onFocus = () => {
+            refresh();
+        };
+
+        ping();
+        window.addEventListener("focus", onFocus);
+
+        return () => {
+            clearTimeout(t);
+            window.removeEventListener("focus", onFocus);
+        };
+    }, [refresh]);
 
     return (
         <AuthCtx.Provider value={{ user, loading, refresh, logout }}>
