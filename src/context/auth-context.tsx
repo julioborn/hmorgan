@@ -37,6 +37,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const res = await fetch("/api/auth/me", { cache: "no-store" });
             const data = await res.json();
             setUser(data.user || null);
+            if (data.user) {
+                import("@/lib/push-client").then(async (m) => {
+                    try {
+                        const reg = await m.registerSW();
+                        if (!reg) return;
+                        // Pedir permiso (idealmente desde un botón, pero para probar):
+                        const perm = await Notification.requestPermission();
+                        if (perm !== "granted") return;
+                        await m.subscribeUser(reg);
+                    } catch { }
+                });
+            }
         } finally {
             setLoading(false);
         }

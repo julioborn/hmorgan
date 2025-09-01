@@ -1,19 +1,22 @@
+// src/app/api/scan/finalize/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import { PointTransaction } from "@/models/PointTransaction";
+import { sendPushToSubscriptions } from "@/lib/push-server";   // ⬅️ IMPORTANTE
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
 export async function POST(req: NextRequest) {
     try {
-        // auth admin
+        // --- Auth admin ---
         const token = req.cookies.get("session")?.value;
         if (!token) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
         const payload = jwt.verify(token, JWT_SECRET) as any;
         if (payload.role !== "admin") return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
+        // --- Body ---
         const { consumoARS, userIds, mesa } = await req.json();
         if (!consumoARS || !Array.isArray(userIds) || userIds.length === 0) {
             return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
@@ -27,17 +30,17 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ ok: true, message: "Consumo bajo, 0 puntos" });
         }
 
-        // reparto equitativo + resto
+        // --- Reparto equitativo + resto ---
         const base = Math.floor(totalPoints / userIds.length);
         let resto = totalPoints - base * userIds.length;
 
-        // obtenemos usuarios válidos
+        // --- Usuarios válidos ---
         const users = await User.find({ _id: { $in: userIds } });
         if (users.length !== userIds.length) {
             return NextResponse.json({ error: "Algunos usuarios no existen" }, { status: 400 });
         }
 
-        // aplicamos transacciones y sumas
+        // --- Aplicar transacciones y sumar puntos ---
         for (const u of users) {
             const extra = resto > 0 ? 1 : 0; // distribuir el sobrante a los primeros
             if (resto > 0) resto--;
@@ -56,12 +59,34 @@ export async function POST(req: NextRequest) {
             await u.save();
         }
 
+        // ---------- 🔔 PUSH A LOS CLIENTES (AQUÍ VA LO NUEVO) ----------
+        // Construimos un payload simple; podés personalizar por usuario si querés
+        const pushPayload = {
+            title: "¡Puntos sumados!",
+            body: `Se acreditaron ${totalPoints} puntos por la mesa ${mesa ?? ""}. ¡Gracias por venir!`,
+            url: "/cliente/qr", // al tocar abre su QR
+        };
+
+        // Enviar a todas las suscripciones de cada usuario
+        await Promise.all(
+            users.map(async (u: any) => {
+                if (Array.isArray(u.pushSubscriptions) && u.pushSubscriptions.length) {
+                    try {
+                        await sendPushToSubscriptions(u.pushSubscriptions, pushPayload);
+                    } catch (e) {
+                        console.error("push error user", u._id, e);
+                    }
+                }
+            })
+        );
+        // ---------- 🔔 FIN PUSH ----------
+
         return NextResponse.json({
             ok: true,
             totalPoints,
             repartidos: userIds.length,
             porCabeza: base,
-            sobranteYaDistribuido: totalPoints - base * userIds.length
+            sobranteYaDistribuido: totalPoints - base * userIds.length,
         });
     } catch (e) {
         console.error(e);
