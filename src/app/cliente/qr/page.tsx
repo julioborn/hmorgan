@@ -2,9 +2,12 @@
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { useAuth } from "@/context/auth-context";
+import { registerSW, subscribeUser } from "@/lib/push-client";
+
 export default function MiQRPage() {
   const { user } = useAuth();
   const [png, setPng] = useState<string>("");
+  const [notifStatus, setNotifStatus] = useState<string>("");
 
   useEffect(() => {
     (async () => {
@@ -14,6 +17,37 @@ export default function MiQRPage() {
       setPng(dataUrl);
     })();
   }, [user?.qrToken]);
+
+  // Maneja la activación de notificaciones
+  async function handleEnableNotifications() {
+    try {
+      setNotifStatus("Solicitando permisos…");
+
+      // Pedir permiso al usuario
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        setNotifStatus("Permiso de notificaciones denegado.");
+        return;
+      }
+
+      // Registrar SW y suscribir usuario
+      const reg = await registerSW();
+      if (!reg) {
+        setNotifStatus("No se pudo registrar el Service Worker.");
+        return;
+      }
+
+      const sub = await subscribeUser(reg);
+      if (sub) {
+        setNotifStatus("✅ Notificaciones activadas correctamente.");
+      } else {
+        setNotifStatus("Error al activar las notificaciones.");
+      }
+    } catch (e: any) {
+      console.error(e);
+      setNotifStatus("Error al activar las notificaciones.");
+    }
+  }
 
   if (!user) return <div className="p-6">Cargando…</div>;
 
@@ -32,8 +66,26 @@ export default function MiQRPage() {
             <div className="text-sm opacity-70">Puntos acumulados</div>
             <div className="text-3xl font-extrabold">{user.points ?? 0}</div>
           </div>
-          <a href="/cliente/puntos" className="px-4 py-2 rounded bg-white/10 hover:bg-white/15">Ver historial</a>
+          <a
+            href="/cliente/puntos"
+            className="px-4 py-2 rounded bg-white/10 hover:bg-white/15"
+          >
+            Ver historial
+          </a>
         </div>
+      </div>
+
+      {/* Botón para activar notificaciones */}
+      <div className="mt-4 flex flex-col items-center">
+        <button
+          onClick={handleEnableNotifications}
+          className="px-4 py-2 bg-indigo-600 rounded-lg hover:bg-indigo-700 text-white font-semibold transition"
+        >
+          Activar notificaciones
+        </button>
+        {notifStatus && (
+          <p className="mt-2 text-sm text-center opacity-80">{notifStatus}</p>
+        )}
       </div>
     </div>
   );
