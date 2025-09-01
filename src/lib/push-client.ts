@@ -1,9 +1,7 @@
 export async function registerSW() {
     if (!("serviceWorker" in navigator)) return null;
-
-    const reg = await navigator.serviceWorker.register("/sw.js");
-    console.log("Service Worker registrado:", reg);
-
+    const reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+    await navigator.serviceWorker.ready; // <- importante
     return reg;
 }
 
@@ -24,7 +22,7 @@ export async function subscribeUser(reg: ServiceWorkerRegistration) {
     console.log("Nueva suscripción:", sub);
 
     // 🔹 Enviamos la suscripción al backend para guardarla
-    await fetch("/api/notifications/subscribe", {
+    await fetch("/api/push/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(sub),

@@ -1,3 +1,4 @@
+// src/app/api/push/subscribe/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
@@ -14,15 +15,20 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Invalid auth" }, { status: 401 });
     }
 
-    const sub = await req.json(); // { endpoint, keys: {p256dh, auth} }
+    const sub = await req.json();
     if (!sub?.endpoint) return NextResponse.json({ error: "Bad subscription" }, { status: 400 });
 
     await connectMongoDB();
-    // deduplicar por endpoint
+
+    // 👇 toma la que exista
+    const userId = payload.userId || payload.sub || payload.id;
+    if (!userId) return NextResponse.json({ error: "No user id in token" }, { status: 400 });
+
+    // Idempotente por endpoint
     await User.updateOne(
-        { _id: payload.sub },
+        { _id: userId, "pushSubscriptions.endpoint": { $ne: sub.endpoint } },
         {
-            $addToSet: {
+            $push: {
                 pushSubscriptions: {
                     endpoint: sub.endpoint,
                     keys: { p256dh: sub.keys?.p256dh, auth: sub.keys?.auth },

@@ -1,3 +1,4 @@
+// src/app/api/push/unsubscribe/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
@@ -14,13 +15,17 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Invalid auth" }, { status: 401 });
     }
 
-    const sub = await req.json(); // { endpoint, keys }
-    if (!sub?.endpoint) return NextResponse.json({ error: "Bad subscription" }, { status: 400 });
+    const body = await req.json(); // { endpoint }
+    if (!body?.endpoint) return NextResponse.json({ error: "Bad subscription" }, { status: 400 });
 
     await connectMongoDB();
+
+    const userId = payload.userId || payload.sub || payload.id;
+    if (!userId) return NextResponse.json({ error: "No user id in token" }, { status: 400 });
+
     await User.updateOne(
-        { _id: payload.sub },
-        { $pull: { pushSubscriptions: { endpoint: sub.endpoint } } }
+        { _id: userId },
+        { $pull: { pushSubscriptions: { endpoint: body.endpoint } } }
     );
 
     return NextResponse.json({ ok: true });
