@@ -1,14 +1,14 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 
 export default function LoginPage() {
   const [dni, setDni] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
   const { refresh } = useAuth();
+
+  const onChangeDni = (v: string) => setDni(v.replace(/\D/g, "")); // solo dígitos
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -16,7 +16,7 @@ export default function LoginPage() {
     const res = await fetch("/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ dni, password }),
-      headers: { "Content-Type": "application/json" }
+      headers: { "Content-Type": "application/json" },
     });
     setLoading(false);
     if (!res.ok) {
@@ -24,13 +24,12 @@ export default function LoginPage() {
       alert(data.error || "Error");
       return;
     }
-    // Traigo el user y redirijo por rol
     await refresh();
-    const me = await fetch("/api/auth/me", { cache: "no-store" }).then(r => r.json());
+    const me = await fetch("/api/auth/me", { cache: "no-store" }).then((r) => r.json());
     if (me?.user?.role === "admin") {
-      window.location.href = "/admin/scan";   // 👈 forzar reload (no router.push)
+      window.location.href = "/admin/scan";
     } else {
-      window.location.href = "/cliente/qr";   // 👈 idem
+      window.location.href = "/cliente/qr";
     }
   }
 
@@ -39,8 +38,23 @@ export default function LoginPage() {
       <form onSubmit={onSubmit} className="w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-xl backdrop-blur">
         <h1 className="text-2xl font-extrabold text-center mb-4">Ingresar</h1>
         <div className="space-y-3">
-          <input placeholder="DNI" className="w-full p-3 rounded bg-white/10 focus:outline-none" value={dni} onChange={e => setDni(e.target.value)} />
-          <input placeholder="Contraseña" type="password" className="w-full p-3 rounded bg-white/10 focus:outline-none" value={password} onChange={e => setPassword(e.target.value)} />
+          <input
+            placeholder="DNI"
+            className="w-full p-3 rounded bg-white/10 focus:outline-none"
+            value={dni}
+            onChange={(e) => onChangeDni(e.target.value)}
+            inputMode="numeric"
+            pattern="[0-9]*"
+            autoComplete="username"
+          />
+          <input
+            placeholder="Contraseña"
+            type="password"
+            className="w-full p-3 rounded bg-white/10 focus:outline-none"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+          />
           <button disabled={loading} className="w-full py-3 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold">
             {loading ? "Ingresando..." : "Entrar"}
           </button>
