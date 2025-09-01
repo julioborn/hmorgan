@@ -51,6 +51,9 @@ export default function ScanPage() {
   }
 
   const consumo = consumoStr ? Number(consumoStr) : 0;
+  // Puede iniciar cámara sólo si hay mesa y consumo > 0
+  const canStart = Boolean(mesa && consumo > 0);
+
 
   function stopCamera() {
     // parar getUserMedia
@@ -66,6 +69,12 @@ export default function ScanPage() {
   useEffect(() => () => stopCamera(), []);
 
   async function startCamera() {
+    if (!canStart) {
+      setStatus("Completá Nº de mesa y consumo antes de activar la cámara.");
+      setErrMsg("Falta completar datos para iniciar.");
+      return;
+    }
+
     setErrMsg("");
     setStatus("Solicitando permisos de cámara…");
     setCamState("starting");
@@ -224,7 +233,7 @@ export default function ScanPage() {
 
   return (
     <div className="p-4 space-y-4">
-      <h1 className="text-2xl font-extrabold">Mesa: escanear & asignar puntos</h1>
+      {/* <h1 className="text-2xl font-extrabold">Mesa: escanear & asignar puntos</h1> */}
 
       <div className="grid md:grid-cols-2 gap-4">
         <div className="rounded-xl overflow-hidden bg-black">
@@ -268,23 +277,32 @@ export default function ScanPage() {
             <div>Total a generar: <b>{totalPoints}</b></div>
             <div>Personas: <b>{people.length}</b></div>
             <div>
-              Por cabeza: <b>{porCabeza}</b>
+              Por persona: <b>{porCabeza}</b>
               {resto > 0 && <> · Sobrante por distribuir: <b>{resto}</b></>}
             </div>
           </div>
 
-          <div className="p-3 rounded bg-white/5 border border-white/10">
+          {/* <div className="p-3 rounded bg-white/5 border border-white/10">
             <div className="text-sm opacity-80">Estado</div>
             <div className="font-bold">{status || "Ingresá el monto y activá la cámara para empezar."}</div>
             {errMsg && <div className="mt-2 text-sm text-rose-400">{errMsg}</div>}
-          </div>
+          </div> */}
 
           {camState !== "on" ? (
-            <button onClick={startCamera} className="w-full py-3 rounded bg-indigo-600 text-white font-bold">
+            <button
+              onClick={startCamera}
+              disabled={!canStart || camState === "starting"}
+              className="w-full py-3 rounded bg-indigo-600 text-white font-bold disabled:opacity-60 disabled:cursor-not-allowed"
+              title={!canStart ? "Ingresá Nº de mesa y consumo para activar" : ""}
+              aria-disabled={!canStart || camState === "starting"}
+            >
               {camState === "starting" ? "Activando..." : "Comenzar mesa (activar cámara)"}
             </button>
           ) : (
-            <button onClick={() => { stopCamera(); setCamState("idle"); }} className="w-full py-3 rounded bg-black text-white font-bold">
+            <button
+              onClick={() => { stopCamera(); setCamState("idle"); }}
+              className="w-full py-3 rounded bg-black text-white font-bold"
+            >
               Detener cámara
             </button>
           )}
