@@ -6,22 +6,22 @@ export async function registerSW() {
     return reg;
 }
 
+// lib/push-client.ts
 export async function subscribeUser(reg: ServiceWorkerRegistration) {
-    if (!("PushManager" in window)) return null;
+    if (!("PushManager" in window)) throw new Error("PushManager no disponible");
 
     const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
-    // 👇 usamos ArrayBuffer para evitar el error de tipos
-    const applicationServerKey = base64ToArrayBuffer(vapidPublicKey);
+    const key = urlBase64ToUint8Array(vapidPublicKey); // Uint8Array
 
     let sub = await reg.pushManager.getSubscription();
     if (!sub) {
         sub = await reg.pushManager.subscribe({
             userVisibleOnly: true,
-            applicationServerKey, // <- ArrayBuffer OK
+            applicationServerKey: key as unknown as BufferSource, // <- TS OK, runtime iOS OK
         });
-        console.log("Nueva suscripción creada:", sub.endpoint);
+        console.log("Nueva suscripción:", sub.endpoint);
     } else {
-        console.log("Suscripción existente encontrada:", sub.endpoint);
+        console.log("Suscripción existente:", sub.endpoint);
     }
 
     const resp = await fetch("/api/push/subscribe", {
@@ -31,29 +31,19 @@ export async function subscribeUser(reg: ServiceWorkerRegistration) {
         body: JSON.stringify(sub),
     });
 
-    const text = await resp.text().catch(() => "");
-    let data: any = {};
-    try { data = JSON.parse(text); } catch { data = text; }
-    console.log("Respuesta de /api/push/subscribe:", resp.status, data);
-
-    if (!resp.ok) throw new Error(`Error al suscribir: ${resp.status}`);
+    if (!resp.ok) {
+        const txt = await resp.text().catch(() => "");
+        throw new Error(`POST /api/push/subscribe ${resp.status}: ${txt}`);
+    }
     return sub;
 }
 
-/** Convierte una VAPID public key (base64 URL-safe) a ArrayBuffer */
-function base64ToArrayBuffer(base64Url: string): ArrayBuffer {
-    const padding = "=".repeat((4 - (base64Url.length % 4)) % 4);
-    const base64 = (base64Url + padding).replace(/-/g, "+").replace(/_/g, "/");
-    const raw = atob(base64);
-    const bytes = new Uint8Array(raw.length);
-    for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
-    return bytes.buffer; // <- ArrayBuffer puro
+function urlBase64ToUint8Array(base64: string): Uint8Array {
+    const padding = "=".repeat((4 - (base64.length % 4)) % 4);
+    const base64Safe = (base64 + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const raw = atob(base64Safe);
+    const out = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+    return out;
 }
 
-/* Si preferís mantener tu helper original, otra salida sería:
-   const convertedKey = urlBase64ToUint8Array(vapidPublicKey);
-   await reg.pushManager.subscribe({
-     userVisibleOnly: true,
-     applicationServerKey: convertedKey.buffer as ArrayBuffer, // 👈 cast a ArrayBuffer
-   });
-*/

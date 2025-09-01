@@ -18,38 +18,44 @@ export default function MiQRPage() {
     })();
   }, [user?.qrToken]);
 
-  // Maneja la activación de notificaciones
+  if (!user) return <div className="p-6">Cargando…</div>;
+
   async function handleEnableNotifications() {
     try {
-      setNotifStatus("Solicitando permisos…");
+      // Diagnóstico de soporte
+      const isStandalone = window.matchMedia?.("(display-mode: standalone)")?.matches || (window.navigator as any).standalone;
+      const hasSW = "serviceWorker" in navigator;
+      const hasPush = "PushManager" in window;
+      const hasNotif = typeof Notification !== "undefined";
 
-      // Pedir permiso al usuario
-      const permission = await Notification.requestPermission();
-      if (permission !== "granted") {
-        setNotifStatus("Permiso de notificaciones denegado.");
+      if (!isStandalone) {
+        setNotifStatus("iOS: instalá la app como PWA (Añadir a pantalla de inicio).");
         return;
       }
+      if (!hasSW) { setNotifStatus("Este navegador no soporta Service Workers."); return; }
+      if (!hasNotif) { setNotifStatus("API Notification no disponible en este contexto."); return; }
+      if (!hasPush) { setNotifStatus("API PushManager no disponible (iOS requiere PWA e iOS ≥ 16.4)."); return; }
 
-      // Registrar SW y suscribir usuario
+      setNotifStatus("Pidiendo permiso…");
+      const perm = await Notification.requestPermission();
+      if (perm !== "granted") { setNotifStatus("Permiso denegado."); return; }
+
+      setNotifStatus("Registrando Service Worker…");
       const reg = await registerSW();
-      if (!reg) {
-        setNotifStatus("No se pudo registrar el Service Worker.");
-        return;
-      }
+      if (!reg) { setNotifStatus("No se pudo registrar el SW."); return; }
 
-      const sub = await subscribeUser(reg);
-      if (sub) {
-        setNotifStatus("✅ Notificaciones activadas correctamente.");
-      } else {
-        setNotifStatus("Error al activar las notificaciones.");
-      }
+      setNotifStatus("Creando suscripción…");
+      const sub = await subscribeUser(reg); // acá veremos el error “real” si falla
+      if (!sub) { setNotifStatus("No se pudo crear la suscripción."); return; }
+
+      setNotifStatus("✅ Activadas. Probá cerrar una mesa.");
     } catch (e: any) {
+      setNotifStatus(`❌ ${e?.name || "Error"}: ${e?.message || "falló subscribe"}`);
       console.error(e);
-      setNotifStatus("Error al activar las notificaciones.");
     }
   }
 
-  if (!user) return <div className="p-6">Cargando…</div>;
+
 
   return (
     <div className="max-w-xl mx-auto p-6 space-y-4">
@@ -83,10 +89,9 @@ export default function MiQRPage() {
         >
           Activar notificaciones
         </button>
-        {notifStatus && (
-          <p className="mt-2 text-sm text-center opacity-80">{notifStatus}</p>
-        )}
+        {notifStatus && <p className="mt-2 text-sm text-center opacity-80">{notifStatus}</p>}
       </div>
+
     </div>
   );
 }
