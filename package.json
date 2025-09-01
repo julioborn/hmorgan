@@ -10,6 +10,8 @@
     "seed:admin": "tsx scripts/seedAdmin.ts"
   },
   "dependencies": {
+    "@zxing/browser": "^0.1.5",
+    "@zxing/library": "^0.21.3",
     "bcryptjs": "^2.4.3",
     "dotenv": "^17.2.1",
     "jose": "^6.1.0",

@@ -4,8 +4,11 @@ import { useEffect, useRef, useState } from "react";
 type CamState = "idle" | "starting" | "on" | "error";
 type Person = { id: string; nombre: string; apellido: string; dni: string; points: number };
 
+const RATIO = Number(process.env.NEXT_PUBLIC_POINTS_PER_ARS ?? 0.001); // opcional para preview
+
 export default function ScanPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const zxingReaderRef = useRef<any>(null); // BrowserMultiFormatReader
   const [camState, setCamState] = useState<CamState>("idle");
   const [status, setStatus] = useState("");
   const [errMsg, setErrMsg] = useState("");
@@ -14,19 +17,19 @@ export default function ScanPage() {
   const [consumo, setConsumo] = useState<number>(0);
 
   const [people, setPeople] = useState<Person[]>([]);
-  const [scanning, setScanning] = useState(false); // loop del detector
 
   function stopCamera() {
+    // parar getUserMedia
     const stream = videoRef.current?.srcObject as MediaStream | null;
     stream?.getTracks().forEach((t) => t.stop());
-    if (videoRef.current) {
-      (videoRef.current as HTMLVideoElement).srcObject = null;
+    if (videoRef.current) (videoRef.current as HTMLVideoElement).srcObject = null;
+    // parar ZXing si estaba activo
+    if (zxingReaderRef.current?.reset) {
+      try { zxingReaderRef.current.reset(); } catch { }
     }
   }
 
-  useEffect(() => {
-    return () => stopCamera();
-  }, []);
+  useEffect(() => () => stopCamera(), []);
 
   async function startCamera() {
     setErrMsg("");
@@ -35,20 +38,64 @@ export default function ScanPage() {
     stopCamera();
 
     try {
-      let stream = await navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: { facingMode: { ideal: "environment" } },
+      // 1) Intento con BarcodeDetector nativo
+      // @ts-expect-error experimental
+      const NativeBD = window.BarcodeDetector;
+      if (NativeBD && videoRef.current) {
+        // arrancar stream normal
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: { facingMode: { ideal: "environment" } },
+        });
+        (videoRef.current as HTMLVideoElement).srcObject = stream;
+        videoRef.current.muted = true;
+        videoRef.current.setAttribute("playsinline", "true");
+        await videoRef.current.play();
+
+        const detector = new NativeBD({ formats: ["qr_code"] });
+        let running = true;
+        const tick = async () => {
+          if (!running || !videoRef.current) return;
+          try {
+            const det = await detector.detect(videoRef.current);
+            const raw = det?.[0]?.rawValue;
+            if (raw) await onRawQr(raw);
+          } catch { }
+          requestAnimationFrame(tick);
+        };
+        setCamState("on");
+        setStatus("Cámara activa. Escaneá QRs de la mesa.");
+        requestAnimationFrame(tick);
+        return;
+      }
+
+      // 2) Fallback ZXing (funciona en iOS/Android)
+      // 1) Reader desde @zxing/browser
+      const { BrowserMultiFormatReader } = await import("@zxing/browser");
+
+      // 2) Tipos desde @zxing/library
+      const { DecodeHintType, BarcodeFormat } = await import("@zxing/library");
+
+      const hints = new Map();
+      hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.QR_CODE]);
+      const reader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 200 });
+      zxingReaderRef.current = reader;
+
+      // Elegir cámara trasera si existe
+      const devices = await BrowserMultiFormatReader.listVideoInputDevices();
+      const back =
+        devices.find((d) => /back|rear|trase|environment/i.test(d.label || ""))?.deviceId ||
+        devices[0]?.deviceId;
+
+      await reader.decodeFromVideoDevice(back ?? undefined, videoRef.current!, async (result, err) => {
+        if (result?.getText) {
+          const raw = result.getText();
+          await onRawQr(raw);
+        }
       });
-      if (!videoRef.current) return;
-      (videoRef.current as HTMLVideoElement).srcObject = stream;
-      videoRef.current.muted = true;
-      videoRef.current.setAttribute("playsinline", "true");
-      await videoRef.current.play();
 
       setCamState("on");
-      setStatus("Cámara activa. Escaneá QRs de la mesa.");
-      setScanning(true);
-      startDetectorLoop();
+      setStatus("Cámara activa (ZXing). Escaneá QRs de la mesa.");
     } catch (err: any) {
       console.error(err);
       setCamState("error");
@@ -60,72 +107,33 @@ export default function ScanPage() {
     }
   }
 
-  // Lector robusto: acepta JSON {qrToken} o token plano
-  async function resolveQrToken(raw: string) {
+  // Acepta JSON {qrToken} o token plano
+  async function onRawQr(raw: string) {
     let token = raw.trim();
     try {
       const parsed = JSON.parse(raw);
       if (parsed?.qrToken) token = String(parsed.qrToken);
     } catch { }
-    const res = await fetch(`/api/scan/resolve?qrToken=${encodeURIComponent(token)}`);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data?.error || "QR inválido");
-    return data.user as Person;
-  }
-
-  function alreadyAdded(id: string) {
-    return people.some((p) => p.id === id);
-  }
-
-  function startDetectorLoop() {
-    // @ts-expect-error experimental
-    const Detector = window.BarcodeDetector;
-    if (!Detector) {
-      setStatus("Sin lector nativo de QR. Usá el ingreso manual.");
-      return;
+    try {
+      const res = await fetch(`/api/scan/resolve?qrToken=${encodeURIComponent(token)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "QR inválido");
+      const user: Person = data.user;
+      if (!people.some((p) => p.id === user.id)) {
+        setPeople((prev) => [...prev, user]);
+        setStatus(`Agregado: ${user.nombre} ${user.apellido} (${user.dni})`);
+      } else {
+        setStatus("Ya estaba escaneado.");
+      }
+    } catch (e: any) {
+      setStatus(e?.message || "QR inválido");
     }
-    const detector = new Detector({ formats: ["qr_code"] });
-    let running = true;
-
-    const tick = async () => {
-      if (!running || !videoRef.current || !scanning) return;
-      try {
-        const detections = await detector.detect(videoRef.current);
-        const raw = detections?.[0]?.rawValue;
-        if (raw) {
-          try {
-            const user = await resolveQrToken(raw);
-            if (!alreadyAdded(user.id)) {
-              setPeople((prev) => [...prev, user]);
-              setStatus(`Agregado: ${user.nombre} ${user.apellido} (${user.dni})`);
-            } else {
-              setStatus("Ya estaba escaneado.");
-            }
-            // pequeña pausa para evitar doble lectura instantánea
-            await new Promise((r) => setTimeout(r, 800));
-          } catch (e: any) {
-            setStatus(e?.message || "QR inválido");
-          }
-        }
-      } catch { }
-      requestAnimationFrame(tick);
-    };
-
-    requestAnimationFrame(tick);
-    return () => {
-      running = false;
-    };
   }
 
   async function finalizeTable() {
-    if (!consumo || consumo <= 0) {
-      alert("Ingresá el consumo total de la mesa.");
-      return;
-    }
-    if (people.length === 0) {
-      alert("Escaneá al menos un cliente.");
-      return;
-    }
+    if (!consumo || consumo <= 0) { alert("Ingresá el consumo total de la mesa."); return; }
+    if (people.length === 0) { alert("Escaneá al menos un cliente."); return; }
+
     const userIds = people.map((p) => p.id);
     const res = await fetch("/api/scan/finalize", {
       method: "POST",
@@ -135,23 +143,23 @@ export default function ScanPage() {
     const data = await res.json();
     if (res.ok) {
       setStatus(`OK: ${data.totalPoints} puntos repartidos entre ${data.repartidos}.`);
-      setPeople([]);
-      setConsumo(0);
-      setMesa("");
-      setScanning(false);
-      stopCamera();
-      setCamState("idle");
+      setPeople([]); setConsumo(0); setMesa("");
+      stopCamera(); setCamState("idle");
     } else {
       alert(data.error || "Error finalizando mesa");
     }
   }
+
+  // --- PREVIEW de puntos ---
+  const totalPoints = Math.floor(Number(consumo || 0) * RATIO);
+  const porCabeza = people.length ? Math.floor(totalPoints / people.length) : 0;
+  const resto = people.length ? totalPoints - porCabeza * people.length : 0;
 
   return (
     <div className="p-4 space-y-4">
       <h1 className="text-2xl font-extrabold">Mesa: escanear & asignar puntos</h1>
 
       <div className="grid md:grid-cols-2 gap-4">
-        {/* Columna cámara */}
         <div className="rounded-xl overflow-hidden bg-black">
           <video
             ref={videoRef}
@@ -162,22 +170,39 @@ export default function ScanPage() {
           />
         </div>
 
-        {/* Columna control */}
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2">
+            {/* teclado numérico para mesa */}
             <input
               className="p-3 rounded bg-white/10"
-              placeholder="Nº de mesa (opcional)"
+              placeholder="Nº de mesa"
               value={mesa}
-              onChange={(e) => setMesa(e.target.value)}
+              onChange={(e) => setMesa(e.target.value.replace(/\D/g, ""))}
+              inputMode="numeric"
+              pattern="[0-9]*"
             />
+            {/* teclado numérico para consumo */}
             <input
               type="number"
               className="p-3 rounded bg-white/10"
               placeholder="Consumo total ARS"
-              value={consumo || ""}
+              value={Number.isNaN(consumo) ? "" : consumo}
               onChange={(e) => setConsumo(Number(e.target.value))}
+              inputMode="decimal"
+              step="1"
+              min="0"
             />
+          </div>
+
+          {/* PREVIEW puntos */}
+          <div className="p-3 rounded bg-white/5 border border-white/10 text-sm">
+            <div className="font-semibold mb-1">Resumen de puntos</div>
+            <div>Total a generar: <b>{totalPoints}</b></div>
+            <div>Personas: <b>{people.length}</b></div>
+            <div>
+              Por cabeza: <b>{porCabeza}</b>
+              {resto > 0 && <> · Sobrante por distribuir: <b>{resto}</b></>}
+            </div>
           </div>
 
           <div className="p-3 rounded bg-white/5 border border-white/10">
@@ -187,27 +212,20 @@ export default function ScanPage() {
           </div>
 
           {camState !== "on" ? (
-            <button
-              onClick={startCamera}
-              className="w-full py-3 rounded bg-indigo-600 text-white font-bold"
-            >
+            <button onClick={startCamera} className="w-full py-3 rounded bg-indigo-600 text-white font-bold">
               {camState === "starting" ? "Activando..." : "Comenzar mesa (activar cámara)"}
             </button>
           ) : (
-            <button
-              onClick={() => { setScanning(false); stopCamera(); setCamState("idle"); }}
-              className="w-full py-3 rounded bg-black text-white font-bold"
-            >
+            <button onClick={() => { stopCamera(); setCamState("idle"); }} className="w-full py-3 rounded bg-black text-white font-bold">
               Detener cámara
             </button>
           )}
 
-          {/* Lista de personas escaneadas */}
+          {/* Lista */}
           <div className="rounded-xl border border-white/10 divide-y divide-white/10">
-            <div className="p-2 text-sm opacity-80">
-              Escaneados ({people.length})
-            </div>
-            {people.map((p) => (
+            <div className="p-2 text-sm opacity-80">Escaneados ({people.length})</div>
+            {people.length === 0 && <div className="p-3 opacity-70">Sin personas aún.</div>}
+            {people.map((p, i) => (
               <div key={p.id} className="p-3 flex items-center justify-between">
                 <div>
                   <div className="font-semibold">{p.nombre} {p.apellido}</div>
@@ -221,54 +239,12 @@ export default function ScanPage() {
                 </button>
               </div>
             ))}
-            {people.length === 0 && <div className="p-3 opacity-70">Sin personas aún.</div>}
           </div>
 
-          <button
-            onClick={finalizeTable}
-            className="w-full py-3 rounded bg-emerald-600 text-white font-bold"
-          >
+          <button onClick={finalizeTable} className="w-full py-3 rounded bg-emerald-600 text-white font-bold">
             Finalizar y asignar puntos
           </button>
-
-          {/* Ingreso manual de token */}
-          <ManualEntry onResolved={async (token) => {
-            try {
-              const user = await resolveQrToken(token);
-              if (!alreadyAdded(user.id)) {
-                setPeople(prev => [...prev, user]);
-                setStatus(`Agregado: ${user.nombre} ${user.apellido} (${user.dni})`);
-              } else {
-                setStatus("Ya estaba escaneado.");
-              }
-            } catch (e: any) {
-              alert(e?.message || "QR inválido");
-            }
-          }} />
         </div>
-      </div>
-    </div>
-  );
-}
-
-function ManualEntry({ onResolved }: { onResolved: (token: string) => void | Promise<void> }) {
-  const [qrToken, setQrToken] = useState("");
-  return (
-    <div className="mt-2 p-3 rounded border border-white/10">
-      <div className="font-semibold mb-2">Ingreso manual</div>
-      <div className="flex gap-2">
-        <input
-          className="w-full p-2 rounded bg-white/10"
-          placeholder="Pegá el QR o token"
-          value={qrToken}
-          onChange={(e) => setQrToken(e.target.value)}
-        />
-        <button
-          className="px-4 rounded bg-white/10 hover:bg-white/15"
-          onClick={() => onResolved(qrToken)}
-        >
-          Agregar
-        </button>
       </div>
     </div>
   );
