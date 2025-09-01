@@ -42,6 +42,9 @@ export async function POST(req: NextRequest) {
 
         // --- Aplicar transacciones y sumar puntos ---
         for (const u of users) {
+            if (!u.pushSubscriptions?.length) {
+                console.log(`[finalize] user ${u._id} sin pushSubscriptions`);
+            }
             const extra = resto > 0 ? 1 : 0; // distribuir el sobrante a los primeros
             if (resto > 0) resto--;
 

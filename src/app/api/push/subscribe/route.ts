@@ -1,8 +1,34 @@
 // src/app/api/push/subscribe/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
-import { User } from "@/models/User";
+import { IUser, User } from "@/models/User";
 import jwt from "jsonwebtoken";
+
+export async function GET(req: NextRequest) {
+    const token = req.cookies.get("session")?.value;
+    if (!token) return NextResponse.json({ error: "No auth" }, { status: 401 });
+
+    let payload: any;
+    try {
+        const jwt = (await import("jsonwebtoken")).default;
+        payload = jwt.verify(token, process.env.JWT_SECRET!);
+    } catch {
+        return NextResponse.json({ error: "Invalid auth" }, { status: 401 });
+    }
+
+    const userId = (payload as any).userId || (payload as any).sub || (payload as any).id;
+    if (!userId) return NextResponse.json({ error: "No user id in token" }, { status: 400 });
+
+    await connectMongoDB();
+
+    // 👇 TIPADO ESTRICTO: un doc o null (no array)
+    const user = await User.findById(userId).lean<IUser | null>();
+
+    return NextResponse.json({
+        count: user?.pushSubscriptions?.length ?? 0,
+        subs: user?.pushSubscriptions ?? [],
+    });
+}
 
 export async function POST(req: NextRequest) {
     const token = req.cookies.get("session")?.value;
@@ -20,8 +46,12 @@ export async function POST(req: NextRequest) {
 
     await connectMongoDB();
 
+    console.log("[push/subscribe] payload=", payload);
+
     // 👇 toma la que exista
     const userId = payload.userId || payload.sub || payload.id;
+
+    console.log("[push/subscribe] userId=", userId, "endpoint=", sub.endpoint);
     if (!userId) return NextResponse.json({ error: "No user id in token" }, { status: 400 });
 
     // Idempotente por endpoint

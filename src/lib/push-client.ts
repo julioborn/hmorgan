@@ -19,15 +19,22 @@ export async function subscribeUser(reg: ServiceWorkerRegistration) {
         applicationServerKey: convertedKey,
     });
 
-    console.log("Nueva suscripción:", sub);
+    console.log("Nueva suscripción:", sub.endpoint);
 
-    // 🔹 Enviamos la suscripción al backend para guardarla
-    await fetch("/api/push/subscribe", {
+    const resp = await fetch("/api/push/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // credentials no hace falta en same-origin, pero si querés forzar:
+        credentials: "same-origin",
         body: JSON.stringify(sub),
     });
 
+    const text = await resp.text().catch(() => "");
+    let data: any = {};
+    try { data = JSON.parse(text); } catch { }
+
+    console.log("subscribe resp:", resp.status, data || text);
+    if (!resp.ok) throw new Error(`subscribe failed: ${resp.status}`);
     return sub;
 }
 
