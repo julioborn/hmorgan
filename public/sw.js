@@ -3,7 +3,7 @@
 // ===============================
 // 1) Cache simple para offline
 // ===============================
-const CACHE = "hmorgan-v2"; // ⬅️ subí versión cuando cambies assets
+const CACHE = "hmorgan-v4"; // ⬅️ subí versión cuando cambies assets
 const ASSETS = [
     "/",
     "/manifest.webmanifest",
