@@ -41,24 +41,25 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Invalid auth" }, { status: 401 });
     }
 
-    const sub = await req.json();
+    const sub = await req.json(); // { endpoint, keys:{p256dh, auth} }
     if (!sub?.endpoint) return NextResponse.json({ error: "Bad subscription" }, { status: 400 });
 
     await connectMongoDB();
 
-    console.log("[push/subscribe] payload=", payload);
-
-    // 👇 toma la que exista
     const userId = payload.userId || payload.sub || payload.id;
-
-    console.log("[push/subscribe] userId=", userId, "endpoint=", sub.endpoint);
     if (!userId) return NextResponse.json({ error: "No user id in token" }, { status: 400 });
 
-    // Idempotente por endpoint
+    // 👇 1) BORRAR este endpoint de cualquier OTRO usuario (migración/“claim”)
+    await User.updateMany(
+        { "pushSubscriptions.endpoint": sub.endpoint, _id: { $ne: userId } },
+        { $pull: { pushSubscriptions: { endpoint: sub.endpoint } } }
+    );
+
+    // 👇 2) AÑADIRLO (si no está) al usuario actual
     await User.updateOne(
-        { _id: userId, "pushSubscriptions.endpoint": { $ne: sub.endpoint } },
+        { _id: userId },
         {
-            $push: {
+            $addToSet: {
                 pushSubscriptions: {
                     endpoint: sub.endpoint,
                     keys: { p256dh: sub.keys?.p256dh, auth: sub.keys?.auth },

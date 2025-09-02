@@ -55,8 +55,6 @@ export default function MiQRPage() {
     }
   }
 
-
-
   return (
     <div className="max-w-xl mx-auto p-6 space-y-4">
       <div className="rounded-2xl overflow-hidden border border-white/10 bg-white/[0.04]">

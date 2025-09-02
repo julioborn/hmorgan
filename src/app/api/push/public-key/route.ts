@@ -1,17 +1,37 @@
 // src/app/api/push/public-key/route.ts
 import { NextResponse } from "next/server";
 
-function sanitizeKey(k: string | undefined) {
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+function sanitizeKey(k?: string) {
     if (!k) return "";
-    // quita comillas, espacios y saltos
-    const s = k.replace(/^"+|"+$/g, "").trim().replace(/\s+/g, "");
-    return s;
+    return k.replace(/^"+|"+$/g, "").trim().replace(/\s+/g, "");
+}
+
+function isBase64Url(s: string) {
+    return /^[A-Za-z0-9_-]+$/.test(s);
 }
 
 export async function GET() {
-    // usa la pública del server; si no está, cae a la del cliente
-    const fromServer = sanitizeKey(process.env.VAPID_PUBLIC_KEY);
-    const fromClient = sanitizeKey(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY);
-    const key = fromServer || fromClient;
-    return NextResponse.json({ key });
+    const key = sanitizeKey(process.env.VAPID_PUBLIC_KEY);
+
+    if (!key) {
+        return NextResponse.json(
+            { error: "VAPID_PUBLIC_KEY no configurada" },
+            { status: 500 }
+        );
+    }
+
+    if (!isBase64Url(key) || key.length < 80 || key.length > 100) {
+        return NextResponse.json(
+            { error: "VAPID_PUBLIC_KEY inválida (formato/longitud)" },
+            { status: 500 }
+        );
+    }
+
+    return NextResponse.json(
+        { key },
+        { headers: { "Cache-Control": "no-store, max-age=0" } }
+    );
 }
