@@ -16,7 +16,7 @@ export default function Header() {
                 ) : user ? (
                     <div className="flex items-center gap-3">
                         <span className="text-sm opacity-90">
-                            Hola, <b>{user.nombre}</b> <span className="opacity-60">({user.role})</span>
+                            Hola, <b>{user.nombre}</b>
                         </span>
                         {user.role === "cliente" && (
                             <Link href="/cliente/qr" className="px-3 py-1.5 rounded bg-white/10 hover:bg-white/15 text-sm">Mi QR</Link>

@@ -14,8 +14,6 @@ export default function LoginPage() {
 
   const onlyDigits = (s: string) => s.replace(/\D/g, "");
 
-  // reglas simples:
-  // DNI 7-9 dígitos (la mayoría en AR son 7-8; dejamos 9 por seguridad)
   const validate = (vals: { dni: string; password: string }): Errors => {
     const e: Errors = {};
     if (!vals.dni) e.dni = "Ingresá tu DNI";
@@ -34,11 +32,13 @@ export default function LoginPage() {
 
     setLoading(true);
     setErrors((p) => ({ ...p, general: undefined }));
+
     const res = await fetch("/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ dni, password }),
       headers: { "Content-Type": "application/json" },
     });
+
     setLoading(false);
 
     if (!res.ok) {
@@ -47,34 +47,44 @@ export default function LoginPage() {
       return;
     }
 
+    // Refresca el contexto y redirige SIEMPRE a "/"
     await refresh();
-    const me = await fetch("/api/auth/me", { cache: "no-store" }).then((r) => r.json());
-    if (me?.user?.role === "admin") window.location.href = "/admin/scan";
-    else window.location.href = "/cliente/qr";
+    window.location.href = "/"; // 👈 redirección unificada
   }
 
   return (
-    <div className="min-h-[70vh] grid place-items-center p-4">
-      <form onSubmit={onSubmit} className="w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-xl backdrop-blur">
-        <h1 className="text-2xl font-extrabold text-center mb-4">Ingresar</h1>
+    <div
+      className="min-h-[100dvh] grid place-items-center p-4"
+      style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+    >
+      <form
+        onSubmit={onSubmit}
+        className="w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-xl backdrop-blur"
+      >
+        <h1 className="text-2xl font-extrabold text-center mb-5">Ingresar</h1>
 
         {errors.general && (
-          <div className="mb-3 p-3 rounded bg-rose-900/20 text-rose-300 text-sm" role="alert">
+          <div className="mb-4 p-3 rounded bg-rose-900/20 text-rose-300 text-sm" role="alert">
             {errors.general}
           </div>
         )}
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div>
+            <label className="sr-only" htmlFor="dni">DNI</label>
             <input
+              id="dni"
               placeholder="DNI"
-              className={`w-full p-3 rounded bg-white/10 focus:outline-none ${touched.dni && currentErrors.dni ? "ring-2 ring-rose-400" : ""}`}
+              className={`w-full h-12 px-3 rounded-xl bg-white/10 outline-none ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-emerald-500/70 ${touched.dni && currentErrors.dni ? "ring-2 ring-rose-400 focus:ring-rose-400" : ""
+                }`}
               value={dni}
               onChange={(e) => setDni(onlyDigits(e.target.value))}
               onBlur={() => setTouched((t) => ({ ...t, dni: true }))}
               inputMode="numeric"
               pattern="[0-9]*"
               autoComplete="username"
+              autoCapitalize="none"
+              autoCorrect="off"
               aria-invalid={!!(touched.dni && currentErrors.dni)}
             />
             {touched.dni && currentErrors.dni && (
@@ -83,14 +93,19 @@ export default function LoginPage() {
           </div>
 
           <div>
+            <label className="sr-only" htmlFor="password">Contraseña</label>
             <input
+              id="password"
               placeholder="Contraseña"
               type="password"
-              className={`w-full p-3 rounded bg-white/10 focus:outline-none ${touched.password && currentErrors.password ? "ring-2 ring-rose-400" : ""}`}
+              className={`w-full h-12 px-3 rounded-xl bg-white/10 outline-none ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-emerald-500/70 ${touched.password && currentErrors.password ? "ring-2 ring-rose-400 focus:ring-rose-400" : ""
+                }`}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onBlur={() => setTouched((t) => ({ ...t, password: true }))}
               autoComplete="current-password"
+              autoCapitalize="none"
+              autoCorrect="off"
               aria-invalid={!!(touched.password && currentErrors.password)}
             />
             {touched.password && currentErrors.password && (
@@ -100,7 +115,7 @@ export default function LoginPage() {
 
           <button
             disabled={loading || hasErrors}
-            className="w-full py-3 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold disabled:opacity-60"
+            className="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold disabled:opacity-60 transition"
           >
             {loading ? "Ingresando..." : "Entrar"}
           </button>

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 
-// Tipos existentes
+// Tipos
 type CamState = "idle" | "starting" | "on" | "error";
 type Person = { id: string; nombre: string; apellido: string; dni: string; points: number };
 
@@ -21,7 +21,12 @@ export default function ScanPage() {
   const [mesa, setMesa] = useState<string>("");
   const [people, setPeople] = useState<Person[]>([]);
 
-  // helpers de sanitización
+  // 🎉 Toast y flash de escaneo
+  const [scanToast, setScanToast] = useState<string>("");
+  const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [flash, setFlash] = useState(false);
+
+  // helpers
   function sanitizeMesa(v: string) {
     let s = v.replace(/\D/g, "");
     s = s.replace(/^0+(?=\d)/, "");
@@ -42,7 +47,7 @@ export default function ScanPage() {
     return s;
   }
 
-  const consumo = consumoStr ? Number(consumoStr) : 0;
+  const consumo = moneyToNumber(consumoStr);
   const canStart = Boolean(mesa && consumo > 0);
 
   function stopCamera() {
@@ -54,7 +59,12 @@ export default function ScanPage() {
     }
   }
 
-  useEffect(() => () => stopCamera(), []);
+  useEffect(() => {
+    return () => {
+      stopCamera();
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
 
   async function startCamera() {
     if (!canStart) {
@@ -118,7 +128,7 @@ export default function ScanPage() {
       });
 
       setCamState("on");
-      setStatus("Cámara activa (ZXing). Escaneá QRs de la mesa.");
+      setStatus("Cámara activa, escaneá los QRs de la mesa.");
     } catch (err: any) {
       console.error(err);
       setCamState("error");
@@ -151,6 +161,13 @@ export default function ScanPage() {
         seenIdsRef.current.add(user.id);
         setPeople((prev) => [...prev, user]);
         setStatus(`Agregado: ${user.nombre} ${user.apellido} (${user.dni})`);
+
+        // 🎉 Toast + flash
+        setScanToast(`${user.nombre} ${user.apellido}`);
+        if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+        toastTimerRef.current = setTimeout(() => setScanToast(""), 1800);
+        setFlash(true);
+        setTimeout(() => setFlash(false), 180);
       } else {
         setStatus("Ya estaba escaneado.");
       }
@@ -171,7 +188,7 @@ export default function ScanPage() {
     const res = await fetch("/api/scan/finalize", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ consumoARS: Number(consumo), userIds, mesa: mesa || undefined })
+      body: JSON.stringify({ consumoARS: consumo, userIds, mesa: mesa || undefined })
     });
 
     const data = await res.json();
@@ -185,12 +202,11 @@ export default function ScanPage() {
     }
   }
 
-  // PREVIEW de puntos
+  // PREVIEW
   const totalPoints = Math.floor(Number(consumo || 0) * RATIO);
   const porCabeza = people.length ? Math.floor(totalPoints / people.length) : 0;
   const resto = people.length ? totalPoints - porCabeza * people.length : 0;
 
-  // Etiqueta de estado cámara
   const camPill = {
     idle: { text: "Cámara inactiva", cls: "bg-white/10 text-white" },
     starting: { text: "Activando cámara…", cls: "bg-amber-500/20 text-amber-300" },
@@ -198,38 +214,87 @@ export default function ScanPage() {
     error: { text: "Error de cámara", cls: "bg-rose-500/20 text-rose-300" }
   }[camState];
 
+  // Muestra "12.345,67" mientras el usuario escribe
+  function formatMoneyInput(v: string): string {
+    // quitar puntos que puedan venir pegados y todo lo que no sea dígito o coma
+    v = v.replace(/\./g, "").replace(/[^\d,]/g, "");
+
+    const hasComma = v.includes(",");
+    const [rawInt = "", rawDec = ""] = v.split(",");
+
+    // normalizar enteros (sin ceros a la izquierda, salvo 0)
+    let int = rawInt.replace(/^0+(?=\d)/, "") || "0";
+    // agrupar miles con punto
+    int = int.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+    // mantener solo 2 decimales
+    const dec = rawDec.replace(/,/g, "").slice(0, 2);
+
+    // si el usuario escribió la coma, devolvemos la coma aunque no haya decimales
+    return hasComma ? `${int},${dec}` : int;
+  }
+
+  // Convierte "12.345,67" -> 12345.67 (número)
+  function moneyToNumber(s: string): number {
+    if (!s) return 0;
+    const normalized = s.replace(/\./g, "").replace(",", ".");
+    const n = Number(normalized);
+    return Number.isFinite(n) ? n : 0;
+  }
+
   return (
     <div className="mx-auto max-w-6xl p-4 md:p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">Mesa: escanear & asignar puntos</h1>
-        <p className="text-sm opacity-80">Ingresá los datos, activá la cámara y escaneá los QRs de la mesa.</p>
-      </div>
 
       <div className="grid md:grid-cols-2 gap-6">
         {/* Panel Cámara */}
         <div className="group relative rounded-2xl overflow-hidden border border-white/10 bg-gradient-to-b from-zinc-900/60 to-black">
+
           {/* Chip estado */}
-          <div className="absolute top-3 left-3 z-10 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold backdrop-blur bg-black/40 border border-white/10">
+          <div className="absolute top-3 left-3 z-20 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold backdrop-blur bg-black/40 border border-white/10">
             <span className={`inline-block h-2.5 w-2.5 rounded-full ${camState === "on" ? "bg-emerald-400 animate-pulse" : camState === "starting" ? "bg-amber-400 animate-pulse" : camState === "error" ? "bg-rose-400" : "bg-zinc-400"}`} />
             <span className={camPill.cls}>{camPill.text}</span>
           </div>
 
-          {/* Vídeo */}
-          <div className="relative aspect-[16/9] sm:aspect-[4/3] bg-black">
-            <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover" playsInline muted autoPlay />
+          {/* Toast de escaneo */}
+          <div
+            aria-live="polite"
+            className={`absolute top-3 right-3 z-20 transition-all duration-200
+                        ${scanToast ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2"}`}
+          >
+            <div className="rounded-xl bg-black/70 border border-white/10 backdrop-blur px-3 py-1.5 text-xs">
+              <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 mr-2" />
+              Escaneado: <b>{scanToast}</b>
+            </div>
+          </div>
 
-            {/* Overlay de guía de escaneo */}
+          {/* Vídeo (más cuadrado) */}
+          <div className="relative aspect-square md:aspect-[4/3] lg:aspect-[3/2] bg-black">
+            <video
+              ref={videoRef}
+              className="absolute inset-0 h-full w-full object-cover"
+              playsInline
+              muted
+              autoPlay
+            />
+            {/* Flash éxito */}
+            {flash && <div className="pointer-events-none absolute inset-0 bg-emerald-400/25 animate-pulse" />}
+
+            {/* Overlay de guía */}
             <div className="pointer-events-none absolute inset-0">
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/30" />
-              <div className="absolute inset-8 rounded-2xl border-2 border-white/20" />
-              <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "repeating-linear-gradient(90deg, rgba(255,255,255,.15) 0 1px, transparent 1px 24px), repeating-linear-gradient(0deg, rgba(255,255,255,.15) 0 1px, transparent 1px 24px)" }} />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/25" />
+              <div className="absolute inset-6 md:inset-8 rounded-2xl border-2 border-white/25" />
+              <div
+                className="absolute inset-0 opacity-15"
+                style={{
+                  backgroundImage:
+                    "repeating-linear-gradient(90deg, rgba(255,255,255,.15) 0 1px, transparent 1px 24px), repeating-linear-gradient(0deg, rgba(255,255,255,.15) 0 1px, transparent 1px 24px)"
+                }}
+              />
             </div>
           </div>
 
           {/* Controles cámara */}
           <div className="flex items-center justify-between gap-3 p-3 border-t border-white/10 bg-black/40 backdrop-blur">
-            <div className="text-xs opacity-80 truncate">{status || "Ingresá mesa y consumo para comenzar."}</div>
             {camState !== "on" ? (
               <button
                 onClick={startCamera}
@@ -240,15 +305,16 @@ export default function ScanPage() {
                 {camState === "starting" ? "Activando…" : "Activar cámara"}
               </button>
             ) : (
-              <button onClick={() => { stopCamera(); setCamState("idle"); }} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-900 text-white font-semibold border border-white/10 hover:bg-zinc-800">
+              <button
+                onClick={() => { stopCamera(); setCamState("idle"); }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-900 text-white font-semibold border border-white/10 hover:bg-zinc-800"
+              >
                 Detener
               </button>
             )}
           </div>
 
-          {errMsg && (
-            <div className="px-3 pb-3 text-sm text-rose-300">{errMsg}</div>
-          )}
+          {errMsg && <div className="px-3 pb-3 text-sm text-rose-300">{errMsg}</div>}
         </div>
 
         {/* Panel de control */}
@@ -257,10 +323,9 @@ export default function ScanPage() {
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
-                <label className="text-xs opacity-70">Nº de mesa</label>
+                <label className="text-sm">Nº de mesa</label>
                 <input
                   className="w-full rounded-xl bg-white/10 px-3 py-2.5 outline-none ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-emerald-500/70"
-                  placeholder="Ej: 12"
                   value={mesa}
                   onChange={(e) => setMesa(sanitizeMesa(e.target.value))}
                   inputMode="numeric"
@@ -269,14 +334,15 @@ export default function ScanPage() {
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-xs opacity-70">Consumo total (ARS)</label>
+                <label className="text-sm">Total $</label>
                 <input
                   className="w-full rounded-xl bg-white/10 px-3 py-2.5 outline-none ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-emerald-500/70"
-                  placeholder="Ej: 25000"
+                  placeholder="0,00"
                   value={consumoStr}
-                  onChange={(e) => setConsumoStr(sanitizeMoney(e.target.value))}
+                  onChange={(e) => setConsumoStr(formatMoneyInput(e.target.value))}
                   inputMode="decimal"
                   type="text"
+                  lang="es-AR"
                 />
               </div>
             </div>
@@ -284,11 +350,11 @@ export default function ScanPage() {
 
           {/* Resumen puntos */}
           <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.04] to-white/[0.02] p-4">
-            <div className="text-sm font-semibold mb-2">Resumen</div>
+            <div className="text-sm font-semibold mb-2">Puntos</div>
             <div className="grid grid-cols-3 gap-3 text-center">
+              <Metric label="Total personas" value={people.length} />
               <Metric label="Total puntos" value={totalPoints} />
-              <Metric label="Personas" value={people.length} />
-              <Metric label="Por persona" value={porCabeza} suffix={resto > 0 ? ` (+${resto} resto)` : undefined} />
+              <Metric label="Por persona" value={porCabeza} suffix={resto > 0 ? `(+${resto} resto)` : undefined} />
             </div>
           </div>
 
@@ -337,7 +403,7 @@ export default function ScanPage() {
             className="w-full py-3 rounded-2xl bg-emerald-600 text-white font-bold shadow hover:shadow-lg transition-shadow disabled:opacity-60"
             disabled={!people.length || !consumo}
           >
-            Finalizar y asignar puntos
+            Finalizar
           </button>
         </div>
       </div>
@@ -345,12 +411,16 @@ export default function ScanPage() {
   );
 }
 
+/* ====== Métrica con alineación estable ====== */
 function Metric({ label, value, suffix }: { label: string; value: number | string; suffix?: string }) {
   return (
     <div className="rounded-xl bg-white/[0.04] border border-white/10 p-3">
-      <div className="text-[11px] uppercase tracking-wide opacity-70">{label}</div>
-      <div className="text-xl font-extrabold leading-tight">{value}</div>
-      {suffix && <div className="text-[11px] opacity-70">{suffix}</div>}
+      {/* Reserva 2 líneas para que el número quede alineado entre tarjetas */}
+      <div className="h-8 sm:h-9 flex items-end">
+        <div className="text-[11px] uppercase tracking-wide opacity-70 leading-tight">{label}</div>
+      </div>
+      <div className="mt-1 text-xl font-extrabold leading-none tabular-nums">{value}</div>
+      {suffix && <div className="mt-0.5 text-[11px] opacity-70 leading-tight">{suffix}</div>}
     </div>
   );
 }
