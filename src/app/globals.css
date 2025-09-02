@@ -2,10 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: light; }
-@media (prefers-color-scheme: dark) {
-  :root { color-scheme: light; } /* lock */
+/* Fuerza esquema claro a nivel documento */
+:root {
+  color-scheme: light;
 }
+
+/* Si el SO está en dark, seguimos forzando claro */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: light;
+  }
+}
+
+/* Si querés look claro real, fija explícito fondo/texto; 
+   si mantenés tu fondo oscuro con gradiente, podés omitir esto */
+html,
+body {
+  background: #ffffff;
+  color: #0f172a;
+}
+
 
 body {
   @apply bg-slate-900 text-slate-100 min-h-screen;
@@ -16,4 +32,6 @@ body {
 }
 
 /* Sombra suave reusable */
-.shadow-elegant { box-shadow: 0 10px 25px -10px rgba(0,0,0,.4); }
+.shadow-elegant {
+  box-shadow: 0 10px 25px -10px rgba(0, 0, 0, .4);
+}
