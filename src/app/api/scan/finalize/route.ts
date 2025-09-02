@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import { PointTransaction } from "@/models/PointTransaction";
-import { sendPushToSubscriptions } from "@/lib/push-server";   // ⬅️ IMPORTANTE
+import { sendPushAndCollectInvalid } from "@/lib/push-server"; 
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
