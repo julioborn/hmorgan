@@ -146,7 +146,12 @@ export default function AdminClientsPage() {
                             setSort(s);
                             setDir(d);
                         }}
-                        className="rounded-lg bg-white/10 px-2 py-2 ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-emerald-500/70"
+                        className="
+    rounded-lg px-2 py-2 ring-1 ring-inset ring-white/10
+    focus:ring-2 focus:ring-emerald-500/70
+    bg-white text-zinc-900
+    [color-scheme:light]   /* fuerza controles claros en Android/Chrome */
+  "
                     >
                         <option value="apellido:asc">Apellido ↑</option>
                         <option value="apellido:desc">Apellido ↓</option>

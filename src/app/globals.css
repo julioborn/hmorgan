@@ -35,3 +35,11 @@ body {
 .shadow-elegant {
   box-shadow: 0 10px 25px -10px rgba(0, 0, 0, .4);
 }
+
+/* Asegura texto visible en listas nativas del <select> (Android/Windows) */
+select, select option {
+  color: #111 !important;
+}
+select {
+  background-color: #fff !important;
+}
