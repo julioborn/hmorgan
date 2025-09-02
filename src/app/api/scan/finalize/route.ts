@@ -75,7 +75,14 @@ export async function POST(req: NextRequest) {
             users.map(async (u: any) => {
                 if (Array.isArray(u.pushSubscriptions) && u.pushSubscriptions.length) {
                     try {
-                        await sendPushToSubscriptions(u.pushSubscriptions, pushPayload);
+                        const invalid = await sendPushAndCollectInvalid(u.pushSubscriptions, pushPayload);
+                        if (invalid.length) {
+                            // 🧹 borra de la DB los endpoints muertos de ESTE usuario
+                            await User.updateOne(
+                                { _id: u._id },
+                                { $pull: { pushSubscriptions: { endpoint: { $in: invalid } } } }
+                            );
+                        }
                     } catch (e) {
                         console.error("push error user", u._id, e);
                     }

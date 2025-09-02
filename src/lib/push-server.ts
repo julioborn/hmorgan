@@ -22,6 +22,28 @@ function ensureWebPushConfigured() {
     }
 }
 
+export async function sendPushAndCollectInvalid(
+    subs: Array<{ endpoint: string; keys?: { p256dh?: string; auth?: string } }>,
+    payload: any
+): Promise<string[]> {
+    ensureWebPushConfigured();
+    const body = JSON.stringify(payload);
+    const invalid: string[] = [];
+
+    for (const sub of subs) {
+        try {
+            await webPush.sendNotification(sub as any, body);
+        } catch (err: any) {
+            const sc = err?.statusCode;
+            // 410 Gone o 404 Not Found => suscripción muerta
+            if (sc === 410 || sc === 404) invalid.push(sub.endpoint);
+            console.error("push error:", sc, err?.body);
+        }
+    }
+
+    return invalid;
+}
+
 export async function sendPushToSubscriptions(
     subs: PushSubscriptionDTO[],
     payload: PushPayload

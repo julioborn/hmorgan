@@ -58,17 +58,29 @@ export async function subscribeUser(reg: ServiceWorkerRegistration) {
     return sub;
 }
 
+// lib/push-client.ts
 export async function forceResubscribe(reg: ServiceWorkerRegistration) {
     const existing = await reg.pushManager.getSubscription();
     try {
         if (existing) {
+            // 1) avisá al backend del usuario actual (si lo hay)
             await fetch("/api/push/unsubscribe", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "same-origin",
                 body: JSON.stringify({ endpoint: existing.endpoint }),
             }).catch(() => { });
+
+            // 2) desuscribí en el navegador (cambia el endpoint)
             await existing.unsubscribe();
+
+            // 3) OPCIONAL: purga ese endpoint en TODOS los usuarios (por si quedó en otra cuenta)
+            await fetch("/api/push/unsubscribe-any", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "same-origin",
+                body: JSON.stringify({ endpoint: existing.endpoint }),
+            }).catch(() => { });
         }
     } catch { }
     return subscribeUser(reg);
