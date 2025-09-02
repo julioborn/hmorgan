@@ -106,7 +106,7 @@ function AdminHome() {
     >
       <header className="space-y-1">
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight">
-          Panel del administrador
+          Administración
         </h1>
       </header>
 
