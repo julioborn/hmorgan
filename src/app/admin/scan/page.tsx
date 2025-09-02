@@ -21,6 +21,25 @@ export default function ScanPage() {
   const [mesa, setMesa] = useState<string>("");
   const [people, setPeople] = useState<Person[]>([]);
 
+  const camStateRef = useRef<CamState>("idle");
+  useEffect(() => { camStateRef.current = camState; }, [camState]);
+
+  async function supportsNativeQR(): Promise<boolean> {
+    // @ts-expect-error experimental
+    const BD = window.BarcodeDetector;
+    if (!BD) return false;
+    try {
+      if (typeof BD.getSupportedFormats === "function") {
+        const formats: string[] = await BD.getSupportedFormats();
+        return formats.includes("qr_code");
+      }
+      // Algunos navegadores antiguos no exponen getSupportedFormats; asumimos OK
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   // 🎉 Toast y flash de escaneo
   const [scanToast, setScanToast] = useState<string>("");
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -61,9 +80,11 @@ export default function ScanPage() {
     const stream = videoRef.current?.srcObject as MediaStream | null;
     stream?.getTracks().forEach((t) => t.stop());
     if (videoRef.current) (videoRef.current as HTMLVideoElement).srcObject = null;
-    if (zxingReaderRef.current?.reset) {
-      try { zxingReaderRef.current.reset(); } catch { }
-    }
+
+    try { zxingReaderRef.current?.reset?.(); } catch { }
+
+    // 👇 mantiene el loop a raya si queda un rAF pendiente
+    camStateRef.current = "idle";
   }
 
   useEffect(() => {
@@ -87,12 +108,22 @@ export default function ScanPage() {
     stopCamera();
 
     try {
+      // 0) Ver si el nativo sirve de verdad
+      const canNative = await supportsNativeQR();
+
+      // 1) Nativo con verificación real
       // @ts-expect-error experimental
       const NativeBD = window.BarcodeDetector;
-      if (NativeBD && videoRef.current) {
+      if (canNative && NativeBD && videoRef.current) {
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: false,
-          video: { facingMode: { ideal: "environment" } },
+          video: {
+            facingMode: { ideal: "environment" },
+            // mejorá un poco la resolución por si la cámara elige muy bajo
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            advanced: [{ focusMode: "continuous" } as any],
+          },
         });
         (videoRef.current as HTMLVideoElement).srcObject = stream;
         videoRef.current.muted = true;
@@ -100,43 +131,59 @@ export default function ScanPage() {
         await videoRef.current.play();
 
         const detector = new NativeBD({ formats: ["qr_code"] });
+
         const tick = async () => {
-          if (!videoRef.current || camState !== "on") return;
+          // usá el ref, no el estado directo, para evitar cierres stale
+          if (!videoRef.current || camStateRef.current !== "on") return;
           try {
             const det = await detector.detect(videoRef.current);
             const raw = det?.[0]?.rawValue;
             if (raw) await onRawQr(raw);
-          } catch { }
+          } catch { /* ignore */ }
           requestAnimationFrame(tick);
         };
+
+        camStateRef.current = "on";
         setCamState("on");
-        setStatus("Cámara activa. Escaneá QRs de la mesa.");
+        setStatus("Cámara activa (nativo). Escaneá QRs de la mesa.");
         requestAnimationFrame(tick);
         return;
       }
 
+      // 2) Fallback ZXing con constraints “amigables” a Android
       const { BrowserMultiFormatReader } = await import("@zxing/browser");
       const { DecodeHintType, BarcodeFormat } = await import("@zxing/library");
 
       const hints = new Map();
       hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.QR_CODE]);
-      const reader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 200 });
+      hints.set(DecodeHintType.TRY_HARDER, true); // 💪 mejora en Android
+
+      const reader = new BrowserMultiFormatReader(hints, {
+        delayBetweenScanAttempts: 120, // un poco más rápido que 200ms
+      });
       zxingReaderRef.current = reader;
 
-      const devices = await BrowserMultiFormatReader.listVideoInputDevices();
-      const back =
-        devices.find((d) => /back|rear|trase|environment/i.test(d.label || ""))?.deviceId ||
-        devices[0]?.deviceId;
-
-      await reader.decodeFromVideoDevice(back ?? undefined, videoRef.current!, async (result) => {
-        if (result?.getText) {
-          const raw = result.getText();
-          await onRawQr(raw);
+      await reader.decodeFromConstraints(
+        {
+          audio: false,
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            advanced: [{ focusMode: "continuous" } as any],
+          },
+        },
+        videoRef.current!,
+        async (result) => {
+          if (result?.getText) {
+            await onRawQr(result.getText());
+          }
         }
-      });
+      );
 
-      setCamState("on");
-      setStatus("Cámara activa, escaneá los QRs de la mesa.");
+      camStateRef.current = "on";           // ✅
+      setCamState("on");                    // ✅
+      setStatus("Cámara activa (ZXing). Escaneá QRs de la mesa.");
     } catch (err: any) {
       console.error(err);
       setCamState("error");
