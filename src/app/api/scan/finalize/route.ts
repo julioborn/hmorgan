@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
         // Construimos un payload simple; podés personalizar por usuario si querés
         const pushPayload = {
             title: "¡Puntos sumados!",
-            body: `Se acreditaron ${totalPoints} puntos por la mesa ${mesa ?? ""}. ¡Gracias por venir!`,
+            body: `Se acreditaron ${totalPoints} puntos. ¡Gracias por venir!`,
             url: "/cliente/qr", // al tocar abre su QR
         };
 
