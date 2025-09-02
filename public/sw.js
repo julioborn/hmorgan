@@ -1,7 +1,7 @@
 // ===============================
-// SW: cache básico + push
+// SW: cache + push notifications
 // ===============================
-const CACHE = "hmorgan-v7"; // ⬅️ subí versión al cambiar assets
+const CACHE = "hmorgan-v8"; // ⬅️ subí versión para forzar update
 
 const ASSETS = [
     "/",
@@ -10,13 +10,11 @@ const ASSETS = [
     "/favicon-16x16.png"
 ];
 
-// Install: precache
 self.addEventListener("install", (e) => {
     e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
     self.skipWaiting();
 });
 
-// Activate: limpia caches viejos
 self.addEventListener("activate", (e) => {
     e.waitUntil(
         caches.keys().then((keys) =>
@@ -26,7 +24,6 @@ self.addEventListener("activate", (e) => {
     self.clients.claim();
 });
 
-// Fetch: navegación -> network con fallback /, assets -> cache-first
 self.addEventListener("fetch", (e) => {
     const req = e.request;
 
@@ -50,7 +47,7 @@ self.addEventListener("fetch", (e) => {
 });
 
 // ===============================
-// Push notifications
+// Push notifications (Android + iOS)
 // ===============================
 self.addEventListener("push", (event) => {
     let data = {};
@@ -63,11 +60,13 @@ self.addEventListener("push", (event) => {
     const title = data.title || "HMorgan";
     const options = {
         body: data.body || "",
-        // Android:
-        // - icon → ícono grande (puede ser maskable 512, Android lo reduce)
-        // - badge → ícono chico monocromo (TEMP: usamos 96x96 normal hasta que tengas uno mono)
-        icon: "/icon-maskable-512x512.png",
-        badge: "/icon-96x96.png", // ⚠️ TEMPORAL: cuando tengas monocromo, cambiá a /icon-badge-96x96.png
+
+        // 👇 Recomendado en Android:
+        // - icon: PNG 192x192 con padding y fondo transparente (grande de la notificación)
+        // - badge: PNG 96x96 monocromo BLANCO sobre TRANSPARENTE (glifo pequeño)
+        icon: "/icon-192x192.png",
+        badge: "/icon-badge-96x96.png",
+
         data: { url: data.url || "/" },
         vibrate: [80, 30, 80],
         timestamp: Date.now(),
