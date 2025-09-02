@@ -25,6 +25,13 @@ export default function ScanPage() {
   const [scanToast, setScanToast] = useState<string>("");
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [flash, setFlash] = useState(false);
+  // 🎉 Alerta de finalización
+  const [finishToast, setFinishToast] = useState<{
+    totalPoints: number;
+    repartidos: number;
+    mesa?: string;
+  } | null>(null);
+  const finishTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // helpers
   function sanitizeMesa(v: string) {
@@ -63,6 +70,7 @@ export default function ScanPage() {
     return () => {
       stopCamera();
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      if (finishTimerRef.current) clearTimeout(finishTimerRef.current); // 👈
     };
   }, []);
 
@@ -195,8 +203,19 @@ export default function ScanPage() {
 
     if (res.ok) {
       setStatus(`OK: ${data.totalPoints} puntos repartidos entre ${data.repartidos}.`);
-      setPeople([]); setConsumoStr(""); setMesa(""); stopCamera(); setCamState("idle");
-      seenIdsRef.current.clear(); inFlightTokensRef.current.clear();
+
+      // 👇 Mostrar alerta de finalización por 3 segundos
+      setFinishToast({ totalPoints: data.totalPoints, repartidos: data.repartidos, mesa });
+      if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
+      finishTimerRef.current = setTimeout(() => setFinishToast(null), 3000);
+
+      setPeople([]);
+      setConsumoStr("");
+      setMesa("");
+      stopCamera();
+      setCamState("idle");
+      seenIdsRef.current.clear();
+      inFlightTokensRef.current.clear();
     } else {
       alert(data.error || "Error finalizando mesa");
     }
@@ -407,6 +426,46 @@ export default function ScanPage() {
           </button>
         </div>
       </div>
+
+      {/* === Toast de finalización === */}
+      {finishToast && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4"
+          aria-live="assertive"
+          role="status"
+          onClick={() => setFinishToast(null)}
+        >
+          <div
+            className="pointer-events-auto w-full max-w-sm rounded-2xl bg-zinc-900/90 border border-emerald-500/30
+                 shadow-xl backdrop-blur px-4 py-4 animate-in fade-in zoom-in-95 duration-200"
+          >
+            <div className="flex items-start gap-3">
+              <div className="shrink-0 grid place-items-center h-9 w-9 rounded-full bg-emerald-500/20 text-emerald-300">
+                {/* Check inline SVG */}
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <div className="font-bold">Mesa finalizada</div>
+                <div className="text-sm opacity-90">
+                  Se acreditaron <b>{finishToast.totalPoints}</b> puntos entre{" "}
+                  <b>{finishToast.repartidos}</b> persona{finishToast.repartidos !== 1 ? "s" : ""}.
+                  {finishToast.mesa ? <> Mesa <b>{finishToast.mesa}</b>.</> : null}
+                </div>
+              </div>
+              <button
+                className="ml-auto text-xs px-2 py-1 rounded bg-white/10 hover:bg-white/15"
+                onClick={(e) => { e.stopPropagation(); setFinishToast(null); }}
+                aria-label="Cerrar"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
