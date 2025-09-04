@@ -1,0 +1,821 @@
+[
+  {
+    "nombre": "COSTILLA",
+    "descripcion": "Costilla corte banderita, acompañada de papas fritas",
+    "precio": 1650000,
+    "categoria": "PARRILLA",
+    "activo": true
+  },
+  {
+    "nombre": "ENTRAÑA",
+    "descripcion": "Entraña de costilla, acompañado de papas fritas",
+    "precio": 1650000,
+    "categoria": "PARRILLA",
+    "activo": true
+  },
+  {
+    "nombre": "BIFE CHORIZO",
+    "descripcion": "Bife acompañado con papas fritas",
+    "precio": 1650000,
+    "categoria": "PARRILLA",
+    "activo": true
+  },
+  {
+    "nombre": "PIZZA RUCULA",
+    "descripcion": "Mozzarella, rúcula, parmesano, panceta, oliva",
+    "precio": 1480000,
+    "categoria": "PIZZAS",
+    "activo": true
+  },
+  {
+    "nombre": "PIZZA DE ANANA",
+    "descripcion": "Mozzarella, ananá, azucar negra, cerezas",
+    "precio": 1540000,
+    "categoria": "PIZZAS",
+    "activo": true
+  },
+  {
+    "nombre": "PIZZA DE PERAS",
+    "descripcion": "Peras, mozzarella, nueces, miel, queso azul",
+    "precio": 1540000,
+    "categoria": "PIZZAS",
+    "activo": true
+  },
+  {
+    "nombre": "PIZZA 4 QUESOS",
+    "descripcion": "Mozzarella, azul, holanda, dambo",
+    "precio": 1480000,
+    "categoria": "PIZZAS",
+    "activo": true
+  },
+  {
+    "nombre": "PIZZA MOZZARELLA",
+    "descripcion": "Mozzarella, salsa de tomate triturado",
+    "precio": 1320000,
+    "categoria": "PIZZAS",
+    "activo": true
+  },
+  {
+    "nombre": "PIZZA NAPOLITANA",
+    "descripcion": "Mozzarella, tomates en rodajas, aceitunas, orégano",
+    "precio": 1380000,
+    "categoria": "PIZZAS",
+    "activo": true
+  },
+  {
+    "nombre": "PIZZA ESPECIAL",
+    "descripcion": "Mozzarella, jamon de cerdo, aceitunas, pequeños trozos de tomate, huevo",
+    "precio": 1410000,
+    "categoria": "PIZZAS",
+    "activo": true
+  },
+  {
+    "nombre": "PIZZA CEBOLLADA",
+    "descripcion": "Mozzarella, salsa de tomate triturado, cebollas y morrón salteado",
+    "precio": 1360000,
+    "categoria": "PIZZAS",
+    "activo": true
+  },
+  {
+    "nombre": "PIZZA CAPRESE",
+    "descripcion": "Mozzarella, tomates cherry, albahaca",
+    "precio": 1540000,
+    "categoria": "PIZZAS",
+    "activo": true
+  },
+  {
+    "nombre": "PIZZA CHAMPIGNONES",
+    "descripcion": "Mozzarella, salsa de tomate, champignones, cebolla y morrón salteados",
+    "precio": 1560000,
+    "categoria": "PIZZAS",
+    "activo": true
+  },
+  {
+    "nombre": "PIZZA POLLO",
+    "descripcion": "Mozzarella, pollo salteado con vegetales",
+    "precio": 1540000,
+    "categoria": "PIZZAS",
+    "activo": true
+  },
+  {
+    "nombre": "1/2 PIZZA RUCULA",
+    "descripcion": null,
+    "precio": 740000,
+    "categoria": "PIZZAS",
+    "activo": true
+  },
+  {
+    "nombre": "1/2 PIZZA DE PERAS",
+    "descripcion": null,
+    "precio": 770000,
+    "categoria": "PIZZAS",
+    "activo": true
+  },
+  {
+    "nombre": "1/2 PIZZA 4 QUESOS",
+    "descripcion": null,
+    "precio": 790000,
+    "categoria": "PIZZAS",
+    "activo": true
+  },
+  {
+    "nombre": "1/2 PIZZA ANANA",
+    "descripcion": null,
+    "precio": 770000,
+    "categoria": "PIZZAS",
+    "activo": true
+  },
+  {
+    "nombre": "1/2 PIZZA MOZZARELLA",
+    "descripcion": null,
+    "precio": 660000,
+    "categoria": "PIZZAS",
+    "activo": true
+  },
+  {
+    "nombre": "1/2 PIZZA NAPOLITANA",
+    "descripcion": null,
+    "precio": 690000,
+    "categoria": "PIZZAS",
+    "activo": true
+  },
+  {
+    "nombre": "1/2 PIZZA ESPECIAL",
+    "descripcion": null,
+    "precio": 770000,
+    "categoria": "PIZZAS",
+    "activo": true
+  },
+  {
+    "nombre": "1/2 PIZZA CAPRESE",
+    "descripcion": null,
+    "precio": 770000,
+    "categoria": "PIZZAS",
+    "activo": true
+  },
+  {
+    "nombre": "1/2 PIZZA CHAMPIGNONES",
+    "descripcion": null,
+    "precio": 780000,
+    "categoria": "PIZZAS",
+    "activo": true
+  },
+  {
+    "nombre": "1/2 PIZZA POLLO",
+    "descripcion": null,
+    "precio": 770000,
+    "categoria": "PIZZAS",
+    "activo": true
+  },
+  {
+    "nombre": "HAMB. GRATINADA",
+    "descripcion": "1 carne, queso mozzarella, aderezo",
+    "precio": 700000,
+    "categoria": "HAMBURGUESAS",
+    "activo": true
+  },
+  {
+    "nombre": "HAMB. ESPECIAL",
+    "descripcion": "1 carne, lechuga, tomate, aderezo, jamón, queso",
+    "precio": 750000,
+    "categoria": "HAMBURGUESAS",
+    "activo": true
+  },
+  {
+    "nombre": "HAMB. HENRY MORGAN",
+    "descripcion": "1 carne, cheddar, panceta, cebolla",
+    "precio": 850000,
+    "categoria": "HAMBURGUESAS",
+    "activo": true
+  },
+  {
+    "nombre": "HAMB. COMUN",
+    "descripcion": "1 carne, lechuga, tomate, aderezo",
+    "precio": 700000,
+    "categoria": "HAMBURGUESAS",
+    "activo": true
+  },
+  {
+    "nombre": "HAMB. COMPLETA",
+    "descripcion": "1 carne, lechuga, tomate, jamón, queso, huevo",
+    "precio": 800000,
+    "categoria": "HAMBURGUESAS",
+    "activo": true
+  },
+  {
+    "nombre": "CARNE EXTRA",
+    "descripcion": null,
+    "precio": 100000,
+    "categoria": "HAMBURGUESAS",
+    "activo": true
+  },
+  {
+    "nombre": "PICADA 2/3 PERSONAS",
+    "descripcion": "Pollo frito, papas fritas, simple de jyq, pizzetas, bastones de mozzarella, cazuela de salchichas, cazuela de mondongo",
+    "precio": 2100000,
+    "categoria": "PICADAS",
+    "activo": true
+  },
+  {
+    "nombre": "PICADA SALAMIN",
+    "descripcion": "Salamin, aceitunas, queso holanda",
+    "precio": 700000,
+    "categoria": "PICADAS",
+    "activo": true
+  },
+  {
+    "nombre": "CAZUELA DE MONDONGO",
+    "descripcion": null,
+    "precio": 200000,
+    "categoria": "PICADAS",
+    "activo": true
+  },
+  {
+    "nombre": "CAZUELA DE SALCHICHAS",
+    "descripcion": null,
+    "precio": 200000,
+    "categoria": "PICADAS",
+    "activo": true
+  },
+  {
+    "nombre": "CAZUELA DE ACEITUNAS",
+    "descripcion": null,
+    "precio": 300000,
+    "categoria": "PICADAS",
+    "activo": true
+  },
+  {
+    "nombre": "CAZUELA DE QUESO HOLANDA",
+    "descripcion": null,
+    "precio": 500000,
+    "categoria": "PICADAS",
+    "activo": true
+  },
+  {
+    "nombre": "FRITURAS",
+    "descripcion": "MILANESA TERNERA",
+    "precio": 900000,
+    "categoria": "PICADAS",
+    "activo": true
+  },
+  {
+    "nombre": "POLLO FRITO",
+    "descripcion": null,
+    "precio": 850000,
+    "categoria": "PICADAS",
+    "activo": true
+  },
+  {
+    "nombre": "FRITAS",
+    "descripcion": null,
+    "precio": 500000,
+    "categoria": "PICADAS",
+    "activo": true
+  },
+  {
+    "nombre": "FRITAS CON CHEDDAR",
+    "descripcion": "Papas fritas con cheddar y panceta",
+    "precio": 650000,
+    "categoria": "PICADAS",
+    "activo": true
+  },
+  {
+    "nombre": "BASTONES DE MOZZARELLA",
+    "descripcion": "6 bastones de queso mozzarella rebozados",
+    "precio": 500000,
+    "categoria": "PICADAS",
+    "activo": true
+  },
+  {
+    "nombre": "SANDWICHS SIMPLE",
+    "descripcion": "Jamón, queso, aderezo",
+    "precio": 500000,
+    "categoria": "SANDWICHES",
+    "activo": true
+  },
+  {
+    "nombre": "SANDWICHS TRIPLE",
+    "descripcion": "Jamón, queso, lechuga, tomate",
+    "precio": 550000,
+    "categoria": "SANDWICHES",
+    "activo": true
+  },
+  {
+    "nombre": "TOSTADO",
+    "descripcion": "Jamón, queso",
+    "precio": 600000,
+    "categoria": "SANDWICHES",
+    "activo": true
+  },
+  {
+    "nombre": "CARLITO",
+    "descripcion": "Jamón, queso, manteca, kétchup",
+    "precio": 600000,
+    "categoria": "SANDWICHES",
+    "activo": true
+  },
+  {
+    "nombre": "TRIPLE DE POLLO",
+    "descripcion": "Jamón, queso, lechuga, tomate, pollo",
+    "precio": 900000,
+    "categoria": "SANDWICHES",
+    "activo": true
+  },
+  {
+    "nombre": "TOSTADO POLLO",
+    "descripcion": "Jamón, queso, pollo",
+    "precio": 900000,
+    "categoria": "SANDWICHES",
+    "activo": true
+  },
+  {
+    "nombre": "ENSALADA CESAR CON POLLO",
+    "descripcion": "Pollo, parmesano, huevo, pan tostado, lechuga, tomates cherry",
+    "precio": 800000,
+    "categoria": "ENSALADAS",
+    "activo": true
+  },
+  {
+    "nombre": "ENSALADA MIXTA",
+    "descripcion": "3 ingredientes a elección (lechuga, tomate, huevo, zanahoria, cebolla, rúcula)",
+    "precio": 350000,
+    "categoria": "ENSALADAS",
+    "activo": true
+  },
+  {
+    "nombre": "ENSALADA MORGAN",
+    "descripcion": "Rúcula, tomates cherry, aceitunas negras, parmesano, huevos, queso azul, nueces",
+    "precio": 800000,
+    "categoria": "ENSALADAS",
+    "activo": true
+  },
+  {
+    "nombre": "ARTESANAL 500cc",
+    "descripcion": "Cream ale, belgium blonde, honey, amber",
+    "precio": 400000,
+    "categoria": "CERVEZAS",
+    "activo": true
+  },
+  {
+    "nombre": "AMSTEL",
+    "descripcion": null,
+    "precio": 550000,
+    "categoria": "CERVEZAS",
+    "activo": true
+  },
+  {
+    "nombre": "SANTA FE",
+    "descripcion": null,
+    "precio": 450000,
+    "categoria": "CERVEZAS",
+    "activo": true
+  },
+  {
+    "nombre": "STELLA ARTOIS 330cc",
+    "descripcion": null,
+    "precio": 300000,
+    "categoria": "CERVEZAS",
+    "activo": true
+  },
+  {
+    "nombre": "HEINEKEN",
+    "descripcion": null,
+    "precio": 750000,
+    "categoria": "CERVEZAS",
+    "activo": true
+  },
+  {
+    "nombre": "CORONA 330cc",
+    "descripcion": null,
+    "precio": 400000,
+    "categoria": "CERVEZAS",
+    "activo": true
+  },
+  {
+    "nombre": "HEINEKEN 330cc",
+    "descripcion": null,
+    "precio": 400000,
+    "categoria": "CERVEZAS",
+    "activo": true
+  },
+  {
+    "nombre": "FERNET",
+    "descripcion": "Fernet, coca cola",
+    "precio": 550000,
+    "categoria": "JARROS",
+    "activo": true
+  },
+  {
+    "nombre": "GANCIA",
+    "descripcion": "Gancia, sprite",
+    "precio": 450000,
+    "categoria": "JARROS",
+    "activo": true
+  },
+  {
+    "nombre": "GIN HEREDERO",
+    "descripcion": "Gin, tonica",
+    "precio": 450000,
+    "categoria": "JARROS",
+    "activo": true
+  },
+  {
+    "nombre": "VODKA JARRO",
+    "descripcion": null,
+    "precio": 400000,
+    "categoria": "JARROS",
+    "activo": true
+  },
+  {
+    "nombre": "MELON JARRO",
+    "descripcion": null,
+    "precio": 400000,
+    "categoria": "JARROS",
+    "activo": true
+  },
+  {
+    "nombre": "FERNET",
+    "descripcion": null,
+    "precio": 350000,
+    "categoria": "COCKTAILS",
+    "activo": true
+  },
+  {
+    "nombre": "GANCIA",
+    "descripcion": null,
+    "precio": 350000,
+    "categoria": "COCKTAILS",
+    "activo": true
+  },
+  {
+    "nombre": "GIN TONIC BEEFEATER",
+    "descripcion": "Gin, tonica",
+    "precio": 600000,
+    "categoria": "COCKTAILS",
+    "activo": true
+  },
+  {
+    "nombre": "GIN TONIC HEREDERO",
+    "descripcion": "Gin, tonica",
+    "precio": 400000,
+    "categoria": "COCKTAILS",
+    "activo": true
+  },
+  {
+    "nombre": "GIN TONIC TANQUERAY",
+    "descripcion": "Gin, tonica",
+    "precio": 700000,
+    "categoria": "COCKTAILS",
+    "activo": true
+  },
+  {
+    "nombre": "GIN TONIC PINK",
+    "descripcion": "Gin pink, frutos rojos, tonica",
+    "precio": 650000,
+    "categoria": "COCKTAILS",
+    "activo": true
+  },
+  {
+    "nombre": "CYNARD JULEP",
+    "descripcion": "Cynard julep, zumo de limon, almibar, gaseosa pomelo, hojas de menta",
+    "precio": 400000,
+    "categoria": "COCKTAILS",
+    "activo": true
+  },
+  {
+    "nombre": "CAIPIROSKA",
+    "descripcion": "Vodka, lima, azucar",
+    "precio": 400000,
+    "categoria": "COCKTAILS",
+    "activo": true
+  },
+  {
+    "nombre": "MOJITO",
+    "descripcion": "Ron, zumo de limon, almibar, soda, hojas de menta",
+    "precio": 350000,
+    "categoria": "COCKTAILS",
+    "activo": true
+  },
+  {
+    "nombre": "PISCO SOUR",
+    "descripcion": "Pisco, clara de huevo, almibar, zumo de limon, bitter",
+    "precio": 500000,
+    "categoria": "COCKTAILS",
+    "activo": true
+  },
+  {
+    "nombre": "NEGRONI",
+    "descripcion": "Gin, campari, rosso",
+    "precio": 500000,
+    "categoria": "COCKTAILS",
+    "activo": true
+  },
+  {
+    "nombre": "APEROL SPRITZ",
+    "descripcion": "Aperol, champagne salentein, soda",
+    "precio": 550000,
+    "categoria": "COCKTAILS",
+    "activo": true
+  },
+  {
+    "nombre": "DRY MARTINI",
+    "descripcion": null,
+    "precio": 450000,
+    "categoria": "COCKTAILS",
+    "activo": true
+  },
+  {
+    "nombre": "SEX ON THE BEACH",
+    "descripcion": "Vodka, licor de durazno, granadina, jugo de naranja exprimido",
+    "precio": 450000,
+    "categoria": "COCKTAILS",
+    "activo": true
+  },
+  {
+    "nombre": "TOM COLLINS",
+    "descripcion": "Gin, zumo de limon, almibar, soda",
+    "precio": 400000,
+    "categoria": "COCKTAILS",
+    "activo": true
+  },
+  {
+    "nombre": "PERLA NEGRA",
+    "descripcion": null,
+    "precio": 700000,
+    "categoria": "COCKTAILS",
+    "activo": true
+  },
+  {
+    "nombre": "CUBA LIBRE",
+    "descripcion": "Ron, coca cola",
+    "precio": 350000,
+    "categoria": "COCKTAILS",
+    "activo": true
+  },
+  {
+    "nombre": "CAMPARI",
+    "descripcion": "Campari, naranja exprimida",
+    "precio": 450000,
+    "categoria": "COCKTAILS",
+    "activo": true
+  },
+  {
+    "nombre": "BALLANTINES",
+    "descripcion": null,
+    "precio": 440000,
+    "categoria": "COCKTAILS",
+    "activo": true
+  },
+  {
+    "nombre": "JOHNNIE LEMON",
+    "descripcion": null,
+    "precio": 660000,
+    "categoria": "COCKTAILS",
+    "activo": true
+  },
+  {
+    "nombre": "VERMUT",
+    "descripcion": null,
+    "precio": 300000,
+    "categoria": "COCKTAILS",
+    "activo": true
+  },
+  {
+    "nombre": "AGUA S/GAS 500cc",
+    "descripcion": null,
+    "precio": 200000,
+    "categoria": "GASEOSAS",
+    "activo": true
+  },
+  {
+    "nombre": "AGUA C/GAS 500cc",
+    "descripcion": null,
+    "precio": 250000,
+    "categoria": "GASEOSAS",
+    "activo": true
+  },
+  {
+    "nombre": "COCA 1LTS",
+    "descripcion": null,
+    "precio": 400000,
+    "categoria": "GASEOSAS",
+    "activo": true
+  },
+  {
+    "nombre": "SPRITE 1.5LTS",
+    "descripcion": null,
+    "precio": 550000,
+    "categoria": "GASEOSAS",
+    "activo": true
+  },
+  {
+    "nombre": "SPRITE 500cc",
+    "descripcion": null,
+    "precio": 200000,
+    "categoria": "GASEOSAS",
+    "activo": true
+  },
+  {
+    "nombre": "COCA/COCA ZERO 500cc",
+    "descripcion": null,
+    "precio": 200000,
+    "categoria": "GASEOSAS",
+    "activo": true
+  },
+  {
+    "nombre": "FANTA 500cc",
+    "descripcion": null,
+    "precio": 200000,
+    "categoria": "GASEOSAS",
+    "activo": true
+  },
+  {
+    "nombre": "LIMONADA",
+    "descripcion": "Con azúcar, sin azúcar (limonudo)",
+    "precio": 250000,
+    "categoria": "GASEOSAS",
+    "activo": true
+  },
+  {
+    "nombre": "SODA EN PINTA",
+    "descripcion": null,
+    "precio": 100000,
+    "categoria": "GASEOSAS",
+    "activo": true
+  },
+  {
+    "nombre": "SPEED",
+    "descripcion": null,
+    "precio": 300000,
+    "categoria": "GASEOSAS",
+    "activo": true
+  },
+  {
+    "nombre": "EXPRIMIDO DE NARANJA",
+    "descripcion": null,
+    "precio": 300000,
+    "categoria": "GASEOSAS",
+    "activo": true
+  },
+  {
+    "nombre": "VINO SANTA JULIA",
+    "descripcion": "Malbec, chardonnay, chenin dulce",
+    "precio": 900000,
+    "categoria": "VINOS",
+    "activo": true
+  },
+  {
+    "nombre": "VINO ALMA MORA RESERVA",
+    "descripcion": null,
+    "precio": 900000,
+    "categoria": "VINOS",
+    "activo": true
+  },
+  {
+    "nombre": "VINO SALENTEIN",
+    "descripcion": "Malbec, chardonnay",
+    "precio": 1500000,
+    "categoria": "VINOS",
+    "activo": true
+  },
+  {
+    "nombre": "SAINT FELICIEN",
+    "descripcion": null,
+    "precio": 1900000,
+    "categoria": "VINOS",
+    "activo": true
+  },
+  {
+    "nombre": "COPA VINO",
+    "descripcion": null,
+    "precio": 350000,
+    "categoria": "VINOS",
+    "activo": true
+  },
+  {
+    "nombre": "ESPUMANTES",
+    "descripcion": "MERCIER",
+    "precio": 1100000,
+    "categoria": "VINOS",
+    "activo": true
+  },
+  {
+    "nombre": "CHANDON",
+    "descripcion": null,
+    "precio": 3000000,
+    "categoria": "VINOS",
+    "activo": true
+  },
+  {
+    "nombre": "NIETO SENETINER",
+    "descripcion": null,
+    "precio": 2100000,
+    "categoria": "VINOS",
+    "activo": true
+  },
+  {
+    "nombre": "BARON B",
+    "descripcion": "Extra brut",
+    "precio": 6500000,
+    "categoria": "VINOS",
+    "activo": true
+  },
+  {
+    "nombre": "SALENTEIN",
+    "descripcion": null,
+    "precio": 1900000,
+    "categoria": "VINOS",
+    "activo": true
+  },
+  {
+    "nombre": "COPA CHAMPAGNE",
+    "descripcion": null,
+    "precio": 400000,
+    "categoria": "VINOS",
+    "activo": true
+  },
+  {
+    "nombre": "MEDIDA GANCIA",
+    "descripcion": null,
+    "precio": 100000,
+    "categoria": "MEDIDAS",
+    "activo": true
+  },
+  {
+    "nombre": "MEDIDA VODKA",
+    "descripcion": null,
+    "precio": 80000,
+    "categoria": "MEDIDAS",
+    "activo": true
+  },
+  {
+    "nombre": "MEDIDA FERNET",
+    "descripcion": null,
+    "precio": 150000,
+    "categoria": "MEDIDAS",
+    "activo": true
+  },
+  {
+    "nombre": "MEDIDA JAGER",
+    "descripcion": null,
+    "precio": 380000,
+    "categoria": "MEDIDAS",
+    "activo": true
+  },
+  {
+    "nombre": "WHISKY JOHNNIE BLACK",
+    "descripcion": null,
+    "precio": 850000,
+    "categoria": "WHISKY",
+    "activo": true
+  },
+  {
+    "nombre": "WHISKY JOHNNIE RED",
+    "descripcion": null,
+    "precio": 600000,
+    "categoria": "WHISKY",
+    "activo": true
+  },
+  {
+    "nombre": "WHISKY JOHNNIE DOBLE BLACK",
+    "descripcion": null,
+    "precio": 990000,
+    "categoria": "WHISKY",
+    "activo": true
+  },
+  {
+    "nombre": "WHISKY JOHNNIE 18 AÑOS",
+    "descripcion": null,
+    "precio": 3500000,
+    "categoria": "WHISKY",
+    "activo": true
+  },
+  {
+    "nombre": "WHISKY JACK DANIELS TENESSE",
+    "descripcion": null,
+    "precio": 2000000,
+    "categoria": "WHISKY",
+    "activo": true
+  },
+  {
+    "nombre": "WHISKY VAT 69",
+    "descripcion": null,
+    "precio": 200000,
+    "categoria": "WHISKY",
+    "activo": true
+  },
+  {
+    "nombre": "POSTRE",
+    "descripcion": "Flan $4000 / postre del día (consultar)",
+    "precio": 600000,
+    "categoria": "POSTRE Y CAFE",
+    "activo": true
+  },
+  {
+    "nombre": "CAFE",
+    "descripcion": "Chico",
+    "precio": 200000,
+    "categoria": "POSTRE Y CAFE",
+    "activo": true
+  }
+]

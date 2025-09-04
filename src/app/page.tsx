@@ -89,7 +89,7 @@ function ClientHome({ nombre }: { nombre?: string }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
         <ActionCard href="/cliente/qr" title="Mi QR" subtitle="Mostralo al finalizar tu consumo" Icon={QrCode} accent="from-emerald-500/20 to-transparent" />
         <ActionCard href="/cliente/puntos" title="Mis Puntos" subtitle="Historial y saldo en tiempo real" Icon={Award} accent="from-indigo-500/20 to-transparent" />
-        <ActionCard href="/menu" title="Menú" subtitle="Próximamente" Icon={UtensilsCrossed} accent="from-amber-500/20 to-transparent" disabled />
+        <ActionCard href="/cliente/menu" title="Menú" subtitle="" Icon={UtensilsCrossed} accent="from-amber-500/20 to-transparent" />
       </div>
     </div>
   );
@@ -132,7 +132,6 @@ function AdminHome() {
           subtitle="Configurar productos y precios"
           Icon={UtensilsCrossed}
           accent="from-amber-500/20 to-transparent"
-          disabled
         />
       </div>
     </div>
