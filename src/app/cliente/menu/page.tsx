@@ -101,44 +101,52 @@ export default function ClienteMenuPage() {
             </div>
 
             {/* Productos agrupados por categoría */}
-            {categorias.map((cat: string) => (
-                <div
-                    key={cat}
-                    id={cat.replace(/\s+/g, "-")}
-                    className="mb-10 scroll-mt-20"
-                >
-                    <h2 className="text-xl font-bold mb-4 border-b border-white/20 pb-2">
-                        {cat}
-                    </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                        {items
-                            .filter((i) => i.categoria === cat)
-                            .map((i) => (
-                                <div
-                                    key={i._id}
-                                    className="bg-white/10 backdrop-blur p-4 rounded-xl shadow hover:scale-105 transition"
-                                >
-                                    {i.imagen && (
-                                        <img
-                                            src={i.imagen}
-                                            alt={i.nombre}
-                                            className="w-full h-40 object-cover rounded-md mb-3"
-                                        />
-                                    )}
-                                    <h3 className="text-lg font-bold">{i.nombre}</h3>
-                                    {i.descripcion && (
-                                        <p className="text-sm opacity-80 line-clamp-2">
-                                            {i.descripcion}
+            {categorias.map((cat: string) => {
+                const Icon = categoryIcons[cat] || UtensilsCrossed;
+                return (
+                    <div
+                        key={cat}
+                        id={cat.replace(/\s+/g, "-")}
+                        className="mb-10 scroll-mt-20"
+                    >
+                        {/* Título con ícono */}
+                        <h2 className="text-xl font-bold mb-4 border-b border-white/20 pb-2 flex items-center gap-2">
+                            <Icon size={24} className="text-white" />
+                            {cat}
+                        </h2>
+
+                        {/* Contenedor de categoría */}
+                        <div className="bg-white/5 backdrop-blur rounded-xl shadow p-4 space-y-3">
+                            {items
+                                .filter((i) => i.categoria === cat)
+                                .map((i) => (
+                                    <div
+                                        key={i._id}
+                                        className="p-3 bg-white/10 rounded-lg hover:scale-[1.01] transition"
+                                    >
+                                        {i.imagen && (
+                                            <img
+                                                src={i.imagen}
+                                                alt={i.nombre}
+                                                className="w-full h-40 object-cover rounded-md mb-3"
+                                            />
+                                        )}
+                                        <h3 className="text-lg font-bold">{i.nombre}</h3>
+                                        {i.descripcion && (
+                                            <p className="text-sm opacity-80">
+                                                {i.descripcion}
+                                            </p>
+                                        )}
+                                        <p className="mt-2 text-emerald-400 font-bold">
+                                            ${formatPrice(i.precio)}
                                         </p>
-                                    )}
-                                    <p className="mt-2 text-emerald-400 font-bold">
-                                        ${formatPrice(i.precio)}
-                                    </p>
-                                </div>
-                            ))}
+                                    </div>
+                                ))}
+                        </div>
                     </div>
-                </div>
-            ))}
+                );
+            })}
+
 
             {/* Botón flotante "Volver arriba" */}
             {showScroll && (

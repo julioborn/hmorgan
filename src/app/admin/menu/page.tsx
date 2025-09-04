@@ -30,6 +30,13 @@ type MenuItem = {
     activo: boolean;
 };
 
+// Función para formatear precios al estilo argentino
+const formatPrice = (value: number) =>
+    new Intl.NumberFormat("es-AR", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+    }).format(value);
+
 // Íconos por categoría
 const categoryIcons: Record<string, React.ElementType> = {
     PARRILLA: Beef,
@@ -58,6 +65,7 @@ export default function AdminMenuPage() {
         categoria: "",
     });
     const [editando, setEditando] = useState<MenuItem | null>(null);
+    const [showForm, setShowForm] = useState(false);
 
     async function agregarItem() {
         await fetch("/api/menu", {
@@ -93,43 +101,82 @@ export default function AdminMenuPage() {
         items.some((i) => i.categoria === cat)
     );
 
+    const formatNumber = (value: number | string) => {
+        if (!value) return "";
+        return new Intl.NumberFormat("es-AR").format(Number(value));
+    };
+
     return (
         <div className="p-6">
-            <h1 className="text-2xl font-bold mb-6">Menú (Admin)</h1>
+            <h1 className="text-2xl font-bold mb-6">Menú (Administración)</h1>
 
             {/* Formulario para agregar */}
-            <div className="mb-10 flex flex-wrap gap-2">
-                <input
-                    className="bg-slate-800 border border-slate-600 text-slate-100 placeholder-slate-400 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    placeholder="Nombre"
-                    value={nuevo.nombre || ""}
-                    onChange={(e) => setNuevo({ ...nuevo, nombre: e.target.value })}
-                />
-                <input
-                    className="bg-slate-800 border border-slate-600 text-slate-100 placeholder-slate-400 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    placeholder="Descripción"
-                    value={nuevo.descripcion || ""}
-                    onChange={(e) => setNuevo({ ...nuevo, descripcion: e.target.value })}
-                />
-                <input
-                    className="bg-slate-800 border border-slate-600 text-slate-100 placeholder-slate-400 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500 w-28"
-                    placeholder="Precio"
-                    type="number"
-                    value={nuevo.precio || 0}
-                    onChange={(e) => setNuevo({ ...nuevo, precio: parseFloat(e.target.value) })}
-                />
-                <input
-                    className="bg-slate-800 border border-slate-600 text-slate-100 placeholder-slate-400 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    placeholder="Categoría"
-                    value={nuevo.categoria || ""}
-                    onChange={(e) => setNuevo({ ...nuevo, categoria: e.target.value })}
-                />
+            <div className="mb-10 bg-white/5 rounded-lg p-6 shadow-md">
                 <button
-                    onClick={agregarItem}
-                    className="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-500"
+                    onClick={() => setShowForm(!showForm)}
+                    className="w-full flex items-center justify-between text-md font-bold text-emerald-400 hover:text-emerald-300 transition"
                 >
-                    Agregar
+                    <span>Agregar Producto</span>
+                    {showForm ? "−" : "+"}
                 </button>
+
+                {showForm && (
+                    <div className="mt-6">
+                        {/* Primera fila: Nombre - Precio - Categoría */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <input
+                                className="bg-slate-800 border border-slate-600 text-slate-100 
+                       placeholder-slate-400 px-3 py-2 rounded 
+                       focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                placeholder="Nombre"
+                                value={nuevo.nombre || ""}
+                                onChange={(e) => setNuevo({ ...nuevo, nombre: e.target.value })}
+                            />
+                            <input
+                                className="bg-slate-800 border border-slate-600 text-slate-100 
+                       placeholder-slate-400 px-3 py-2 rounded 
+                       focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                placeholder="Precio"
+                                type="text"
+                                value={nuevo.precio ? new Intl.NumberFormat("es-AR").format(nuevo.precio) : ""}
+                                onChange={(e) => {
+                                    const raw = e.target.value.replace(/\./g, "");
+                                    setNuevo({ ...nuevo, precio: parseFloat(raw) || 0 });
+                                }}
+                            />
+                            <input
+                                className="bg-slate-800 border border-slate-600 text-slate-100 
+                       placeholder-slate-400 px-3 py-2 rounded 
+                       focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                placeholder="Categoría"
+                                value={nuevo.categoria || ""}
+                                onChange={(e) => setNuevo({ ...nuevo, categoria: e.target.value })}
+                            />
+                        </div>
+
+                        {/* Segunda fila: Descripción */}
+                        <div className="mb-4">
+                            <textarea
+                                className="w-full bg-slate-800 border border-slate-600 text-slate-100 
+                       placeholder-slate-400 px-3 py-2 rounded min-h-[80px] 
+                       focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                placeholder="Descripción"
+                                value={nuevo.descripcion || ""}
+                                onChange={(e) => setNuevo({ ...nuevo, descripcion: e.target.value })}
+                            />
+                        </div>
+
+                        {/* Botón */}
+                        <div className="flex justify-end">
+                            <button
+                                onClick={agregarItem}
+                                className="bg-emerald-600 text-white px-6 py-2 rounded hover:bg-emerald-500"
+                            >
+                                Agregar
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Listado por categorías */}
@@ -149,44 +196,49 @@ export default function AdminMenuPage() {
                                         className="p-3 bg-white/5 rounded flex justify-between items-center"
                                     >
                                         {editando?._id === i._id ? (
-                                            <div className="flex-1 flex gap-2">
+                                            <div className="flex-1 flex flex-col md:flex-row gap-2">
                                                 <input
-                                                    className="bg-slate-800 border border-slate-600 text-slate-100 placeholder-slate-400 px-2 py-1 rounded flex-1"
+                                                    className="bg-slate-800 border border-slate-600 text-slate-100 
+                                                    placeholder-slate-400 px-2 py-1 rounded flex-1"
                                                     value={editando.nombre}
                                                     onChange={(e) =>
                                                         setEditando({ ...editando, nombre: e.target.value })
                                                     }
                                                 />
-                                                <input
-                                                    className="bg-slate-800 border border-slate-600 text-slate-100 placeholder-slate-400 px-2 py-1 rounded flex-1"
+                                                <textarea
+                                                    className="bg-slate-800 border border-slate-600 text-slate-100 
+                                                    placeholder-slate-400 px-2 py-2 rounded flex-1 resize-y min-h-[40px] md:min-h-[60px]"
                                                     value={editando.descripcion || ""}
                                                     onChange={(e) =>
                                                         setEditando({ ...editando, descripcion: e.target.value })
                                                     }
                                                 />
                                                 <input
-                                                    className="bg-slate-800 border border-slate-600 text-slate-100 placeholder-slate-400 px-2 py-1 rounded w-24"
-                                                    type="number"
-                                                    value={editando.precio}
+                                                    className="bg-slate-800 border border-slate-600 text-slate-100 
+                                                    placeholder-slate-400 px-2 py-1 rounded w-full md:w-24 text-right"
+                                                    type="text"
+                                                    value={formatNumber(editando.precio)}
                                                     onChange={(e) =>
                                                         setEditando({
                                                             ...editando,
-                                                            precio: parseFloat(e.target.value),
+                                                            precio: parseFloat(e.target.value.replace(/\./g, "")) || 0,
                                                         })
                                                     }
                                                 />
-                                                <button
-                                                    onClick={guardarEdicion}
-                                                    className="px-3 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-500"
-                                                >
-                                                    Guardar
-                                                </button>
-                                                <button
-                                                    onClick={() => setEditando(null)}
-                                                    className="px-3 py-1 rounded bg-gray-600 text-white hover:bg-gray-500"
-                                                >
-                                                    Cancelar
-                                                </button>
+                                                <div className="flex gap-2 justify-end">
+                                                    <button
+                                                        onClick={guardarEdicion}
+                                                        className="px-3 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-500"
+                                                    >
+                                                        Guardar
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setEditando(null)}
+                                                        className="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-500"
+                                                    >
+                                                        Cancelar
+                                                    </button>
+                                                </div>
                                             </div>
                                         ) : (
                                             <>
@@ -194,21 +246,26 @@ export default function AdminMenuPage() {
                                                     <p className="font-bold">{i.nombre}</p>
                                                     <p className="text-sm opacity-70">{i.descripcion}</p>
                                                     <p className="text-sm text-emerald-400">
-                                                        ${i.precio}
+                                                        ${formatPrice(i.precio)}
                                                     </p>
                                                 </div>
                                                 <div className="flex gap-2">
                                                     <button
                                                         onClick={() => setEditando(i)}
-                                                        className="px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-500"
+                                                        className="px-2 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-500"
                                                     >
-                                                        Editar
+                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
+                                                            <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
+                                                            <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z" />
+                                                        </svg>
                                                     </button>
                                                     <button
                                                         onClick={() => eliminarItem(i._id)}
-                                                        className="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-500"
+                                                        className="px-2 py-1 rounded bg-red-600 text-white hover:bg-red-500"
                                                     >
-                                                        Eliminar
+                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
+                                                            <path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z" clip-rule="evenodd" />
+                                                        </svg>
                                                     </button>
                                                 </div>
                                             </>

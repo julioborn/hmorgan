@@ -13,6 +13,11 @@ export const metadata: Metadata = {
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
     { media: "(prefers-color-scheme: dark)", color: "#ffffff" },
   ],
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon-32x32.png",
+    apple: "/favicon-192x192.png",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -28,23 +33,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
         <link rel="manifest" href="/manifest.webmanifest" />
-          <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180.png" />
-          <link rel="apple-touch-icon" sizes="167x167" href="/apple-touch-icon-167.png" />
-          <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180.png" />
+        <link rel="apple-touch-icon" sizes="167x167" href="/apple-touch-icon-167.png" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152.png" />
 
-          {/* No agregamos <meta name="theme-color"> manual: lo gestiona `metadata.themeColor` */}
-        </head>
-        <body className="min-h-svh">
-          <RegisterSW />
+        {/* No agregamos <meta name="theme-color"> manual: lo gestiona `metadata.themeColor` */}
+      </head>
+      <body className="min-h-svh">
+        <RegisterSW />
 
-          {/* Fondo actual (oscuro). Si querés un look claro real, cambiá por `bg-white`. */}
-          <div className="fixed inset-0 -z-10 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950" />
+        {/* Fondo actual (oscuro). Si querés un look claro real, cambiá por `bg-white`. */}
+        <div className="fixed inset-0 -z-10 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950" />
 
-          <AuthProvider>
-            <Header />
-            <main className="container mx-auto px-4 py-6">{children}</main>
-          </AuthProvider>
-        </body>
+        <AuthProvider>
+          <Header />
+          <main className="container mx-auto px-4 py-6">{children}</main>
+        </AuthProvider>
+      </body>
     </html>
   );
 }
