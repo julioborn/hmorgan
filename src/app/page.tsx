@@ -28,7 +28,7 @@ export default function Home() {
 }
 
 /* =========================
-   LANDING (no logueado)
+  LANDING (no logueado)
    ========================= */
 function Landing() {
   return (
@@ -72,7 +72,7 @@ function Landing() {
 }
 
 /* =========================
-   HOME CLIENTE
+  HOME CLIENTE
    ========================= */
 function ClientHome({ nombre }: { nombre?: string }) {
   return (
@@ -87,16 +87,48 @@ function ClientHome({ nombre }: { nombre?: string }) {
       </header>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-        <ActionCard href="/cliente/qr" title="Mi QR" subtitle="Mostralo al finalizar tu consumo" Icon={QrCode} accent="from-emerald-500/20 to-transparent" />
-        <ActionCard href="/cliente/puntos" title="Mis Puntos" subtitle="Historial y saldo en tiempo real" Icon={Award} accent="from-indigo-500/20 to-transparent" />
-        <ActionCard href="/cliente/menu" title="Menú" subtitle="" Icon={UtensilsCrossed} accent="from-amber-500/20 to-transparent" />
+        <ActionCard
+          href="/cliente/qr"
+          title="Mi QR"
+          subtitle="Mostralo al finalizar tu consumo"
+          Icon={QrCode}
+          accent="from-emerald-500/20 to-transparent"
+        />
+        <ActionCard
+          href="/cliente/puntos"
+          title="Mis Puntos"
+          subtitle="Historial y saldo en tiempo real"
+          Icon={Award}
+          accent="from-indigo-500/20 to-transparent"
+        />
+        <ActionCard
+          href="/cliente/menu"
+          title="Menú"
+          subtitle=""
+          Icon={UtensilsCrossed}
+          accent="from-amber-500/20 to-transparent"
+        />
+        <ActionCard
+          href="/cliente/rewards"
+          title="Recompensas"
+          subtitle="Canjeá tus puntos por beneficios"
+          Icon={Award}
+          accent="from-pink-500/20 to-transparent"
+        />
+        <ActionCard
+          href="/cliente/canjes"
+          title="Mis Canjes"
+          subtitle="Seguí tus pedidos y beneficios"
+          Icon={QrCode}
+          accent="from-teal-500/20 to-transparent"
+        />
       </div>
     </div>
   );
 }
 
 /* =========================
-   HOME ADMIN (desktop OK)
+  HOME ADMIN (desktop OK)
    ========================= */
 function AdminHome() {
   return (
@@ -133,14 +165,27 @@ function AdminHome() {
           Icon={UtensilsCrossed}
           accent="from-amber-500/20 to-transparent"
         />
+        <ActionCard
+          href="/admin/rewards"
+          title="Recompensas"
+          subtitle="Crear y editar canjes por puntos"
+          Icon={Award}
+          accent="from-pink-500/20 to-transparent"
+        />
+        <ActionCard
+          href="/admin/canjes"
+          title="Canjes"
+          subtitle="Historial y estado de entregas"
+          Icon={QrCode}
+          accent="from-teal-500/20 to-transparent"
+        />
       </div>
     </div>
   );
 }
 
-
 /* =========================
-   CARD REUTILIZABLE
+  CARD REUTILIZABLE
    ========================= */
 function ActionCard({
   href, title, subtitle, Icon, accent, disabled
