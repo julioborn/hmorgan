@@ -179,6 +179,13 @@ function AdminHome() {
           Icon={QrCode}
           accent="from-teal-500/20 to-transparent"
         />
+        <ActionCard
+          href="/admin/rewards/scan"
+          title="Escanear recompensa"
+          subtitle="Canjear puntos por QR"
+          Icon={QrCode}
+          accent="from-purple-500/20 to-transparent"
+        />
       </div>
     </div>
   );
