@@ -13,7 +13,7 @@ type UserLean = {
     apellido: string;
     dni: string;
     telefono?: string;
-    points?: number;
+    puntos?: number;
     qrToken?: string;
 };
 
@@ -31,14 +31,14 @@ export async function PUT(req: NextRequest, { params }: Params) {
     if (typeof body.apellido === "string") update.apellido = body.apellido.trim();
     if (typeof body.dni === "string") update.dni = body.dni.trim();
     if (typeof body.telefono === "string") update.telefono = body.telefono.trim();
-    if (typeof body.points !== "undefined") {
-        const p = Number(body.points);
-        if (!Number.isFinite(p)) return NextResponse.json({ error: "points inválido" }, { status: 400 });
-        update.points = p;
+    if (typeof body.puntos !== "undefined") {
+        const p = Number(body.puntos);
+        if (!Number.isFinite(p)) return NextResponse.json({ error: "puntos inválido" }, { status: 400 });
+        update.puntos = p;
     }
 
     const doc = await User.findByIdAndUpdate(id, { $set: update }, { new: true })
-        .select("_id nombre apellido dni telefono points qrToken") // opcional, aclara campos
+        .select("_id nombre apellido dni telefono puntos qrToken") // opcional, aclara campos
         .lean<UserLean>();                                         // 👈 tipa el resultado
 
     if (!doc) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
@@ -51,7 +51,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
             apellido: doc.apellido,
             dni: doc.dni,
             telefono: doc.telefono,
-            points: doc.points ?? 0,
+            puntos: doc.puntos ?? 0,
             qrToken: doc.qrToken,
         },
     });

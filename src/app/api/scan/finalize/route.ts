@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
                 meta: { consumoARS, mesa: mesa || null, mozoId: payload.sub, share: userIds.length },
             });
 
-            u.points += puntos;
+            u.puntos += puntos;
             await u.save();
         }
 
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
                     try {
                         const invalid = await sendPushAndCollectInvalid(u.pushSubscriptions, pushPayload);
                         if (invalid.length) {
-                            // 🧹 borra de la DB los endpoints muertos de ESTE usuario
+                            // 🧹 borra de la DB los endpuntos muertos de ESTE usuario
                             await User.updateOne(
                                 { _id: u._id },
                                 { $pull: { pushSubscriptions: { endpoint: { $in: invalid } } } }

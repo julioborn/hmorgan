@@ -55,10 +55,10 @@ export async function POST(req: NextRequest) {
       meta: { consumoARS, mozoId: payload.sub },
     });
 
-    user.points += puntos;
+    user.puntos += puntos;
     await user.save();
 
-    return NextResponse.json({ ok: true, puntosSumados: puntos, total: user.points });
+    return NextResponse.json({ ok: true, puntosSumados: puntos, total: user.puntos });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: "Error al escanear" }, { status: 500 });

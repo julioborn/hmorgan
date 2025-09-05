@@ -68,7 +68,7 @@ export default function MiQRPage() {
         <div className="p-5 bg-white/5 flex items-center justify-between">
           <div>
             <div className="text-sm opacity-70">Puntos acumulados</div>
-            <div className="text-3xl font-extrabold">{user.points ?? 0}</div>
+            <div className="text-3xl font-extrabold">{user.puntos ?? 0}</div>
           </div>
           <a
             href="/cliente/puntos"

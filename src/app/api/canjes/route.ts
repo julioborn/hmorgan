@@ -26,13 +26,27 @@ export async function POST(req: Request) {
             return NextResponse.json({ message: "Recompensa no encontrada" }, { status: 404 });
         }
 
+        // Aseguramos números
+        const userPoints = Number(user.puntos ?? 0);
+        const rewardPoints = Number(reward.puntos ?? 0);
+
+        console.log("DEBUG canje:", {
+            usuario: user.nombre,
+            userPoints,
+            reward: reward.titulo,
+            rewardPoints,
+        });
+
         // Verificar puntos
-        if ((user.points || 0) < reward.puntos) {
-            return NextResponse.json({ message: "Puntos insuficientes" }, { status: 400 });
+        if (userPoints < rewardPoints) {
+            return NextResponse.json(
+                { message: `Puntos insuficientes. Tenés ${userPoints}, necesitas ${rewardPoints}` },
+                { status: 400 }
+            );
         }
 
         // Descontar puntos al usuario
-        user.points = (user.points || 0) - reward.puntos;
+        user.puntos = userPoints - rewardPoints;
         await user.save();
 
         // Crear registro de canje
@@ -52,7 +66,7 @@ export async function POST(req: Request) {
 export async function GET() {
     await connectMongoDB();
     const canjes = await Canje.find()
-        .populate("userId", "nombre apellido dni points")
+        .populate("userId", "nombre apellido dni puntos")
         .populate("rewardId", "titulo puntos")
         .sort({ createdAt: -1 })
         .lean();

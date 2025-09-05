@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
 
     const [sortField, sortDir] = (sortParam.includes(":") ? sortParam.split(":") : [sortParam, "asc"]) as [string, "asc" | "desc"];
     const sort: Record<string, 1 | -1> = {};
-    if (["nombre", "apellido", "dni", "points"].includes(sortField)) {
+    if (["nombre", "apellido", "dni", "puntos"].includes(sortField)) {
         sort[sortField] = sortDir === "desc" ? -1 : 1;
     } else {
         sort["apellido"] = 1;
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
             apellido: u.apellido,
             dni: u.dni,
             telefono: u.telefono,
-            points: u.points ?? 0,
+            puntos: u.puntos ?? 0,
             qrToken: u.qrToken,
         })),
         total,

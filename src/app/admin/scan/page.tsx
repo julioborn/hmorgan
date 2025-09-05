@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 // Tipos
 type CamState = "idle" | "starting" | "on" | "error";
-type Person = { id: string; nombre: string; apellido: string; dni: string; points: number };
+type Person = { id: string; nombre: string; apellido: string; dni: string; puntos: number };
 
 const RATIO = Number(process.env.NEXT_PUBLIC_POINTS_PER_ARS ?? 0.001);
 
@@ -183,7 +183,7 @@ export default function ScanPage() {
 
       camStateRef.current = "on";           // ✅
       setCamState("on");                    // ✅
-      setStatus("Cámara activa (ZXing). Escaneá QRs de la mesa.");
+      setStatus("Cámara activa. Escaneá QRs de la mesa.");
     } catch (err: any) {
       console.error(err);
       setCamState("error");
@@ -449,7 +449,7 @@ export default function ScanPage() {
                       </div>
                       <div className="min-w-0">
                         <div className="font-semibold truncate">{p.nombre} {p.apellido}</div>
-                        <div className="text-xs opacity-70 truncate">DNI: {p.dni} · Puntos actuales: {p.points}</div>
+                        <div className="text-xs opacity-70 truncate">DNI: {p.dni} · Puntos actuales: {p.puntos}</div>
                       </div>
                     </div>
                     <button

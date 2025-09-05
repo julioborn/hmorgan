@@ -11,7 +11,7 @@ type User =
         telefono: string;
         role: "cliente" | "admin";
         qrToken?: string;
-        points?: number;
+        puntos?: number;
     }
     | null;
 

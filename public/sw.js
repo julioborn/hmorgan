@@ -70,11 +70,11 @@ self.addEventListener("push", (event) => {
         data: { url: data.url || "/" },
         vibrate: [80, 30, 80],
         timestamp: Date.now(),
-        tag: data.tag || "hmorgan-points",
+        tag: data.tag || "hmorgan-puntos",
         renotify: true,
         actions: [
             { action: "open-qr", title: "Ver mi QR" },
-            { action: "points", title: "Mis puntos" }
+            { action: "puntos", title: "Mis puntos" }
         ]
     };
 
@@ -86,7 +86,7 @@ self.addEventListener("notificationclick", (event) => {
 
     const urlToOpen =
         event.action === "open-qr" ? "/cliente/qr" :
-            event.action === "points" ? "/cliente/puntos" :
+            event.action === "puntos" ? "/cliente/puntos" :
                 event.notification?.data?.url || "/";
 
     event.waitUntil((async () => {

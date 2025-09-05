@@ -14,7 +14,7 @@ export default function PuntosPage() {
 
   useEffect(() => {
     (async () => {
-      const res = await fetch("/api/points");
+      const res = await fetch("/api/puntos");
       const data = await res.json();
       setItems(data.items || []);
     })();

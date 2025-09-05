@@ -11,7 +11,7 @@ type Client = {
     apellido: string;
     dni: string;
     telefono?: string;
-    points?: number;
+    puntos?: number;
     qrToken?: string;
 };
 
@@ -43,7 +43,7 @@ export default function AdminClientsPage() {
 
     const [q, setQ] = useState("");
     const [page, setPage] = useState(1);
-    const [sort, setSort] = useState<"nombre" | "apellido" | "dni" | "points">("apellido");
+    const [sort, setSort] = useState<"nombre" | "apellido" | "dni" | "puntos">("apellido");
     const [dir, setDir] = useState<"asc" | "desc">("asc");
 
     const debouncedQ = useDebouncedValue(q, 350);
@@ -159,8 +159,8 @@ export default function AdminClientsPage() {
                         <option value="nombre:desc">Nombre ↓</option>
                         <option value="dni:asc">DNI ↑</option>
                         <option value="dni:desc">DNI ↓</option>
-                        <option value="points:desc">Puntos ↓</option>
-                        <option value="points:asc">Puntos ↑</option>
+                        <option value="puntos:desc">Puntos ↓</option>
+                        <option value="puntos:asc">Puntos ↑</option>
                     </select>
                 </div>
             </div>
@@ -174,7 +174,7 @@ export default function AdminClientsPage() {
                     </button>
                     <button onClick={() => toggleSort("dni")} className="text-left font-semibold">DNI</button>
                     <div className="font-semibold">Teléfono</div>
-                    <button onClick={() => toggleSort("points")} className="text-left font-semibold">
+                    <button onClick={() => toggleSort("puntos")} className="text-left font-semibold">
                         Puntos
                     </button>
                     <div className="text-right font-semibold pr-1">Acciones</div>
@@ -216,7 +216,7 @@ export default function AdminClientsPage() {
                                     </div>
                                     <div className="tabular-nums">{c.dni}</div>
                                     <div className="truncate">{c.telefono || <span className="opacity-60">—</span>}</div>
-                                    <div className="font-bold tabular-nums">{c.points ?? 0}</div>
+                                    <div className="font-bold tabular-nums">{c.puntos ?? 0}</div>
 
                                     <div className="flex items-center justify-end gap-1">
                                         <button
@@ -250,7 +250,7 @@ export default function AdminClientsPage() {
                                                 {c.telefono ? `Tel. ${c.telefono}` : "Sin teléfono"}
                                             </div>
                                             <div className="mt-1 font-bold tabular-nums">
-                                                {c.points ?? 0} pts
+                                                {c.puntos ?? 0} pts
                                             </div>
                                         </div>
                                         <div className="shrink-0 flex flex-col gap-1">
@@ -359,7 +359,7 @@ function EditClientModal({
                     apellido: form.apellido,
                     dni: form.dni,
                     telefono: form.telefono,
-                    points: Number(form.points ?? 0),
+                    puntos: Number(form.puntos ?? 0),
                 }),
             });
             const data = await res.json();
@@ -417,12 +417,12 @@ function EditClientModal({
                         <Field label="Puntos">
                             <input
                                 className="w-full rounded-xl bg-white/10 px-3 py-2.5 outline-none ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-emerald-500/70 tabular-nums"
-                                value={String(form.points ?? 0)}
+                                value={String(form.puntos ?? 0)}
                                 inputMode="numeric"
                                 onChange={(e) =>
                                     setForm({
                                         ...form,
-                                        points: Number(e.target.value.replace(/[^\d-]/g, "")) || 0,
+                                        puntos: Number(e.target.value.replace(/[^\d-]/g, "")) || 0,
                                     })
                                 }
                             />

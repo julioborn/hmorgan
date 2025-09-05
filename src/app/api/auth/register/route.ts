@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
       passwordHash,
       role: "cliente",
       qrToken,
-      points: 0,
+      puntos: 0,
     });
 
     // JWT largo (1 año)

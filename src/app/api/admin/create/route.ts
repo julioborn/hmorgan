@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
             passwordHash,
             role: "admin",
             qrToken,
-            points: 0,
+            puntos: 0,
         });
 
         return NextResponse.json({

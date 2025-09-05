@@ -22,7 +22,7 @@ async function main() {
       passwordHash: await bcrypt.hash(password, 10),
       role: "admin",
       qrToken: crypto.randomUUID(),
-      points: 0,
+      puntos: 0,
     });
     console.log("Admin creado:", user._id.toString(), "DNI:", dni);
   } else {

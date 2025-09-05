@@ -14,7 +14,7 @@ type LeanUser = {
   telefono: string;
   role: "cliente" | "admin";
   qrToken: string;
-  points: number;
+  puntos: number;
 };
 
 export async function GET(req: NextRequest) {
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
 
     await connectMongoDB();
     const u = await User.findById(payload.sub)
-      .select("_id nombre apellido dni telefono role qrToken points")
+      .select("_id nombre apellido dni telefono role qrToken puntos")
       .lean<LeanUser>();
 
     if (!u) return NextResponse.json({ user: null });
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
       telefono: u.telefono,
       role: u.role,
       qrToken: u.qrToken,
-      points: u.points ?? 0,
+      puntos: u.puntos ?? 0,
     };
 
     // Base response

@@ -12,7 +12,7 @@ type LeanUser = {
     nombre: string;
     apellido: string;
     dni: string;
-    points?: number;
+    puntos?: number;
 };
 
 export async function GET(req: NextRequest) {
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
         await connectMongoDB();
 
         const user = await User.findOne({ qrToken })
-            .select("_id nombre apellido dni points")
+            .select("_id nombre apellido dni puntos")
             .lean<LeanUser>(); // 👈 tipado explícito
 
         if (!user) return NextResponse.json({ error: "QR inválido" }, { status: 404 });
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
                 nombre: user.nombre,
                 apellido: user.apellido,
                 dni: user.dni,
-                points: user.points ?? 0,
+                puntos: user.puntos ?? 0,
             },
         });
     } catch (e) {

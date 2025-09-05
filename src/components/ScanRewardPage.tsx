@@ -125,7 +125,7 @@ export default function ScanRewardPage() {
 
             camStateRef.current = "on";
             setCamState("on");
-            setStatus("Cámara activa (ZXing). Escaneá el QR del cliente.");
+            setStatus("Cámara activa. Escaneá el QR del cliente.");
         } catch (err: any) {
             console.error(err);
             setCamState("error");

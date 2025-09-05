@@ -55,7 +55,7 @@ export async function sendPushToSubscriptions(
             await webPush.sendNotification(sub as any, body);
         } catch (err: any) {
             const code = err?.statusCode;
-            // 404/410 => endpoint muerto. Si querés podrías devolver los endpoints “rotos”
+            // 404/410 => endpoint muerto. Si querés podrías devolver los endpuntos “rotos”
             // para limpiarlos en la capa que llama a esta función.
             console.error("push error:", code, err?.body);
         }
