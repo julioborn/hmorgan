@@ -1,4 +1,3 @@
-// src/app/api/canjes/route.ts
 import { NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { Reward } from "@/models/Reward";
@@ -26,34 +25,32 @@ export async function POST(req: Request) {
             return NextResponse.json({ message: "Recompensa no encontrada" }, { status: 404 });
         }
 
-        // Aseguramos números
-        const userPoints = Number(user.puntos ?? 0);
-        const rewardPoints = Number(reward.puntos ?? 0);
-
-        console.log("DEBUG canje:", {
-            usuario: user.nombre,
-            userPoints,
-            reward: reward.titulo,
-            rewardPoints,
+        // Revisar si ya tiene un canje igual en los últimos 30s (antiflood)
+        const reciente = await Canje.findOne({
+            userId: user._id,
+            rewardId: reward._id,
+            createdAt: { $gte: new Date(Date.now() - 30 * 1000) }
         });
 
+        if (reciente) {
+            return NextResponse.json({ message: "Este canje ya fue procesado recientemente" }, { status: 400 });
+        }
+
         // Verificar puntos
-        if (userPoints < rewardPoints) {
-            return NextResponse.json(
-                { message: `Puntos insuficientes. Tenés ${userPoints}, necesitas ${rewardPoints}` },
-                { status: 400 }
-            );
+        if ((user.puntos || 0) < reward.puntos) {
+            return NextResponse.json({ message: "Puntos insuficientes" }, { status: 400 });
         }
 
         // Descontar puntos al usuario
-        user.puntos = userPoints - rewardPoints;
+        user.puntos = (user.puntos || 0) - reward.puntos;
         await user.save();
 
         // Crear registro de canje
         const canje = await Canje.create({
             userId: user._id,
             rewardId: reward._id,
-            estado: "aprobado",
+            puntosGastados: reward.puntos,
+            estado: "completado",
         });
 
         return NextResponse.json({ ok: true, canje });
