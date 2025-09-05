@@ -1,10 +1,12 @@
-// src/app/admin/rewards/scan/page.tsx
 "use client";
 
+import { Suspense } from "react";
 import ScanRewardPage from "@/components/ScanRewardPage";
 
-export const dynamic = "force-dynamic"; // 🔥 evita pre-render server
-
-export default function Page() {
-    return <ScanRewardPage />;
+export default function ScanRewardPageWrapper() {
+    return (
+        <Suspense fallback={<div className="p-6">Cargando…</div>}>
+            <ScanRewardPage />
+        </Suspense>
+    );
 }

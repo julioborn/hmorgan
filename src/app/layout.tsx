@@ -8,16 +8,18 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "H Morgan Bar",
   description: "Fidelización de clientes para bar/resto",
-  // Barras del sistema CLARAS siempre (incluso si el sistema está en dark)
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#ffffff" },
-  ],
   icons: {
     icon: "/favicon.ico",
     shortcut: "/favicon-32x32.png",
     apple: "/favicon-192x192.png",
   },
+};
+
+export const viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#ffffff" },
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
