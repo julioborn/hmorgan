@@ -7,11 +7,11 @@ import { randomBytes } from "crypto";
 
 export async function POST(req: NextRequest) {
   try {
-    const JWT_SECRET = process.env.JWT_SECRET;
-    if (!JWT_SECRET) {
-      console.error("Falta JWT_SECRET");
+    const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
+    if (!NEXTAUTH_SECRET) {
+      console.error("Falta NEXTAUTH_SECRET");
       return NextResponse.json(
-        { error: "Config del servidor incompleta (JWT_SECRET)" },
+        { error: "Config del servidor incompleta (NEXTAUTH_SECRET)" },
         { status: 500 }
       );
     }
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
     // JWT largo (1 año)
     const token = jwt.sign(
       { sub: user._id.toString(), role: user.role },
-      JWT_SECRET,
+      NEXTAUTH_SECRET,
       { expiresIn: "365d" }
     );
 

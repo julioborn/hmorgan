@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     let payload: any;
     try {
         const jwt = (await import("jsonwebtoken")).default;
-        payload = jwt.verify(token, process.env.JWT_SECRET!);
+        payload = jwt.verify(token, process.env.NEXTAUTH_SECRET!);
     } catch {
         return NextResponse.json({ error: "Invalid auth" }, { status: 401 });
     }
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
 
     let payload: any;
     try {
-        payload = jwt.verify(token, process.env.JWT_SECRET!);
+        payload = jwt.verify(token, process.env.NEXTAUTH_SECRET!);
     } catch {
         return NextResponse.json({ error: "Invalid auth" }, { status: 401 });
     }

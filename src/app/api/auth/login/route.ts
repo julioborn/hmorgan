@@ -6,11 +6,11 @@ import jwt from "jsonwebtoken";
 
 export async function POST(req: NextRequest) {
   try {
-    const secret = process.env.JWT_SECRET;
+    const secret = process.env.NEXTAUTH_SECRET;
     if (!secret) {
-      console.error("Falta JWT_SECRET");
+      console.error("Falta NEXTAUTH_SECRET");
       return NextResponse.json(
-        { error: "Config del servidor incompleta (JWT_SECRET)" },
+        { error: "Config del servidor incompleta (NEXTAUTH_SECRET)" },
         { status: 500 }
       );
     }

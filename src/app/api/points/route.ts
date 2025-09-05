@@ -3,13 +3,13 @@ import { connectMongoDB } from "@/lib/mongodb";
 import { PointTransaction } from "@/models/PointTransaction";
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET!;
+const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET!;
 
 export async function GET(req: NextRequest) {
   try {
     const token = req.cookies.get("session")?.value;
     if (!token) return NextResponse.json({ items: [] });
-    const payload = jwt.verify(token, JWT_SECRET) as any;
+    const payload = jwt.verify(token, NEXTAUTH_SECRET) as any;
 
     await connectMongoDB();
     const items = await PointTransaction.find({ userId: payload.sub })

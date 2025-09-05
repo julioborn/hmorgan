@@ -18,7 +18,7 @@ function checkRate(ip: string) {
   return false;
 }
 
-const JWT_SECRET = process.env.JWT_SECRET!;
+const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET!;
 
 export async function POST(req: NextRequest) {
   const ip = (req.ip ?? req.headers.get("x-forwarded-for") ?? "unknown").toString();
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   try {
     const token = req.cookies.get("session")?.value;
     if (!token) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    const payload = jwt.verify(token, JWT_SECRET) as any;
+    const payload = jwt.verify(token, NEXTAUTH_SECRET) as any;
     if (payload.role !== "admin") return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
     const { qrToken, consumoARS } = await req.json();

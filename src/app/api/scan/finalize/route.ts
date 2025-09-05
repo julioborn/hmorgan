@@ -6,14 +6,14 @@ import { PointTransaction } from "@/models/PointTransaction";
 import { sendPushAndCollectInvalid } from "@/lib/push-server"; 
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET!;
+const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET!;
 
 export async function POST(req: NextRequest) {
     try {
         // --- Auth admin ---
         const token = req.cookies.get("session")?.value;
         if (!token) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-        const payload = jwt.verify(token, JWT_SECRET) as any;
+        const payload = jwt.verify(token, NEXTAUTH_SECRET) as any;
         if (payload.role !== "admin") return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
         // --- Body ---

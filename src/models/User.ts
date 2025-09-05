@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from "mongoose";
+import mongoose, { Schema, model, Document } from "mongoose";
 
 export type Role = "cliente" | "admin";
 
@@ -7,8 +7,8 @@ export interface IPushSub {
   keys?: { p256dh?: string; auth?: string };
 }
 
-export interface IUser {
-  _id: string;
+// 👇 extendemos de Document para que Mongoose reconozca _id, createdAt, updatedAt
+export interface IUser extends Document {
   nombre: string;
   apellido: string;
   dni: string;
@@ -17,7 +17,7 @@ export interface IUser {
   role: Role;
   qrToken: string;
   points: number;
-  pushSubscriptions: IPushSub[];   // ⬅️ array
+  pushSubscriptions: IPushSub[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -43,9 +43,10 @@ const userSchema = new Schema<IUser>(
     role: { type: String, enum: ["cliente", "admin"], default: "cliente" },
     qrToken: { type: String, required: true, unique: true, index: true },
     points: { type: Number, default: 0 },
-    pushSubscriptions: { type: [pushSubSchema], default: [] }, // ⬅️ aquí
+    pushSubscriptions: { type: [pushSubSchema], default: [] },
   },
   { timestamps: true }
 );
 
-export const User = mongoose.models.User || model<IUser>("User", userSchema);
+export const User =
+  mongoose.models.User || model<IUser>("User", userSchema);

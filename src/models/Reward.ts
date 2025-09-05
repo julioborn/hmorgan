@@ -1,10 +1,19 @@
-import mongoose, { Schema, models } from "mongoose";
+// models/Reward.ts
+import mongoose, { Schema, Document } from "mongoose";
 
-const RewardSchema = new Schema({
+export interface IReward extends Document {
+    titulo: string;
+    descripcion?: string;
+    puntos: number;
+    activo?: boolean;
+}
+
+const RewardSchema = new Schema<IReward>({
     titulo: { type: String, required: true },
     descripcion: { type: String },
-    puntosRequeridos: { type: Number, required: true },
+    puntos: { type: Number, required: true },
     activo: { type: Boolean, default: true },
 });
 
-export const Reward = models.Reward || mongoose.model("Reward", RewardSchema);
+export const Reward =
+    mongoose.models.Reward || mongoose.model<IReward>("Reward", RewardSchema);

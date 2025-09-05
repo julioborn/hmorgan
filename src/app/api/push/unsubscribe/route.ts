@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
 
     let payload: any;
     try {
-        payload = jwt.verify(token, process.env.JWT_SECRET!);
+        payload = jwt.verify(token, process.env.NEXTAUTH_SECRET!);
     } catch {
         return NextResponse.json({ error: "Invalid auth" }, { status: 401 });
     }

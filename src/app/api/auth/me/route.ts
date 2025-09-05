@@ -4,7 +4,7 @@ import { User } from "@/models/User";
 import jwt from "jsonwebtoken";
 import type { Types } from "mongoose";
 
-const JWT_SECRET = process.env.JWT_SECRET!;
+const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET!;
 
 type LeanUser = {
   _id: Types.ObjectId;
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   if (!token) return NextResponse.json({ user: null });
 
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as any;
+    const payload = jwt.verify(token, NEXTAUTH_SECRET) as any;
 
     await connectMongoDB();
     const u = await User.findById(payload.sub)
@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
     if (timeLeft > 0 && timeLeft < THIRTY_DAYS) {
       const fresh = jwt.sign(
         { sub: u._id.toString(), role: u.role },
-        JWT_SECRET,
+        NEXTAUTH_SECRET,
         { expiresIn: "365d" }
       );
       const isProd = process.env.NODE_ENV === "production";

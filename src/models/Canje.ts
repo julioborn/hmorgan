@@ -1,12 +1,21 @@
-import mongoose, { Schema, models } from "mongoose";
+// models/Canje.ts
+import mongoose, { Schema, Document } from "mongoose";
 
-const CanjeSchema = new Schema({
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    rewardId: { type: mongoose.Schema.Types.ObjectId, ref: "Reward", required: true },
+export interface ICanje extends Document {
+    rewardId: mongoose.Types.ObjectId;
+    titulo: string;
+    puntosGastados: number;
+    userId: mongoose.Types.ObjectId;
+    fecha: Date;
+}
+
+const CanjeSchema = new Schema<ICanje>({
+    rewardId: { type: Schema.Types.ObjectId, ref: "Reward", required: true },
     titulo: { type: String, required: true },
     puntosGastados: { type: Number, required: true },
-    estado: { type: String, enum: ["pendiente", "aprobado", "entregado"], default: "pendiente" },
+    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     fecha: { type: Date, default: Date.now },
 });
 
-export const Canje = models.Canje || mongoose.model("Canje", CanjeSchema);
+export const Canje =
+    mongoose.models.Canje || mongoose.model<ICanje>("Canje", CanjeSchema);
