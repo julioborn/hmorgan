@@ -21,7 +21,7 @@ export default function ScanRewardPage() {
     const [flash, setFlash] = useState(false);
     const [toast, setToast] = useState<string>("");
 
-    // anti-spam refs
+    // anti-spam 
     const busyRef = useRef(false);
     const inFlightTokensRef = useRef<Set<string>>(new Set());
 
