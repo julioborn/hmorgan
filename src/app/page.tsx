@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
-import { QrCode, Award, UtensilsCrossed, Scan, Users } from "lucide-react";
+import { QrCode, Award, UtensilsCrossed, Scan, Users, Utensils, Trophy } from "lucide-react";
 
 const container =
   "mx-auto w-full max-w-screen-sm md:max-w-2xl lg:max-w-4xl xl:max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8";
@@ -90,35 +90,30 @@ function ClientHome({ nombre }: { nombre?: string }) {
         <ActionCard
           href="/cliente/qr"
           title="Mi QR"
-          subtitle="Mostralo al finalizar tu consumo"
           Icon={QrCode}
           accent="from-emerald-500/20 to-transparent"
         />
         <ActionCard
-          href="/cliente/puntos"
-          title="Mis Puntos"
-          subtitle="Historial y saldo en tiempo real"
-          Icon={Award}
-          accent="from-indigo-500/20 to-transparent"
-        />
-        <ActionCard
           href="/cliente/menu"
           title="Menú"
-          subtitle=""
-          Icon={UtensilsCrossed}
+          Icon={Utensils}
           accent="from-amber-500/20 to-transparent"
         />
         <ActionCard
           href="/cliente/rewards"
-          title="Recompensas"
-          subtitle="Canjeá tus puntos por beneficios"
+          title="Canjes"
           Icon={Award}
           accent="from-pink-500/20 to-transparent"
         />
         <ActionCard
+          href="/cliente/puntos"
+          title="Mis Puntos"
+          Icon={Award}
+          accent="from-indigo-500/20 to-transparent"
+        />
+        <ActionCard
           href="/cliente/canjes"
           title="Mis Canjes"
-          subtitle="Seguí tus pedidos y beneficios"
           Icon={QrCode}
           accent="from-teal-500/20 to-transparent"
         />
@@ -146,90 +141,75 @@ function AdminHome() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 items-stretch">
         <ActionCard
           href="/admin/scan"
-          title="Escanear"
-          subtitle="Asignar puntos por mesa"
+          title="Escanear Puntos"
           Icon={Scan}
           accent="from-emerald-500/20 to-transparent"
         />
         <ActionCard
+          href="/admin/rewards/scan"
+          title="Escanear Canjes"
+          Icon={Scan}
+          accent="from-purple-500/20 to-transparent"
+        />
+        <ActionCard
           href="/admin/clientes"
           title="Clientes"
-          subtitle="Ver, editar y administrar"
           Icon={Users}
           accent="from-indigo-500/20 to-transparent"
         />
         <ActionCard
           href="/admin/menu"
           title="Menú"
-          subtitle="Configurar productos y precios"
-          Icon={UtensilsCrossed}
+          Icon={Utensils}
           accent="from-amber-500/20 to-transparent"
         />
-        <ActionCard
+        {/* <ActionCard
           href="/admin/rewards"
-          title="Recompensas"
-          subtitle="Crear y editar canjes por puntos"
+          title="Canjes"
           Icon={Award}
           accent="from-pink-500/20 to-transparent"
-        />
-        <ActionCard
-          href="/admin/canjes"
-          title="Canjes"
-          subtitle="Historial y estado de entregas"
-          Icon={QrCode}
-          accent="from-teal-500/20 to-transparent"
-        />
-        <ActionCard
-          href="/admin/rewards/scan"
-          title="Escanear recompensa"
-          subtitle="Canjear puntos por QR"
-          Icon={QrCode}
-          accent="from-purple-500/20 to-transparent"
-        />
+        /> */}
       </div>
     </div>
   );
 }
 
 /* =========================
-  CARD REUTILIZABLE
+  CARD ESTILO BOTONERA
    ========================= */
 function ActionCard({
-  href, title, subtitle, Icon, accent, disabled
+  href,
+  title,
+  Icon,
+  accent,
+  disabled,
 }: {
   href: string;
   title: string;
-  subtitle?: string;
   Icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   accent?: string;
   disabled?: boolean;
 }) {
   const content = (
-    <div className="group relative overflow-hidden rounded-2xl border border-white/10
-                    p-5 lg:p-6 bg-white/[0.04] hover:bg-white/[0.06] transition
-                    min-h-28 lg:min-h-32 h-full">
-      {/* Accent sin overflow */}
-      <div className={`pointer-events-none absolute -right-10 -top-10 h-28 w-28 lg:h-36 lg:w-36
-                       rounded-full blur-2xl bg-gradient-to-tr ${accent || "from-white/10 to-transparent"}`} />
-      <div className="flex items-center gap-4 lg:gap-5">
-        <div className="grid place-items-center h-10 w-10 lg:h-12 lg:w-12 rounded-xl bg-white/10 border border-white/10 shrink-0">
-          <Icon className="h-5 w-5 lg:h-6 lg:w-6 opacity-90" aria-hidden />
-        </div>
-        <div className="min-w-0">
-          <div className="text-base lg:text-lg font-bold leading-tight">{title}</div>
-          {subtitle && <div className="text-sm opacity-75 truncate">{subtitle}</div>}
-        </div>
-        <div className="ml-auto opacity-60 group-hover:opacity-100 transition text-emerald-300">→</div>
-      </div>
+    <div
+      className={`group relative flex flex-col items-center justify-center
+                  rounded-2xl border border-white/10
+                  p-6 sm:p-8 min-h-[140px] lg:min-h-[160px]
+                  bg-gradient-to-br ${accent || "from-slate-800 to-slate-900"}
+                  hover:scale-105 hover:shadow-lg hover:shadow-emerald-500/10
+                  transition-all duration-200`}
+    >
+      <Icon className="h-10 w-10 lg:h-12 lg:w-12 mb-3 opacity-90" aria-hidden />
+      <div className="text-base lg:text-lg font-bold text-center">{title}</div>
     </div>
   );
 
-  if (disabled) return <div className="opacity-70 cursor-not-allowed h-full">{content}</div>;
+  if (disabled) return <div className="opacity-50 cursor-not-allowed">{content}</div>;
 
   return (
     <Link
       href={href}
-      className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 rounded-2xl"
+      className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 rounded-2xl"
     >
       {content}
     </Link>

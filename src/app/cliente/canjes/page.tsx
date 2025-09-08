@@ -1,4 +1,3 @@
-// src/app/cliente/canjes/page.tsx
 "use client";
 import { useEffect, useState } from "react";
 import { Gift } from "lucide-react";
@@ -37,42 +36,67 @@ export default function CanjesClientePage() {
     if (loading) return <p className="p-6">Cargando canjes...</p>;
 
     return (
-        <div className="p-6 space-y-4">
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-                <Gift className="text-emerald-400" /> Mis Canjes
+        <div className="p-6 space-y-8">
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-center text-white">
+                Mis Canjes
             </h1>
 
             {canjes.length === 0 ? (
-                <p className="opacity-70">Aún no realizaste canjes.</p>
+                <p className="opacity-70 text-center">Aún no realizaste canjes.</p>
             ) : (
-                <ul className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {canjes.map((c) => (
-                        <li
+                        <div
                             key={c._id}
-                            className="rounded-xl bg-white/[0.04] border border-white/10 p-4 flex items-center justify-between"
+                            className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br 
+               from-emerald-600/20 via-slate-800/40 to-slate-900/60
+               p-5 flex flex-col justify-between hover:scale-[1.02] hover:shadow-lg 
+               hover:shadow-emerald-500/20 transition-all duration-300"
                         >
-                            <div>
-                                <div className="font-semibold">{c.rewardId?.titulo}</div>
-                                <div className="text-sm opacity-70">
-                                    {c.puntosGastados} pts —{" "}
-                                    {new Date(c.createdAt).toLocaleDateString("es-AR", {
-                                        day: "2-digit",
-                                        month: "2-digit",
-                                        year: "numeric",
-                                    })}
-                                </div>
+                            {/* Ícono decorativo */}
+                            <div className="absolute -top-8 -right-8 w-24 h-24 bg-emerald-500/10 rounded-full blur-3xl" />
+
+                            {/* Título */}
+                            <div className="flex items-center gap-3 mb-2">
+                                <Gift className="w-8 h-8 text-emerald-400 shrink-0" />
+                                <h2 className="text-lg sm:text-xl font-bold">{c.rewardId?.titulo}</h2>
                             </div>
-                            <span
-                                className={`text-xs px-3 py-1 rounded-full font-semibold ${c.estado === "completado"
-                                        ? "bg-emerald-500/20 text-emerald-300"
-                                        : "bg-amber-500/20 text-amber-300"
-                                    }`}
-                            >
-                                {c.estado}
-                            </span>
-                        </li>
+
+                            {/* Descripción del canje (si la hay) */}
+                            {c.rewardId && (c.rewardId as any).descripcion && (
+                                <p className="text-sm opacity-80 mb-3">
+                                    {(c.rewardId as any).descripcion}
+                                </p>
+                            )}
+
+                            {/* Puntos + fecha + estado en la misma fila */}
+                            <div className="mb-2 flex items-center justify-between">
+                                <div>
+                                    <p className="text-2xl font-extrabold text-emerald-400">
+                                        {c.puntosGastados} pts
+                                    </p>
+                                    <p className="text-sm opacity-70">
+                                        {new Date(c.createdAt).toLocaleDateString("es-AR", {
+                                            day: "2-digit",
+                                            month: "2-digit",
+                                            year: "numeric",
+                                        })}
+                                    </p>
+                                </div>
+
+                                <span
+                                    className={`inline-block text-xs sm:text-sm px-3 py-1 rounded-full font-semibold tracking-wide
+      ${c.estado === "completado"
+                                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/30"
+                                            : "bg-amber-500/20 text-amber-300 border border-amber-400/30"
+                                        }`}
+                                >
+                                    {c.estado === "completado" ? "CANJEADO" : c.estado.toUpperCase()}
+                                </span>
+                            </div>
+                        </div>
                     ))}
-                </ul>
+                </div>
             )}
         </div>
     );

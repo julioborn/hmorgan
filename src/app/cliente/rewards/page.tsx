@@ -19,7 +19,7 @@ export default function RewardsClientePage() {
     return (
         <div className="p-6">
             <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                <Gift className="text-emerald-400" /> Recompensas disponibles
+                <Gift className="text-emerald-400" /> Canjes disponibles
             </h1>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {rewards.map((r) => (

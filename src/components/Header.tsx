@@ -134,7 +134,7 @@ export default function Header() {
                         {!loading && user && (
                             <>
                                 {/* Ocultamos saludo en pantallas medianas */}
-                                <span className="text-sm opacity-90 hidden lg:block">
+                                <span className="text-md opacity-90 hidden lg:block">
                                     Hola, <b>{user.nombre}</b>
                                 </span>
                                 {user.role === "cliente" && (

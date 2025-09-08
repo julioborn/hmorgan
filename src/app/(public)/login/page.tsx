@@ -54,7 +54,7 @@ export default function LoginPage() {
 
   return (
     <div
-      className="min-h-[100dvh] grid place-items-center p-4"
+      className="min-h-[100dvh] flex items-start justify-center p-4 pt-20"
       style={{ paddingBottom: "max(1rem, env(safe-area-ineset-bottom))" }}
     >
       <form

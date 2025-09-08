@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
         await connectMongoDB();
 
         const canjes = await Canje.find({ userId: payload.sub })
-            .populate("rewardId", "titulo puntos")
+            .populate("rewardId", "titulo descripcion puntos")
             .sort({ createdAt: -1 })
             .lean();
 
