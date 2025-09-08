@@ -1,20 +1,53 @@
-import { NextResponse } from "next/server";
+// src/app/api/canjes/route.ts
+import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { Reward } from "@/models/Reward";
 import { Canje } from "@/models/Canje";
 import { User } from "@/models/User";
+import jwt from "jsonwebtoken";
 
-export async function POST(req: Request) {
+export const dynamic = "force-dynamic"; // 👈 evita cacheo ISR
+
+const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET!;
+
+// ✅ GET → listar canjes del usuario
+export async function GET(req: NextRequest) {
     try {
-        await connectMongoDB();
-        const { rewardId, qrToken } = await req.json();
+        const token = req.cookies.get("session")?.value;
+        if (!token) return NextResponse.json({ message: "No autorizado" }, { status: 401 });
 
-        if (!rewardId || !qrToken) {
+        const payload = jwt.verify(token, NEXTAUTH_SECRET) as any;
+
+        await connectMongoDB();
+
+        const canjes = await Canje.find({ userId: payload.sub })
+            .populate("rewardId", "titulo puntos")
+            .sort({ createdAt: -1 })
+            .lean();
+
+        return NextResponse.json(canjes);
+    } catch (error) {
+        console.error("Error en GET /api/canjes:", error);
+        return NextResponse.json({ message: "Error interno" }, { status: 500 });
+    }
+}
+
+// ✅ POST → registrar un nuevo canje
+export async function POST(req: NextRequest) {
+    try {
+        const token = req.cookies.get("session")?.value;
+        if (!token) return NextResponse.json({ message: "No autorizado" }, { status: 401 });
+        const payload = jwt.verify(token, NEXTAUTH_SECRET) as any;
+
+        await connectMongoDB();
+        const { rewardId } = await req.json();
+
+        if (!rewardId) {
             return NextResponse.json({ message: "Datos incompletos" }, { status: 400 });
         }
 
-        // Buscar usuario por qrToken
-        const user = await User.findOne({ qrToken });
+        // Buscar usuario
+        const user = await User.findById(payload.sub);
         if (!user) {
             return NextResponse.json({ message: "Usuario no encontrado" }, { status: 404 });
         }
@@ -29,11 +62,14 @@ export async function POST(req: Request) {
         const reciente = await Canje.findOne({
             userId: user._id,
             rewardId: reward._id,
-            createdAt: { $gte: new Date(Date.now() - 30 * 1000) }
+            createdAt: { $gte: new Date(Date.now() - 30 * 1000) },
         });
 
         if (reciente) {
-            return NextResponse.json({ message: "Este canje ya fue procesado recientemente" }, { status: 400 });
+            return NextResponse.json(
+                { message: "Este canje ya fue procesado recientemente" },
+                { status: 400 }
+            );
         }
 
         // Verificar puntos
@@ -55,18 +91,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ ok: true, canje });
     } catch (error) {
-        console.error(error);
+        console.error("Error en POST /api/canjes:", error);
         return NextResponse.json({ message: "Error interno" }, { status: 500 });
     }
-}
-
-export async function GET() {
-    await connectMongoDB();
-    const canjes = await Canje.find()
-        .populate("userId", "nombre apellido dni puntos")
-        .populate("rewardId", "titulo puntos")
-        .sort({ createdAt: -1 })
-        .lean();
-
-    return NextResponse.json(canjes);
 }
