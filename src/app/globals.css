@@ -43,3 +43,8 @@ select, select option {
 select {
   background-color: #fff !important;
 }
+
+@import "swiper/css";
+@import "swiper/css/pagination";
+@import "swiper/css/navigation";
+
