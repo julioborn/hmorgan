@@ -132,11 +132,11 @@ function ClientHome({ nombre }: { nombre?: string }) {
       className={`${container} py-8 space-y-8`}
       style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
     >
-      <header>
+      {/* <header>
         <h1 className="text-2xl sm:text-3xl lg:text-4xl text-center font-extrabold">
           Hola{nombre ? `, ${nombre}` : ""}
         </h1>
-      </header>
+      </header> */}
 
       {/* 👇 Carrusel de recompensas estilo ticket */}
       <section className="relative">
@@ -152,15 +152,18 @@ function ClientHome({ nombre }: { nombre?: string }) {
               <Swiper
                 modules={[Autoplay, Pagination]}
                 autoplay={{
-                  delay: 2000, // 2s entre cada movimiento
+                  delay: 3250, // 2s entre cada movimiento
                   disableOnInteraction: false,
                   pauseOnMouseEnter: false,
                 }}
-                speed={800} // velocidad de transición entre slides
+                speed={1250} // velocidad de transición entre slides
                 loop={true}
                 spaceBetween={16}
                 slidesPerView={1.1}
-                pagination={{ clickable: true }}
+                pagination={{
+                  clickable: true,
+                  dynamicBullets: true
+                }}
                 breakpoints={{
                   640: { slidesPerView: 2 },
                   1024: { slidesPerView: 3 },
@@ -170,7 +173,9 @@ function ClientHome({ nombre }: { nombre?: string }) {
                   <SwiperSlide key={r._id}>
                     <div className="relative bg-white text-black rounded-2xl shadow-xl p-5 h-44 flex flex-col justify-between overflow-hidden">
                       <div className="flex-1 flex flex-col justify-between">
-                        <h3 className="text-lg font-extrabold truncate">{r.titulo}</h3>
+                        <h3 className="font-extrabold text-base md:text-lg line-clamp-2">
+                          {r.titulo}
+                        </h3>
                         <p className="text-sm text-gray-600 line-clamp-2">
                           {r.descripcion || "Canje"}
                         </p>
