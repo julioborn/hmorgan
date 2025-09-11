@@ -3,6 +3,7 @@ import useSWR from "swr";
 import { useState } from "react";
 import Link from "next/link";
 import { Gift, QrCode, Plus } from "lucide-react";
+import Loader from "@/components/Loader"; // 👈 importa tu loader
 
 type Reward = {
     _id: string;
@@ -22,6 +23,7 @@ export default function AdminRewardsPage() {
     const [puntos, setPuntos] = useState<number>(0);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [showForm, setShowForm] = useState(false);
 
     async function handleCreate(e: React.FormEvent) {
         e.preventDefault();
@@ -40,6 +42,7 @@ export default function AdminRewardsPage() {
             setTitulo("");
             setDescripcion("");
             setPuntos(0);
+            setShowForm(false);
         } catch (e: any) {
             setError(e.message);
         } finally {
@@ -47,7 +50,14 @@ export default function AdminRewardsPage() {
         }
     }
 
-    if (!rewards) return <p className="p-6">Cargando recompensas…</p>;
+    // 👇 loader global en vez de texto
+    if (!rewards) {
+        return (
+            <div className="flex justify-center items-center py-16">
+                <Loader size={64} />
+            </div>
+        );
+    }
 
     return (
         <div className="p-6 space-y-8">
@@ -55,71 +65,106 @@ export default function AdminRewardsPage() {
                 <Gift className="text-emerald-400" /> Canjes
             </h1>
 
-            {/* Formulario de creación */}
-            <form
-                onSubmit={handleCreate}
-                className="space-y-3 bg-white/5 p-4 rounded-xl border border-white/10"
-            >
-                <h2 className="font-semibold flex items-center gap-2">
-                    <Plus className="text-emerald-400" /> Nueva recompensa
-                </h2>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <input
-                        value={titulo}
-                        onChange={(e) => setTitulo(e.target.value)}
-                        placeholder="Título"
-                        required
-                        className="rounded-lg px-3 py-2 bg-white/10 outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-emerald-500"
-                    />
-                    <input
-                        type="number"
-                        value={puntos}
-                        onChange={(e) => setPuntos(Number(e.target.value))}
-                        placeholder="Puntos"
-                        required
-                        className="rounded-lg px-3 py-2 bg-white/10 outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-emerald-500"
-                    />
-                </div>
-                <textarea
-                    value={descripcion}
-                    onChange={(e) => setDescripcion(e.target.value)}
-                    placeholder="Descripción (opcional)"
-                    className="w-full rounded-lg px-3 py-2 bg-white/10 outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-emerald-500"
-                />
-                {error && <p className="text-sm text-rose-400">{error}</p>}
+            {/* Formulario toggleable */}
+            <div className="bg-white/5 rounded-lg p-6 shadow-md">
                 <button
-                    type="submit"
-                    disabled={loading}
-                    className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-500 disabled:opacity-50"
+                    onClick={() => setShowForm(!showForm)}
+                    className="w-full flex items-center justify-between text-md font-bold text-emerald-400 hover:text-emerald-300 transition"
                 >
-                    {loading ? "Guardando..." : "Crear recompensa"}
+                    <span>Generar Canje</span>
+                    {showForm ? "−" : "+"}
                 </button>
-            </form>
 
-            {/* Lista de recompensas */}
-            <ul className="space-y-3">
-                {rewards.map((r) => (
-                    <li
-                        key={r._id}
-                        className="flex justify-between items-center bg-white/5 rounded p-4"
-                    >
-                        <div>
-                            <p className="font-bold">{r.titulo}</p>
-                            {r.descripcion && (
-                                <p className="text-sm opacity-70">{r.descripcion}</p>
-                            )}
-                            <p className="text-sm opacity-70">{r.puntos} pts</p>
+                {showForm && (
+                    <form onSubmit={handleCreate} className="mt-6 space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <input
+                                value={titulo}
+                                onChange={(e) => setTitulo(e.target.value)}
+                                placeholder="Título"
+                                required
+                                className="bg-slate-800 border border-slate-600 text-slate-100 
+                           placeholder-slate-400 px-3 py-2 rounded 
+                           focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            />
+                            <input
+                                type="number"
+                                value={puntos}
+                                onChange={(e) => setPuntos(Number(e.target.value))}
+                                placeholder="Puntos"
+                                required
+                                className="bg-slate-800 border border-slate-600 text-slate-100 
+                           placeholder-slate-400 px-3 py-2 rounded 
+                           focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            />
                         </div>
-                        <Link
-                            href={`/admin/rewards/scan?rewardId=${r._id}`}
-                            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded"
-                        >
-                            <QrCode size={18} /> Escanear
-                        </Link>
-                    </li>
+
+                        <div>
+                            <textarea
+                                value={descripcion}
+                                onChange={(e) => setDescripcion(e.target.value)}
+                                placeholder="Descripción (opcional)"
+                                className="w-full bg-slate-800 border border-slate-600 text-slate-100 
+                           placeholder-slate-400 px-3 py-2 rounded min-h-[80px] 
+                           focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            />
+                        </div>
+
+                        {error && <p className="text-sm text-rose-400">{error}</p>}
+
+                        <div className="flex justify-end">
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="bg-emerald-600 text-white px-6 py-2 rounded hover:bg-emerald-500 disabled:opacity-50"
+                            >
+                                {loading ? <Loader size={20} /> : "Crear"}
+                            </button>
+                        </div>
+                    </form>
+                )}
+            </div>
+
+            {/* Botón global de escanear */}
+            <div className="flex justify-center">
+                <Link
+                    href="/admin/rewards/scan"
+                    className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-500 shadow-lg hover:scale-105 transition"
+                >
+                    <QrCode size={18} /> Escanear
+                </Link>
+            </div>
+
+            {/* Lista de recompensas estilo ticket */}
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {rewards.map((r) => (
+                    <div
+                        key={r._id}
+                        className="relative bg-white text-black rounded-2xl shadow-xl p-5 h-48 flex flex-col justify-between overflow-hidden"
+                    >
+                        <div className="flex-1 flex flex-col justify-between">
+                            <h3 className="text-lg font-extrabold truncate">{r.titulo}</h3>
+                            <p className="text-sm text-gray-600 line-clamp-2">
+                                {r.descripcion || "Canje"}
+                            </p>
+                            <span className="text-sm font-semibold text-emerald-600">
+                                {r.puntos} pts
+                            </span>
+                        </div>
+
+                        <div className="absolute bottom-3 right-3">
+                            <img
+                                src="/icon-192x192.png"
+                                alt="Logo"
+                                className="h-7 w-7 object-contain opacity-80"
+                            />
+                        </div>
+
+                        <span className="absolute -left-3 top-1/2 w-6 h-6 bg-slate-900 rounded-full" />
+                        <span className="absolute -right-3 top-1/2 w-6 h-6 bg-slate-900 rounded-full" />
+                    </div>
                 ))}
-            </ul>
+            </div>
         </div>
     );
 }

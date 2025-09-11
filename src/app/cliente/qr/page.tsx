@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { useAuth } from "@/context/auth-context";
 import { registerSW, subscribeUser } from "@/lib/push-client";
+import Loader from "@/components/Loader";
 
 export default function MiQRPage() {
   const { user } = useAuth();
@@ -18,7 +19,13 @@ export default function MiQRPage() {
     })();
   }, [user?.qrToken]);
 
-  if (!user) return <div className="p-6">Cargando…</div>;
+  if (!user) {
+    return (
+      <div className="py-20 flex justify-center items-center">
+        <Loader size={40} />
+      </div>
+    );
+  }
 
   async function handleEnableNotifications() {
     try {
@@ -70,7 +77,7 @@ export default function MiQRPage() {
             <p className="mt-3 text-emerald-500 font-medium">pts</p>
           </div>
           <a
-            href="/cliente/puntos"
+            href="/cliente/historial"
             className="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-500"
           >
             Ver historial

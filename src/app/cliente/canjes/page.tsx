@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Gift } from "lucide-react";
+import Loader from "@/components/Loader";
 
 export const dynamic = "force-dynamic"; // 👈 siempre datos frescos
 
@@ -33,7 +34,13 @@ export default function CanjesClientePage() {
         })();
     }, []);
 
-    if (loading) return <p className="p-6">Cargando canjes...</p>;
+    if (loading) {
+        return (
+            <div className="py-20 flex justify-center items-center">
+                <Loader size={40} />
+            </div>
+        );
+    }
 
     return (
         <div className="p-6 space-y-8">

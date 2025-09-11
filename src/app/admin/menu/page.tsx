@@ -17,6 +17,7 @@ import {
     CakeSlice,
     Hamburger,
 } from "lucide-react";
+import Loader from "@/components/Loader";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -94,7 +95,13 @@ export default function AdminMenuPage() {
         mutate();
     }
 
-    if (!items) return <p className="p-6">Cargando menú...</p>;
+    if (!items) {
+        return (
+            <div className="p-12 flex justify-center">
+                <Loader size={40} />
+            </div>
+        );
+    }
 
     // Categorías en orden según categoryIcons
     const categorias: string[] = Object.keys(categoryIcons).filter((cat) =>

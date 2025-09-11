@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/auth-context";
 import { QrCode, Pencil, Trash2, X, Save } from "lucide-react";
+import Loader from "@/components/Loader";
 
 type Client = {
     id: string;
@@ -75,12 +76,12 @@ export default function AdminClientsPage() {
 
     if (authLoading) {
         return (
-            <div className={`${container} py-8`}>
-                <h1 className="text-2xl font-extrabold">Clientes</h1>
-                <p className="opacity-80">Cargando…</p>
+            <div className={`${container} py-12 flex justify-center`}>
+                <Loader size={40} />
             </div>
         );
     }
+
     if (!isAdmin) {
         return (
             <div className={`${container} py-8`}>
@@ -99,6 +100,15 @@ export default function AdminClientsPage() {
             setSort(key);
             setDir("asc");
         }
+    }
+
+    // 👇 antes del return principal
+    if (authLoading || loading) {
+        return (
+            <div className={`${container} py-20 flex justify-center items-center`}>
+                <Loader size={40} />
+            </div>
+        );
     }
 
     return (
@@ -168,16 +178,7 @@ export default function AdminClientsPage() {
                 </div>
 
                 {/* body */}
-                {loading ? (
-                    <div className="p-4 space-y-2">
-                        {Array.from({ length: 6 }).map((_, i) => (
-                            <div
-                                key={i}
-                                className="h-14 rounded-xl bg-white/5 border border-white/10 animate-pulse"
-                            />
-                        ))}
-                    </div>
-                ) : error ? (
+                {error ? (
                     <div className="p-4 text-rose-300">{error}</div>
                 ) : items.length === 0 ? (
                     <div className="p-6 opacity-70">Sin resultados.</div>

@@ -21,6 +21,7 @@ import {
     ArrowUp,
     Milk,
 } from "lucide-react";
+import Loader from "@/components/Loader";
 
 type MenuItem = {
     _id: string;
@@ -68,7 +69,13 @@ export default function ClienteMenuPage() {
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
-    if (!items) return <p className="p-6 text-center">Cargando menú...</p>;
+    if (!items) {
+        return (
+            <div className="p-12 flex justify-center">
+                <Loader size={40} />
+            </div>
+        );
+    }
 
     const categorias: string[] = Object.keys(categoryIcons).filter((cat) =>
         items.some((i) => i.categoria === cat)

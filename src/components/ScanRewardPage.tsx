@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
+import Loader from "./Loader";
 
 type Reward = { _id: string; titulo: string; puntos: number };
 type CamState = "idle" | "starting" | "on" | "error";
@@ -215,7 +216,9 @@ export default function ScanRewardPage() {
                         ))}
                     </select>
                 ) : (
-                    <p>Cargando recompensas...</p>
+                    <div className="py-12 flex justify-center">
+                        <Loader size={32} />
+                    </div>
                 )}
             </div>
 

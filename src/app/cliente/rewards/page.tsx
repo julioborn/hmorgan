@@ -1,6 +1,7 @@
 "use client";
 import useSWR from "swr";
 import { Gift } from "lucide-react";
+import Loader from "@/components/Loader";
 
 type Reward = {
     _id: string;
@@ -14,7 +15,13 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 export default function RewardsClientePage() {
     const { data: rewards } = useSWR<Reward[]>("/api/rewards", fetcher);
 
-    if (!rewards) return <p className="p-6">Cargando recompensas...</p>;
+    if (!rewards) {
+        return (
+            <div className="py-20 flex justify-center items-center">
+                <Loader size={40} />
+            </div>
+        );
+    }
 
     return (
         <div className="p-6">

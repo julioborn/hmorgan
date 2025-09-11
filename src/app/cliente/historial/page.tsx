@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { UtensilsCrossed, Settings, Gift } from "lucide-react";
+import Loader from "@/components/Loader";
 
 type Tx = {
     _id: string;
@@ -68,8 +69,8 @@ export default function HistorialPage() {
                 <button
                     onClick={() => setTab("puntos")}
                     className={`px-4 py-2 rounded-lg font-semibold transition ${tab === "puntos"
-                            ? "bg-emerald-600 text-white"
-                            : "bg-white/10 text-white/70 hover:bg-white/20"
+                        ? "bg-emerald-600 text-white"
+                        : "bg-white/10 text-white/70 hover:bg-white/20"
                         }`}
                 >
                     Puntos
@@ -77,8 +78,8 @@ export default function HistorialPage() {
                 <button
                     onClick={() => setTab("canjes")}
                     className={`px-4 py-2 rounded-lg font-semibold transition ${tab === "canjes"
-                            ? "bg-emerald-600 text-white"
-                            : "bg-white/10 text-white/70 hover:bg-white/20"
+                        ? "bg-emerald-600 text-white"
+                        : "bg-white/10 text-white/70 hover:bg-white/20"
                         }`}
                 >
                     Canjes
@@ -88,7 +89,9 @@ export default function HistorialPage() {
             {/* Contenido según tab */}
             {tab === "puntos" ? (
                 loadingPuntos ? (
-                    <p className="text-center opacity-70">Cargando puntos...</p>
+                    <div className="py-20 flex justify-center items-center">
+                        <Loader size={40} />
+                    </div>
                 ) : items.length === 0 ? (
                     <div className="p-6 text-center opacity-70 bg-white/5 rounded-xl border border-white/10">
                         Sin movimientos aún.
@@ -146,7 +149,9 @@ export default function HistorialPage() {
                     </div>
                 )
             ) : loadingCanjes ? (
-                <p className="text-center opacity-70">Cargando canjes...</p>
+                <div className="py-20 flex justify-center items-center">
+                    <Loader size={40} />
+                </div>
             ) : canjes.length === 0 ? (
                 <p className="opacity-70 text-center">Aún no realizaste canjes.</p>
             ) : (
