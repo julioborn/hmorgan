@@ -4,7 +4,7 @@ import { useAuth } from "@/context/auth-context";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, QrCode, Award, Utensils, Scan, Users } from "lucide-react";
+import { Menu, X, QrCode, Award, Utensils, Scan, Users, RefreshCw } from "lucide-react";
 import Image from "next/image";
 import { Coins, Storefront } from "phosphor-react";
 
@@ -52,7 +52,11 @@ export default function Header() {
                     onClick={() => setOpen(!open)}
                     className="p-2 rounded-md hover:bg-white/10"
                 >
-                    {open ? <X size={22} /> : <Menu size={22} />}
+                    {open ? (
+                        <X size={24} className="text-emerald-400" />
+                    ) : (
+                        <Menu size={24} className="text-emerald-400" />
+                    )}
                 </button>
 
                 {/* Logo centrado */}
@@ -66,8 +70,14 @@ export default function Header() {
                     />
                 </Link>
 
-                {/* Columna derecha vacía para balancear */}
-                <div className="w-10"></div>
+                {/* Botón recargar (end) */}
+                <button
+                    onClick={() => window.location.reload()}
+                    className="p-2 rounded-full bg-emerald-600 hover:bg-white/10"
+                    title="Recargar página"
+                >
+                    <RefreshCw size={22} />
+                </button>
 
                 {/* Drawer lateral */}
                 <AnimatePresence>
@@ -113,8 +123,8 @@ export default function Header() {
                                                         href={l.href}
                                                         onClick={() => setOpen(false)}
                                                         className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition ${active
-                                                                ? "bg-emerald-600 text-white"
-                                                                : "hover:bg-white/10"
+                                                            ? "bg-emerald-600 text-white"
+                                                            : "hover:bg-white/10"
                                                             }`}
                                                     >
                                                         {l.icon && <l.icon size={18} />}
@@ -138,8 +148,8 @@ export default function Header() {
                                         <Link
                                             href="/login"
                                             className={`px-3 py-2 rounded-lg text-sm ${pathname === "/login"
-                                                    ? "bg-emerald-600 text-white"
-                                                    : "bg-white/10 hover:bg-white/15"
+                                                ? "bg-emerald-600 text-white"
+                                                : "bg-white/10 hover:bg-white/15"
                                                 }`}
                                             onClick={() => setOpen(false)}
                                         >
@@ -148,8 +158,8 @@ export default function Header() {
                                         <Link
                                             href="/register"
                                             className={`px-3 py-2 rounded-lg text-sm ${pathname === "/register"
-                                                    ? "bg-emerald-600 text-white"
-                                                    : "bg-emerald-600 hover:bg-emerald-500 text-white"
+                                                ? "bg-emerald-600 text-white"
+                                                : "bg-emerald-600 hover:bg-emerald-500 text-white"
                                                 }`}
                                             onClick={() => setOpen(false)}
                                         >
