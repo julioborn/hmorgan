@@ -8,7 +8,7 @@ import { Autoplay, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 import Loader from "@/components/Loader";
-import { Coins } from "phosphor-react";
+import { Coins, Storefront } from "phosphor-react";
 
 const container =
   "mx-auto w-full max-w-screen-sm md:max-w-2xl lg:max-w-4xl xl:max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8";
@@ -46,49 +46,52 @@ export default function Home() {
 function Landing() {
   return (
     <div
-      className={`${container} py-8 lg:py-10 space-y-10`}
+      className={`${container} pt-4 pb-12 lg:pt-6 lg:pb-16 space-y-8 relative`}
       style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
     >
-      <section className="text-center lg:text-left space-y-3">
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight">
-          Bienvenido a <span className="text-emerald-400">H Morgan Bar</span>
+      {/* Fondo decorativo: solo arriba */}
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute top-20 left-1/2 w-[500px] h-[500px] bg-emerald-600/20 rounded-full blur-3xl animate-pulse -translate-x-1/2" />
+      </div>
+
+      {/* Hero principal */}
+      <section className="text-center space-y-3">
+        <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight">
+          Bienvenido a{" "}
+          <span className="bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent drop-shadow-lg">
+            H Morgan Bar
+          </span>
         </h1>
-        <p className="opacity-80 max-w-2xl">
-          Sumá puntos con cada consumo y canjealos por beneficios. Mostrá tu QR
-          al finalizar y listo.
+        <p className="text-emerald-400 font-semibold text-base sm:text-lg">
+          ¡Tu experiencia en el bar ahora tiene canjes!
         </p>
       </section>
 
-      <section>
-        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] p-5 lg:p-6">
-          <div className="pointer-events-none absolute -top-12 -right-12 h-40 w-40 lg:h-56 lg:w-56 rounded-full bg-emerald-500/10 blur-2xl" />
-          <h2 className="text-xl sm:text-2xl font-bold mb-2">Clientes</h2>
-          <p className="opacity-80 mb-4">
-            Registrate, obtené tu QR y mirá tus puntos en tiempo real.
+      {/* Card de acceso */}
+      <section className="flex justify-center">
+        <div className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 to-slate-800 shadow-2xl p-8 text-center">
+          {/* Glow solo arriba, chiquito */}
+          <div className="pointer-events-none absolute -top-12 -right-12 w-48 h-48 rounded-full bg-emerald-500/10 blur-2xl animate-pulse" />
+
+          <h2 className="text-2xl sm:text-3xl font-bold mb-3">Comenzá ahora</h2>
+          <p className="opacity-75 mb-6 text-base sm:text-lg">
+            Creá tu cuenta o ingresá para empezar a sumar puntos.
           </p>
-          <div className="flex gap-2">
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
               href="/register"
-              className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-500 transition"
+              className="px-5 py-3 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-500 transition shadow-lg hover:scale-105"
             >
               Crear cuenta
             </Link>
             <Link
               href="/login"
-              className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 transition"
+              className="px-5 py-3 rounded-xl bg-white/10 font-semibold hover:bg-white/20 transition shadow-lg hover:scale-105"
             >
               Ingresar
             </Link>
           </div>
-        </div>
-
-        <div className="text-center lg:text-left mt-6">
-          <Link
-            href="/staff"
-            className="text-sm opacity-70 hover:opacity-100 underline underline-offset-4"
-          >
-            ¿Sos staff? Ingresar
-          </Link>
         </div>
       </section>
     </div>
@@ -213,7 +216,7 @@ function ClientHome({ nombre }: { nombre?: string }) {
       <div className="grid grid-cols-2 gap-4">
         <ActionCard href="/cliente/qr" title="Mi QR" Icon={QrCode} accent="from-red-600 to-red-800" />
         <ActionCard href="/cliente/menu" title="Menú" Icon={Utensils} accent="from-blue-600 to-blue-800" />
-        <ActionCard href="/cliente/rewards" title="Canjes" Icon={Award} accent="from-yellow-500 to-yellow-700" />
+        <ActionCard href="/cliente/rewards" title="Canjes" Icon={Storefront} accent="from-yellow-500 to-yellow-700" />
         <ActionCard
           href="/cliente/historial"
           title="Historial"
@@ -245,7 +248,7 @@ function AdminHome() {
         <ActionCard href="/admin/rewards/scan" title="Escanear Canjes" Icon={Scan} accent="from-blue-600 to-blue-800" />
         <ActionCard href="/admin/clientes" title="Clientes" Icon={Users} accent="from-green-600 to-green-800" />
         <ActionCard href="/admin/menu" title="Menú" Icon={Utensils} accent="from-violet-600 to-violet-800" />
-        <ActionCard href="/admin/rewards" title="Canjes" Icon={Award} accent="from-yellow-500 to-yellow-700" />
+        <ActionCard href="/admin/rewards" title="Canjes" Icon={Storefront} accent="from-yellow-500 to-yellow-700" />
       </div>
     </div>
   );

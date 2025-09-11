@@ -52,7 +52,7 @@ export default function AdminRewardsPage() {
     return (
         <div className="p-6 space-y-8">
             <h1 className="text-2xl font-bold flex items-center gap-2">
-                <Gift className="text-emerald-400" /> Recompensas
+                <Gift className="text-emerald-400" /> Canjes
             </h1>
 
             {/* Formulario de creación */}
@@ -113,7 +113,7 @@ export default function AdminRewardsPage() {
                         </div>
                         <Link
                             href={`/admin/rewards/scan?rewardId=${r._id}`}
-                            className="flex items-center gap-2 bg-indigo-600 text-white px-3 py-1 rounded"
+                            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded"
                         >
                             <QrCode size={18} /> Escanear
                         </Link>

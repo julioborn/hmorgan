@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, QrCode, Award, Utensils, Scan, Users } from "lucide-react";
 import Image from "next/image";
+import { Coins, Storefront } from "phosphor-react";
 
 export default function Header() {
     const { user, loading, logout } = useAuth();
@@ -28,9 +29,8 @@ export default function Header() {
         { href: "/", label: "Inicio" },
         { href: "/cliente/qr", label: "Mi QR", icon: QrCode },
         { href: "/cliente/menu", label: "Menú", icon: Utensils },
-        { href: "/cliente/rewards", label: "Canjes", icon: Award },
-        { href: "/cliente/puntos", label: "Mis Puntos", icon: Award },
-        { href: "/cliente/canjes", label: "Mis Canjes", icon: QrCode },
+        { href: "/cliente/rewards", label: "Canjes", icon: Storefront },
+        { href: "/cliente/historial", label: "Historial", icon: Coins }
     ];
 
     const linksAdmin = [
@@ -39,6 +39,7 @@ export default function Header() {
         { href: "/admin/rewards/scan", label: "Escanear Canjes", icon: Scan },
         { href: "/admin/clientes", label: "Clientes", icon: Users },
         { href: "/admin/menu", label: "Menú", icon: Utensils },
+        { href: "/admin/rewards", label: "Canjes", icon: Storefront },
     ];
 
     const links = user?.role === "admin" ? linksAdmin : linksCliente;

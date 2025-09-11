@@ -43,7 +43,7 @@ export default function ScanRewardPage() {
 
     async function startCamera() {
         if (!selectedReward) {
-            setErrMsg("Seleccioná una recompensa antes de activar la cámara.");
+            setErrMsg("Seleccioná un canje antes de activar la cámara.");
             return;
         }
         setErrMsg("");
@@ -172,7 +172,7 @@ export default function ScanRewardPage() {
 
             const data = await res.json();
             if (res.ok) {
-                setToast(`Canje realizado: ${data.canje.rewardId.titulo || "Recompensa"}`);
+                setToast(`Canje realizado: ${data.canje.rewardId.titulo || "Canje"}`);
                 setFlash(true);
                 setTimeout(() => setFlash(false), 200);
             } else {
@@ -207,7 +207,7 @@ export default function ScanRewardPage() {
                         value={selectedReward || ""}
                         onChange={(e) => setSelectedReward(e.target.value)}
                     >
-                        <option value="">Seleccioná una recompensa</option>
+                        <option value="">Seleccioná un canje</option>
                         {rewards.map((r) => (
                             <option key={r._id} value={r._id}>
                                 {r.titulo} — {r.puntos} pts
@@ -225,12 +225,12 @@ export default function ScanRewardPage() {
                 <div className="absolute top-3 left-3 z-20 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold backdrop-blur bg-black/40 border border-white/10">
                     <span
                         className={`inline-block h-2.5 w-2.5 rounded-full ${camState === "on"
-                                ? "bg-emerald-400 animate-pulse"
-                                : camState === "starting"
-                                    ? "bg-amber-400 animate-pulse"
-                                    : camState === "error"
-                                        ? "bg-rose-400"
-                                        : "bg-zinc-400"
+                            ? "bg-emerald-400 animate-pulse"
+                            : camState === "starting"
+                                ? "bg-amber-400 animate-pulse"
+                                : camState === "error"
+                                    ? "bg-rose-400"
+                                    : "bg-zinc-400"
                             }`}
                     />
                     <span className={camPill.cls}>{camPill.text}</span>
@@ -253,10 +253,17 @@ export default function ScanRewardPage() {
                     {camState !== "on" ? (
                         <button
                             onClick={startCamera}
-                            disabled={camState === "starting"}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white font-semibold disabled:opacity-60 disabled:cursor-not-allowed shadow hover:shadow-lg transition-shadow"
+                            disabled={!selectedReward || camState === "starting"} // 👈 bloquea si no hay recompensa
+                            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold shadow transition-shadow
+        ${!selectedReward || camState === "starting"
+                                    ? "bg-indigo-600/40 text-white/70 cursor-not-allowed"
+                                    : "bg-indigo-600 text-white hover:shadow-lg"}`}
                         >
-                            {camState === "starting" ? "Activando…" : "Activar cámara"}
+                            {!selectedReward
+                                ? "Seleccioná un canje"
+                                : camState === "starting"
+                                    ? "Activando…"
+                                    : "Activar cámara"}
                         </button>
                     ) : (
                         <button
