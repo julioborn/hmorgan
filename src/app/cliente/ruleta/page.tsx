@@ -3,7 +3,7 @@ import useSWR from "swr";
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import confetti from "canvas-confetti";
-import Loader from "@/components/Loader"; // 👈 importá tu loader
+import Loader from "@/components/Loader";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 const Wheel = dynamic(
@@ -20,7 +20,7 @@ export default function RuletaPage() {
     if (!items) {
         return (
             <div className="p-12 flex justify-center">
-                <Loader size={40} /> {/* 👈 usa tu Loader */}
+                <Loader size={40} />
             </div>
         );
     }
@@ -30,6 +30,13 @@ export default function RuletaPage() {
 
     const maxItems = 15;
     const baseColors = ["#3b82f6", "#ef4444", "#22c55e", "#8b5cf6"];
+
+    // 👇 Función para ajustar el tamaño de texto dinámicamente
+    const getFontSize = (text: string) => {
+        if (text.length > 18) return 10;
+        if (text.length > 12) return 12;
+        return 16;
+    };
 
     const data = items.slice(0, maxItems).map((i: any, index: number) => {
         let backgroundColor;
@@ -46,12 +53,15 @@ export default function RuletaPage() {
             backgroundColor = baseColors[index % baseColors.length];
         }
 
+        const text = i.nombre.length > 20 ? i.nombre.slice(0, 20) + "…" : i.nombre;
+
         return {
-            option: i.nombre.length > 20 ? i.nombre.slice(0, 20) + "…" : i.nombre,
+            option: text,
             style: {
                 backgroundColor,
                 textColor,
                 fontWeight: winnerIndex === index ? "bold" : "normal",
+                fontSize: getFontSize(text), // 👈 tamaño dinámico
             },
         };
     });
@@ -85,7 +95,8 @@ export default function RuletaPage() {
             <h1 className="text-3xl font-bold">Ruleta de Tragos</h1>
 
             <div className="flex justify-center">
-                <div style={{ width: 450 }}>
+                {/* Contenedor cuadrado responsivo */}
+                <div className="w-full max-w-xs sm:max-w-md md:max-w-lg lg:max-w-xl aspect-square flex items-center justify-center">
                     <Wheel
                         mustStartSpinning={mustSpin}
                         prizeNumber={prizeNumber ?? 0}
@@ -94,7 +105,6 @@ export default function RuletaPage() {
                         outerBorderWidth={6}
                         innerRadius={20}
                         radiusLineWidth={2}
-                        fontSize={14}
                         perpendicularText={false}
                         pointerProps={{
                             style: { transform: "scale(0.6)" },
