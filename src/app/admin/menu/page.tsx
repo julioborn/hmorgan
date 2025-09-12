@@ -29,6 +29,7 @@ type MenuItem = {
     categoria: string;
     imagen?: string;
     activo: boolean;
+    ruleta?: boolean; // 👈 nuevo campo
 };
 
 // Función para formatear precios al estilo argentino
@@ -200,13 +201,13 @@ export default function AdminMenuPage() {
                                 .map((i) => (
                                     <div
                                         key={i._id}
-                                        className="p-3 bg-white/5 rounded flex justify-between items-center"
+                                        className="p-3 bg-white/5 rounded flex flex-col md:flex-row md:items-center md:justify-between gap-3"
                                     >
                                         {editando?._id === i._id ? (
                                             <div className="flex-1 flex flex-col md:flex-row gap-2">
                                                 <input
                                                     className="bg-slate-800 border border-slate-600 text-slate-100 
-                                                    placeholder-slate-400 px-2 py-1 rounded flex-1"
+                placeholder-slate-400 px-2 py-1 rounded flex-1"
                                                     value={editando.nombre}
                                                     onChange={(e) =>
                                                         setEditando({ ...editando, nombre: e.target.value })
@@ -214,7 +215,7 @@ export default function AdminMenuPage() {
                                                 />
                                                 <textarea
                                                     className="bg-slate-800 border border-slate-600 text-slate-100 
-                                                    placeholder-slate-400 px-2 py-2 rounded flex-1 resize-y min-h-[40px] md:min-h-[60px]"
+                placeholder-slate-400 px-2 py-2 rounded flex-1 resize-y min-h-[40px] md:min-h-[60px]"
                                                     value={editando.descripcion || ""}
                                                     onChange={(e) =>
                                                         setEditando({ ...editando, descripcion: e.target.value })
@@ -222,13 +223,14 @@ export default function AdminMenuPage() {
                                                 />
                                                 <input
                                                     className="bg-slate-800 border border-slate-600 text-slate-100 
-                                                    placeholder-slate-400 px-2 py-1 rounded w-full md:w-24 text-right"
+                placeholder-slate-400 px-2 py-1 rounded w-full md:w-24 text-right"
                                                     type="text"
                                                     value={formatNumber(editando.precio)}
                                                     onChange={(e) =>
                                                         setEditando({
                                                             ...editando,
-                                                            precio: parseFloat(e.target.value.replace(/\./g, "")) || 0,
+                                                            precio:
+                                                                parseFloat(e.target.value.replace(/\./g, "")) || 0,
                                                         })
                                                     }
                                                 />
@@ -249,19 +251,52 @@ export default function AdminMenuPage() {
                                             </div>
                                         ) : (
                                             <>
-                                                <div>
+                                                {/* Columna izquierda: datos */}
+                                                <div className="flex-1">
                                                     <p className="font-bold">{i.nombre}</p>
                                                     <p className="text-sm opacity-70">{i.descripcion}</p>
                                                     <p className="text-sm text-emerald-400">
                                                         ${formatPrice(i.precio)}
                                                     </p>
                                                 </div>
-                                                <div className="flex gap-2">
+
+                                                {/* Columna centro: checkbox SOLO en cocktails */}
+                                                {i.categoria === "COCKTAILS" && (
+                                                    <div className="flex-shrink-0">
+                                                        <label className="flex items-center gap-2 text-sm">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={i.ruleta ?? false}
+                                                                onChange={async (e) => {
+                                                                    await fetch(`/api/menu/${i._id}`, {
+                                                                        method: "PUT",
+                                                                        headers: { "Content-Type": "application/json" },
+                                                                        body: JSON.stringify({
+                                                                            ...i,
+                                                                            ruleta: e.target.checked,
+                                                                        }),
+                                                                    });
+                                                                    mutate();
+                                                                }}
+                                                                className="accent-emerald-500 w-4 h-4"
+                                                            />
+                                                            Incluir en ruleta
+                                                        </label>
+                                                    </div>
+                                                )}
+
+                                                {/* Columna derecha: acciones */}
+                                                <div className="flex gap-2 justify-end flex-shrink-0">
                                                     <button
                                                         onClick={() => setEditando(i)}
                                                         className="px-2 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-500"
                                                     >
-                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            viewBox="0 0 20 20"
+                                                            fill="currentColor"
+                                                            className="size-5"
+                                                        >
                                                             <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
                                                             <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z" />
                                                         </svg>
@@ -270,8 +305,17 @@ export default function AdminMenuPage() {
                                                         onClick={() => eliminarItem(i._id)}
                                                         className="px-2 py-1 rounded bg-red-600 text-white hover:bg-red-500"
                                                     >
-                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
-                                                            <path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z" clip-rule="evenodd" />
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            viewBox="0 0 20 20"
+                                                            fill="currentColor"
+                                                            className="size-5"
+                                                        >
+                                                            <path
+                                                                fillRule="evenodd"
+                                                                d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z"
+                                                                clipRule="evenodd"
+                                                            />
                                                         </svg>
                                                     </button>
                                                 </div>

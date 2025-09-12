@@ -121,7 +121,6 @@ function ClientHome({ nombre }: { nombre?: string }) {
     })();
   }, []);
 
-  // 👇 Si aún está cargando las recompensas, mostrar loader global
   if (loadingRewards) {
     return (
       <div className={`${container} py-10 flex justify-center`}>
@@ -135,16 +134,12 @@ function ClientHome({ nombre }: { nombre?: string }) {
       className={`${container} py-8 space-y-8`}
       style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
     >
-      {/* <header>
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl text-center font-extrabold">
-          Hola{nombre ? `, ${nombre}` : ""}
-        </h1>
-      </header> */}
-
-      {/* 👇 Carrusel de recompensas estilo ticket */}
+      {/* Carrusel de recompensas */}
       <section className="relative">
         <div className="relative rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 to-slate-800 shadow-2xl p-4">
-          <h2 className="text-xl font-bold mb-3 text-center">Canjes disponibles</h2>
+          <h2 className="text-xl font-bold mb-3 text-center">
+            Canjes disponibles
+          </h2>
 
           {rewards.length === 0 ? (
             <p className="text-center py-10 opacity-70">
@@ -152,20 +147,21 @@ function ClientHome({ nombre }: { nombre?: string }) {
             </p>
           ) : (
             <>
+              {/* Swiper */}
               <Swiper
                 modules={[Autoplay, Pagination]}
                 autoplay={{
-                  delay: 3250, // 2s entre cada movimiento
+                  delay: 3250,
                   disableOnInteraction: false,
                   pauseOnMouseEnter: false,
                 }}
-                speed={1250} // velocidad de transición entre slides
+                speed={1250}
                 loop={true}
                 spaceBetween={16}
                 slidesPerView={1.1}
                 pagination={{
                   clickable: true,
-                  dynamicBullets: true
+                  dynamicBullets: true,
                 }}
                 breakpoints={{
                   640: { slidesPerView: 2 },
@@ -212,18 +208,26 @@ function ClientHome({ nombre }: { nombre?: string }) {
         </div>
       </section>
 
-      {/* 👇 Botonera */}
+      {/* Botonera */}
       <div className="grid grid-cols-2 gap-4">
         <ActionCard href="/cliente/qr" title="Mi QR" Icon={QrCode} accent="from-red-600 to-red-800" />
         <ActionCard href="/cliente/menu" title="Menú" Icon={Utensils} accent="from-blue-600 to-blue-800" />
         <ActionCard href="/cliente/rewards" title="Canjes" Icon={Storefront} accent="from-yellow-500 to-yellow-700" />
-        <ActionCard
-          href="/cliente/historial"
-          title="Historial"
-          Icon={Coins}
-          accent="from-green-600 to-green-800"
-        />
+        <ActionCard href="/cliente/historial" title="Historial" Icon={Coins} accent="from-green-600 to-green-800" />
       </div>
+
+      {/* 👇 Invitación a la ruleta */}
+      <Link
+        href="/cliente/ruleta"
+        className="block w-full rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-500 text-white text-center p-6 shadow-xl hover:scale-[1.02] hover:shadow-emerald-500/30 transition-all duration-300"
+      >
+        <h2 className="text-xl sm:text-2xl font-extrabold mb-2">
+          ¿No sabés qué tomar?
+        </h2>
+        <p className="opacity-90 text-sm sm:text-base">
+          Dejalo en manos de la suerte con nuestra <span className="font-bold">Ruleta de Tragos</span> 🍸
+        </p>
+      </Link>
     </div>
   );
 }

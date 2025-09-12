@@ -1,16 +1,13 @@
-import mongoose from "mongoose";
+import { Schema, model, models, Model } from "mongoose";
 
-const MenuItemSchema = new mongoose.Schema(
-    {
-        nombre: { type: String, required: true },
-        descripcion: { type: String },
-        precio: { type: Number, required: true },
-        categoria: { type: String, required: true },
-        imagen: { type: String },
-        activo: { type: Boolean, default: true },
-    },
-    { timestamps: true }
-);
+const MenuItemSchema = new Schema({
+    nombre: { type: String, required: true },
+    descripcion: String,
+    precio: { type: Number, required: true },
+    categoria: { type: String, required: true },
+    imagen: String,
+    activo: { type: Boolean, default: true },
+    ruleta: { type: Boolean, default: false }, // 👈 nuevo campo
+});
 
-export const MenuItem =
-    mongoose.models.MenuItem || mongoose.model("MenuItem", MenuItemSchema);
+export const MenuItem: Model<any> = models.MenuItem || model("MenuItem", MenuItemSchema);
