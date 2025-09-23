@@ -4,7 +4,7 @@ import { useAuth } from "@/context/auth-context";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, QrCode, Award, Utensils, Scan, Users, RefreshCw } from "lucide-react";
+import { Menu, X, QrCode, Award, Utensils, Scan, Users, RefreshCw, User } from "lucide-react";
 import Image from "next/image";
 import { Coins, Storefront } from "phosphor-react";
 
@@ -44,40 +44,64 @@ export default function Header() {
 
     const links = user?.role === "admin" ? linksAdmin : linksCliente;
 
+    function getInitials(nombre?: string, apellido?: string) {
+        if (!nombre && !apellido) return "";
+        const n = nombre ? nombre[0].toUpperCase() : "";
+        const a = apellido ? apellido[0].toUpperCase() : "";
+        return n + a;
+    }
+
     return (
         <header className="sticky top-0 z-30 backdrop-blur bg-slate-900/60 border-b border-white/10">
             <div className="container mx-auto px-4 h-20 flex items-center justify-between">
-                {/* Hamburguesa (mobile + desktop) */}
-                <button
-                    onClick={() => setOpen(!open)}
-                    className="p-2 rounded-md hover:bg-white/10"
-                >
-                    {open ? (
-                        <X size={24} className="text-emerald-400" />
-                    ) : (
-                        <Menu size={24} className="text-emerald-400" />
-                    )}
-                </button>
+                <div className="container mx-auto px-4 h-20 flex items-center justify-between">
+                    {/* Bloque izquierdo: hamburguesa */}
+                    <div className="w-1/3 flex">
+                        <button
+                            onClick={() => setOpen(!open)}
+                            className="p-2 rounded-md hover:bg-white/10"
+                        >
+                            {open ? (
+                                <X size={24} className="text-emerald-400" />
+                            ) : (
+                                <Menu size={24} className="text-emerald-400" />
+                            )}
+                        </button>
+                    </div>
 
-                {/* Logo centrado */}
-                <Link href="/" className="flex justify-center">
-                    <Image
-                        src="/morganwhite.png"
-                        alt="Morgan Bar"
-                        width={80}
-                        height={80}
-                        priority
-                    />
-                </Link>
+                    {/* Bloque centro: logo */}
+                    <div className="w-1/3 flex justify-center">
+                        <Link href="/" className="flex justify-center">
+                            <Image
+                                src="/morganwhite.png"
+                                alt="Morgan Bar"
+                                width={80}
+                                height={80}
+                                priority
+                            />
+                        </Link>
+                    </div>
 
-                {/* Botón recargar (end) */}
-                <button
-                    onClick={() => window.location.reload()}
-                    className="p-2 rounded-full bg-emerald-600 hover:bg-white/10"
-                    title="Recargar página"
-                >
-                    <RefreshCw size={22} />
-                </button>
+                    {/* Bloque derecho: perfil + recargar */}
+                    <div className="w-1/3 flex justify-end items-center gap-3">
+                        {user && (
+                            <Link
+                                href="/cliente/perfil"
+                                className="w-9 h-9 flex items-center justify-center rounded-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold"
+                                title="Mi Perfil"
+                            >
+                                {getInitials(user.nombre, user.apellido)}
+                            </Link>
+                        )}
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="p-2 rounded-full bg-emerald-600 hover:bg-white/10"
+                            title="Recargar página"
+                        >
+                            <RefreshCw size={22} />
+                        </button>
+                    </div>
+                </div>
 
                 {/* Drawer lateral */}
                 <AnimatePresence>
