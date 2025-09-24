@@ -1,6 +1,8 @@
 "use client";
 import { useMemo, useState } from "react";
 import { useAuth } from "@/context/auth-context";
+import { ensurePushAfterLogin } from "@/lib/push-auto";
+import Swal from "sweetalert2";
 
 type Errors = { dni?: string; password?: string; general?: string };
 
@@ -47,9 +49,39 @@ export default function LoginPage() {
       return;
     }
 
-    // Refresca el contexto y redirige SIEMPRE a "/"
+    // ✅ mostrar Swal después de login exitoso
+    const { value: activar } = await Swal.fire({
+      title: "¡Bienvenido!",
+      text: "No te pierdas de nada activando las notificaciones 🔔",
+      icon: "info",
+      showCancelButton: true,
+      confirmButtonText: "Activar",
+      cancelButtonText: "Ahora no",
+      confirmButtonColor: "#10b981",
+      cancelButtonColor: "#6b7280",
+    });
+
+    if (activar) {
+      try {
+        await ensurePushAfterLogin(); // 👈 activa notificaciones
+        Swal.fire({
+          icon: "success",
+          title: "✅ Notificaciones activadas",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      } catch (err: any) {
+        Swal.fire({
+          icon: "error",
+          title: "❌ No se pudo activar",
+          text: err.message || "Error desconocido",
+        });
+      }
+    }
+
+    // refrescar contexto y redirigir
     await refresh();
-    window.location.href = "/"; // 👈 redirección unificada
+    window.location.href = "/";
   }
 
   return (

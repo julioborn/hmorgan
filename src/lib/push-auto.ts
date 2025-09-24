@@ -1,9 +1,10 @@
 // lib/push-auto.ts
 import { registerSW, subscribeUser } from "@/lib/push-client";
+import Swal from "sweetalert2";
 
 /**
- * Intenta registrar SW, pedir permiso (si hace falta) y suscribir al usuario.
- * Corre automáticamente tras login. Usa un flag por-usuario para no repreguntar.
+ * Corre automáticamente tras login.
+ * Siempre muestra un Swal para pedir activar notificaciones.
  */
 export async function ensurePushAfterLogin(userId?: string) {
     if (typeof window === "undefined") return;
@@ -21,44 +22,50 @@ export async function ensurePushAfterLogin(userId?: string) {
         (window.navigator as any).standalone === true;
     if (isIOS && !isStandalone) return;
 
-    // Evitar repedir permiso en cada login
-    const key = userId ? `push-setup:${userId}` : "push-setup";
-    const alreadyDone = localStorage.getItem(key) === "done";
+    // ❌ quitamos el localStorage "done", porque queremos preguntar SIEMPRE
+    // (ya no evitamos repreguntar)
+
+    // Mostrar alerta para activar notificaciones
+    const result = await Swal.fire({
+        title: "🔔 Notificaciones",
+        text: "No te pierdas de nada, activá las notificaciones en este dispositivo.",
+        icon: "info",
+        showCancelButton: true,
+        confirmButtonText: "Activar",
+        cancelButtonText: "Más tarde",
+        confirmButtonColor: "#10b981", // verde
+        cancelButtonColor: "#6b7280", // gris
+    });
+
+    if (!result.isConfirmed) return;
 
     // Registrar SW
     const reg = await registerSW();
     if (!reg) return;
 
     // ¿Ya hay suscripción?
-    const existing = await reg.pushManager.getSubscription();
-    if (existing) {
-        localStorage.setItem(key, "done");
-        return;
-    }
+    let sub = await reg.pushManager.getSubscription();
 
-    // Si el permiso ya fue otorgado, suscribimos; si está en "default", pedimos 1 vez
-    let perm: NotificationPermission = Notification.permission;
-    if (perm === "default" && !alreadyDone) {
-        try {
-            perm = await Notification.requestPermission();
-        } catch {
-            // Safari puede tirar; si pasa, abortamos silenciosamente
-            return;
+    if (!sub) {
+        // Pedimos permiso
+        let perm: NotificationPermission = Notification.permission;
+        if (perm === "default") {
+            try {
+                perm = await Notification.requestPermission();
+            } catch {
+                return;
+            }
         }
-    }
+        if (perm !== "granted") return;
 
-    if (perm !== "granted") {
-        // Marcamos como done para no re-preguntar hasta que el usuario cambie permisos manualmente
-        if (!alreadyDone) localStorage.setItem(key, "done");
-        return;
-    }
-
-    // Crear suscripción y enviarla al backend
-    try {
-        await subscribeUser(reg);
-        localStorage.setItem(key, "done");
-    } catch (e) {
-        // Si falla, no marcamos done para reintentar en un próximo login
-        console.error("auto-push subscribe error:", e);
+        // Crear suscripción
+        try {
+            sub = await subscribeUser(reg);
+            console.log("✅ Suscripción creada:", sub.endpoint);
+        } catch (e) {
+            console.error("❌ auto-push subscribe error:", e);
+        }
+    } else {
+        console.log("ℹ️ Ya existía suscripción:", sub.endpoint);
     }
 }

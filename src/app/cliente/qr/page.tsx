@@ -4,11 +4,11 @@ import QRCode from "qrcode";
 import { useAuth } from "@/context/auth-context";
 import { registerSW, subscribeUser } from "@/lib/push-client";
 import Loader from "@/components/Loader";
+import Swal from "sweetalert2";
 
 export default function MiQRPage() {
   const { user } = useAuth();
   const [png, setPng] = useState<string>("");
-  const [notifStatus, setNotifStatus] = useState<string>("");
 
   useEffect(() => {
     (async () => {
@@ -19,47 +19,55 @@ export default function MiQRPage() {
     })();
   }, [user?.qrToken]);
 
+  async function handleEnableNotifications() {
+    try {
+      const isStandalone =
+        window.matchMedia?.("(display-mode: standalone)")?.matches ||
+        (window.navigator as any).standalone;
+      const hasSW = "serviceWorker" in navigator;
+      const hasPush = "PushManager" in window;
+      const hasNotif = typeof Notification !== "undefined";
+
+      if (!isStandalone) {
+        Swal.fire("ℹ️", "Instalá la app (Añadir a inicio) para recibir notificaciones.", "info");
+        return;
+      }
+      if (!hasSW || !hasPush || !hasNotif) {
+        Swal.fire("❌", "Este dispositivo no soporta notificaciones push.", "error");
+        return;
+      }
+
+      const perm = await Notification.requestPermission();
+      if (perm !== "granted") {
+        Swal.fire("⚠️", "No activaste las notificaciones.", "warning");
+        return;
+      }
+
+      const reg = await registerSW();
+      if (!reg) {
+        Swal.fire("❌", "No se pudo registrar el Service Worker.", "error");
+        return;
+      }
+
+      const sub = await subscribeUser(reg);
+      if (!sub) {
+        Swal.fire("❌", "No se pudo crear la suscripción.", "error");
+        return;
+      }
+
+      Swal.fire("✅ Listo", "Las notificaciones fueron activadas.", "success");
+    } catch (e: any) {
+      console.error(e);
+      Swal.fire("❌ Error", e?.message || "Falló la activación", "error");
+    }
+  }
+
   if (!user) {
     return (
       <div className="py-20 flex justify-center items-center">
         <Loader size={40} />
       </div>
     );
-  }
-
-  async function handleEnableNotifications() {
-    try {
-      // Diagnóstico de soporte
-      const isStandalone = window.matchMedia?.("(display-mode: standalone)")?.matches || (window.navigator as any).standalone;
-      const hasSW = "serviceWorker" in navigator;
-      const hasPush = "PushManager" in window;
-      const hasNotif = typeof Notification !== "undefined";
-
-      if (!isStandalone) {
-        setNotifStatus("iOS: instalá la app como PWA (Añadir a pantalla de inicio).");
-        return;
-      }
-      if (!hasSW) { setNotifStatus("Este navegador no soporta Service Workers."); return; }
-      if (!hasNotif) { setNotifStatus("API Notification no disponible en este contexto."); return; }
-      if (!hasPush) { setNotifStatus("API PushManager no disponible (iOS requiere PWA e iOS ≥ 16.4)."); return; }
-
-      setNotifStatus("Pidiendo permiso…");
-      const perm = await Notification.requestPermission();
-      if (perm !== "granted") { setNotifStatus("Permiso denegado."); return; }
-
-      setNotifStatus("Registrando Service Worker…");
-      const reg = await registerSW();
-      if (!reg) { setNotifStatus("No se pudo registrar el SW."); return; }
-
-      setNotifStatus("Creando suscripción…");
-      const sub = await subscribeUser(reg); // acá veremos el error “real” si falla
-      if (!sub) { setNotifStatus("No se pudo crear la suscripción."); return; }
-
-      setNotifStatus("✅ Activadas. Probá cerrar una mesa.");
-    } catch (e: any) {
-      setNotifStatus(`❌ ${e?.name || "Error"}: ${e?.message || "falló subscribe"}`);
-      console.error(e);
-    }
   }
 
   return (
@@ -84,18 +92,6 @@ export default function MiQRPage() {
           </a>
         </div>
       </div>
-
-      {/* Botón para activar notificaciones */}
-      {/* <div className="mt-4 flex flex-col items-center">
-        <button
-          onClick={handleEnableNotifications}
-          className="px-4 py-2 bg-indigo-600 rounded-lg hover:bg-indigo-700 text-white font-semibold transition"
-        >
-          Activar notificaciones
-        </button>
-        {notifStatus && <p className="mt-2 text-sm text-center opacity-80">{notifStatus}</p>}
-      </div> */}
-
     </div>
   );
 }

@@ -61,22 +61,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(true);
 
     // 🔄 Refrescar datos del usuario actual
+    // src/context/auth-context.tsx
     const refresh = async () => {
         setLoading(true);
         try {
             const res = await fetch("/api/auth/me", { cache: "no-store" });
             const data = await res.json();
             setUser(data.user || null);
-
-            if (data.user) {
-                // 🔔 ACTIVACIÓN AUTOMÁTICA DE PUSH (sin botón)
-                // - Detecta si hay soporte
-                // - En iOS solo corre si está en PWA instalada (standalone)
-                // - Pide permiso una vez por usuario y guarda un flag en localStorage
-                import("@/lib/push-auto")
-                    .then(({ ensurePushAfterLogin }) => ensurePushAfterLogin(data.user.id)) // ← usa ._id si tu API lo devuelve así
-                    .catch(() => { });
-            }
         } finally {
             setLoading(false);
         }
