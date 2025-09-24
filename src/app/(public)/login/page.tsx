@@ -1,8 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import { useAuth } from "@/context/auth-context";
-import { ensurePushAfterLogin } from "@/lib/push-auto";
-import Swal from "sweetalert2";
+import { ensurePushAfterLogin } from "@/lib/push-auto"; // 👈 importalo
 
 type Errors = { dni?: string; password?: string; general?: string };
 
@@ -45,41 +44,17 @@ export default function LoginPage() {
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setErrors((p) => ({ ...p, general: data.error || "No se pudo iniciar sesión" }));
+      setErrors((p) => ({
+        ...p,
+        general: data.error || "No se pudo iniciar sesión",
+      }));
       return;
     }
 
-    // ✅ mostrar Swal después de login exitoso
-    const { value: activar } = await Swal.fire({
-      title: "¡Bienvenido!",
-      text: "No te pierdas de nada activando las notificaciones 🔔",
-      icon: "info",
-      showCancelButton: true,
-      confirmButtonText: "Activar",
-      cancelButtonText: "Ahora no",
-      confirmButtonColor: "#10b981",
-      cancelButtonColor: "#6b7280",
-    });
+    // ✅ mostrar alerta customizada y manejar push
+    await ensurePushAfterLogin();
 
-    if (activar) {
-      try {
-        await ensurePushAfterLogin(); // 👈 activa notificaciones
-        Swal.fire({
-          icon: "success",
-          title: "✅ Notificaciones activadas",
-          timer: 2000,
-          showConfirmButton: false,
-        });
-      } catch (err: any) {
-        Swal.fire({
-          icon: "error",
-          title: "❌ No se pudo activar",
-          text: err.message || "Error desconocido",
-        });
-      }
-    }
-
-    // refrescar contexto y redirigir
+    // ✅ refrescar contexto y redirigir
     await refresh();
     window.location.href = "/";
   }
@@ -87,7 +62,7 @@ export default function LoginPage() {
   return (
     <div
       className="min-h-[100dvh] flex items-start justify-center p-4 pt-20"
-      style={{ paddingBottom: "max(1rem, env(safe-area-ineset-bottom))" }}
+      style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
     >
       <form
         onSubmit={onSubmit}
@@ -96,18 +71,26 @@ export default function LoginPage() {
         <h1 className="text-2xl font-extrabold text-center mb-5">Ingresar</h1>
 
         {errors.general && (
-          <div className="mb-4 p-3 rounded bg-rose-900/20 text-rose-300 text-sm" role="alert">
+          <div
+            className="mb-4 p-3 rounded bg-rose-900/20 text-rose-300 text-sm"
+            role="alert"
+          >
             {errors.general}
           </div>
         )}
 
+        {/* Campos */}
         <div className="space-y-4">
           <div>
-            <label className="sr-only" htmlFor="dni">DNI</label>
+            <label className="sr-only" htmlFor="dni">
+              DNI
+            </label>
             <input
               id="dni"
               placeholder="DNI"
-              className={`w-full h-12 px-3 rounded-xl bg-white/10 outline-none ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-emerald-500/70 ${touched.dni && currentErrors.dni ? "ring-2 ring-rose-400 focus:ring-rose-400" : ""
+              className={`w-full h-12 px-3 rounded-xl bg-white/10 outline-none ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-emerald-500/70 ${touched.dni && currentErrors.dni
+                  ? "ring-2 ring-rose-400 focus:ring-rose-400"
+                  : ""
                 }`}
               value={dni}
               onChange={(e) => setDni(onlyDigits(e.target.value))}
@@ -125,12 +108,16 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="sr-only" htmlFor="password">Contraseña</label>
+            <label className="sr-only" htmlFor="password">
+              Contraseña
+            </label>
             <input
               id="password"
               placeholder="Contraseña"
               type="password"
-              className={`w-full h-12 px-3 rounded-xl bg-white/10 outline-none ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-emerald-500/70 ${touched.password && currentErrors.password ? "ring-2 ring-rose-400 focus:ring-rose-400" : ""
+              className={`w-full h-12 px-3 rounded-xl bg-white/10 outline-none ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-emerald-500/70 ${touched.password && currentErrors.password
+                  ? "ring-2 ring-rose-400 focus:ring-rose-400"
+                  : ""
                 }`}
               value={password}
               onChange={(e) => setPassword(e.target.value)}

@@ -138,20 +138,20 @@ export default function Header() {
                                         <span className="text-sm opacity-90">
                                             Hola, <b>{user.nombre}</b>
                                         </span>
-                                        <nav className="flex flex-col gap-2 mt-4">
+                                        <nav className="flex flex-col gap-3 mt-6">
                                             {links.map((l) => {
-                                                const active = pathname === l.href; // 👈 comparar ruta
+                                                const active = pathname === l.href;
                                                 return (
                                                     <Link
                                                         key={l.href}
                                                         href={l.href}
                                                         onClick={() => setOpen(false)}
-                                                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition ${active
-                                                            ? "bg-emerald-600 text-white"
-                                                            : "hover:bg-white/10"
+                                                        className={`flex items-center gap-4 px-4 py-4 rounded-xl font-semibold text-lg transition ${active
+                                                                ? "bg-emerald-600 text-white"
+                                                                : "hover:bg-white/10 text-gray-200"
                                                             }`}
                                                     >
-                                                        {l.icon && <l.icon size={18} />}
+                                                        {l.icon && <l.icon size={24} />} {/* iconos más grandes */}
                                                         {l.label}
                                                     </Link>
                                                 );
