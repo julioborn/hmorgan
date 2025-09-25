@@ -452,10 +452,10 @@ export default function ScanPage() {
                 {people.map((p) => (
                   <li
                     key={p.id}
-                    className="flex items-center justify-between gap-3 p-3"
+                    className="flex items-center justify-between gap-3 p-3 min-w-0"
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="grid place-items-center h-9 w-9 rounded-full bg-emerald-500/15 text-emerald-300 font-bold">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="grid place-items-center h-9 w-9 shrink-0 rounded-full bg-emerald-500/15 text-emerald-300 font-bold">
                         {getInitials(p.nombre, p.apellido)}
                       </div>
                       <div className="min-w-0">
@@ -468,7 +468,7 @@ export default function ScanPage() {
                       </div>
                     </div>
                     <button
-                      className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-sm"
+                      className="shrink-0 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-sm"
                       onClick={() => {
                         setPeople((prev) => prev.filter((x) => x.id !== p.id));
                         seenIdsRef.current.delete(p.id);
