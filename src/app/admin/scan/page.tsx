@@ -424,37 +424,55 @@ export default function ScanPage() {
             </div>
           </div>
 
-          {/* Lista */}
-          <div className="rounded-2xl border border-white/10 overflow-hidden">
+          {/* Lista Escaneados */}
+          <div className="rounded-2xl border border-white/10 overflow-hidden flex flex-col max-h-[300px]">
+            {/* Header */}
             <div className="flex items-center justify-between px-3 py-2 text-sm bg-white/[0.04]">
               <div className="opacity-80">Escaneados ({people.length})</div>
               {people.length > 0 && (
                 <button
                   className="text-xs px-2 py-1 rounded bg-white/10 hover:bg-white/15"
-                  onClick={() => { setPeople([]); seenIdsRef.current.clear(); }}
+                  onClick={() => {
+                    setPeople([]);
+                    seenIdsRef.current.clear();
+                  }}
                 >
                   Vaciar
                 </button>
               )}
             </div>
+
+            {/* Contenido */}
             {people.length === 0 ? (
-              <div className="p-4 text-sm opacity-70">Sin personas aún.</div>
+              <div className="flex-1 flex items-center justify-center text-sm opacity-70 min-h-[80px]">
+                Sin personas aún.
+              </div>
             ) : (
-              <ul className="divide-y divide-white/10 max-h-[260px] overflow-auto">
+              <ul className="divide-y divide-white/10 flex-1 overflow-auto">
                 {people.map((p) => (
-                  <li key={p.id} className="flex items-center justify-between gap-3 p-3">
+                  <li
+                    key={p.id}
+                    className="flex items-center justify-between gap-3 p-3"
+                  >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="grid place-items-center h-9 w-9 rounded-full bg-emerald-500/15 text-emerald-300 font-bold">
                         {getInitials(p.nombre, p.apellido)}
                       </div>
                       <div className="min-w-0">
-                        <div className="font-semibold truncate">{p.nombre} {p.apellido}</div>
-                        <div className="text-xs opacity-70 truncate">DNI: {p.dni} · Puntos actuales: {p.puntos}</div>
+                        <div className="font-semibold truncate">
+                          {p.nombre} {p.apellido}
+                        </div>
+                        <div className="text-xs opacity-70 truncate">
+                          DNI: {p.dni} · Puntos actuales: {p.puntos}
+                        </div>
                       </div>
                     </div>
                     <button
                       className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-sm"
-                      onClick={() => { setPeople((prev) => prev.filter(x => x.id !== p.id)); seenIdsRef.current.delete(p.id); }}
+                      onClick={() => {
+                        setPeople((prev) => prev.filter((x) => x.id !== p.id));
+                        seenIdsRef.current.delete(p.id);
+                      }}
                     >
                       Quitar
                     </button>
