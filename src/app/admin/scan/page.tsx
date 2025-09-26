@@ -360,12 +360,12 @@ export default function ScanPage() {
           </div>
 
           {/* Controles cámara */}
-          <div className="flex items-center justify-between gap-3 p-3 border-t border-white/10 bg-black/40 backdrop-blur">
+          <div className="flex items-center justify-center p-3 border-t border-white/10 bg-black/40 backdrop-blur">
             {camState !== "on" ? (
               <button
                 onClick={startCamera}
                 disabled={!canStart || camState === "starting"}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white font-semibold disabled:opacity-60 disabled:cursor-not-allowed shadow hover:shadow-lg transition-shadow"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold disabled:opacity-60 disabled:cursor-not-allowed shadow hover:shadow-lg transition-shadow"
                 title={!canStart ? "Ingresá Nº de mesa y consumo para activar" : ""}
               >
                 {camState === "starting" ? "Activando…" : "Activar cámara"}
@@ -373,7 +373,7 @@ export default function ScanPage() {
             ) : (
               <button
                 onClick={() => { stopCamera(); setCamState("idle"); }}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-900 text-white font-semibold border border-white/10 hover:bg-zinc-800"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-zinc-900 text-white font-semibold border border-white/10 hover:bg-zinc-800"
               >
                 Detener
               </button>
@@ -387,22 +387,30 @@ export default function ScanPage() {
         <div className="space-y-4">
           {/* Inputs */}
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1">
-                <label className="text-sm">Nº de mesa</label>
+            <div className="grid grid-cols-3 gap-3">
+              {/* Nº de mesa */}
+              <div className="flex flex-col gap-2 col-span-1">
+                <label className="text-md">Mesa</label>
                 <input
-                  className="w-full rounded-xl bg-white/10 px-3 py-2.5 outline-none ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-emerald-500/70"
+                  className="w-full rounded-xl bg-black/80 text-emerald-400 text-2xl font-mono 
+                   px-3 py-5 text-center tracking-wider shadow-inner 
+                   outline-none ring-2 ring-white/10 focus:ring-2 focus:ring-emerald-500/70"
                   value={mesa}
                   onChange={(e) => setMesa(sanitizeMesa(e.target.value))}
                   inputMode="numeric"
                   type="text"
+                  maxLength={2}   // 👈 límite 2 dígitos
                   pattern="[0-9]*"
                 />
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm">Total $</label>
+
+              {/* Total $ */}
+              <div className="flex flex-col gap-2 col-span-2">
+                <label className="text-md">Total $</label>
                 <input
-                  className="w-full rounded-xl bg-white/10 px-3 py-2.5 outline-none ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-emerald-500/70"
+                  className="w-full rounded-xl bg-black/80 text-emerald-400 text-2xl font-mono 
+                   px-4 py-5 text-center tracking-wider shadow-inner
+                   outline-none ring-2 ring-white/10 focus:ring-2 focus:ring-emerald-500/70"
                   placeholder="0,00"
                   value={consumoStr}
                   onChange={(e) => setConsumoStr(formatMoneyInput(e.target.value))}
@@ -416,7 +424,7 @@ export default function ScanPage() {
 
           {/* Resumen puntos */}
           <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.04] to-white/[0.02] p-4">
-            <div className="text-sm font-semibold mb-2">Puntos</div>
+            <div className="text-MD font-semibold mb-2">Puntos</div>
             <div className="grid grid-cols-3 gap-3 text-center">
               <Metric label="Total personas" value={people.length} />
               <Metric label="Total puntos" value={totalPoints} />
@@ -504,6 +512,7 @@ export default function ScanPage() {
           >
             Finalizar
           </button>
+
         </div>
       </div>
 
