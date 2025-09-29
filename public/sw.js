@@ -60,14 +60,11 @@ self.addEventListener("push", (event) => {
     const title = data.title || "HMorgan";
     const options = {
         body: data.body || "",
-
-        // 👇 Recomendado en Android:
-        // - icon: PNG 192x192 con padding y fondo transparente (grande de la notificación)
-        // - badge: PNG 96x96 monocromo BLANCO sobre TRANSPARENTE (glifo pequeño)
-        icon: "/icon-192x192.png",
+        icon: "/icon-192.png",
         badge: "/icon-badge-96x96.png",
-
         data: { url: data.url || "/" },
+        lang: "es-AR",   // 👈 fuerza idioma
+        dir: "ltr",
         vibrate: [80, 30, 80],
         timestamp: Date.now(),
         tag: data.tag || "hmorgan-puntos",
@@ -77,6 +74,7 @@ self.addEventListener("push", (event) => {
             { action: "puntos", title: "Mis puntos" }
         ]
     };
+    event.waitUntil(self.registration.showNotification(title, options));
 
     event.waitUntil(self.registration.showNotification(title, options));
 });
