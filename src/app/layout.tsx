@@ -11,8 +11,8 @@ export const metadata: Metadata = {
   description: "Fidelización de clientes para bar/resto",
   icons: {
     icon: "/favicon.ico",
-    shortcut: "/favicon-32x32.png",
-    apple: "/apple-touch-icon-180.png", // 👈 actualizado
+    shortcut: "/favicon-32-v2.png",
+    apple: "/apple-touch-icon-180-v2.png",
   },
 };
 
@@ -35,10 +35,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
-        <link rel="manifest" href="/manifest.webmanifest" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180.png" />
-        <link rel="apple-touch-icon" sizes="167x167" href="/apple-touch-icon-167.png" />
-        <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152.png" />
+        <link rel="manifest" href="/manifest-v2.webmanifest" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180-v2.png" />
+        <link rel="apple-touch-icon" sizes="167x167" href="/apple-touch-icon-167-v2.png" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152-v2.png" />
       </head>
       <body className="min-h-svh">
         <RegisterSW />
