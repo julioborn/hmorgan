@@ -393,8 +393,8 @@ export default function ScanPage() {
                 <label className="text-md">Mesa</label>
                 <input
                   className="w-full rounded-xl bg-black/80 text-emerald-400 text-2xl font-mono 
-                   px-3 py-5 text-center tracking-wider shadow-inner 
-                   outline-none ring-2 ring-white/10 focus:ring-2 focus:ring-emerald-500/70"
+                  px-3 py-5 text-center tracking-wider shadow-inner 
+                  outline-none ring-2 ring-white/10 focus:ring-2 focus:ring-emerald-500/70"
                   value={mesa}
                   onChange={(e) => setMesa(sanitizeMesa(e.target.value))}
                   inputMode="numeric"
