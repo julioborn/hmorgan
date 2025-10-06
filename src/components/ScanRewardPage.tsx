@@ -178,26 +178,52 @@ export default function ScanRewardPage() {
 
             // 🧾 Confirmación visual
             const result = await Swal.fire({
-                title: "Confirmar canje",
+                title: "",
                 html: `
-                <div style="text-align: left; font-size: 1rem; color: #e2e8f0;">
-                    <p><b>Usuario:</b> ${user.nombre} ${user.apellido || ""}</p>
-                    <p><b>DNI:</b> ${user.dni || "-"}</p>
-                    <p><b>Puntos disponibles:</b> ${user.puntos ?? 0}</p>
-                    <hr style="margin: 12px 0; opacity: 0.2;" />
-                    <p><b>Canje:</b> ${reward?.titulo || "—"}</p>
-                    <p><b>Costo:</b> ${reward?.puntos ?? 0} pts</p>
-                </div>
-            `,
-                icon: "question",
+    <div style="
+        background: linear-gradient(145deg, #0f172a, #111827);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        text-align: left;
+        box-shadow: 0 0 25px rgba(16, 185, 129, 0.15);
+        color: #f1f5f9;
+        font-family: 'Inter', sans-serif;
+    ">
+        <h2 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 1rem; color: #e2e8f0;">
+            Confirmar canje
+        </h2>
+        <div style="display: flex; flex-direction: column; gap: 0.4rem; line-height: 1.4;">
+            <p>${user.nombre} ${user.apellido || ""}</p>
+            <p>${user.dni || "-"}</p>
+            <b style="color:#10b981;">${user.puntos ?? 0} pts</b>
+        </div>
+
+        <hr style="margin: 1rem 0; border: none; border-top: 1px solid rgba(255,255,255,0.1);" />
+
+        <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+            <p><span style="color:#9ca3af;">Canje:</p>
+            </span> <b>${reward?.titulo || "—"}</b>
+            <p><span style="color:#9ca3af;">Costo:</span> <b style="color:#10b981;">${reward?.puntos ?? 0} pts</b></p>
+        </div>
+    </div>
+    `,
                 showCancelButton: true,
                 confirmButtonText: "Confirmar canje",
                 cancelButtonText: "Cancelar",
+                focusConfirm: false,
                 confirmButtonColor: "#10b981",
-                cancelButtonColor: "#6b7280",
+                cancelButtonColor: "#374151",
                 background: "#0f172a",
                 color: "#f1f5f9",
                 reverseButtons: true,
+                width: 420,
+                padding: "1.5rem",
+                showClass: {
+                    popup: "animate__animated animate__fadeInDown animate__faster",
+                },
+                hideClass: {
+                    popup: "animate__animated animate__fadeOutUp animate__faster",
+                },
             });
 
             if (!result.isConfirmed) {
@@ -327,7 +353,7 @@ export default function ScanRewardPage() {
                 </div>
 
                 {/* controles */}
-                <div className="flex items-center justify-between gap-3 p-3 border-t border-white/10 bg-black/40 backdrop-blur">
+                <div className="flex items-center justify-center gap-3 p-3 border-t border-white/10 bg-black/40 backdrop-blur">
                     {camState !== "on" ? (
                         <button
                             onClick={startCamera}

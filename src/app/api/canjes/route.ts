@@ -4,20 +4,19 @@ import { connectMongoDB } from "@/lib/mongodb";
 import { Reward } from "@/models/Reward";
 import { Canje } from "@/models/Canje";
 import { User } from "@/models/User";
+import { sendPushAndCollectInvalid } from "@/lib/push-server"; // 👈 importa helper
 import jwt from "jsonwebtoken";
 
-export const dynamic = "force-dynamic"; // 👈 evita cacheo ISR
+export const dynamic = "force-dynamic";
 
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET!;
 
-// ✅ GET → listar canjes del usuario
 export async function GET(req: NextRequest) {
     try {
         const token = req.cookies.get("session")?.value;
         if (!token) return NextResponse.json({ message: "No autorizado" }, { status: 401 });
 
         const payload = jwt.verify(token, NEXTAUTH_SECRET) as any;
-
         await connectMongoDB();
 
         const canjes = await Canje.find({ userId: payload.sub })
@@ -32,7 +31,6 @@ export async function GET(req: NextRequest) {
     }
 }
 
-// ✅ POST → registrar un nuevo canje
 export async function POST(req: NextRequest) {
     try {
         const { rewardId, qrToken } = await req.json();
@@ -42,17 +40,16 @@ export async function POST(req: NextRequest) {
 
         await connectMongoDB();
 
-        // Buscar usuario por token del QR (no el logueado)
+        // 🔍 Buscar usuario y recompensa
         const user = await User.findOne({ qrToken });
         if (!user)
             return NextResponse.json({ message: "Usuario no encontrado para este QR" }, { status: 404 });
 
-        // Buscar recompensa
         const reward = await Reward.findById(rewardId);
         if (!reward)
             return NextResponse.json({ message: "Recompensa no encontrada" }, { status: 404 });
 
-        // Anti flood
+        // 🧱 Anti flood
         const reciente = await Canje.findOne({
             userId: user._id,
             rewardId: reward._id,
@@ -64,11 +61,11 @@ export async function POST(req: NextRequest) {
                 { status: 400 }
             );
 
-        // Verificar puntos
+        // 💰 Verificar puntos
         if ((user.puntos || 0) < reward.puntos)
             return NextResponse.json({ message: "Puntos insuficientes" }, { status: 400 });
 
-        // Descontar puntos y guardar canje
+        // 💾 Registrar canje y actualizar puntos
         user.puntos -= reward.puntos;
         await user.save();
 
@@ -78,6 +75,35 @@ export async function POST(req: NextRequest) {
             puntosGastados: reward.puntos,
             estado: "completado",
         });
+
+        // 🔔 Notificación push al usuario
+        if (Array.isArray(user.pushSubscriptions) && user.pushSubscriptions.length) {
+            const payload = {
+                title: "¡Canje realizado! 🎁",
+                body: `Usaste ${reward.puntos} puntos para obtener "${reward.titulo}".`,
+                url: "/cliente/canjes",
+                tag: "hmorgan-canje",
+            };
+
+            try {
+                const uniqueSubs = Array.from(
+                    new Map(
+                        user.pushSubscriptions.map((s: any) => [s.endpoint, s])
+                    ).values()
+                ) as { endpoint: string; keys?: { p256dh?: string; auth?: string } }[];
+
+                const invalid = await sendPushAndCollectInvalid(uniqueSubs, payload);
+
+                if (invalid.length) {
+                    await User.updateOne(
+                        { _id: user._id },
+                        { $pull: { pushSubscriptions: { endpoint: { $in: invalid } } } }
+                    );
+                }
+            } catch (err) {
+                console.error("Error enviando notificación de canje:", err);
+            }
+        }
 
         return NextResponse.json({ ok: true, canje });
     } catch (error) {
