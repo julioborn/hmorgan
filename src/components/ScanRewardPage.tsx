@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import Loader from "./Loader";
+import Swal from "sweetalert2";
 
 type Reward = { _id: string; titulo: string; puntos: number };
 type CamState = "idle" | "starting" | "on" | "error";
@@ -156,35 +157,109 @@ export default function ScanRewardPage() {
             return;
         }
 
-        if (inFlightTokensRef.current.has(token)) {
-            busyRef.current = false;
-            return;
-        }
-        inFlightTokensRef.current.add(token);
-
-        setStatus("Procesando canje…");
-
         try {
-            const res = await fetch("/api/canjes", {
+            // 🔍 Buscar usuario del QR antes del canje
+            const res = await fetch(`/api/usuarios/qr/${token}`);
+            if (!res.ok) {
+                await Swal.fire({
+                    icon: "error",
+                    title: "QR inválido",
+                    text: "No se encontró ningún usuario asociado a este código.",
+                    confirmButtonColor: "#ef4444",
+                    background: "#0f172a",
+                    color: "#f1f5f9",
+                });
+                busyRef.current = false;
+                return;
+            }
+
+            const user = await res.json();
+            const reward = rewards?.find((r) => r._id === selectedReward);
+
+            // 🧾 Confirmación visual
+            const result = await Swal.fire({
+                title: "Confirmar canje",
+                html: `
+                <div style="text-align: left; font-size: 1rem; color: #e2e8f0;">
+                    <p><b>Usuario:</b> ${user.nombre} ${user.apellido || ""}</p>
+                    <p><b>DNI:</b> ${user.dni || "-"}</p>
+                    <p><b>Puntos disponibles:</b> ${user.puntos ?? 0}</p>
+                    <hr style="margin: 12px 0; opacity: 0.2;" />
+                    <p><b>Canje:</b> ${reward?.titulo || "—"}</p>
+                    <p><b>Costo:</b> ${reward?.puntos ?? 0} pts</p>
+                </div>
+            `,
+                icon: "question",
+                showCancelButton: true,
+                confirmButtonText: "Confirmar canje",
+                cancelButtonText: "Cancelar",
+                confirmButtonColor: "#10b981",
+                cancelButtonColor: "#6b7280",
+                background: "#0f172a",
+                color: "#f1f5f9",
+                reverseButtons: true,
+            });
+
+            if (!result.isConfirmed) {
+                setStatus("Canje cancelado.");
+                busyRef.current = false;
+                return;
+            }
+
+            // ✅ Realizar el canje
+            const canjeRes = await fetch("/api/canjes", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ rewardId: selectedReward, qrToken: token }),
             });
 
-            const data = await res.json();
-            if (res.ok) {
-                setToast(`Canje realizado: ${data.canje.rewardId.titulo || "Canje"}`);
+            const data = await canjeRes.json();
+
+            if (canjeRes.ok) {
+                const titulo = data?.canje?.rewardId?.titulo || reward?.titulo || "Recompensa";
+                const puntos = data?.canje?.puntosGastados || reward?.puntos || 0;
+
+                await Swal.fire({
+                    icon: "success",
+                    title: "Canje realizado ✨",
+                    html: `
+                    <p style="font-size: 1.1rem; color: #e2e8f0;">
+                        <b>${titulo}</b><br/>
+                        <span style="color: #10b981;">-${puntos} pts</span>
+                    </p>
+                `,
+                    confirmButtonColor: "#10b981",
+                    background: "#0f172a",
+                    color: "#f1f5f9",
+                    showConfirmButton: true,
+                    timer: 2000,
+                    timerProgressBar: true,
+                });
+
                 setFlash(true);
                 setTimeout(() => setFlash(false), 200);
             } else {
-                setToast(`Error: ${data.message}`);
+                await Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: data.message || "No se pudo completar el canje.",
+                    confirmButtonColor: "#ef4444",
+                    background: "#0f172a",
+                    color: "#f1f5f9",
+                });
             }
         } catch (e: any) {
-            setToast(`Error de red: ${e.message}`);
+            await Swal.fire({
+                icon: "error",
+                title: "Error de red",
+                text: e.message || "Ocurrió un error inesperado.",
+                confirmButtonColor: "#ef4444",
+                background: "#0f172a",
+                color: "#f1f5f9",
+            });
         } finally {
             setTimeout(() => {
                 busyRef.current = false;
-                inFlightTokensRef.current.delete(token);
             }, 1000);
         }
     }

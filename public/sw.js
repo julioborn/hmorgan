@@ -1,7 +1,7 @@
 // ===============================
 // SW: cache + push notifications
 // ===============================
-const CACHE = "hmorgan-v10"; // ⬅️ subí versión para forzar update
+const CACHE = "hmorgan-v11"; // ⬅️ subí versión para forzar update
 
 const ASSETS = [
     "/",
@@ -63,7 +63,7 @@ self.addEventListener("push", (event) => {
         icon: "/icon-192.png",
         badge: "/icon-badge-96x96.png",
         data: { url: data.url || "/" },
-        lang: "es-AR",   // 👈 fuerza idioma
+        lang: "es-AR",
         dir: "ltr",
         vibrate: [80, 30, 80],
         timestamp: Date.now(),
@@ -74,8 +74,8 @@ self.addEventListener("push", (event) => {
             { action: "puntos", title: "Mis puntos" }
         ]
     };
-    event.waitUntil(self.registration.showNotification(title, options));
 
+    // ✅ Solo una llamada a showNotification
     event.waitUntil(self.registration.showNotification(title, options));
 });
 

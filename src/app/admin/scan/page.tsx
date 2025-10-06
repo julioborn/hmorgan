@@ -196,14 +196,36 @@ export default function ScanPage() {
   }
 
   // Acepta JSON {qrToken} o token plano
+  // 🔒 Anti doble escaneo y protección de concurrencia
+  const lastScanRef = useRef<{ token: string; time: number } | null>(null);
+
   async function onRawQr(raw: string) {
     if (busyRef.current) return;
     busyRef.current = true;
 
     let token = raw.trim();
-    try { const parsed = JSON.parse(raw); if (parsed?.qrToken) token = String(parsed.qrToken); } catch { }
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed?.qrToken) token = String(parsed.qrToken);
+    } catch { /* no era JSON, sigue como texto */ }
 
-    if (inFlightTokensRef.current.has(token)) { busyRef.current = false; return; }
+    // 🚫 Evita procesar el mismo QR varias veces seguidas (dentro de 1.5 s)
+    const now = Date.now();
+    if (
+      lastScanRef.current &&
+      lastScanRef.current.token === token &&
+      now - lastScanRef.current.time < 1500
+    ) {
+      busyRef.current = false;
+      return;
+    }
+    lastScanRef.current = { token, time: now };
+
+    // 🚫 Si el token ya se está procesando, no lo repitas
+    if (inFlightTokensRef.current.has(token)) {
+      busyRef.current = false;
+      return;
+    }
     inFlightTokensRef.current.add(token);
 
     try {
@@ -217,10 +239,11 @@ export default function ScanPage() {
         setPeople((prev) => [...prev, user]);
         setStatus(`Agregado: ${user.nombre} ${user.apellido} (${user.dni})`);
 
-        // 🎉 Toast + flash
+        // 🎉 Feedback visual
         setScanToast(`${user.nombre} ${user.apellido}`);
         if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
         toastTimerRef.current = setTimeout(() => setScanToast(""), 1800);
+
         setFlash(true);
         setTimeout(() => setFlash(false), 180);
       } else {
@@ -230,7 +253,9 @@ export default function ScanPage() {
       setStatus(e?.message || "QR inválido");
     } finally {
       inFlightTokensRef.current.delete(token);
-      setTimeout(() => { busyRef.current = false; }, 700);
+      setTimeout(() => {
+        busyRef.current = false;
+      }, 700);
     }
   }
 

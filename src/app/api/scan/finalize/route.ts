@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import { PointTransaction } from "@/models/PointTransaction";
-import { sendPushAndCollectInvalid } from "@/lib/push-server"; 
+import { sendPushAndCollectInvalid } from "@/lib/push-server";
 import jwt from "jsonwebtoken";
 
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET!;
@@ -62,22 +62,31 @@ export async function POST(req: NextRequest) {
             await u.save();
         }
 
-        // ---------- 🔔 PUSH A LOS CLIENTES (AQUÍ VA LO NUEVO) ----------
-        // Construimos un payload simple; podés personalizar por usuario si querés
+        // ---------- 🔔 PUSH A LOS CLIENTES (único y deduplicado) ----------
         const pushPayload = {
             title: "¡Puntos sumados!",
             body: `Se acreditaron ${totalPoints} puntos. ¡Gracias por venir!`,
-            url: "/cliente/qr", // al tocar abre su QR
+            url: "/cliente/qr",
         };
 
-        // Enviar a todas las suscripciones de cada usuario
         await Promise.all(
             users.map(async (u: any) => {
                 if (Array.isArray(u.pushSubscriptions) && u.pushSubscriptions.length) {
                     try {
-                        const invalid = await sendPushAndCollectInvalid(u.pushSubscriptions, pushPayload);
+                        // 🧩 Eliminar duplicados exactos por endpoint
+                        const uniqueSubs = Array.from(
+                            new Map(
+                                u.pushSubscriptions.map(
+                                    (s: { endpoint: string; keys?: { p256dh?: string; auth?: string } }) => [s.endpoint, s]
+                                )
+                            ).values()
+                        ) as { endpoint: string; keys?: { p256dh?: string; auth?: string } }[];
+
+                        // Enviar push solo una vez por endpoint único
+                        const invalid = await sendPushAndCollectInvalid(uniqueSubs, pushPayload);
+
+                        // 🧹 Si hay suscripciones inválidas, las eliminamos de la DB
                         if (invalid.length) {
-                            // 🧹 borra de la DB los endpuntos muertos de ESTE usuario
                             await User.updateOne(
                                 { _id: u._id },
                                 { $pull: { pushSubscriptions: { endpoint: { $in: invalid } } } }
