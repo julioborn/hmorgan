@@ -1,4 +1,3 @@
-// src/app/cliente/perfil/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -18,7 +17,8 @@ export default function PerfilPage() {
     const [perfil, setPerfil] = useState<Perfil | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [resetting, setResetting] = useState(false); // 👈 nuevo estado
+    const [resetting, setResetting] = useState(false);
+    const [showUpdateBtn, setShowUpdateBtn] = useState(false);
 
     useEffect(() => {
         (async () => {
@@ -38,6 +38,16 @@ export default function PerfilPage() {
                 setLoading(false);
             }
         })();
+
+        // 🔄 Detectar nueva versión del Service Worker
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.getRegistration().then((reg) => {
+                if (!reg) return;
+                reg.addEventListener("updatefound", () => {
+                    setShowUpdateBtn(true);
+                });
+            });
+        }
     }, []);
 
     async function handleSave(e: React.FormEvent) {
@@ -83,7 +93,7 @@ export default function PerfilPage() {
             return;
         }
 
-        setResetting(true); // 👈 comienza loading
+        setResetting(true);
         try {
             const res = await fetch("/api/auth/request-reset", {
                 method: "POST",
@@ -108,9 +118,24 @@ export default function PerfilPage() {
                 confirmButtonColor: "#ef4444",
             });
         } finally {
-            setResetting(false); // 👈 termina loading
+            setResetting(false);
         }
     }
+
+    // 🔁 Botón para actualizar la app manualmente
+    const handleUpdateApp = async () => {
+        try {
+            if ("serviceWorker" in navigator) {
+                const regs = await navigator.serviceWorker.getRegistrations();
+                for (const reg of regs) await reg.unregister();
+                await caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))));
+            }
+            window.location.reload(); // ✅ sin argumentos
+        } catch (err) {
+            console.error("Error al actualizar:", err);
+            window.location.reload();
+        }
+    };
 
     if (loading) {
         return (
@@ -216,11 +241,21 @@ export default function PerfilPage() {
                         <button
                             type="button"
                             onClick={handleRequestReset}
-                            disabled={resetting} // 👈 deshabilitado mientras procesa
+                            disabled={resetting}
                             className="w-full h-12 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-white disabled:opacity-60"
                         >
                             {resetting ? "Enviando..." : "Cambiar contraseña"}
                         </button>
+
+                        {showUpdateBtn && (
+                            <button
+                                type="button"
+                                onClick={handleUpdateApp}
+                                className="w-full h-12 rounded-xl bg-teal-600 hover:bg-teal-500 font-bold text-white"
+                            >
+                                🔄 Actualizar aplicación
+                            </button>
+                        )}
                     </div>
                 </form>
             </div>

@@ -1,7 +1,7 @@
 // ===============================
 // SW: cache + push notifications
 // ===============================
-const CACHE = "hmorgan-v13"; // ⬅️ nueva versión para refrescar
+const CACHE = "hmorgan-v16"; // ⬅️ subí la versión para forzar actualización
 
 const ASSETS = [
     "/",
@@ -10,28 +10,58 @@ const ASSETS = [
     "/favicon-16x16.png",
 ];
 
+// ===============================
+// INSTALACIÓN
+// ===============================
 self.addEventListener("install", (e) => {
     e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
     self.skipWaiting();
 });
 
-self.addEventListener("activate", (e) => {
-    e.waitUntil(
-        caches.keys().then((keys) =>
-            Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
-        )
+// ===============================
+// ACTIVACIÓN (recarga automática)
+// ===============================
+self.addEventListener("activate", (event) => {
+    event.waitUntil(
+        (async () => {
+            const keys = await caches.keys();
+            // 🔥 Eliminamos versiones anteriores
+            await Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)));
+
+            // 🔄 Recargamos todas las pestañas activas para aplicar el nuevo SW
+            const clientsArr = await self.clients.matchAll({ type: "window" });
+            for (const client of clientsArr) {
+                client.navigate(client.url);
+            }
+        })()
     );
-    self.clients.claim();
 });
 
+// ===============================
+// FETCH (manejo de caché selectivo)
+// ===============================
 self.addEventListener("fetch", (e) => {
     const req = e.request;
+    const url = new URL(req.url);
 
+    // ❌ Nunca cachear autenticación ni APIs dinámicas
+    if (
+        url.pathname.startsWith("/api/") ||
+        url.pathname.startsWith("/login") ||
+        url.pathname.startsWith("/logout") ||
+        url.pathname.startsWith("/register") ||
+        url.pathname.startsWith("/auth")
+    ) {
+        return; // Deja pasar al servidor sin interceptar
+    }
+
+    // ✅ Páginas de navegación
     if (req.mode === "navigate") {
         e.respondWith(fetch(req).catch(() => caches.match("/")));
         return;
     }
 
+    // ✅ Archivos estáticos (imágenes, estilos, fuentes, scripts)
     if (/\.(png|jpg|jpeg|gif|svg|webp|css|js|woff2?)($|\?)/i.test(req.url)) {
         e.respondWith(
             caches.match(req).then((res) => {
@@ -57,7 +87,6 @@ self.addEventListener("push", (event) => {
         data = { title: "", body: event.data?.text() || "", url: "/" };
     }
 
-    // 🧩 Usamos los datos recibidos, sin forzar "Morgan"
     const title = (data.title || "").trim();
     const body =
         data.body ||
@@ -85,13 +114,9 @@ self.addEventListener("push", (event) => {
 
     // ✅ En iOS, si no hay título, usamos solo el body como título visible
     if (!title) {
-        event.waitUntil(
-            self.registration.showNotification(body, options)
-        );
+        event.waitUntil(self.registration.showNotification(body, options));
     } else {
-        event.waitUntil(
-            self.registration.showNotification(title, options)
-        );
+        event.waitUntil(self.registration.showNotification(title, options));
     }
 });
 
@@ -128,4 +153,3 @@ self.addEventListener("notificationclick", (event) => {
         })()
     );
 });
-F
