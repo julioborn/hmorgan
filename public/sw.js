@@ -1,7 +1,7 @@
 // ===============================
 // SW: cache + push notifications
 // ===============================
-const CACHE = "hmorgan-v12"; // ⬅️ nueva versión para refrescar
+const CACHE = "hmorgan-v13"; // ⬅️ nueva versión para refrescar
 
 const ASSETS = [
     "/",
@@ -54,16 +54,16 @@ self.addEventListener("push", (event) => {
     try {
         data = event.data.json(); // esperado: { title, body, url, tag? }
     } catch {
-        data = { title: "Notificación", body: event.data?.text() || "", url: "/" };
+        data = { title: "", body: event.data?.text() || "", url: "/" };
     }
 
-    // 👇 Forzamos textos y propiedades en español
-    const title = data.title || "Morgan";
+    // 🧩 Usamos los datos recibidos, sin forzar "Morgan"
+    const title = (data.title || "").trim();
     const body =
         data.body ||
         "Tienes una nueva actualización en tu cuenta de puntos.";
     const url = data.url || "/";
-    const tag = data.tag || "hmorgan-puntos";
+    const tag = data.tag || "hmorgan-push";
 
     const options = {
         body,
@@ -75,16 +75,24 @@ self.addEventListener("push", (event) => {
         vibrate: [80, 30, 80],
         timestamp: Date.now(),
         tag,
-        renotify: true,
-
-        // 👇 Títulos y textos en español para las acciones
+        renotify: false, // 👈 evita mostrar "from HMorgan"
+        silent: false,
         actions: [
             { action: "open-qr", title: "Ver mi código QR" },
             { action: "puntos", title: "Ver mis puntos" },
         ],
     };
 
-    event.waitUntil(self.registration.showNotification(title, options));
+    // ✅ En iOS, si no hay título, usamos solo el body como título visible
+    if (!title) {
+        event.waitUntil(
+            self.registration.showNotification(body, options)
+        );
+    } else {
+        event.waitUntil(
+            self.registration.showNotification(title, options)
+        );
+    }
 });
 
 // ===============================

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
-import { QrCode, Award, Utensils, Scan, Users } from "lucide-react";
+import { QrCode, Award, Utensils, Scan, Users, Bell } from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 import "swiper/css";
@@ -253,6 +253,14 @@ function AdminHome() {
         <ActionCard href="/admin/clientes" title="Clientes" Icon={Users} accent="from-green-600 to-green-800" />
         <ActionCard href="/admin/menu" title="Menú" Icon={Utensils} accent="from-violet-600 to-violet-800" />
         <ActionCard href="/admin/rewards" title="Canjes" Icon={Storefront} accent="from-yellow-500 to-yellow-700" />
+
+        {/* 🆕 NUEVO BOTÓN: Generador de Notificaciones */}
+        <ActionCard
+          href="/admin/notificaciones"
+          title="Notificaciones"
+          Icon={Bell} // o Bell, si preferís más representativo
+          accent="from-emerald-600 to-teal-700"
+        />
       </div>
     </div>
   );
