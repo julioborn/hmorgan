@@ -1,9 +1,9 @@
 {
     "lang": "es-AR",
     "dir": "ltr",
-    "name": "H Morgan Bar",
-    "short_name": "HMorgan",
-    "description": "Programa de puntos de H Morgan Bar",
+    "name": "Morgan Bar",
+    "short_name": "Morgan",
+    "description": "Programa de puntos de Morgan Bar",
     "id": "/",
     "start_url": "/",
     "scope": "/",
