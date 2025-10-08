@@ -1,22 +1,26 @@
 "use client";
 import { useMemo, useState } from "react";
+import { ensurePushAfterLogin } from "@/lib/push-auto"; // 👈 nuevo import
 
-type RegisterForm = { nombre: string; apellido: string; dni: string; telefono: string; };
+type RegisterForm = { nombre: string; apellido: string; dni: string; telefono: string };
 type Errors = Partial<Record<keyof RegisterForm | "general", string>>;
 
 export default function RegisterPage() {
-  const [form, setForm] = useState<RegisterForm>({ nombre: "", apellido: "", dni: "", telefono: "" });
+  const [form, setForm] = useState<RegisterForm>({
+    nombre: "",
+    apellido: "",
+    dni: "",
+    telefono: "",
+  });
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Errors>({});
   const [loading, setLoading] = useState(false);
 
-  const setField = (k: keyof RegisterForm, v: string) => setForm(prev => ({ ...prev, [k]: v }));
+  const setField = (k: keyof RegisterForm, v: string) =>
+    setForm((prev) => ({ ...prev, [k]: v }));
   const onlyDigits = (s: string) => s.replace(/\D/g, "");
 
-  // reglas:
-  // nombre/apellido >= 2 letras
-  // dni 7-9 dígitos
-  // teléfono 6-15 dígitos (E.164 máx 15)
+  // Validaciones
   const validate = (f: RegisterForm): Errors => {
     const e: Errors = {};
     if (!f.nombre || f.nombre.trim().length < 2) e.nombre = "Nombre demasiado corto";
@@ -49,39 +53,67 @@ export default function RegisterPage() {
     setLoading(false);
 
     if (!res.ok) {
-      setErrors((p) => ({ ...p, general: data.error || "No se pudo registrar" }));
+      setErrors((p) => ({
+        ...p,
+        general: data.error || "No se pudo registrar",
+      }));
       return;
     }
 
-    // Si el backend ya setea cookie en /register, esto alcanza:
-    let me = await fetch("/api/auth/me", { cache: "no-store" }).then(r => r.json()).catch(() => null);
+    // Verificamos si quedó logueado
+    let me = await fetch("/api/auth/me", { cache: "no-store" })
+      .then((r) => r.json())
+      .catch(() => null);
 
-    // Si no quedó logueado todavía, autologin con provisionalPassword
+    // Si no, intentamos login automático con provisionalPassword
     if (!me?.user && data?.provisionalPassword) {
       const loginRes = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dni: form.dni, password: data.provisionalPassword }),
+        body: JSON.stringify({
+          dni: form.dni,
+          password: data.provisionalPassword,
+        }),
       });
 
       if (!loginRes.ok) {
-        setErrors((p) => ({ ...p, general: `Registrado. Tu contraseña provisional es: ${data.provisionalPassword}` }));
+        setErrors((p) => ({
+          ...p,
+          general: `Registrado. Tu contraseña provisional es: ${data.provisionalPassword}`,
+        }));
         return;
       }
-      me = await fetch("/api/auth/me", { cache: "no-store" }).then(r => r.json()).catch(() => null);
+
+      me = await fetch("/api/auth/me", { cache: "no-store" })
+        .then((r) => r.json())
+        .catch(() => null);
     }
 
+    // ✅ Activar notificaciones después del registro
+    try {
+      await ensurePushAfterLogin(me?.user?.id || me?.user?._id);
+    } catch (err) {
+      console.warn("No se pudo activar push automáticamente:", err);
+    }
+
+    // ✅ Redirigir según el rol
     if (me?.user?.role === "admin") window.location.href = "/admin/scan";
     else window.location.href = "/cliente/qr";
   }
 
   return (
     <div className="min-h-[70vh] grid place-items-center p-4">
-      <form onSubmit={onSubmit} className="w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-xl backdrop-blur">
+      <form
+        onSubmit={onSubmit}
+        className="w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-xl backdrop-blur"
+      >
         <h1 className="text-2xl font-extrabold text-center mb-4">Crear cuenta</h1>
 
         {errors.general && (
-          <div className="mb-3 p-3 rounded bg-rose-900/20 text-rose-300 text-sm" role="alert">
+          <div
+            className="mb-3 p-3 rounded bg-rose-900/20 text-rose-300 text-sm"
+            role="alert"
+          >
             {errors.general}
           </div>
         )}
@@ -90,57 +122,69 @@ export default function RegisterPage() {
           <div>
             <input
               placeholder="NOMBRE"
-              className={`w-full p-3 rounded bg-white/10 focus:outline-none ${touched.nombre && currentErrors.nombre ? "ring-2 ring-rose-400" : ""}`}
+              className={`w-full p-3 rounded bg-white/10 focus:outline-none ${touched.nombre && currentErrors.nombre ? "ring-2 ring-rose-400" : ""
+                }`}
               value={form.nombre}
               onChange={(e) => setField("nombre", e.target.value)}
-              onBlur={() => setTouched(t => ({ ...t, nombre: true }))}
+              onBlur={() => setTouched((t) => ({ ...t, nombre: true }))}
               autoComplete="given-name"
               aria-invalid={!!(touched.nombre && currentErrors.nombre)}
             />
-            {touched.nombre && currentErrors.nombre && <p className="mt-1 text-xs text-rose-300">{currentErrors.nombre}</p>}
+            {touched.nombre && currentErrors.nombre && (
+              <p className="mt-1 text-xs text-rose-300">{currentErrors.nombre}</p>
+            )}
           </div>
 
           <div>
             <input
               placeholder="APELLIDO"
-              className={`w-full p-3 rounded bg-white/10 focus:outline-none ${touched.apellido && currentErrors.apellido ? "ring-2 ring-rose-400" : ""}`}
+              className={`w-full p-3 rounded bg-white/10 focus:outline-none ${touched.apellido && currentErrors.apellido ? "ring-2 ring-rose-400" : ""
+                }`}
               value={form.apellido}
               onChange={(e) => setField("apellido", e.target.value)}
-              onBlur={() => setTouched(t => ({ ...t, apellido: true }))}
+              onBlur={() => setTouched((t) => ({ ...t, apellido: true }))}
               autoComplete="family-name"
               aria-invalid={!!(touched.apellido && currentErrors.apellido)}
             />
-            {touched.apellido && currentErrors.apellido && <p className="mt-1 text-xs text-rose-300">{currentErrors.apellido}</p>}
+            {touched.apellido && currentErrors.apellido && (
+              <p className="mt-1 text-xs text-rose-300">{currentErrors.apellido}</p>
+            )}
           </div>
 
           <div>
             <input
               placeholder="DNI"
-              className={`w-full p-3 rounded bg-white/10 focus:outline-none ${touched.dni && currentErrors.dni ? "ring-2 ring-rose-400" : ""}`}
+              className={`w-full p-3 rounded bg-white/10 focus:outline-none ${touched.dni && currentErrors.dni ? "ring-2 ring-rose-400" : ""
+                }`}
               value={form.dni}
               onChange={(e) => setField("dni", onlyDigits(e.target.value))}
-              onBlur={() => setTouched(t => ({ ...t, dni: true }))}
+              onBlur={() => setTouched((t) => ({ ...t, dni: true }))}
               inputMode="numeric"
               pattern="[0-9]*"
               autoComplete="username"
               aria-invalid={!!(touched.dni && currentErrors.dni)}
             />
-            {touched.dni && currentErrors.dni && <p className="mt-1 text-xs text-rose-300">{currentErrors.dni}</p>}
+            {touched.dni && currentErrors.dni && (
+              <p className="mt-1 text-xs text-rose-300">{currentErrors.dni}</p>
+            )}
           </div>
 
           <div>
             <input
               placeholder="TELÉFONO"
-              className={`w-full p-3 rounded bg-white/10 focus:outline-none ${touched.telefono && currentErrors.telefono ? "ring-2 ring-rose-400" : ""}`}
+              className={`w-full p-3 rounded bg-white/10 focus:outline-none ${touched.telefono && currentErrors.telefono ? "ring-2 ring-rose-400" : ""
+                }`}
               value={form.telefono}
               onChange={(e) => setField("telefono", onlyDigits(e.target.value))}
-              onBlur={() => setTouched(t => ({ ...t, telefono: true }))}
+              onBlur={() => setTouched((t) => ({ ...t, telefono: true }))}
               type="tel"
               inputMode="tel"
               autoComplete="tel"
               aria-invalid={!!(touched.telefono && currentErrors.telefono)}
             />
-            {touched.telefono && currentErrors.telefono && <p className="mt-1 text-xs text-rose-300">{currentErrors.telefono}</p>}
+            {touched.telefono && currentErrors.telefono && (
+              <p className="mt-1 text-xs text-rose-300">{currentErrors.telefono}</p>
+            )}
           </div>
 
           <button
