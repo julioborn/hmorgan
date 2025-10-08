@@ -41,7 +41,7 @@ export default function AdminPedidosPage() {
     }
 
     async function actualizarEstado(id: string, estado: string) {
-        const res = await fetch("/api/admin/pedidos", {
+        const res = await fetch("/api/pedidos", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ id, estado }),
