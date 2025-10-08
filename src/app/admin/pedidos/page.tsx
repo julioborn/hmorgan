@@ -114,7 +114,7 @@ export default function AdminPedidosPage() {
         estados.findIndex((e) => e.key === estado);
 
     return (
-        <div className="p-6 min-h-screen bg-gradient-to-b from-gray-900 to-gray-950 text-white">
+        <div className="p-6 min-h-screen text-white">
             <h1 className="text-3xl flex justify-center text-center font-bold mb-6">Pedidos</h1>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
