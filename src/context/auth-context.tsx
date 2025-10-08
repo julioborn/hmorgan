@@ -78,17 +78,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Guardá el id antes de setUser(null)
         const uid = (user as any)?.id || (user as any)?._id;
 
-        // 🔕 desuscribir push en DB + navegador
-        try { await unsubscribePushSafe(); } catch { }
+        // 🔕 Desuscribir push en DB + navegador
+        try {
+            await unsubscribePushSafe();
+        } catch (err) {
+            console.warn("Error al desuscribir push:", err);
+        }
 
-        // cerrar sesión en el backend
-        await fetch("/api/auth/logout", { method: "POST" });
+        // 🚪 Cerrar sesión en el backend
+        await fetch("/api/auth/logout", { method: "POST" }).catch(() => { });
 
-        // limpiar memoria local de “push ya activado”
+        // 🧹 Limpiar memoria local de “push ya activado”
         try {
             if (uid) localStorage.removeItem(`hm_push_done_${uid}`);
         } catch { }
 
+        // 🧹 Eliminar service workers y caches para evitar sesiones “fantasma”
+        if ("serviceWorker" in navigator) {
+            try {
+                const regs = await navigator.serviceWorker.getRegistrations();
+                for (const r of regs) {
+                    await r.unregister();
+                    console.log("🧹 Service Worker eliminado:", r.scope);
+                }
+
+                const keys = await caches.keys();
+                await Promise.all(keys.map((k) => caches.delete(k)));
+                console.log("🧹 Cachés limpiados");
+            } catch (err) {
+                console.warn("Error limpiando SW/caches:", err);
+            }
+        }
+
+        // 🔒 Limpiar storage
+        localStorage.clear();
+        sessionStorage.clear();
+
+        // ❌ Limpiar estado y redirigir
         setUser(null);
         window.location.href = "/login";
     };

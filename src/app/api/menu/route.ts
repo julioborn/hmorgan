@@ -1,4 +1,3 @@
-// src/app/api/menu/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { MenuItem } from "@/models/MenuItem";
@@ -8,13 +7,20 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
 
     const roulette = searchParams.get("roulette");
+    const activo = searchParams.get("activo");
 
     let query: any = {};
+
+    // 🎯 filtro de ruleta (ya existente)
     if (roulette) {
-        query = { categoria: "COCKTAILS", ruleta: true }; // 👈 solo cocktails marcados
+        query = { categoria: "COCKTAILS", ruleta: true };
     }
 
-    const items = await MenuItem.find(query);
+    // 🟢 nuevo filtro: activo
+    if (activo === "true") query.activo = true;
+    if (activo === "false") query.activo = false;
+
+    const items = await MenuItem.find(query).sort({ categoria: 1, nombre: 1 });
     return NextResponse.json(items);
 }
 
