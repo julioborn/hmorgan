@@ -13,10 +13,22 @@ export default function AdminPedidosPage() {
     }, []);
 
     async function fetchPedidos() {
-        const res = await fetch("/api/admin/pedidos");
-        const data = await res.json();
-        setPedidos(Array.isArray(data) ? data : []);
-        setLoading(false);
+        try {
+            const res = await fetch("/api/admin/pedidos", { cache: "no-store" });
+            if (!res.ok) {
+                console.error("Error HTTP:", res.status);
+                setPedidos([]);
+                return;
+            }
+            const data = await res.json();
+            console.log("📦 Pedidos obtenidos:", data);
+            setPedidos(Array.isArray(data) ? data : []);
+        } catch (err) {
+            console.error("❌ Error cargando pedidos:", err);
+            setPedidos([]);
+        } finally {
+            setLoading(false);
+        }
     }
 
     async function actualizarEstado(id: string, estado: string) {
