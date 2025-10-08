@@ -23,16 +23,12 @@ export default function AdminPedidosPage() {
 
     async function fetchPedidos() {
         try {
-            const res = await fetch("/api/admin/pedidos", {
-                cache: "no-store",
-                headers: { "Cache-Control": "no-cache, no-store, must-revalidate" },
-            });
+            const res = await fetch("/api/pedidos", { cache: "no-store" });
             if (!res.ok) {
                 console.error("Error HTTP:", res.status);
                 setPedidos([]);
                 return;
             }
-
             const data = await res.json();
             console.log("📦 Pedidos obtenidos:", data);
             setPedidos(Array.isArray(data) ? data : []);

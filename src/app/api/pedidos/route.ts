@@ -8,6 +8,7 @@ import { sendPushToSubscriptions } from "@/lib/push-server";
 
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET!;
 
+// /api/pedidos/route.ts
 export async function GET(req: NextRequest) {
     try {
         const token = req.cookies.get("session")?.value;
@@ -17,8 +18,13 @@ export async function GET(req: NextRequest) {
         const payload = jwt.verify(token, NEXTAUTH_SECRET) as any;
         await connectMongoDB();
 
-        // Buscar solo los pedidos del usuario actual
-        const pedidos = await Pedido.find({ userId: payload.sub })
+        const query =
+            payload.role === "admin"
+                ? {} // ✅ el admin ve todos
+                : { userId: payload.sub }; // ✅ el cliente solo los suyos
+
+        const pedidos = await Pedido.find(query)
+            .populate("userId", "nombre apellido")
             .populate("items.menuItemId", "nombre precio categoria")
             .sort({ createdAt: -1 })
             .lean();
