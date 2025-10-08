@@ -78,7 +78,9 @@ export async function POST(req: NextRequest) {
                 title: "🍔 ¡Nuevo pedido recibido!",
                 body: `Nuevo pedido de ${payload?.nombre ?? "un cliente"}. Revisalo en la barra 👇`,
                 url: "/admin/pedidos",
-                image: "/icon.png", // ✅ tu logo real (en public/icon.png)
+                icon: "/icon-192.png",          // ✅ se ve bien en Android (no blanco)
+                badge: "/icon-badge-96x96.png", // ✅ ícono pequeño de notificación
+                image: "/morganwhite.png",      // ✅ logo grande (opcional, solo Chrome Desktop)
             });
         }
 
@@ -159,7 +161,9 @@ export async function PUT(req: NextRequest) {
                 title: msg.title,
                 body: msg.body,
                 url: "/cliente/mis-pedidos",
-                image: "/icon.png", // ✅ logo del bar
+                icon: "/icon-192.png",
+                badge: "/icon-badge-96x96.png",
+                image: "/morganwhite.png",
             });
         }
 

@@ -9,6 +9,8 @@ export type PushPayload = {
     body: string;
     url?: string;
     image?: string; // ✅ permite incluir una imagen o logo
+    icon?: string;
+    badge?: string;
 };
 
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY!;
