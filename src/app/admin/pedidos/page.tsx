@@ -24,11 +24,18 @@ export default function AdminPedidosPage() {
             const res = await fetch("/api/pedidos", { cache: "no-store" });
             if (!res.ok) {
                 console.error("Error HTTP:", res.status);
-                setPedidos([]);
-                return;
+                return setPedidos([]);
             }
+
             const data = await res.json();
-            setPedidos(Array.isArray(data) ? data : []);
+
+            // 🔄 Solo actualizar si cambió algo
+            setPedidos((prev) => {
+                const prevStr = JSON.stringify(prev);
+                const newStr = JSON.stringify(data);
+                if (prevStr !== newStr) return Array.isArray(data) ? data : [];
+                return prev; // 👈 evita re-render innecesario
+            });
         } catch (err) {
             console.error("❌ Error cargando pedidos:", err);
             setPedidos([]);

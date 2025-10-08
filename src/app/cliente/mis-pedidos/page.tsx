@@ -12,16 +12,30 @@ export default function MisPedidosPage() {
     const [vista, setVista] = useState<"activos" | "completados">("activos");
 
     useEffect(() => {
-        fetchPedidosCliente();
+        let interval: any;
+
+        const loadPedidos = async () => await fetchPedidosCliente();
+
+        // 🚀 Carga inicial
+        loadPedidos();
+
+        // 🔄 Actualiza cada 4 segundos (en background)
+        interval = setInterval(loadPedidos, 4000);
+
+        // 🧹 Limpia el intervalo al desmontar
+        return () => clearInterval(interval);
     }, []);
 
     async function fetchPedidosCliente() {
         try {
-            const res = await fetch("/api/pedidos");
+            const res = await fetch("/api/pedidos", { cache: "no-store" });
+            if (!res.ok) throw new Error("Error al cargar pedidos");
             const data = await res.json();
-            setPedidos(Array.isArray(data) ? data : []);
+            if (JSON.stringify(data) !== JSON.stringify(pedidos)) {
+                setPedidos(Array.isArray(data) ? data : []);
+            }
         } catch (err) {
-            console.error(err);
+            console.error("❌ Error cargando pedidos:", err);
         } finally {
             setLoading(false);
         }
@@ -58,8 +72,8 @@ export default function MisPedidosPage() {
                             <button
                                 onClick={() => setVista("activos")}
                                 className={`relative px-5 py-2 rounded-full text-sm font-medium transition-all ${vista === "activos"
-                                        ? "bg-amber-500/20 text-amber-300 border border-amber-400/50"
-                                        : "bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10"
+                                    ? "bg-amber-500/20 text-amber-300 border border-amber-400/50"
+                                    : "bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10"
                                     }`}
                             >
                                 Pendientes
@@ -73,8 +87,8 @@ export default function MisPedidosPage() {
                             <button
                                 onClick={() => setVista("completados")}
                                 className={`relative px-5 py-2 rounded-full text-sm font-medium transition-all ${vista === "completados"
-                                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/50"
-                                        : "bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10"
+                                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/50"
+                                    : "bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10"
                                     }`}
                             >
                                 Entregados
