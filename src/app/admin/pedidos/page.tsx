@@ -45,7 +45,7 @@ export default function AdminPedidosPage() {
             const res = await fetch("/api/pedidos", {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                credentials: "include", // 👈 asegura que envíe la cookie de sesión
+                credentials: "include", // 👈 asegura que se envíe la cookie de sesión
                 body: JSON.stringify({ id, estado }),
             });
 
@@ -84,6 +84,32 @@ export default function AdminPedidosPage() {
         { key: "entregado", label: "Entregado", icon: Truck, color: "emerald" },
     ];
 
+    // ✅ Mapeo seguro de colores (evita pérdida en build)
+    const colorClasses: Record<string, string> = {
+        yellow:
+            "border-yellow-400 bg-yellow-500/20 text-yellow-300",
+        orange:
+            "border-orange-400 bg-orange-500/20 text-orange-300",
+        blue:
+            "border-blue-400 bg-blue-500/20 text-blue-300",
+        emerald:
+            "border-emerald-400 bg-emerald-500/20 text-emerald-300",
+    };
+
+    const barColors: Record<string, string> = {
+        yellow: "bg-yellow-500",
+        orange: "bg-orange-500",
+        blue: "bg-blue-500",
+        emerald: "bg-emerald-500",
+    };
+
+    const textColors: Record<string, string> = {
+        yellow: "text-yellow-300",
+        orange: "text-orange-300",
+        blue: "text-blue-300",
+        emerald: "text-emerald-300",
+    };
+
     const getEstadoIndex = (estado: string) =>
         estados.findIndex((e) => e.key === estado);
 
@@ -100,6 +126,7 @@ export default function AdminPedidosPage() {
                     ) : (
                         pedidos.map((p) => {
                             const estadoIndex = getEstadoIndex(p.estado);
+                            const color = estados[estadoIndex]?.color || "gray";
 
                             return (
                                 <motion.div
@@ -121,7 +148,7 @@ export default function AdminPedidosPage() {
                                             </p>
                                         </div>
                                         <span
-                                            className={`px-3 py-1 rounded-full text-xs font-medium capitalize border border-${estados[estadoIndex]?.color}-500/40 text-${estados[estadoIndex]?.color}-400 bg-${estados[estadoIndex]?.color}-500/10`}
+                                            className={`px-3 py-1 rounded-full text-xs font-medium capitalize border ${colorClasses[color] || "border-gray-500 text-gray-400 bg-gray-800/40"}`}
                                         >
                                             {p.estado}
                                         </span>
@@ -149,10 +176,12 @@ export default function AdminPedidosPage() {
                                         <div className="absolute top-[18px] left-0 w-full h-[3px] bg-gray-700 rounded-full" />
 
                                         <motion.div
-                                            className={`absolute top-[18px] left-0 h-[3px] bg-${estados[estadoIndex]?.color}-500 rounded-full`}
+                                            className={`absolute top-[18px] left-0 h-[3px] ${barColors[color] || "bg-gray-500"
+                                                } rounded-full`}
                                             initial={{ width: 0 }}
                                             animate={{
-                                                width: `${(estadoIndex / (estados.length - 1)) * 100}%`,
+                                                width: `${(estadoIndex / (estados.length - 1)) * 100
+                                                    }%`,
                                             }}
                                             transition={{ duration: 0.4 }}
                                         />
@@ -160,6 +189,8 @@ export default function AdminPedidosPage() {
                                         {estados.map((estado, index) => {
                                             const Icon = estado.icon;
                                             const isActive = index <= estadoIndex;
+                                            const activeColor = colorClasses[estado.color];
+
                                             return (
                                                 <div
                                                     key={estado.key}
@@ -171,16 +202,16 @@ export default function AdminPedidosPage() {
                                                         }
                                                         whileTap={{ scale: 0.9 }}
                                                         className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all ${isActive
-                                                            ? `border-${estado.color}-400 bg-${estado.color}-500/20 text-${estado.color}-300`
-                                                            : "border-gray-600 bg-gray-800 text-gray-500"
+                                                                ? activeColor
+                                                                : "border-gray-600 bg-gray-800 text-gray-500"
                                                             }`}
                                                     >
                                                         <Icon className="w-4 h-4" />
                                                     </motion.button>
                                                     <span
                                                         className={`mt-2 ${isActive
-                                                            ? `text-${estado.color}-300`
-                                                            : "text-gray-500"
+                                                                ? textColors[estado.color]
+                                                                : "text-gray-500"
                                                             }`}
                                                     >
                                                         {estado.label}
