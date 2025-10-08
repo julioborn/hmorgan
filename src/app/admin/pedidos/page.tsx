@@ -3,21 +3,20 @@ import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
 import { Clock, Flame, CheckCircle, Truck } from "lucide-react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 export default function AdminPedidosPage() {
     const [pedidos, setPedidos] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [vista, setVista] = useState<"pendientes" | "finalizados">("pendientes");
 
     useEffect(() => {
         let interval: any;
         const loadPedidos = async () => await fetchPedidos();
 
-        // Carga inicial
         loadPedidos();
-
-        // 🔄 Actualiza cada 4 segundos (en background)
         interval = setInterval(loadPedidos, 4000);
-
         return () => clearInterval(interval);
     }, []);
 
@@ -30,7 +29,6 @@ export default function AdminPedidosPage() {
                 return;
             }
             const data = await res.json();
-            console.log("📦 Pedidos obtenidos:", data);
             setPedidos(Array.isArray(data) ? data : []);
         } catch (err) {
             console.error("❌ Error cargando pedidos:", err);
@@ -45,7 +43,7 @@ export default function AdminPedidosPage() {
             const res = await fetch("/api/pedidos", {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                credentials: "include", // 👈 asegura que se envíe la cookie de sesión
+                credentials: "include",
                 body: JSON.stringify({ id, estado }),
             });
 
@@ -63,7 +61,7 @@ export default function AdminPedidosPage() {
                 showConfirmButton: false,
             });
 
-            fetchPedidos(); // 🔁 refresca la lista
+            fetchPedidos();
         } catch (error) {
             console.error("❌ Error en actualizarEstado:", error);
             Swal.fire("❌", "Error de conexión", "error");
@@ -84,16 +82,12 @@ export default function AdminPedidosPage() {
         { key: "entregado", label: "Entregado", icon: Truck, color: "emerald" },
     ];
 
-    // ✅ Mapeo seguro de colores (evita pérdida en build)
+    // Mapas de colores seguros para Tailwind
     const colorClasses: Record<string, string> = {
-        yellow:
-            "border-yellow-400 bg-yellow-500/20 text-yellow-300",
-        orange:
-            "border-orange-400 bg-orange-500/20 text-orange-300",
-        blue:
-            "border-blue-400 bg-blue-500/20 text-blue-300",
-        emerald:
-            "border-emerald-400 bg-emerald-500/20 text-emerald-300",
+        yellow: "border-yellow-400 bg-yellow-500/20 text-yellow-300",
+        orange: "border-orange-400 bg-orange-500/20 text-orange-300",
+        blue: "border-blue-400 bg-blue-500/20 text-blue-300",
+        emerald: "border-emerald-400 bg-emerald-500/20 text-emerald-300",
     };
 
     const barColors: Record<string, string> = {
@@ -113,20 +107,56 @@ export default function AdminPedidosPage() {
     const getEstadoIndex = (estado: string) =>
         estados.findIndex((e) => e.key === estado);
 
+    const pendientes = pedidos.filter((p) => p.estado === "pendiente");
+    const finalizados = pedidos.filter((p) => p.estado !== "pendiente");
+
+    const lista = vista === "pendientes" ? pendientes : finalizados;
+
     return (
         <div className="p-6 min-h-screen text-white">
-            <h1 className="text-3xl flex justify-center text-center font-bold mb-6">Pedidos</h1>
+            <h1 className="text-3xl font-bold text-center mb-6">Pedidos</h1>
+
+            {/* 🔘 Selector de vista */}
+            <div className="flex justify-center gap-4 mb-8">
+                <button
+                    onClick={() => setVista("pendientes")}
+                    className={`relative px-5 py-2 rounded-full text-sm font-medium transition-all ${vista === "pendientes"
+                            ? "bg-amber-500/20 text-amber-300 border border-amber-400/50"
+                            : "bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10"
+                        }`}
+                >
+                    Pendientes
+                    {pendientes.length > 0 && (
+                        <span className="absolute -top-2 -right-2 bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                            {pendientes.length}
+                        </span>
+                    )}
+                </button>
+
+                <button
+                    onClick={() => setVista("finalizados")}
+                    className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${vista === "finalizados"
+                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/50"
+                            : "bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10"
+                        }`}
+                >
+                    Finalizados
+                </button>
+            </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <AnimatePresence>
-                    {pedidos.length === 0 ? (
+                    {lista.length === 0 ? (
                         <p className="col-span-full text-center text-gray-500 mt-12">
-                            No hay pedidos actualmente.
+                            No hay pedidos {vista === "pendientes" ? "pendientes" : "finalizados"}.
                         </p>
                     ) : (
-                        pedidos.map((p) => {
+                        lista.map((p) => {
                             const estadoIndex = getEstadoIndex(p.estado);
                             const color = estados[estadoIndex]?.color || "gray";
+                            const fechaHora = p.createdAt
+                                ? format(new Date(p.createdAt), "dd/MM/yyyy HH:mm", { locale: es })
+                                : "";
 
                             return (
                                 <motion.div
@@ -146,9 +176,14 @@ export default function AdminPedidosPage() {
                                             <p className="text-sm text-gray-400">
                                                 Entrega: {p.tipoEntrega}
                                             </p>
+                                            <p className="text-xs text-gray-500">
+                                                {fechaHora && `${fechaHora}`}
+                                            </p>
                                         </div>
                                         <span
-                                            className={`px-3 py-1 rounded-full text-xs font-medium capitalize border ${colorClasses[color] || "border-gray-500 text-gray-400 bg-gray-800/40"}`}
+                                            className={`px-3 py-1 rounded-full text-xs font-medium capitalize border ${colorClasses[color] ||
+                                                "border-gray-500 text-gray-400 bg-gray-800/40"
+                                                }`}
                                         >
                                             {p.estado}
                                         </span>
@@ -174,7 +209,6 @@ export default function AdminPedidosPage() {
                                     {/* Línea de tiempo */}
                                     <div className="relative w-full flex justify-between items-center mt-4">
                                         <div className="absolute top-[18px] left-0 w-full h-[3px] bg-gray-700 rounded-full" />
-
                                         <motion.div
                                             className={`absolute top-[18px] left-0 h-[3px] ${barColors[color] || "bg-gray-500"
                                                 } rounded-full`}
@@ -185,7 +219,6 @@ export default function AdminPedidosPage() {
                                             }}
                                             transition={{ duration: 0.4 }}
                                         />
-
                                         {estados.map((estado, index) => {
                                             const Icon = estado.icon;
                                             const isActive = index <= estadoIndex;

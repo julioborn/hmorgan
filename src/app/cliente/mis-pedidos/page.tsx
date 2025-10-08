@@ -2,10 +2,13 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Clock, Flame, CheckCircle, Truck } from "lucide-react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 export default function MisPedidosPage() {
     const [pedidos, setPedidos] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [vista, setVista] = useState<"activos" | "completados">("activos");
 
     useEffect(() => {
         fetchPedidosCliente();
@@ -13,7 +16,7 @@ export default function MisPedidosPage() {
 
     async function fetchPedidosCliente() {
         try {
-            const res = await fetch("/api/pedidos"); // endpoint cliente
+            const res = await fetch("/api/pedidos");
             const data = await res.json();
             setPedidos(Array.isArray(data) ? data : []);
         } catch (err) {
@@ -40,56 +43,68 @@ export default function MisPedidosPage() {
     const getEstadoIndex = (estado: string) =>
         estados.findIndex((e) => e.key === estado);
 
-    const activos = pedidos.filter((p) => p.estado !== "entregado");
+    const activos = pedidos.filter(
+        (p) => p.estado === "pendiente" || p.estado === "preparando" || p.estado === "listo"
+    );
     const completados = pedidos.filter((p) => p.estado === "entregado");
 
     return (
         <div className="p-6 min-h-screen text-white">
-            <h1 className="text-3xl font-bold mb-8 flex justify-center items-center gap-2">
-                Mis Pedidos
-            </h1>
+            <h1 className="text-3xl font-bold mb-6 text-center">Mis Pedidos</h1>
+
+            {/* 🔘 Selector de vista */}
+            <div className="flex justify-center gap-4 mb-8">
+                {(() => {
+                    const pendientes = pedidos.filter((p) => p.estado === "pendiente");
+
+                    return (
+                        <>
+                            <button
+                                onClick={() => setVista("activos")}
+                                className={`relative px-5 py-2 rounded-full text-sm font-medium transition-all ${vista === "activos"
+                                        ? "bg-amber-500/20 text-amber-300 border border-amber-400/50"
+                                        : "bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10"
+                                    }`}
+                            >
+                                Pendientes
+                                {pendientes.length > 0 && (
+                                    <span className="absolute -top-2 -right-2 bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                                        {pendientes.length}
+                                    </span>
+                                )}
+                            </button>
+
+                            <button
+                                onClick={() => setVista("completados")}
+                                className={`relative px-5 py-2 rounded-full text-sm font-medium transition-all ${vista === "completados"
+                                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/50"
+                                        : "bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10"
+                                    }`}
+                            >
+                                Entregados
+                            </button>
+                        </>
+                    );
+                })()}
+            </div>
 
             {pedidos.length === 0 ? (
                 <p className="text-gray-400 text-center mt-12">
                     Aún no realizaste ningún pedido.
                 </p>
+            ) : vista === "activos" ? (
+                <PedidosLista pedidos={activos} estados={estados} />
             ) : (
-                <div className="space-y-10">
-                    {/* 🔹 Pedidos activos */}
-                    {activos.length > 0 && (
-                        <section>
-                            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-amber-400">
-                                🕓 En curso
-                            </h2>
-                            <PedidosLista pedidos={activos} estados={estados} />
-                        </section>
-                    )}
-
-                    {/* ✅ Pedidos completados */}
-                    {completados.length > 0 && (
-                        <section>
-                            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-emerald-400">
-                                ✅ Entregados
-                            </h2>
-                            <PedidosLista pedidos={completados} estados={estados} />
-                        </section>
-                    )}
-                </div>
+                <PedidosLista pedidos={completados} estados={estados} />
             )}
         </div>
     );
 }
 
 /* ------------------------------
- * 🧩 Componente reutilizable de lista de pedidos
+ * 🧩 Lista de pedidos reutilizable
  * ------------------------------ */
-function PedidosLista({
-    pedidos,
-    estados,
-}: {
-    pedidos: any[];
-    estados: any[];
-}) {
+function PedidosLista({ pedidos, estados }: { pedidos: any[]; estados: any[] }) {
     const getEstadoIndex = (estado: string) =>
         estados.findIndex((e) => e.key === estado);
 
@@ -98,6 +113,9 @@ function PedidosLista({
             <AnimatePresence>
                 {pedidos.map((p) => {
                     const estadoIndex = getEstadoIndex(p.estado);
+                    const fechaHora = p.createdAt
+                        ? format(new Date(p.createdAt), "dd/MM/yyyy HH:mm", { locale: es })
+                        : "";
 
                     return (
                         <motion.div
@@ -116,6 +134,9 @@ function PedidosLista({
                                     </h2>
                                     <p className="text-sm text-gray-400">
                                         Entrega: {p.tipoEntrega}
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-0.5">
+                                        {fechaHora && `${fechaHora}`}
                                     </p>
                                 </div>
                                 <span
@@ -142,10 +163,8 @@ function PedidosLista({
 
                             {/* Timeline */}
                             <div className="relative w-full flex justify-between items-center mt-4">
-                                {/* Línea base */}
                                 <div className="absolute top-[18px] left-0 w-full h-[3px] bg-gray-700 rounded-full" />
 
-                                {/* Línea progreso */}
                                 <motion.div
                                     className={`absolute top-[18px] left-0 h-[3px] bg-${estados[estadoIndex]?.color}-500 rounded-full`}
                                     initial={{ width: 0 }}
@@ -155,7 +174,6 @@ function PedidosLista({
                                     transition={{ duration: 0.6 }}
                                 />
 
-                                {/* Puntos */}
                                 {estados.map((estado, index) => {
                                     const Icon = estado.icon;
                                     const isActive = index <= estadoIndex;
@@ -167,16 +185,16 @@ function PedidosLista({
                                         >
                                             <div
                                                 className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all ${isActive
-                                                        ? `border-${estado.color}-400 bg-${estado.color}-500/20 text-${estado.color}-300`
-                                                        : "border-gray-600 bg-gray-800 text-gray-500"
+                                                    ? `border-${estado.color}-400 bg-${estado.color}-500/20 text-${estado.color}-300`
+                                                    : "border-gray-600 bg-gray-800 text-gray-500"
                                                     }`}
                                             >
                                                 <Icon className="w-4 h-4" />
                                             </div>
                                             <span
                                                 className={`mt-2 ${isActive
-                                                        ? `text-${estado.color}-300`
-                                                        : "text-gray-500"
+                                                    ? `text-${estado.color}-300`
+                                                    : "text-gray-500"
                                                     }`}
                                             >
                                                 {estado.label}
