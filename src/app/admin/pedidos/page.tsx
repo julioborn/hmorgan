@@ -41,22 +41,32 @@ export default function AdminPedidosPage() {
     }
 
     async function actualizarEstado(id: string, estado: string) {
-        const res = await fetch("/api/pedidos", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id, estado }),
-        });
+        try {
+            const res = await fetch("/api/pedidos", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include", // 👈 asegura que envíe la cookie de sesión
+                body: JSON.stringify({ id, estado }),
+            });
 
-        if (res.ok) {
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                console.error("Error al actualizar:", res.status, err);
+                Swal.fire("❌", err.message || "Error al actualizar", "error");
+                return;
+            }
+
             Swal.fire({
                 title: "Actualizado",
                 icon: "success",
                 timer: 1200,
                 showConfirmButton: false,
             });
-            fetchPedidos(); // ✅ Refrescar al instante
-        } else {
-            Swal.fire("❌", "Error al actualizar", "error");
+
+            fetchPedidos(); // 🔁 refresca la lista
+        } catch (error) {
+            console.error("❌ Error en actualizarEstado:", error);
+            Swal.fire("❌", "Error de conexión", "error");
         }
     }
 
