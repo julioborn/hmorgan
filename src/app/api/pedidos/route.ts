@@ -1,4 +1,3 @@
-// /api/pedidos/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { Pedido } from "@/models/Pedido";
@@ -9,7 +8,9 @@ import { sendPushToSubscriptions } from "@/lib/push-server";
 
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET!;
 
-// 🔹 GET — trae pedidos (admin ve todos, cliente solo los suyos)
+// ------------------------------------------
+// 🟡 GET — trae pedidos
+// ------------------------------------------
 export async function GET(req: NextRequest) {
     try {
         const token = req.cookies.get("session")?.value;
@@ -21,8 +22,8 @@ export async function GET(req: NextRequest) {
 
         const query =
             payload.role === "admin"
-                ? {} // 🔹 admin: todos los pedidos
-                : { userId: payload.sub }; // 🔹 cliente: solo los suyos
+                ? {} // admin: todos los pedidos
+                : { userId: payload.sub }; // cliente: solo los suyos
 
         const pedidos = await Pedido.find(query)
             .populate("userId", "nombre apellido")
@@ -37,7 +38,9 @@ export async function GET(req: NextRequest) {
     }
 }
 
-// 🔹 POST — crea pedido (cliente)
+// ------------------------------------------
+// 🟢 POST — crea pedido (cliente)
+// ------------------------------------------
 export async function POST(req: NextRequest) {
     try {
         const token = req.cookies.get("session")?.value;
@@ -72,9 +75,10 @@ export async function POST(req: NextRequest) {
         const admin = await User.findOne({ role: "admin" });
         if (admin?.pushSubscriptions?.length) {
             await sendPushToSubscriptions(admin.pushSubscriptions, {
-                title: "🍔 Nuevo pedido recibido",
-                body: `Pedido de ${payload?.nombre ?? "Cliente"}`,
+                title: "🍻 ¡Nuevo pedido recibido!",
+                body: `🧾 Pedido de ${payload?.nombre ?? "un cliente"} — revisalo en la barra 👇`,
                 url: "/admin/pedidos",
+                image: "/icon.png", // ✅ tu logo real (en public/icon.png)
             });
         }
 
@@ -85,7 +89,9 @@ export async function POST(req: NextRequest) {
     }
 }
 
-// 🔹 PUT — actualiza estado (admin)
+// ------------------------------------------
+// 🔵 PUT — actualiza estado (admin)
+// ------------------------------------------
 export async function PUT(req: NextRequest) {
     try {
         const token = req.cookies.get("session")?.value;
@@ -94,7 +100,10 @@ export async function PUT(req: NextRequest) {
 
         const payload = jwt.verify(token, NEXTAUTH_SECRET) as any;
         if (payload.role !== "admin")
-            return NextResponse.json({ message: "Solo admin puede cambiar estados" }, { status: 403 });
+            return NextResponse.json(
+                { message: "Solo admin puede cambiar estados" },
+                { status: 403 }
+            );
 
         await connectMongoDB();
         const { id, estado } = await req.json();
@@ -104,13 +113,45 @@ export async function PUT(req: NextRequest) {
             return NextResponse.json({ message: "Pedido no encontrado" }, { status: 404 });
         }
 
-        // 🔔 Notificar al usuario del pedido
+        // 🧠 Mensajes personalizados según el estado
+        const mensajes: Record<string, { title: string; body: string; emoji: string }> = {
+            pendiente: {
+                title: "🕓 Pedido recibido",
+                body: "Tu pedido fue recibido y está en cola. ¡Gracias por tu paciencia!",
+                emoji: "🕓",
+            },
+            preparando: {
+                title: "🔥 Estamos cocinando",
+                body: "Tu pedido está siendo preparado con todo el sabor 🔥",
+                emoji: "🍳",
+            },
+            listo: {
+                title: "✅ ¡Tu pedido está listo!",
+                body:
+                    "Podés pasar a retirarlo o esperá que te lo llevemos a la mesa 🚀",
+                emoji: "🍽️",
+            },
+            entregado: {
+                title: "🎉 Pedido entregado",
+                body: "¡Esperamos que lo disfrutes! 🍻 Gracias por elegirnos 💚",
+                emoji: "🎉",
+            },
+        };
+
+        const msg = mensajes[estado] || {
+            title: "🔔 Pedido actualizado",
+            body: `Tu pedido ahora está "${estado}".`,
+            emoji: "🔔",
+        };
+
+        // 🔔 Notificar al cliente
         const user = await User.findById(pedido.userId);
         if (user?.pushSubscriptions?.length) {
             await sendPushToSubscriptions(user.pushSubscriptions, {
-                title: "🔔 Estado actualizado",
-                body: `Tu pedido ahora está "${estado}".`,
+                title: msg.title,
+                body: msg.body,
                 url: "/cliente/mis-pedidos",
+                image: "/icon.png", // ✅ logo del bar (no el blanco por defecto)
             });
         }
 

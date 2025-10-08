@@ -6,8 +6,9 @@ export type PushSubscriptionDTO = { endpoint: string; keys?: PushKeys };
 
 export type PushPayload = {
     title: string;
-    body?: string;
+    body: string;
     url?: string;
+    image?: string; // ✅ permite incluir una imagen o logo
 };
 
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY!;
