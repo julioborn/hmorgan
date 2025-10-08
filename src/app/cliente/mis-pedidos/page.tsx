@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Clock, Flame, CheckCircle, Truck } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import Loader from "@/components/Loader";
 
 export default function MisPedidosPage() {
     const [pedidos, setPedidos] = useState<any[]>([]);
@@ -26,12 +27,7 @@ export default function MisPedidosPage() {
         }
     }
 
-    if (loading)
-        return (
-            <p className="p-6 text-center text-gray-400 animate-pulse">
-                Cargando tus pedidos...
-            </p>
-        );
+    if (loading) return <Loader />;
 
     const estados = [
         { key: "pendiente", label: "Pendiente", icon: Clock, color: "yellow" },

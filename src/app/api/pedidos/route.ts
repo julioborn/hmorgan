@@ -173,3 +173,51 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json({ error: err.message }, { status: 500 });
     }
 }
+
+// ------------------------------------------
+// 🔴 DELETE — elimina pedido (admin)
+// ------------------------------------------
+export async function DELETE(req: NextRequest) {
+    try {
+        const token = req.cookies.get("session")?.value;
+        if (!token)
+            return NextResponse.json({ message: "No autorizado" }, { status: 401 });
+
+        const payload = jwt.verify(token, NEXTAUTH_SECRET) as any;
+        if (payload.role !== "admin")
+            return NextResponse.json(
+                { message: "Solo el admin puede eliminar pedidos" },
+                { status: 403 }
+            );
+
+        await connectMongoDB();
+
+        // 📦 obtener el ID desde la query (?id=...)
+        const id = req.nextUrl.searchParams.get("id");
+        if (!id)
+            return NextResponse.json({ message: "Falta el ID del pedido" }, { status: 400 });
+
+        const pedido = await Pedido.findByIdAndDelete(id);
+        if (!pedido)
+            return NextResponse.json({ message: "Pedido no encontrado" }, { status: 404 });
+
+        // 🔔 Notificar al cliente que su pedido fue rechazado
+        const user = await User.findById(pedido.userId);
+        if (user?.pushSubscriptions?.length) {
+            await sendPushToSubscriptions(user.pushSubscriptions, {
+                title: "Pedido rechazado ❌",
+                body: "Tu pedido fue rechazado. Si creés que es un error, consultá en el bar.",
+                url: "/cliente/mis-pedidos",
+                icon: "/icon-192.png",
+                badge: "/icon-badge-96x96.png",
+                image: "/morganwhite.png",
+            });
+        }
+
+        return NextResponse.json({ ok: true, message: "Pedido eliminado correctamente" });
+    } catch (error) {
+        console.error("Error en DELETE /api/pedidos:", error);
+        return NextResponse.json({ message: "Error interno" }, { status: 500 });
+    }
+}
+

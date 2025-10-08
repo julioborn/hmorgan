@@ -65,15 +65,23 @@ export default function PedidosClientePage() {
     const [tipoEntrega, setTipoEntrega] = useState("retira");
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [showScroll, setShowScroll] = useState(false); // 🆕 estado scroll
+    const [cargandoConfig, setCargandoConfig] = useState(true);
 
     useEffect(() => {
         (async () => {
-            const cfg = await fetch("/api/admin/config-pedidos").then((r) => r.json());
-            setActivo(cfg.activo);
-            if (cfg.activo) {
-                const menuRes = await fetch("/api/menu?activo=true");
-                const data = await menuRes.json();
-                setMenu(data);
+            try {
+                const cfg = await fetch("/api/admin/config-pedidos").then((r) => r.json());
+                setActivo(cfg.activo);
+
+                if (cfg.activo) {
+                    const menuRes = await fetch("/api/menu?activo=true");
+                    const data = await menuRes.json();
+                    setMenu(data);
+                }
+            } catch (error) {
+                console.error("Error cargando configuración de pedidos:", error);
+            } finally {
+                setCargandoConfig(false); // ✅ solo acá
             }
         })();
 
@@ -129,19 +137,27 @@ export default function PedidosClientePage() {
         });
     };
 
-    if (!activo)
+    // ⏳ Mientras carga la configuración
+    if (cargandoConfig) {
         return (
-            <p className="text-center text-rose-500 mt-10 text-lg">
-                🚫 Los pedidos no están disponibles en este momento.
-            </p>
-        );
-
-    if (!menu.length)
-        return (
-            <div className="p-12 flex justify-center">
+            <div className="flex justify-center items-center py-12">
                 <Loader size={40} />
             </div>
         );
+    }
+
+    // 🚫 Si los pedidos están desactivados
+    if (!activo) {
+        return (
+            <div className="flex flex-col items-center justify-center py-20 text-center text-gray-300">
+                <UtensilsCrossed size={50} className="mb-4 text-rose-500" />
+                <h2 className="text-xl font-semibold mb-2">Pedidos no disponibles</h2>
+                <p className="text-gray-400">
+                    En este momento no se están tomando pedidos. 🍽️
+                </p>
+            </div>
+        );
+    }
 
     const categorias = Object.keys(categoryIcons).filter((cat) =>
         menu.some((i) => i.categoria === cat)

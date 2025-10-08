@@ -5,18 +5,17 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Clock, Flame, CheckCircle, Truck } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import Loader from "@/components/Loader";
 
 export default function AdminPedidosPage() {
     const [pedidos, setPedidos] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [vista, setVista] = useState<"pendientes" | "finalizados">("pendientes");
+    const [vista, setVista] = useState<"pendientes" | "enProceso" | "finalizados">("pendientes");
 
     useEffect(() => {
-        let interval: any;
         const loadPedidos = async () => await fetchPedidos();
-
         loadPedidos();
-        interval = setInterval(loadPedidos, 4000);
+        const interval = setInterval(loadPedidos, 4000);
         return () => clearInterval(interval);
     }, []);
 
@@ -49,7 +48,6 @@ export default function AdminPedidosPage() {
 
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
-                console.error("Error al actualizar:", res.status, err);
                 Swal.fire("❌", err.message || "Error al actualizar", "error");
                 return;
             }
@@ -57,23 +55,48 @@ export default function AdminPedidosPage() {
             Swal.fire({
                 title: "Actualizado",
                 icon: "success",
-                timer: 1200,
+                timer: 1000,
                 showConfirmButton: false,
             });
 
             fetchPedidos();
         } catch (error) {
-            console.error("❌ Error en actualizarEstado:", error);
             Swal.fire("❌", "Error de conexión", "error");
         }
     }
 
-    if (loading)
-        return (
-            <p className="p-6 text-center text-gray-300 animate-pulse">
-                Cargando pedidos...
-            </p>
-        );
+    async function eliminarPedido(id: string) {
+        try {
+            const confirm = await Swal.fire({
+                title: "¿Rechazar pedido?",
+                text: "Esta acción eliminará el pedido.",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonText: "Sí, eliminar",
+                cancelButtonText: "Cancelar",
+                confirmButtonColor: "#ef4444",
+            });
+
+            if (!confirm.isConfirmed) return;
+
+            const res = await fetch(`/api/pedidos?id=${id}`, {
+                method: "DELETE",
+                credentials: "include",
+            });
+
+            if (!res.ok) {
+                Swal.fire("❌", "Error al eliminar el pedido", "error");
+                return;
+            }
+
+            Swal.fire("Eliminado", "El pedido fue rechazado.", "success");
+            fetchPedidos();
+        } catch (error) {
+            Swal.fire("❌", "Error de conexión", "error");
+        }
+    }
+
+    if (loading) return <Loader />;
 
     const estados = [
         { key: "pendiente", label: "Pendiente", icon: Clock, color: "yellow" },
@@ -82,7 +105,6 @@ export default function AdminPedidosPage() {
         { key: "entregado", label: "Entregado", icon: Truck, color: "emerald" },
     ];
 
-    // Mapas de colores seguros para Tailwind
     const colorClasses: Record<string, string> = {
         yellow: "border-yellow-400 bg-yellow-500/20 text-yellow-300",
         orange: "border-orange-400 bg-orange-500/20 text-orange-300",
@@ -108,9 +130,20 @@ export default function AdminPedidosPage() {
         estados.findIndex((e) => e.key === estado);
 
     const pendientes = pedidos.filter((p) => p.estado === "pendiente");
-    const finalizados = pedidos.filter((p) => p.estado !== "pendiente");
+    const enProceso = pedidos.filter(
+        (p) => p.estado === "preparando" || p.estado === "listo"
+    );
+    const finalizados = pedidos.filter((p) => p.estado === "entregado");
 
-    const lista = vista === "pendientes" ? pendientes : finalizados;
+    const notificacionPendientes = pendientes.length;
+    const notificacionFinalizados = pedidos.filter((p) => p.estado === "listo").length;
+
+    const lista =
+        vista === "pendientes"
+            ? pendientes
+            : vista === "enProceso"
+                ? enProceso
+                : finalizados;
 
     return (
         <div className="p-6 min-h-screen text-white">
@@ -121,34 +154,50 @@ export default function AdminPedidosPage() {
                 <button
                     onClick={() => setVista("pendientes")}
                     className={`relative px-5 py-2 rounded-full text-sm font-medium transition-all ${vista === "pendientes"
-                            ? "bg-amber-500/20 text-amber-300 border border-amber-400/50"
-                            : "bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10"
+                        ? "bg-amber-500/20 text-amber-300 border border-amber-400/50"
+                        : "bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10"
                         }`}
                 >
                     Pendientes
-                    {pendientes.length > 0 && (
+                    {notificacionPendientes > 0 && (
                         <span className="absolute -top-2 -right-2 bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                            {pendientes.length}
+                            {notificacionPendientes}
                         </span>
                     )}
                 </button>
 
                 <button
+                    onClick={() => setVista("enProceso")}
+                    className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${vista === "enProceso"
+                        ? "bg-orange-500/20 text-orange-300 border border-orange-400/50"
+                        : "bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10"
+                        }`}
+                >
+                    En proceso
+                </button>
+
+                <button
                     onClick={() => setVista("finalizados")}
-                    className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${vista === "finalizados"
-                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/50"
-                            : "bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10"
+                    className={`relative px-5 py-2 rounded-full text-sm font-medium transition-all ${vista === "finalizados"
+                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/50"
+                        : "bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10"
                         }`}
                 >
                     Finalizados
+                    {notificacionFinalizados > 0 && (
+                        <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                            {notificacionFinalizados}
+                        </span>
+                    )}
                 </button>
             </div>
 
+            {/* 📋 Listado */}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <AnimatePresence>
                     {lista.length === 0 ? (
                         <p className="col-span-full text-center text-gray-500 mt-12">
-                            No hay pedidos {vista === "pendientes" ? "pendientes" : "finalizados"}.
+                            No hay pedidos en esta vista.
                         </p>
                     ) : (
                         lista.map((p) => {
@@ -176,9 +225,7 @@ export default function AdminPedidosPage() {
                                             <p className="text-sm text-gray-400">
                                                 Entrega: {p.tipoEntrega}
                                             </p>
-                                            <p className="text-xs text-gray-500">
-                                                {fechaHora && `${fechaHora}`}
-                                            </p>
+                                            <p className="text-xs text-gray-500">{fechaHora}</p>
                                         </div>
                                         <span
                                             className={`px-3 py-1 rounded-full text-xs font-medium capitalize border ${colorClasses[color] ||
@@ -206,53 +253,81 @@ export default function AdminPedidosPage() {
                                         ))}
                                     </ul>
 
-                                    {/* Línea de tiempo */}
-                                    <div className="relative w-full flex justify-between items-center mt-4">
-                                        <div className="absolute top-[18px] left-0 w-full h-[3px] bg-gray-700 rounded-full" />
-                                        <motion.div
-                                            className={`absolute top-[18px] left-0 h-[3px] ${barColors[color] || "bg-gray-500"
-                                                } rounded-full`}
-                                            initial={{ width: 0 }}
-                                            animate={{
-                                                width: `${(estadoIndex / (estados.length - 1)) * 100
-                                                    }%`,
-                                            }}
-                                            transition={{ duration: 0.4 }}
-                                        />
-                                        {estados.map((estado, index) => {
-                                            const Icon = estado.icon;
-                                            const isActive = index <= estadoIndex;
-                                            const activeColor = colorClasses[estado.color];
+                                    {p.estado === "pendiente" ? (
+                                        // ✅ Botones aceptar/rechazar
+                                        <div className="flex justify-between mt-4">
+                                            <button
+                                                onClick={() =>
+                                                    actualizarEstado(p._id, "preparando")
+                                                }
+                                                className="flex-1 mr-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-lg transition"
+                                            >
+                                                Aceptar
+                                            </button>
+                                            <button
+                                                onClick={() => eliminarPedido(p._id)}
+                                                className="flex-1 ml-2 bg-red-600 hover:bg-red-700 text-white font-medium py-2 rounded-lg transition"
+                                            >
+                                                Rechazar
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        // 🔄 Línea de tiempo
+                                        <div className="relative w-full flex justify-between items-center mt-4">
+                                            <div className="absolute top-[18px] left-0 w-full h-[3px] bg-gray-700 rounded-full" />
+                                            <motion.div
+                                                className={`absolute top-[18px] left-0 h-[3px] ${barColors[color] || "bg-gray-500"
+                                                    } rounded-full`}
+                                                initial={{ width: 0 }}
+                                                animate={{
+                                                    width: `${(estadoIndex /
+                                                        (estados.length - 1)) *
+                                                        100
+                                                        }%`,
+                                                }}
+                                                transition={{ duration: 0.4 }}
+                                            />
+                                            {estados.map((estado, index) => {
+                                                const Icon = estado.icon;
+                                                const isActive = index <= estadoIndex;
+                                                const activeColor =
+                                                    colorClasses[estado.color];
 
-                                            return (
-                                                <div
-                                                    key={estado.key}
-                                                    className="flex flex-col items-center text-xs w-full relative z-10"
-                                                >
-                                                    <motion.button
-                                                        onClick={() =>
-                                                            actualizarEstado(p._id, estado.key)
-                                                        }
-                                                        whileTap={{ scale: 0.9 }}
-                                                        className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all ${isActive
+                                                return (
+                                                    <div
+                                                        key={estado.key}
+                                                        className="flex flex-col items-center text-xs w-full relative z-10"
+                                                    >
+                                                        <motion.button
+                                                            onClick={() =>
+                                                                actualizarEstado(
+                                                                    p._id,
+                                                                    estado.key
+                                                                )
+                                                            }
+                                                            whileTap={{ scale: 0.9 }}
+                                                            className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all ${isActive
                                                                 ? activeColor
                                                                 : "border-gray-600 bg-gray-800 text-gray-500"
-                                                            }`}
-                                                    >
-                                                        <Icon className="w-4 h-4" />
-                                                    </motion.button>
-                                                    <span
-                                                        className={`mt-2 ${isActive
-                                                                ? textColors[estado.color]
+                                                                }`}
+                                                        >
+                                                            <Icon className="w-4 h-4" />
+                                                        </motion.button>
+                                                        <span
+                                                            className={`mt-2 ${isActive
+                                                                ? textColors[
+                                                                estado.color
+                                                                ]
                                                                 : "text-gray-500"
-                                                            }`}
-                                                    >
-                                                        {estado.label}
-                                                    </span>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
+                                                                }`}
+                                                        >
+                                                            {estado.label}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
                                 </motion.div>
                             );
                         })
