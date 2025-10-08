@@ -1,16 +1,14 @@
-import { registerSW, subscribeUser } from "@/lib/push-client";
+import { registerSW, subscribeUser, forceResubscribe } from "@/lib/push-client";
 import Swal from "sweetalert2";
 
 /**
- * Registra el Service Worker y la suscripción Push justo después del login/registro.
- * Incluye control por usuario, soporte iOS, y evita duplicar suscripciones.
+ * Registra el SW y la suscripción Push justo después del login.
+ * Limpia estados antiguos y evita quedarse “bugueado” tras reinstalar la app.
  */
 export async function ensurePushAfterLogin(userId?: string) {
     if (typeof window === "undefined") return;
+    console.log("🟢 ensurePushAfterLogin ejecutada");
 
-    console.log("🟢 ensurePushAfterLogin() ejecutada");
-
-    // ✅ Verificar soporte básico
     const hasSW = "serviceWorker" in navigator;
     const hasPush = "PushManager" in window;
     const hasNotif = typeof Notification !== "undefined";
@@ -19,7 +17,7 @@ export async function ensurePushAfterLogin(userId?: string) {
         return;
     }
 
-    // ✅ iOS: requiere PWA instalada
+    // iOS necesita PWA instalada
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
     const isStandalone =
         window.matchMedia?.("(display-mode: standalone)")?.matches ||
@@ -29,28 +27,27 @@ export async function ensurePushAfterLogin(userId?: string) {
         return;
     }
 
-    // ✅ Control local por usuario
     const flagKey = userId ? `hm_push_done_${userId}` : "hm_push_done_generic";
     const flagValue = localStorage.getItem(flagKey);
     const permission = Notification.permission;
-    console.log("🔑 Flag:", flagKey, "=", flagValue, "permiso actual:", permission);
+    console.log("🔑 Flag:", flagKey, "=", flagValue, "permiso:", permission);
 
-    // Solo evitamos el modal si ya se concedió permiso y tenemos flag
+    // Evitar duplicados solo si realmente está todo activo
     if (flagValue && permission === "granted") {
-        console.log("ℹ️ Notificaciones ya activadas para este usuario.");
+        console.log("ℹ️ Push ya activo; no se muestra alerta.");
         return;
     }
 
-    // ✅ Mostrar alerta de invitación
+    // Preguntar al usuario
     const result = await Swal.fire({
-        title: "🔔 ¡Bienvenido!",
-        text: "¿Querés activar las notificaciones para tus pedidos y novedades?",
+        title: "🔔 Activar notificaciones",
+        text: "¿Querés recibir avisos de pedidos y novedades?",
         icon: "info",
         showCancelButton: true,
         confirmButtonText: "Activar",
         cancelButtonText: "Ahora no",
-        confirmButtonColor: "#10b981", // verde Tailwind
-        cancelButtonColor: "#6b7280",  // gris Tailwind
+        confirmButtonColor: "#10b981",
+        cancelButtonColor: "#6b7280",
         customClass: {
             popup: "rounded-2xl bg-slate-900 text-white shadow-lg",
             title: "text-xl font-bold",
@@ -59,61 +56,57 @@ export async function ensurePushAfterLogin(userId?: string) {
         },
     });
 
-    if (!result.isConfirmed) {
-        console.log("❌ Usuario canceló la activación push.");
-        return;
-    }
-
+    if (!result.isConfirmed) return;
     Swal.close();
 
-    // ✅ Pedir permiso de notificación
+    // Pedir permiso
     let perm: NotificationPermission = Notification.permission;
     if (perm === "default") {
         try {
             perm = await Notification.requestPermission();
-        } catch (err) {
-            console.warn("⚠️ Error al solicitar permiso de notificaciones:", err);
+        } catch {
+            Swal.fire("⚠️", "No se pudo solicitar permiso de notificaciones.", "warning");
             return;
         }
     }
-
     if (perm !== "granted") {
-        console.warn("⚠️ El usuario no concedió permisos para notificaciones.");
         Swal.fire("⚠️", "No activaste las notificaciones.", "warning");
         return;
     }
 
-    // ✅ Registrar el Service Worker
+    // Registrar Service Worker
     let reg: ServiceWorkerRegistration | null = null;
     try {
         reg = await registerSW();
-        if (!reg) throw new Error("Registro de SW fallido");
+        if (!reg) throw new Error("Registro SW fallido");
     } catch (err) {
         console.error("❌ Error registrando Service Worker:", err);
+        localStorage.removeItem(flagKey); // limpia flag por si quedó mal
         Swal.fire("❌", "No se pudo registrar el Service Worker.", "error");
         return;
     }
 
-    // ✅ Obtener o crear suscripción push
-    let sub = await reg.pushManager.getSubscription();
-    if (!sub) {
-        try {
-            sub = await subscribeUser(reg);
-            console.log("✅ Nueva suscripción push:", sub.endpoint);
-            Swal.fire("✅ Listo", "Las notificaciones fueron activadas correctamente.", "success");
-        } catch (err) {
-            console.error("❌ Error al suscribir push:", err);
-            Swal.fire("❌", "Falló la activación de notificaciones.", "error");
-            return;
-        }
-    } else {
-        console.log("ℹ️ Ya existía suscripción push:", sub.endpoint);
-    }
-
-    // 🧠 Guardar flag local para no repetir el modal
+    // Crear o renovar suscripción
     try {
+        let sub = await reg.pushManager.getSubscription();
+
+        if (!sub) {
+            sub = await subscribeUser(reg);
+            Swal.fire("✅ Listo", "Las notificaciones fueron activadas correctamente.", "success");
+        } else {
+            // Probamos que el endpoint sirva. Si no, forzamos resuscripción
+            console.log("ℹ️ Suscripción existente:", sub.endpoint);
+            const test = await fetch("/api/push/public-key").catch(() => null);
+            if (!test?.ok) throw new Error("No se pudo validar suscripción anterior");
+            // Opcional: resuscribir siempre tras reinstalar
+            sub = await forceResubscribe(reg);
+            Swal.fire("✅ Renovado", "Las notificaciones se reactivaron correctamente.", "success");
+        }
+
         localStorage.setItem(flagKey, "1");
     } catch (err) {
-        console.warn("⚠️ No se pudo guardar el flag local:", err);
+        console.error("❌ Error al suscribir Push:", err);
+        localStorage.removeItem(flagKey); // limpiar flag corrupto
+        Swal.fire("❌", "Falló la activación de notificaciones.", "error");
     }
 }

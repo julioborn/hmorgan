@@ -1,5 +1,6 @@
 // src/context/auth-context.tsx
 "use client";
+import { silentPushRecovery } from "@/lib/push-auto-recover";
 import { createContext, useContext, useEffect, useState } from "react";
 
 type User =
@@ -67,7 +68,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             const res = await fetch("/api/auth/me", { cache: "no-store" });
             const data = await res.json();
-            setUser(data.user || null);
+            const usr = data.user || null;
+            setUser(usr);
+
+            // 🧩 Si hay usuario, intentamos restaurar push silenciosamente
+            if (usr?.id || usr?._id) {
+                silentPushRecovery(usr.id || usr._id);
+
+                // OPCIONAL: si querés que el modal se muestre sólo la primera vez:
+                // ensurePushAfterLogin(usr.id || usr._id);
+            }
         } finally {
             setLoading(false);
         }
@@ -75,48 +85,67 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // 🔓 Cerrar sesión
     const logout = async () => {
-        // Guardá el id antes de setUser(null)
-        const uid = (user as any)?.id || (user as any)?._id;
-
-        // 🔕 Desuscribir push en DB + navegador
         try {
-            await unsubscribePushSafe();
-        } catch (err) {
-            console.warn("Error al desuscribir push:", err);
-        }
+            const uid = (user as any)?.id || (user as any)?._id || "generic";
 
-        // 🚪 Cerrar sesión en el backend
-        await fetch("/api/auth/logout", { method: "POST" }).catch(() => { });
-
-        // 🧹 Limpiar memoria local de “push ya activado”
-        try {
-            if (uid) localStorage.removeItem(`hm_push_done_${uid}`);
-        } catch { }
-
-        // 🧹 Eliminar service workers y caches para evitar sesiones “fantasma”
-        if ("serviceWorker" in navigator) {
+            // 🔕 Desuscribir notificaciones push
             try {
-                const regs = await navigator.serviceWorker.getRegistrations();
-                for (const r of regs) {
-                    await r.unregister();
-                    console.log("🧹 Service Worker eliminado:", r.scope);
+                // Si el browser soporta SW y Push, intentamos borrar suscripción
+                if ("serviceWorker" in navigator && "PushManager" in window) {
+                    const reg = await navigator.serviceWorker.ready;
+                    const sub = await reg.pushManager.getSubscription();
+
+                    if (sub) {
+                        // 1️⃣ Eliminar del backend (usuario actual y globalmente)
+                        await fetch("/api/push/unsubscribe", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            credentials: "same-origin",
+                            body: JSON.stringify({ endpoint: sub.endpoint }),
+                        }).catch(() => { });
+
+                        await fetch("/api/push/unsubscribe-any", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            credentials: "same-origin",
+                            body: JSON.stringify({ endpoint: sub.endpoint }),
+                        }).catch(() => { });
+
+                        // 2️⃣ Cancelar suscripción en el navegador
+                        await sub.unsubscribe().catch(() => { });
+                    }
+
+                    // 3️⃣ Borrar el SW viejo si existiera (para evitar bugs en reinstalación)
+                    const regs = await navigator.serviceWorker.getRegistrations();
+                    for (const r of regs) {
+                        try {
+                            await r.unregister();
+                            console.log("🧹 Service Worker eliminado:", r.scope);
+                        } catch { }
+                    }
                 }
-
-                const keys = await caches.keys();
-                await Promise.all(keys.map((k) => caches.delete(k)));
-                console.log("🧹 Cachés limpiados");
             } catch (err) {
-                console.warn("Error limpiando SW/caches:", err);
+                console.warn("⚠️ Error al desuscribir push:", err);
             }
+
+            // 4️⃣ Cerrar sesión en backend
+            await fetch("/api/auth/logout", { method: "POST" });
+
+            // 5️⃣ Limpiar flags locales
+            try {
+                localStorage.removeItem(`hm_push_done_${uid}`);
+                localStorage.removeItem("hm_push_done_generic");
+                console.log("🧽 Flags locales eliminados");
+            } catch { }
+
+            // 6️⃣ Resetear usuario en contexto
+            setUser(null);
+
+            // 7️⃣ Redirigir
+            window.location.href = "/login";
+        } catch (err) {
+            console.error("❌ Error durante logout:", err);
         }
-
-        // 🔒 Limpiar storage
-        localStorage.clear();
-        sessionStorage.clear();
-
-        // ❌ Limpiar estado y redirigir
-        setUser(null);
-        window.location.href = "/login";
     };
 
     // ⏳ Cargar usuario al inicio
