@@ -75,8 +75,8 @@ export async function POST(req: NextRequest) {
         const admin = await User.findOne({ role: "admin" });
         if (admin?.pushSubscriptions?.length) {
             await sendPushToSubscriptions(admin.pushSubscriptions, {
-                title: "🍻 ¡Nuevo pedido recibido!",
-                body: `🧾 Pedido de ${payload?.nombre ?? "un cliente"} — revisalo en la barra 👇`,
+                title: "🍔 ¡Nuevo pedido recibido!",
+                body: `Nuevo pedido de ${payload?.nombre ?? "un cliente"}. Revisalo en la barra 👇`,
                 url: "/admin/pedidos",
                 image: "/icon.png", // ✅ tu logo real (en public/icon.png)
             });
@@ -114,35 +114,43 @@ export async function PUT(req: NextRequest) {
         }
 
         // 🧠 Mensajes personalizados según el estado
-        const mensajes: Record<string, { title: string; body: string; emoji: string }> = {
-            pendiente: {
-                title: "🕓 Pedido recibido",
-                body: "Tu pedido fue recibido y está en cola. ¡Gracias por tu paciencia!",
-                emoji: "🕓",
+        const mensajes: Record<
+            string,
+            (tipoEntrega?: string) => { title: string; body: string }
+        > = {
+            pendiente: () => ({
+                title: "Pedido recibido",
+                body: "Tu pedido fue recibido y está en espera de preparación ⏱️",
+            }),
+            preparando: () => ({
+                title: "Estamos cocinando",
+                body: "Tu pedido está siendo preparado 👨🏻‍🍳",
+            }),
+            listo: (tipoEntrega) => {
+                if (tipoEntrega?.toLowerCase().includes("retiro")) {
+                    return {
+                        title: "¡Tu pedido está listo para retirar!",
+                        body: "Ya podés pasar por el bar a buscarlo ✅",
+                    };
+                } else {
+                    return {
+                        title: "¡Tu pedido está en camino!",
+                        body: "Nuestro repartidor ya está por salir ✅",
+                    };
+                }
             },
-            preparando: {
-                title: "🔥 Estamos cocinando",
-                body: "Tu pedido está siendo preparado con todo el sabor 🔥",
-                emoji: "🍳",
-            },
-            listo: {
-                title: "✅ ¡Tu pedido está listo!",
-                body:
-                    "Podés pasar a retirarlo o esperá que te lo llevemos a la mesa 🚀",
-                emoji: "🍽️",
-            },
-            entregado: {
-                title: "🎉 Pedido entregado",
-                body: "¡Esperamos que lo disfrutes! 🍻 Gracias por elegirnos 💚",
-                emoji: "🎉",
-            },
+            entregado: () => ({
+                title: "Pedido entregado",
+                body: "¡Esperamos que lo disfrutes! Gracias por elegirnos 🙌",
+            }),
         };
 
-        const msg = mensajes[estado] || {
+        const tipoEntrega = pedido.tipoEntrega || "";
+        const mensajeFn = mensajes[estado] || (() => ({
             title: "🔔 Pedido actualizado",
             body: `Tu pedido ahora está "${estado}".`,
-            emoji: "🔔",
-        };
+        }));
+        const msg = mensajeFn(tipoEntrega);
 
         // 🔔 Notificar al cliente
         const user = await User.findById(pedido.userId);
@@ -151,7 +159,7 @@ export async function PUT(req: NextRequest) {
                 title: msg.title,
                 body: msg.body,
                 url: "/cliente/mis-pedidos",
-                image: "/icon.png", // ✅ logo del bar (no el blanco por defecto)
+                image: "/icon.png", // ✅ logo del bar
             });
         }
 
