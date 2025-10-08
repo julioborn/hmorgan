@@ -21,6 +21,7 @@ export default function AdminPedidosPage() {
 
     async function actualizarEstado(id: string, estado: string) {
         const res = await fetch("/api/admin/pedidos", {
+            cache: "no-store", // 🚫 evita cache en PWA
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ id, estado }),
@@ -137,8 +138,8 @@ export default function AdminPedidosPage() {
                                                     }
                                                     whileTap={{ scale: 0.9 }}
                                                     className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all ${isActive
-                                                            ? `border-${estado.color}-400 bg-${estado.color}-500/20 text-${estado.color}-300`
-                                                            : "border-gray-600 bg-gray-800 text-gray-500"
+                                                        ? `border-${estado.color}-400 bg-${estado.color}-500/20 text-${estado.color}-300`
+                                                        : "border-gray-600 bg-gray-800 text-gray-500"
                                                         }`}
                                                 >
                                                     <Icon className="w-4 h-4" />
@@ -146,8 +147,8 @@ export default function AdminPedidosPage() {
 
                                                 <span
                                                     className={`mt-2 ${isActive
-                                                            ? `text-${estado.color}-300`
-                                                            : "text-gray-500"
+                                                        ? `text-${estado.color}-300`
+                                                        : "text-gray-500"
                                                         }`}
                                                 >
                                                     {estado.label}
