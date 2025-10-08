@@ -33,7 +33,7 @@ export default function EnviarNotificacionPage() {
 
     return (
         <div className="max-w-lg mx-auto p-6 space-y-4 bg-black/40 rounded-2xl border border-white/10">
-            <h1 className="text-2xl font-bold text-white mb-4">Enviar notificación</h1>
+            <h1 className="text-2xl font-bold flex justify-center text-white mb-4">Enviar notificación</h1>
             <input
                 type="text"
                 value={title}

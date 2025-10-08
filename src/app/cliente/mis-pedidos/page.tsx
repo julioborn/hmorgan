@@ -44,9 +44,9 @@ export default function MisPedidosPage() {
     const completados = pedidos.filter((p) => p.estado === "entregado");
 
     return (
-        <div className="p-6 min-h-screen bg-gradient-to-b from-gray-900 to-gray-950 text-white">
-            <h1 className="text-3xl font-bold mb-8 flex items-center gap-2">
-                Mis pedidos
+        <div className="p-6 min-h-screen text-white">
+            <h1 className="text-3xl font-bold mb-8 flex justify-center items-center gap-2">
+                Mis Pedidos
             </h1>
 
             {pedidos.length === 0 ? (

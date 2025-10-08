@@ -121,28 +121,28 @@ export async function PUT(req: NextRequest) {
             (tipoEntrega?: string) => { title: string; body: string }
         > = {
             pendiente: () => ({
-                title: "Pedido recibido",
+                title: "Pedido recibido 🟡",
                 body: "Tu pedido fue recibido y está en espera de preparación ⏱️",
             }),
             preparando: () => ({
-                title: "Estamos cocinando",
+                title: "Estamos cocinando 🟠",
                 body: "Tu pedido está siendo preparado 👨🏻‍🍳",
             }),
             listo: (tipoEntrega) => {
                 if (tipoEntrega?.toLowerCase().includes("retiro")) {
                     return {
-                        title: "¡Tu pedido está listo para retirar!",
-                        body: "Ya podés pasar por el bar a buscarlo ✅",
+                        title: "¡Tu pedido está listo para retirar! 🔵",
+                        body: "Ya podés pasar por el bar a buscarlo 🏃",
                     };
                 } else {
                     return {
-                        title: "¡Tu pedido está en camino!",
-                        body: "Nuestro repartidor ya está por salir ✅",
+                        title: "¡Tu pedido está en camino! 🔵",
+                        body: "Nuestro repartidor ya está por salir 🏃",
                     };
                 }
             },
             entregado: () => ({
-                title: "Pedido entregado",
+                title: "Pedido entregado 🟢",
                 body: "¡Esperamos que lo disfrutes! Gracias por elegirnos 🙌",
             }),
         };
