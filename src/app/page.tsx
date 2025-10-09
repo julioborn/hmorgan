@@ -97,21 +97,25 @@ function Landing() {
 function ClientHome({ nombre }: { nombre?: string }) {
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [loadingRewards, setLoadingRewards] = useState(true);
+  const [pedidosActivosCount, setPedidosActivosCount] = useState(0);
 
   useEffect(() => {
-    (async () => {
+    const fetchPedidosActivos = async () => {
       try {
-        const res = await fetch("/api/rewards", { cache: "no-store" });
-        if (!res.ok) throw new Error("Error al cargar recompensas");
+        const res = await fetch("/api/pedidos", { cache: "no-store" });
+        if (!res.ok) return;
         const data = await res.json();
-        setRewards(data || []);
+        const activos = data?.filter((p: any) =>
+          ["pendiente", "preparando", "listo"].includes(p.estado)
+        );
+        setPedidosActivosCount(activos?.length || 0);
       } catch (e) {
-        console.error(e);
-        setRewards([]);
-      } finally {
-        setLoadingRewards(false);
+        console.error("Error cargando pedidos activos:", e);
       }
-    })();
+    };
+    fetchPedidosActivos();
+    const interval = setInterval(fetchPedidosActivos, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   if (loadingRewards) {
@@ -231,8 +235,8 @@ function ClientHome({ nombre }: { nombre?: string }) {
           title="Mis Pedidos"
           Icon={Bell}
           accent="from-orange-500 to-orange-700"
+          notificationCount={pedidosActivosCount}
         />
-
         <ActionCard
           href="/cliente/rewards"
           title="Canjes"
@@ -267,6 +271,27 @@ function ClientHome({ nombre }: { nombre?: string }) {
   HOME ADMIN
    ========================= */
 function AdminHome() {
+  const [pedidosActivosCount, setPedidosActivosCount] = useState(0);
+
+  useEffect(() => {
+    const fetchPedidosActivos = async () => {
+      try {
+        const res = await fetch("/api/pedidos", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        const activos = data?.filter((p: any) =>
+          ["pendiente", "preparando", "listo"].includes(p.estado)
+        );
+        setPedidosActivosCount(activos?.length || 0);
+      } catch (e) {
+        console.error("Error cargando pedidos activos:", e);
+      }
+    };
+    fetchPedidosActivos();
+    const interval = setInterval(fetchPedidosActivos, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div
       className={`${container} py-8 space-y-8`}
@@ -316,8 +341,8 @@ function AdminHome() {
           title="Pedidos"
           Icon={Utensils}
           accent="from-emerald-600 to-teal-700"
+          notificationCount={pedidosActivosCount}
         />
-
         {/* Notificaciones */}
         <ActionCard
           href="/admin/notificaciones"
@@ -339,12 +364,14 @@ function ActionCard({
   Icon,
   accent,
   disabled,
+  notificationCount,
 }: {
   href: string;
   title: string;
   Icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   accent?: string;
   disabled?: boolean;
+  notificationCount?: number;
 }) {
   const content = (
     <div
@@ -356,6 +383,13 @@ function ActionCard({
                   transition-all duration-300 text-white`}
     >
       <Icon className="h-10 w-10 lg:h-12 lg:w-12 mb-3 opacity-95" aria-hidden />
+      {(notificationCount ?? 0) > 0 && (
+        <span
+          className="absolute top-3 right-3 bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded-full ring-2 ring-white shadow-md animate-pulse"
+        >
+          {notificationCount}
+        </span>
+      )}
       <div className="text-base lg:text-lg font-extrabold text-center tracking-wide">
         {title}
       </div>

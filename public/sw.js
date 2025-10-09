@@ -1,7 +1,7 @@
 // ===============================
 // SW: cache + push notifications
 // ===============================
-const CACHE = "hmorgan-v21"; // ⬅️ subí la versión para forzar actualización
+const CACHE = "hmorgan-v22"; // ⬅️ subí la versión para forzar actualización
 
 const ASSETS = [
     "/",
@@ -17,7 +17,7 @@ self.addEventListener("install", (e) => {
     e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
     self.skipWaiting();
 });
-
+A
 // ===============================
 // ACTIVACIÓN (recarga automática)
 // ===============================
@@ -112,12 +112,29 @@ self.addEventListener("push", (event) => {
         ],
     };
 
-    // ✅ En iOS, si no hay título, usamos solo el body como título visible
-    if (!title) {
-        event.waitUntil(self.registration.showNotification(body, options));
-    } else {
-        event.waitUntil(self.registration.showNotification(title, options));
-    }
+    // ✅ Mostrar notificación sin "from HMorgan"
+    event.waitUntil(
+        (async () => {
+            // 🔇 Si querés eliminar totalmente el título visible (solo texto)
+            const notifTitle = title || "";
+            const notifOptions = {
+                ...options,
+                requireInteraction: false, // no mostrar origen
+            };
+
+            // 🔧 Truco: si querés evitar "from HMorgan", no uses 'title' como nombre visible,
+            // sino todo dentro de 'body', simulando un mensaje completo
+            const displayTitle = ""; // <- vacío elimina el "from"
+            const displayBody = notifTitle
+                ? `${notifTitle}\n${body}`
+                : body;
+
+            await self.registration.showNotification(displayTitle, {
+                ...notifOptions,
+                body: displayBody,
+            });
+        })()
+    );
 });
 
 // ===============================
