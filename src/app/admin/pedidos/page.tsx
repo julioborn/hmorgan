@@ -113,10 +113,10 @@ export default function AdminPedidosPage() {
     ];
 
     const colorClasses: Record<string, string> = {
-        yellow: "border-yellow-400 bg-yellow-500/20 text-yellow-300",
-        orange: "border-orange-400 bg-orange-500/20 text-orange-300",
-        blue: "border-blue-400 bg-blue-500/20 text-blue-300",
-        emerald: "border-emerald-400 bg-emerald-500/20 text-emerald-300",
+        yellow: "border-yellow-500 bg-yellow-400/30 text-yellow-900 font-semibold",
+        orange: "border-orange-500 bg-orange-100 text-orange-700 font-semibold",
+        blue: "border-blue-500 bg-blue-100 text-blue-700 font-semibold",
+        emerald: "border-emerald-500 bg-emerald-100 text-emerald-700 font-semibold",
     };
 
     const barColors: Record<string, string> = {
@@ -140,9 +140,10 @@ export default function AdminPedidosPage() {
     const enProceso = pedidos.filter(
         (p) => p.estado === "preparando" || p.estado === "listo"
     );
-    const finalizados = pedidos.filter((p) => p.estado === "entregado");
+    const finalizados = pedidos.filter((p) => p.estado === "listo" || p.estado === "entregado");
 
     const notificacionPendientes = pendientes.length;
+    const notificacionEnProceso = pedidos.filter((p) => p.estado === "preparando").length;
     const notificacionFinalizados = pedidos.filter((p) => p.estado === "listo").length;
 
     const lista =
@@ -179,12 +180,17 @@ export default function AdminPedidosPage() {
                     type="button"
                     onClick={() => setVista("enProceso")}
                     aria-pressed={vista === "enProceso"}
-                    className={`px-5 py-2 rounded-full text-sm font-semibold border transition-colors ${vista === "enProceso"
+                    className={`relative px-5 py-2 rounded-full text-sm font-semibold border transition-colors ${vista === "enProceso"
                         ? "bg-red-600 text-white border-red-600 shadow-sm"
                         : "bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
                         }`}
                 >
                     Preparando
+                    {notificacionEnProceso > 0 && (
+                        <span className="absolute -top-2 -right-2 min-w-[1.5rem] px-2 py-0.5 rounded-full bg-red-600 text-white text-xs font-bold text-center">
+                            {notificacionEnProceso}
+                        </span>
+                    )}
                 </button>
 
                 <button
@@ -235,9 +241,7 @@ export default function AdminPedidosPage() {
                                             <h2 className="text-lg font-bold text-gray-900">
                                                 {p.userId?.nombre} {p.userId?.apellido}
                                             </h2>
-                                            <p className="text-sm text-gray-600">
-                                                Entrega: {p.tipoEntrega}
-                                            </p>
+                                            <p className="text-sm text-gray-600">Entrega: {p.tipoEntrega}</p>
                                             <p className="text-xs text-gray-500">{fechaHora}</p>
                                         </div>
                                         <span
@@ -256,100 +260,118 @@ export default function AdminPedidosPage() {
                                                 className="flex items-center justify-between bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100"
                                             >
                                                 <span>{it.menuItemId?.nombre}</span>
-                                                <span className="text-red-600 font-semibold">
-                                                    ×{it.cantidad}
-                                                </span>
+                                                <span className="text-red-600 font-semibold">×{it.cantidad}</span>
                                             </li>
                                         ))}
                                     </ul>
 
-                                    {/* 🔄 Línea de tiempo */}
-                                    <div className="relative w-full flex justify-between items-center mt-5">
-                                        {/* Línea base */}
-                                        <div className="absolute top-[18px] left-0 w-full h-[3px] bg-gray-200 rounded-full" />
+                                    {/* ✅ Botones o Línea de tiempo */}
+                                    {p.estado === "pendiente" ? (
+                                        <div className="flex justify-between mt-4">
+                                            <button
+                                                onClick={() => actualizarEstado(p._id, "preparando")}
+                                                className="flex-1 mr-2 bg-red-600 hover:bg-red-700 text-white font-medium py-2 rounded-lg transition-all shadow-sm hover:shadow-red-400/40"
+                                            >
+                                                Aceptar
+                                            </button>
+                                            <button
+                                                onClick={() => eliminarPedido(p._id)}
+                                                className="flex-1 ml-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 rounded-lg transition-all"
+                                            >
+                                                Rechazar
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        /* 🔄 Línea de tiempo */
+                                        <div className="relative w-full flex justify-between items-center mt-5">
+                                            {/* Línea base */}
+                                            <div className="absolute top-[18px] left-0 w-full h-[3px] bg-gray-200 rounded-full" />
 
-                                        {/* Progreso dinámico */}
-                                        <motion.div
-                                            className={`absolute top-[18px] left-0 h-[3px] ${barColors[color] || "bg-gray-400"} rounded-full`}
-                                            initial={{ width: 0 }}
-                                            animate={{
-                                                width: `${(estadoIndex / (estados.length - 1)) * 100}%`,
-                                            }}
-                                            transition={{ duration: 0.4 }}
-                                        />
+                                            {/* Progreso dinámico */}
+                                            <motion.div
+                                                className={`absolute top-[18px] left-0 h-[3px] ${barColors[color] || "bg-gray-400"
+                                                    } rounded-full`}
+                                                initial={{ width: 0 }}
+                                                animate={{
+                                                    width: `${(estadoIndex / (estados.length - 1)) * 100}%`,
+                                                }}
+                                                transition={{ duration: 0.4 }}
+                                            />
 
-                                        {estados.map((estado, index) => {
-                                            const Icon = estado.icon;
-                                            const isActive = index <= estadoIndex;
+                                            {estados.map((estado, index) => {
+                                                const Icon = estado.icon;
+                                                const isActive = index <= estadoIndex;
 
-                                            // Ajustes de visibilidad según color
-                                            let activeBorder = "";
-                                            let activeBg = "";
-                                            let activeText = "";
+                                                let activeBorder = "";
+                                                let activeBg = "";
+                                                let activeText = "";
 
-                                            switch (estado.color) {
-                                                case "red":
-                                                    activeBorder = "border-red-500";
-                                                    activeBg = "bg-red-100";
-                                                    activeText = "text-red-600";
-                                                    break;
-                                                case "orange":
-                                                    activeBorder = "border-orange-500";
-                                                    activeBg = "bg-orange-100";
-                                                    activeText = "text-orange-600";
-                                                    break;
-                                                case "blue":
-                                                    activeBorder = "border-blue-500";
-                                                    activeBg = "bg-blue-100";
-                                                    activeText = "text-blue-600";
-                                                    break;
-                                                case "emerald":
-                                                    activeBorder = "border-emerald-500";
-                                                    activeBg = "bg-emerald-100";
-                                                    activeText = "text-emerald-600";
-                                                    break;
-                                                case "yellow": // 🔆 más contraste para amarillo
-                                                    activeBorder = "border-yellow-400";
-                                                    activeBg = "bg-yellow-300";
-                                                    activeText = "text-yellow-900";
-                                                    break;
-                                                default:
-                                                    activeBorder = "border-gray-400";
-                                                    activeBg = "bg-gray-100";
-                                                    activeText = "text-gray-600";
-                                            }
+                                                switch (estado.color) {
+                                                    case "red":
+                                                        activeBorder = "border-red-500";
+                                                        activeBg = "bg-red-100";
+                                                        activeText = "text-red-600";
+                                                        break;
+                                                    case "orange":
+                                                        activeBorder = "border-orange-500";
+                                                        activeBg = "bg-orange-100";
+                                                        activeText = "text-orange-600";
+                                                        break;
+                                                    case "blue":
+                                                        activeBorder = "border-blue-500";
+                                                        activeBg = "bg-blue-100";
+                                                        activeText = "text-blue-600";
+                                                        break;
+                                                    case "emerald":
+                                                        activeBorder = "border-emerald-500";
+                                                        activeBg = "bg-emerald-100";
+                                                        activeText = "text-emerald-600";
+                                                        break;
+                                                    case "yellow":
+                                                        activeBorder = "border-yellow-400";
+                                                        activeBg = "bg-yellow-300";
+                                                        activeText = "text-yellow-900";
+                                                        break;
+                                                    default:
+                                                        activeBorder = "border-gray-400";
+                                                        activeBg = "bg-gray-100";
+                                                        activeText = "text-gray-600";
+                                                }
 
-                                            return (
-                                                <div key={estado.key} className="flex flex-col items-center text-xs w-full relative z-10">
-                                                    <motion.button
-                                                        onClick={() => actualizarEstado(p._id, estado.key)}
-                                                        whileTap={{ scale: 0.9 }}
-                                                        className={`flex items-center justify-center w-9 h-9 rounded-full border-2 transition-all
-            ${isActive
+                                                return (
+                                                    <div
+                                                        key={estado.key}
+                                                        className="flex flex-col items-center text-xs w-full relative z-10"
+                                                    >
+                                                        <motion.button
+                                                            onClick={() => actualizarEstado(p._id, estado.key)}
+                                                            whileTap={{ scale: 0.9 }}
+                                                            className={`flex items-center justify-center w-9 h-9 rounded-full border-2 transition-all ${isActive
                                                                 ? `${activeBorder} ${activeBg} ${activeText}`
                                                                 : "border-gray-300 bg-white text-gray-400"
-                                                            }`}
-                                                    >
-                                                        <Icon className="w-4 h-4" />
-                                                    </motion.button>
-                                                    <span
-                                                        className={`mt-2 font-medium ${isActive ? activeText : "text-gray-400"
-                                                            }`}
-                                                    >
-                                                        {estado.label}
-                                                    </span>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-
+                                                                }`}
+                                                        >
+                                                            <Icon className="w-4 h-4" />
+                                                        </motion.button>
+                                                        <span
+                                                            className={`mt-2 font-medium ${isActive ? activeText : "text-gray-400"
+                                                                }`}
+                                                        >
+                                                            {estado.label}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
                                 </motion.div>
                             );
+
                         })
                     )}
                 </AnimatePresence>
             </div>
 
-        </div>
+        </div >
     );
 }

@@ -6,6 +6,8 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import Loader from "@/components/Loader";
 
+type EstadoColor = "yellow" | "orange" | "blue" | "emerald";
+
 export default function MisPedidosPage() {
     const [pedidos, setPedidos] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -13,16 +15,9 @@ export default function MisPedidosPage() {
 
     useEffect(() => {
         let interval: any;
-
         const loadPedidos = async () => await fetchPedidosCliente();
-
-        // 🚀 Carga inicial
         loadPedidos();
-
-        // 🔄 Actualiza cada 4 segundos (en background)
         interval = setInterval(loadPedidos, 4000);
-
-        // 🧹 Limpia el intervalo al desmontar
         return () => clearInterval(interval);
     }, []);
 
@@ -44,85 +39,90 @@ export default function MisPedidosPage() {
     if (loading) return <Loader />;
 
     const estados = [
-        { key: "pendiente", label: "Pendiente", icon: Clock, color: "yellow" },
-        { key: "preparando", label: "Preparando", icon: Flame, color: "orange" },
-        { key: "listo", label: "Listo", icon: CheckCircle, color: "blue" },
-        { key: "entregado", label: "Entregado", icon: Truck, color: "emerald" },
+        { key: "pendiente", label: "Pendiente", icon: Clock, color: "yellow" as EstadoColor },
+        { key: "preparando", label: "Preparando", icon: Flame, color: "orange" as EstadoColor },
+        { key: "listo", label: "Listo", icon: CheckCircle, color: "blue" as EstadoColor },
+        { key: "entregado", label: "Entregado", icon: Truck, color: "emerald" as EstadoColor },
     ];
 
-    const getEstadoIndex = (estado: string) =>
-        estados.findIndex((e) => e.key === estado);
+    const colorClasses: Record<EstadoColor, string> = {
+        yellow: "border-yellow-500 bg-yellow-100 text-yellow-700",
+        orange: "border-orange-500 bg-orange-100 text-orange-700",
+        blue: "border-blue-500 bg-blue-100 text-blue-700",
+        emerald: "border-emerald-500 bg-emerald-100 text-emerald-700",
+    };
 
     const activos = pedidos.filter(
         (p) => p.estado === "pendiente" || p.estado === "preparando" || p.estado === "listo"
     );
     const completados = pedidos.filter((p) => p.estado === "entregado");
+    const pedidosActuales = vista === "activos" ? activos : completados;
 
     return (
-        <div className="p-6 min-h-screen text-white">
-            <h1 className="text-3xl font-bold mb-6 text-center">Mis Pedidos</h1>
+        <div className="p-6 min-h-screen bg-white">
+            <h1 className="text-3xl font-bold mb-6 text-center text-black">Mis Pedidos</h1>
 
             {/* 🔘 Selector de vista */}
             <div className="flex justify-center gap-4 mb-8">
-                {(() => {
-                    const pendientes = pedidos.filter((p) => p.estado === "pendiente");
-
-                    return (
-                        <>
-                            <button
-                                onClick={() => setVista("activos")}
-                                className={`relative px-5 py-2 rounded-full text-sm font-medium transition-all ${vista === "activos"
-                                    ? "bg-amber-500/20 text-amber-300 border border-amber-400/50"
-                                    : "bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10"
-                                    }`}
-                            >
-                                Pendientes
-                                {pendientes.length > 0 && (
-                                    <span className="absolute -top-2 -right-2 bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                                        {pendientes.length}
-                                    </span>
-                                )}
-                            </button>
-
-                            <button
-                                onClick={() => setVista("completados")}
-                                className={`relative px-5 py-2 rounded-full text-sm font-medium transition-all ${vista === "completados"
-                                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/50"
-                                    : "bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10"
-                                    }`}
-                            >
-                                Entregados
-                            </button>
-                        </>
-                    );
-                })()}
+                <button
+                    onClick={() => setVista("activos")}
+                    className={`px-6 py-2 rounded-full text-sm font-medium border transition-all ${vista === "activos"
+                            ? "bg-red-600 text-white border-red-600"
+                            : "bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:text-red-700"
+                        }`}
+                >
+                    Pendientes
+                </button>
+                <button
+                    onClick={() => setVista("completados")}
+                    className={`px-6 py-2 rounded-full text-sm font-medium border transition-all ${vista === "completados"
+                            ? "bg-red-600 text-white border-red-600"
+                            : "bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:text-red-700"
+                        }`}
+                >
+                    Finalizados
+                </button>
             </div>
 
-            {pedidos.length === 0 ? (
-                <p className="text-gray-400 text-center mt-12">
-                    Aún no realizaste ningún pedido.
+            {/* 🧩 Lista de pedidos */}
+            {pedidosActuales.length === 0 ? (
+                <p className="text-gray-500 text-center mt-12">
+                    {vista === "activos"
+                        ? "No tenés pedidos activos en este momento."
+                        : "No tenés pedidos finalizados todavía."}
                 </p>
-            ) : vista === "activos" ? (
-                <PedidosLista pedidos={activos} estados={estados} />
             ) : (
-                <PedidosLista pedidos={completados} estados={estados} />
+                <PedidosLista pedidos={pedidosActuales} estados={estados} colorClasses={colorClasses} />
             )}
         </div>
     );
 }
 
-/* ------------------------------
- * 🧩 Lista de pedidos reutilizable
- * ------------------------------ */
-function PedidosLista({ pedidos, estados }: { pedidos: any[]; estados: any[] }) {
+function PedidosLista({
+    pedidos,
+    estados,
+    colorClasses,
+}: {
+    pedidos: any[];
+    estados: { key: string; label: string; icon: any; color: EstadoColor }[];
+    colorClasses: Record<EstadoColor, string>;
+}) {
     const getEstadoIndex = (estado: string) =>
         estados.findIndex((e) => e.key === estado);
 
+    const barColors: Record<EstadoColor, string> = {
+        yellow: "bg-yellow-500",
+        orange: "bg-orange-500",
+        blue: "bg-blue-500",
+        emerald: "bg-emerald-500",
+    };
+
     return (
-        <div className="space-y-6">
+        <div className="grid sm:grid-cols-2 gap-6 max-w-6xl mx-auto">
             <AnimatePresence>
                 {pedidos.map((p) => {
                     const estadoIndex = getEstadoIndex(p.estado);
+                    const color = (estados[estadoIndex]?.color || "yellow") as EstadoColor;
                     const fechaHora = p.createdAt
                         ? format(new Date(p.createdAt), "dd/MM/yyyy HH:mm", { locale: es })
                         : "";
@@ -134,59 +134,57 @@ function PedidosLista({ pedidos, estados }: { pedidos: any[]; estados: any[] }) 
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.25 }}
-                            className="p-5 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md shadow-md hover:shadow-lg transition-all"
+                            className="p-5 rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-all"
                         >
                             {/* Cabecera */}
                             <div className="flex justify-between items-start mb-3">
                                 <div>
-                                    <h2 className="text-base font-semibold tracking-wide">
-                                        Pedido #{p._id.slice(-5).toUpperCase()}
+                                    <h2 className="text-lg font-bold text-gray-900">
+                                        {p.nombre || "Cliente"}
                                     </h2>
-                                    <p className="text-sm text-gray-400">
-                                        Entrega: {p.tipoEntrega}
-                                    </p>
-                                    <p className="text-xs text-gray-500 mt-0.5">
-                                        {fechaHora && `${fechaHora}`}
-                                    </p>
+                                    <p className="text-sm text-gray-600">Entrega: {p.tipoEntrega}</p>
+                                    <p className="text-xs text-gray-500">{fechaHora}</p>
                                 </div>
                                 <span
-                                    className={`px-3 py-1 rounded-full text-xs font-medium capitalize border border-${estados[estadoIndex]?.color}-500/40 text-${estados[estadoIndex]?.color}-400 bg-${estados[estadoIndex]?.color}-500/10`}
+                                    className={`px-3 py-1 rounded-full text-xs font-semibold capitalize border ${colorClasses[color]}`}
                                 >
                                     {p.estado}
                                 </span>
                             </div>
 
                             {/* Items */}
-                            <ul className="space-y-1 text-sm text-gray-200 mb-4">
+                            <ul className="space-y-1 text-sm text-gray-700 mb-4">
                                 {p.items.map((it: any) => (
                                     <li
                                         key={it._id}
-                                        className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg"
+                                        className="flex items-center justify-between bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100"
                                     >
-                                        <span>🍽️</span>
-                                        <span>
-                                            {it.menuItemId?.nombre} × {it.cantidad}
-                                        </span>
+                                        <span>{it.menuItemId?.nombre}</span>
+                                        <span className="text-red-600 font-semibold">×{it.cantidad}</span>
                                     </li>
                                 ))}
                             </ul>
 
                             {/* Timeline */}
-                            <div className="relative w-full flex justify-between items-center mt-4">
-                                <div className="absolute top-[18px] left-0 w-full h-[3px] bg-gray-700 rounded-full" />
+                            <div className="relative w-full flex justify-between items-center mt-5">
+                                {/* Línea base */}
+                                <div className="absolute top-[18px] left-0 w-full h-[3px] bg-gray-200 rounded-full" />
 
+                                {/* Progreso dinámico */}
                                 <motion.div
-                                    className={`absolute top-[18px] left-0 h-[3px] bg-${estados[estadoIndex]?.color}-500 rounded-full`}
+                                    className={`absolute top-[18px] left-0 h-[3px] ${barColors[color]} rounded-full`}
                                     initial={{ width: 0 }}
                                     animate={{
                                         width: `${(estadoIndex / (estados.length - 1)) * 100}%`,
                                     }}
-                                    transition={{ duration: 0.6 }}
+                                    transition={{ duration: 0.4 }}
                                 />
 
+                                {/* Estados */}
                                 {estados.map((estado, index) => {
                                     const Icon = estado.icon;
                                     const isActive = index <= estadoIndex;
+                                    const estadoColor = estado.color;
 
                                     return (
                                         <div
@@ -194,17 +192,15 @@ function PedidosLista({ pedidos, estados }: { pedidos: any[]; estados: any[] }) 
                                             className="flex flex-col items-center text-xs w-full relative z-10"
                                         >
                                             <div
-                                                className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all ${isActive
-                                                    ? `border-${estado.color}-400 bg-${estado.color}-500/20 text-${estado.color}-300`
-                                                    : "border-gray-600 bg-gray-800 text-gray-500"
+                                                className={`flex items-center justify-center w-9 h-9 rounded-full border-2 transition-all ${isActive
+                                                        ? `border-${estadoColor}-500 bg-${estadoColor}-100 text-${estadoColor}-700`
+                                                        : "border-gray-300 bg-white text-gray-400"
                                                     }`}
                                             >
                                                 <Icon className="w-4 h-4" />
                                             </div>
                                             <span
-                                                className={`mt-2 ${isActive
-                                                    ? `text-${estado.color}-300`
-                                                    : "text-gray-500"
+                                                className={`mt-2 font-medium ${isActive ? "text-gray-800" : "text-gray-400"
                                                     }`}
                                             >
                                                 {estado.label}
