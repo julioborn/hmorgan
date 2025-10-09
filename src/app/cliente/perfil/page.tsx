@@ -32,14 +32,13 @@ export default function PerfilPage() {
                     icon: "error",
                     title: "❌ Error",
                     text: err.message || "Error de red",
-                    confirmButtonColor: "#ef4444",
+                    confirmButtonColor: "#dc2626",
                 });
             } finally {
                 setLoading(false);
             }
         })();
 
-        // 🔄 Detectar nueva versión del Service Worker
         if ("serviceWorker" in navigator) {
             navigator.serviceWorker.getRegistration().then((reg) => {
                 if (!reg) return;
@@ -67,15 +66,15 @@ export default function PerfilPage() {
             Swal.fire({
                 icon: "success",
                 title: "✅ Perfil actualizado",
-                text: "Tus datos se guardaron correctamente",
-                confirmButtonColor: "#10b981",
+                text: "Tus datos se guardaron correctamente.",
+                confirmButtonColor: "#dc2626",
             });
         } catch (err: any) {
             Swal.fire({
                 icon: "error",
                 title: "❌ Error",
                 text: err.message,
-                confirmButtonColor: "#ef4444",
+                confirmButtonColor: "#dc2626",
             });
         } finally {
             setSaving(false);
@@ -100,7 +99,6 @@ export default function PerfilPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email: perfil.email }),
             });
-
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Error al solicitar cambio");
 
@@ -108,29 +106,30 @@ export default function PerfilPage() {
                 icon: "success",
                 title: "📧 Correo enviado",
                 text: `Revisa ${perfil.email} para cambiar tu contraseña.`,
-                confirmButtonColor: "#10b981",
+                confirmButtonColor: "#dc2626",
             });
         } catch (err: any) {
             Swal.fire({
                 icon: "error",
                 title: "❌ Error",
                 text: err.message,
-                confirmButtonColor: "#ef4444",
+                confirmButtonColor: "#dc2626",
             });
         } finally {
             setResetting(false);
         }
     }
 
-    // 🔁 Botón para actualizar la app manualmente
     const handleUpdateApp = async () => {
         try {
             if ("serviceWorker" in navigator) {
                 const regs = await navigator.serviceWorker.getRegistrations();
                 for (const reg of regs) await reg.unregister();
-                await caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))));
+                await caches
+                    .keys()
+                    .then((keys) => Promise.all(keys.map((k) => caches.delete(k))));
             }
-            window.location.reload(); // ✅ sin argumentos
+            window.location.reload();
         } catch (err) {
             console.error("Error al actualizar:", err);
             window.location.reload();
@@ -147,84 +146,100 @@ export default function PerfilPage() {
 
     if (!perfil) {
         return (
-            <p className="p-6 text-center text-rose-400">
+            <p className="p-6 text-center text-red-600 font-semibold">
                 No se pudo cargar el perfil.
             </p>
         );
     }
 
     return (
-        <div className="max-w-lg mx-auto py-10 px-6">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur shadow-xl p-6">
-                <h1 className="text-3xl font-extrabold text-center mb-6">
+        <div className="max-w-lg mx-auto py-10 px-6 bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen">
+            <div className="rounded-2xl border border-gray-200 bg-white shadow-md p-6">
+                <h1 className="text-3xl font-extrabold text-center text-black mb-6">
                     Mi Perfil
                 </h1>
 
                 <form onSubmit={handleSave} className="space-y-5">
                     {/* DNI */}
                     <div>
-                        <label className="block text-sm text-gray-300 mb-1">DNI</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            DNI
+                        </label>
                         <input
                             value={perfil.dni}
                             disabled
-                            className="w-full h-12 px-3 rounded-xl bg-white/10 text-gray-400 cursor-not-allowed"
+                            className="w-full h-12 px-3 rounded-xl bg-gray-100 text-gray-500 cursor-not-allowed border border-gray-200"
                         />
                     </div>
 
                     {/* Nombre */}
                     <div>
-                        <label className="block text-sm text-gray-300 mb-1">Nombre</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Nombre
+                        </label>
                         <input
                             value={perfil.nombre}
                             onChange={(e) => setPerfil({ ...perfil, nombre: e.target.value })}
-                            className="w-full h-12 px-3 rounded-xl bg-white/10 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                            className="w-full h-12 px-3 rounded-xl bg-gray-50 border border-gray-300 focus:ring-2 focus:ring-red-500 focus:outline-none"
                         />
                     </div>
 
                     {/* Apellido */}
                     <div>
-                        <label className="block text-sm text-gray-300 mb-1">Apellido</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Apellido
+                        </label>
                         <input
                             value={perfil.apellido}
                             onChange={(e) => setPerfil({ ...perfil, apellido: e.target.value })}
-                            className="w-full h-12 px-3 rounded-xl bg-white/10 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                            className="w-full h-12 px-3 rounded-xl bg-gray-50 border border-gray-300 focus:ring-2 focus:ring-red-500 focus:outline-none"
                         />
                     </div>
 
                     {/* Teléfono */}
                     <div>
-                        <label className="block text-sm text-gray-300 mb-1">Teléfono</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Teléfono
+                        </label>
                         <input
                             value={perfil.telefono}
-                            onChange={(e) => setPerfil({ ...perfil, telefono: e.target.value })}
-                            className="w-full h-12 px-3 rounded-xl bg-white/10 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                            onChange={(e) =>
+                                setPerfil({ ...perfil, telefono: e.target.value })
+                            }
+                            className="w-full h-12 px-3 rounded-xl bg-gray-50 border border-gray-300 focus:ring-2 focus:ring-red-500 focus:outline-none"
                         />
                     </div>
 
                     {/* Email */}
                     <div>
-                        <label className="block text-sm text-gray-300 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                             Email (opcional)
                         </label>
                         <input
                             type="email"
                             value={perfil.email || ""}
                             onChange={(e) => setPerfil({ ...perfil, email: e.target.value })}
-                            className="w-full h-12 px-3 rounded-xl bg-white/10 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                            className="w-full h-12 px-3 rounded-xl bg-gray-50 border border-gray-300 focus:ring-2 focus:ring-red-500 focus:outline-none"
                             placeholder="ejemplo@correo.com"
                         />
                     </div>
 
                     {/* Fecha de nacimiento */}
                     <div>
-                        <label className="block text-sm text-gray-300 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                             Fecha de Nacimiento (opcional)
                         </label>
                         <input
                             type="date"
-                            value={perfil.fechaNacimiento ? perfil.fechaNacimiento.slice(0, 10) : ""}
-                            onChange={(e) => setPerfil({ ...perfil, fechaNacimiento: e.target.value })}
-                            className="w-full h-12 px-3 rounded-xl bg-white/10 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                            value={
+                                perfil.fechaNacimiento
+                                    ? perfil.fechaNacimiento.slice(0, 10)
+                                    : ""
+                            }
+                            onChange={(e) =>
+                                setPerfil({ ...perfil, fechaNacimiento: e.target.value })
+                            }
+                            className="w-full h-12 px-3 rounded-xl bg-gray-50 border border-gray-300 focus:ring-2 focus:ring-red-500 focus:outline-none"
                         />
                     </div>
 
@@ -233,7 +248,7 @@ export default function PerfilPage() {
                         <button
                             type="submit"
                             disabled={saving}
-                            className="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-white disabled:opacity-60"
+                            className="w-full h-12 rounded-xl bg-red-600 hover:bg-red-500 font-bold text-white shadow-sm transition disabled:opacity-60"
                         >
                             {saving ? "Guardando..." : "Guardar cambios"}
                         </button>
@@ -242,7 +257,7 @@ export default function PerfilPage() {
                             type="button"
                             onClick={handleRequestReset}
                             disabled={resetting}
-                            className="w-full h-12 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-white disabled:opacity-60"
+                            className="w-full h-12 rounded-xl bg-white border border-gray-300 font-bold text-gray-700 hover:bg-gray-50 shadow-sm transition disabled:opacity-60"
                         >
                             {resetting ? "Enviando..." : "Cambiar contraseña"}
                         </button>
@@ -251,7 +266,7 @@ export default function PerfilPage() {
                             <button
                                 type="button"
                                 onClick={handleUpdateApp}
-                                className="w-full h-12 rounded-xl bg-teal-600 hover:bg-teal-500 font-bold text-white"
+                                className="w-full h-12 rounded-xl bg-red-100 hover:bg-red-200 text-red-700 font-bold shadow-sm transition"
                             >
                                 🔄 Actualizar aplicación
                             </button>

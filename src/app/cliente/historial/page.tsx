@@ -27,7 +27,6 @@ export default function HistorialPage() {
     const [loadingPuntos, setLoadingPuntos] = useState(true);
     const [loadingCanjes, setLoadingCanjes] = useState(true);
 
-    // fetch puntos
     useEffect(() => {
         (async () => {
             try {
@@ -40,10 +39,7 @@ export default function HistorialPage() {
                 setLoadingPuntos(false);
             }
         })();
-    }, []);
 
-    // fetch canjes
-    useEffect(() => {
         (async () => {
             try {
                 const res = await fetch("/api/canjes");
@@ -58,42 +54,41 @@ export default function HistorialPage() {
         })();
     }, []);
 
+    const formatDate = (d: string) =>
+        new Date(d).toLocaleDateString("es-AR", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+        });
+
     return (
-        <div className="p-6 space-y-6">
-            <h1 className="text-3xl font-extrabold text-center text-white">
-                Historial
-            </h1>
+        <div className="p-6 space-y-6 bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen">
+            <h1 className="text-3xl font-extrabold text-center text-black">Historial</h1>
 
             {/* Tabs */}
             <div className="flex justify-center gap-4">
-                <button
-                    onClick={() => setTab("puntos")}
-                    className={`px-4 py-2 rounded-lg font-semibold transition ${tab === "puntos"
-                        ? "bg-emerald-600 text-white"
-                        : "bg-white/10 text-white/70 hover:bg-white/20"
-                        }`}
-                >
-                    Puntos
-                </button>
-                <button
-                    onClick={() => setTab("canjes")}
-                    className={`px-4 py-2 rounded-lg font-semibold transition ${tab === "canjes"
-                        ? "bg-emerald-600 text-white"
-                        : "bg-white/10 text-white/70 hover:bg-white/20"
-                        }`}
-                >
-                    Canjes
-                </button>
+                {["puntos", "canjes"].map((t) => (
+                    <button
+                        key={t}
+                        onClick={() => setTab(t as "puntos" | "canjes")}
+                        className={`px-5 py-2 rounded-lg font-semibold border transition-all duration-200 shadow-sm ${tab === t
+                                ? "bg-red-600 text-white border-red-600"
+                                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                            }`}
+                    >
+                        {t === "puntos" ? "Puntos" : "Canjes"}
+                    </button>
+                ))}
             </div>
 
-            {/* Contenido según tab */}
+            {/* Contenido */}
             {tab === "puntos" ? (
                 loadingPuntos ? (
                     <div className="py-20 flex justify-center items-center">
                         <Loader size={40} />
                     </div>
                 ) : items.length === 0 ? (
-                    <div className="p-6 text-center opacity-70 bg-white/5 rounded-xl border border-white/10">
+                    <div className="p-6 text-center text-gray-500 bg-white border border-gray-200 rounded-xl shadow-sm">
                         Sin movimientos aún.
                     </div>
                 ) : (
@@ -103,46 +98,34 @@ export default function HistorialPage() {
                             return (
                                 <div
                                     key={tx._id}
-                                    className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br 
-                  from-emerald-600/20 via-slate-800/40 to-slate-900/60
-                  p-5 flex flex-col justify-between hover:scale-[1.02] hover:shadow-lg 
-                  hover:shadow-emerald-500/20 transition-all duration-300"
+                                    className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm hover:shadow-md hover:-translate-y-[2px] transition-all"
                                 >
-                                    {/* Icono decorativo */}
-                                    <div className="absolute -top-8 -right-8 w-24 h-24 bg-emerald-500/10 rounded-full blur-3xl" />
-
                                     {/* Cabecera */}
                                     <div className="flex items-center gap-3 mb-2">
-                                        <Icon className="w-8 h-8 text-emerald-400 shrink-0" />
-                                        <h2 className="text-lg sm:text-xl font-bold">
+                                        <Icon className="w-7 h-7 text-red-600" />
+                                        <h2 className="text-lg font-bold text-black">
                                             {tx.source === "consumo" ? "Consumo" : "Ajuste"}
                                         </h2>
                                     </div>
 
-                                    {/* Fecha + monto */}
-                                    <div className="flex items-center justify-between">
-                                        <p className="text-sm opacity-70">
-                                            {new Date(tx.createdAt).toLocaleDateString("es-AR", {
-                                                day: "2-digit",
-                                                month: "2-digit",
-                                                year: "numeric",
-                                            })}
+                                    {/* Descripción */}
+                                    {tx.meta?.consumoARS !== undefined && (
+                                        <p className="text-sm text-gray-700 mb-4">
+                                            Consumo: ${tx.meta.consumoARS}
                                         </p>
+                                    )}
+
+                                    {/* Footer */}
+                                    <div className="flex items-end justify-between">
+                                        <p className="text-sm text-gray-500">{formatDate(tx.createdAt)}</p>
                                         <span
-                                            className={`text-xl font-extrabold ${tx.amount >= 0 ? "text-emerald-400" : "text-rose-400"
+                                            className={`text-xl font-extrabold ${tx.amount >= 0 ? "text-red-600" : "text-red-600"
                                                 }`}
                                         >
                                             {tx.amount >= 0 ? "+" : ""}
                                             {tx.amount}
                                         </span>
                                     </div>
-
-                                    {/* Consumo en ARS opcional */}
-                                    {tx.meta?.consumoARS !== undefined && (
-                                        <div className="mt-2 text-sm opacity-80">
-                                            Consumo: ${tx.meta.consumoARS}
-                                        </div>
-                                    )}
                                 </div>
                             );
                         })}
@@ -153,53 +136,49 @@ export default function HistorialPage() {
                     <Loader size={40} />
                 </div>
             ) : canjes.length === 0 ? (
-                <p className="opacity-70 text-center">Aún no realizaste canjes.</p>
+                <p className="text-gray-500 text-center bg-white p-6 border border-gray-200 rounded-xl shadow-sm">
+                    Aún no realizaste canjes.
+                </p>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {canjes.map((c) => (
                         <div
                             key={c._id}
-                            className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br 
-              from-emerald-600/20 via-slate-800/40 to-slate-900/60
-              p-5 flex flex-col justify-between hover:scale-[1.02] hover:shadow-lg 
-              hover:shadow-emerald-500/20 transition-all duration-300"
+                            className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm hover:shadow-md hover:-translate-y-[2px] transition-all"
                         >
-                            <div className="absolute -top-8 -right-8 w-24 h-24 bg-emerald-500/10 rounded-full blur-3xl" />
+                            {/* Cabecera */}
                             <div className="flex items-center gap-3 mb-2">
-                                <Gift className="w-8 h-8 text-emerald-400 shrink-0" />
-                                <h2 className="text-lg sm:text-xl font-bold">
-                                    {c.rewardId?.titulo}
-                                </h2>
+                                <Gift className="w-7 h-7 text-red-600" />
+                                <h2 className="text-lg font-bold text-black">{c.rewardId?.titulo}</h2>
                             </div>
+
+                            {/* Descripción */}
                             {c.rewardId?.descripcion && (
-                                <p className="text-sm opacity-80 mb-3">
-                                    {c.rewardId.descripcion}
-                                </p>
+                                <p className="text-sm text-gray-700 mb-4">{c.rewardId.descripcion}</p>
                             )}
-                            <div className="mb-2 flex items-center justify-between">
+
+                            {/* Footer */}
+                            <div className="flex items-end justify-between">
                                 <div>
-                                    <p className="text-2xl font-extrabold text-emerald-400">
-                                        {c.puntosGastados} pts
-                                    </p>
-                                    <p className="text-sm opacity-70">
-                                        {new Date(c.createdAt).toLocaleDateString("es-AR", {
-                                            day: "2-digit",
-                                            month: "2-digit",
-                                            year: "numeric",
-                                        })}
-                                    </p>
+                                    <p className="text-sm text-gray-500">{formatDate(c.createdAt)}</p>
                                 </div>
-                                <span
-                                    className={`inline-block text-xs sm:text-sm px-3 py-1 rounded-full font-semibold tracking-wide
-                    ${c.estado === "completado"
-                                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/30"
-                                            : "bg-amber-500/20 text-amber-300 border border-amber-400/30"
-                                        }`}
-                                >
-                                    {c.estado === "completado"
-                                        ? "CANJEADO"
-                                        : c.estado.toUpperCase()}
-                                </span>
+
+                                <div className="text-right">
+                                    <p className="text-xl font-extrabold text-red-600">
+                                        -{c.puntosGastados} pts
+                                    </p>
+                                    <span
+                                        className={`inline-block text-xs px-3 py-1 rounded-full font-semibold tracking-wide border mt-1
+                      ${c.estado === "completado"
+                                                ? "bg-green-50 text-green-600 border-green-300"
+                                                : "bg-amber-50 text-amber-700 border-amber-300"
+                                            }`}
+                                    >
+                                        {c.estado === "completado"
+                                            ? "CANJEADO"
+                                            : c.estado.toUpperCase()}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     ))}

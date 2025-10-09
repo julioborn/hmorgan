@@ -390,7 +390,7 @@ export default function ScanPage() {
               <button
                 onClick={startCamera}
                 disabled={!canStart || camState === "starting"}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold disabled:opacity-60 disabled:cursor-not-allowed shadow hover:shadow-lg transition-shadow"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-red-600 text-white font-semibold disabled:opacity-60 disabled:cursor-not-allowed shadow hover:shadow-lg transition-shadow"
                 title={!canStart ? "Ingresá Nº de mesa y consumo para activar" : ""}
               >
                 {camState === "starting" ? "Activando…" : "Activar cámara"}
@@ -409,33 +409,33 @@ export default function ScanPage() {
         </div>
 
         {/* Panel de control */}
-        <div className="space-y-4">
+        <div className="space-y-6">
           {/* Inputs */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-            <div className="grid grid-cols-3 gap-3">
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div className="grid grid-cols-3 gap-4">
               {/* Nº de mesa */}
               <div className="flex flex-col gap-2 col-span-1">
-                <label className="text-md">Mesa</label>
+                <label className="text-sm font-semibold text-gray-700">Mesa</label>
                 <input
-                  className="w-full rounded-xl bg-black/80 text-emerald-400 text-2xl font-mono 
-                  px-3 py-5 text-center tracking-wider shadow-inner 
-                  outline-none ring-2 ring-white/10 focus:ring-2 focus:ring-emerald-500/70"
+                  className="w-full rounded-xl border border-gray-300 bg-white text-red-600 text-2xl font-mono 
+                     px-3 py-5 text-center tracking-wider shadow-sm
+                     outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200 transition"
                   value={mesa}
                   onChange={(e) => setMesa(sanitizeMesa(e.target.value))}
                   inputMode="numeric"
                   type="text"
-                  maxLength={2}   // 👈 límite 2 dígitos
+                  maxLength={2}
                   pattern="[0-9]*"
                 />
               </div>
 
               {/* Total $ */}
               <div className="flex flex-col gap-2 col-span-2">
-                <label className="text-md">Total $</label>
+                <label className="text-sm font-semibold text-gray-700">Total $</label>
                 <input
-                  className="w-full rounded-xl bg-black/80 text-emerald-400 text-2xl font-mono 
-                   px-4 py-5 text-center tracking-wider shadow-inner
-                   outline-none ring-2 ring-white/10 focus:ring-2 focus:ring-emerald-500/70"
+                  className="w-full rounded-xl border border-gray-300 bg-white text-red-600 text-2xl font-mono 
+                     px-4 py-5 text-center tracking-wider shadow-sm
+                     outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200 transition"
                   placeholder="0,00"
                   value={consumoStr}
                   onChange={(e) => setConsumoStr(formatMoneyInput(e.target.value))}
@@ -448,23 +448,30 @@ export default function ScanPage() {
           </div>
 
           {/* Resumen puntos */}
-          <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.04] to-white/[0.02] p-4">
-            <div className="text-MD font-semibold mb-2">Puntos</div>
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div className="text-md font-bold mb-3 text-gray-800">Puntos</div>
             <div className="grid grid-cols-3 gap-3 text-center">
               <Metric label="Total personas" value={people.length} />
               <Metric label="Total puntos" value={totalPoints} />
-              <Metric label="Por persona" value={porCabeza} suffix={resto > 0 ? `(+${resto} resto)` : undefined} />
+              <Metric
+                label="Por persona"
+                value={porCabeza}
+                suffix={resto > 0 ? `(+${resto} resto)` : undefined}
+              />
             </div>
           </div>
 
           {/* Lista Escaneados */}
-          <div className="rounded-2xl border border-white/10 overflow-hidden flex flex-col max-h-[300px]">
+          <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden flex flex-col max-h-[320px] shadow-sm">
             {/* Header */}
-            <div className="flex items-center justify-between px-3 py-2 text-sm bg-white/[0.04]">
-              <div className="opacity-80">Escaneados ({people.length})</div>
+            <div className="flex items-center justify-between px-4 py-2 text-sm border-b border-gray-200 bg-gray-50">
+              <div className="text-gray-700 font-semibold">
+                Escaneados ({people.length})
+              </div>
               {people.length > 0 && (
                 <button
-                  className="text-xs px-2 py-1 rounded bg-white/10 hover:bg-white/15"
+                  className="text-xs px-3 py-1 rounded-lg border border-gray-300 text-red-600 font-medium
+                     hover:bg-red-50 transition"
                   onClick={() => {
                     setPeople([]);
                     seenIdsRef.current.clear();
@@ -477,34 +484,34 @@ export default function ScanPage() {
 
             {/* Contenido */}
             {people.length === 0 ? (
-              <div className="flex-1 flex items-center justify-center text-sm opacity-70 min-h-[80px]">
+              <div className="flex-1 flex items-center justify-center text-sm text-gray-500 min-h-[80px]">
                 Sin personas aún.
               </div>
             ) : (
-              <ul className="divide-y divide-white/10 flex-1 overflow-auto">
+              <ul className="divide-y divide-gray-200 flex-1 overflow-auto">
                 {people.map((p) => (
                   <li
                     key={p.id}
-                    className="flex items-center justify-between gap-3 p-3 min-w-0"
+                    className="flex items-center justify-between gap-3 p-3 min-w-0 hover:bg-red-50 transition"
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="grid place-items-center h-9 w-9 shrink-0 rounded-full bg-emerald-500/15 text-emerald-300 font-bold">
+                      <div className="grid place-items-center h-9 w-9 shrink-0 rounded-full bg-red-100 text-red-600 font-bold">
                         {getInitials(p.nombre, p.apellido)}
                       </div>
                       <div className="min-w-0">
-                        <div className="font-semibold truncate">
+                        <div className="font-semibold text-gray-800 truncate">
                           {p.nombre} {p.apellido}
                         </div>
-                        <div className="text-xs opacity-70 truncate">
+                        <div className="text-xs text-gray-500 truncate">
                           DNI: {p.dni}
                         </div>
-                        <div className="text-xs opacity-70 truncate">
+                        <div className="text-xs text-gray-500 truncate">
                           Puntos actuales: {p.puntos}
                         </div>
                       </div>
                     </div>
                     <button
-                      className="shrink-0 p-2 rounded-lg bg-white/10 hover:bg-white/15 text-zinc-300"
+                      className="shrink-0 p-2 rounded-lg border border-gray-300 text-red-500 hover:bg-red-50 transition"
                       onClick={() => {
                         setPeople((prev) => prev.filter((x) => x.id !== p.id));
                         seenIdsRef.current.delete(p.id);
@@ -530,15 +537,17 @@ export default function ScanPage() {
             )}
           </div>
 
+          {/* Botón principal */}
           <button
             onClick={finalizeTable}
-            className="w-full py-3 rounded-2xl bg-emerald-600 text-white font-bold shadow hover:shadow-lg transition-shadow disabled:opacity-60"
+            className="w-full py-3 rounded-2xl bg-red-600 text-white font-bold text-lg shadow
+               hover:bg-red-700 transition disabled:opacity-60"
             disabled={!people.length || !consumo}
           >
             Finalizar
           </button>
-
         </div>
+
       </div>
 
       {/* === Toast de finalización === */}

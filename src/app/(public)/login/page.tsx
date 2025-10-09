@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import { useAuth } from "@/context/auth-context";
-import { ensurePushAfterLogin } from "@/lib/push-auto"; // 👈 importalo
+import { ensurePushAfterLogin } from "@/lib/push-auto";
 
 type Errors = { dni?: string; password?: string; general?: string };
 
@@ -14,7 +14,6 @@ export default function LoginPage() {
   const { refresh } = useAuth();
 
   const onlyDigits = (s: string) => s.replace(/\D/g, "");
-
   const validate = (vals: { dni: string; password: string }): Errors => {
     const e: Errors = {};
     if (!vals.dni) e.dni = "Ingresá tu DNI";
@@ -51,46 +50,34 @@ export default function LoginPage() {
       return;
     }
 
-    // ✅ mostrar alerta customizada y manejar push
     await ensurePushAfterLogin();
-
-    // ✅ refrescar contexto y redirigir
     await refresh();
     window.location.href = "/";
   }
 
   return (
-    <div
-      className="min-h-[100dvh] flex items-start justify-center p-4 pt-20"
-      style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
-    >
+    <div className="min-h-screen flex items-start justify-center p-4">
       <form
         onSubmit={onSubmit}
-        className="w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-xl backdrop-blur"
+        className="w-full max-w-md rounded-2xl border border-gray-200 bg-white shadow-md p-6"
       >
-        <h1 className="text-2xl font-extrabold text-center mb-5">Ingresar</h1>
+        <h1 className="text-3xl font-extrabold text-center mb-6 text-black">
+          Ingresar
+        </h1>
 
         {errors.general && (
-          <div
-            className="mb-4 p-3 rounded bg-rose-900/20 text-rose-300 text-sm"
-            role="alert"
-          >
+          <div className="mb-4 p-3 rounded bg-red-50 text-red-600 text-sm border border-red-200">
             {errors.general}
           </div>
         )}
 
-        {/* Campos */}
         <div className="space-y-4">
           <div>
-            <label className="sr-only" htmlFor="dni">
-              DNI
-            </label>
             <input
-              id="dni"
               placeholder="DNI"
-              className={`w-full h-12 px-3 rounded-xl bg-white/10 outline-none ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-emerald-500/70 ${touched.dni && currentErrors.dni
-                  ? "ring-2 ring-rose-400 focus:ring-rose-400"
-                  : ""
+              className={`w-full h-12 px-3 rounded-xl border text-gray-800 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 transition ${touched.dni && currentErrors.dni
+                  ? "border-red-400 focus:ring-red-400"
+                  : "border-gray-300"
                 }`}
               value={dni}
               onChange={(e) => setDni(onlyDigits(e.target.value))}
@@ -98,43 +85,33 @@ export default function LoginPage() {
               inputMode="numeric"
               pattern="[0-9]*"
               autoComplete="username"
-              autoCapitalize="none"
-              autoCorrect="off"
-              aria-invalid={!!(touched.dni && currentErrors.dni)}
             />
             {touched.dni && currentErrors.dni && (
-              <p className="mt-1 text-xs text-rose-300">{currentErrors.dni}</p>
+              <p className="mt-1 text-xs text-red-600">{currentErrors.dni}</p>
             )}
           </div>
 
           <div>
-            <label className="sr-only" htmlFor="password">
-              Contraseña
-            </label>
             <input
-              id="password"
               placeholder="Contraseña"
               type="password"
-              className={`w-full h-12 px-3 rounded-xl bg-white/10 outline-none ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-emerald-500/70 ${touched.password && currentErrors.password
-                  ? "ring-2 ring-rose-400 focus:ring-rose-400"
-                  : ""
+              className={`w-full h-12 px-3 rounded-xl border text-gray-800 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 transition ${touched.password && currentErrors.password
+                  ? "border-red-400 focus:ring-red-400"
+                  : "border-gray-300"
                 }`}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onBlur={() => setTouched((t) => ({ ...t, password: true }))}
               autoComplete="current-password"
-              autoCapitalize="none"
-              autoCorrect="off"
-              aria-invalid={!!(touched.password && currentErrors.password)}
             />
             {touched.password && currentErrors.password && (
-              <p className="mt-1 text-xs text-rose-300">{currentErrors.password}</p>
+              <p className="mt-1 text-xs text-red-600">{currentErrors.password}</p>
             )}
           </div>
 
           <button
             disabled={loading || hasErrors}
-            className="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold disabled:opacity-60 transition"
+            className="w-full h-12 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold shadow-sm transition disabled:opacity-60"
           >
             {loading ? "Ingresando..." : "Entrar"}
           </button>

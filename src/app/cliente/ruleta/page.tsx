@@ -26,12 +26,15 @@ export default function RuletaPage() {
     }
 
     if (items.length === 0)
-        return <p className="p-6">No hay cocktails en la ruleta.</p>;
+        return (
+            <p className="p-6 text-center text-gray-600">
+                No hay cocktails en la ruleta.
+            </p>
+        );
 
     const maxItems = 15;
-    const baseColors = ["#3b82f6", "#ef4444", "#22c55e", "#8b5cf6"];
+    const rojoBase = "#dc2626"; // 🔴 rojo principal Morgan
 
-    // 👇 Función para ajustar el tamaño de texto dinámicamente
     const getFontSize = (text: string) => {
         if (text.length > 18) return 10;
         if (text.length > 12) return 12;
@@ -39,21 +42,17 @@ export default function RuletaPage() {
     };
 
     const data = items.slice(0, maxItems).map((i: any, index: number) => {
-        let backgroundColor;
+        let backgroundColor = rojoBase;
         let textColor = "#fff";
 
+        // Si ya hay ganador, se apaga el resto
         if (winnerIndex !== null) {
-            if (winnerIndex === index) {
-                backgroundColor = "#10b981"; // emerald ganador
-                textColor = "#fff";
-            } else {
-                backgroundColor = "#4b5563"; // gris apagado
-            }
-        } else {
-            backgroundColor = baseColors[index % baseColors.length];
+            backgroundColor = winnerIndex === index ? rojoBase : "#e5e7eb"; // gris claro para el resto
+            textColor = winnerIndex === index ? "#fff" : "#9ca3af"; // texto gris en apagados
         }
 
-        const text = i.nombre.length > 20 ? i.nombre.slice(0, 20) + "…" : i.nombre;
+        const text =
+            i.nombre.length > 20 ? i.nombre.slice(0, 20) + "…" : i.nombre;
 
         return {
             option: text,
@@ -61,7 +60,7 @@ export default function RuletaPage() {
                 backgroundColor,
                 textColor,
                 fontWeight: winnerIndex === index ? "bold" : "normal",
-                fontSize: getFontSize(text), // 👈 tamaño dinámico
+                fontSize: getFontSize(text),
             },
         };
     });
@@ -75,15 +74,15 @@ export default function RuletaPage() {
 
     const handleStop = () => {
         setMustSpin(false);
-
         if (prizeNumber !== null) {
             setWinnerIndex(prizeNumber);
             const ganador = data[prizeNumber].option;
 
             confetti({
-                particleCount: 120,
+                particleCount: 150,
                 spread: 70,
                 origin: { y: 0.6 },
+                colors: ["#dc2626", "#f87171", "#ffffff"],
             });
 
             console.log("Ganador:", ganador);
@@ -91,11 +90,12 @@ export default function RuletaPage() {
     };
 
     return (
-        <div className="p-6 text-center space-y-6">
-            <h1 className="text-3xl font-bold">Ruleta de Tragos</h1>
+        <div className="p-6 text-center space-y-6 bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen">
+            <h1 className="text-3xl font-extrabold text-black">
+                Ruleta de <span className="text-red-600">Tragos</span>
+            </h1>
 
             <div className="flex justify-center">
-                {/* Contenedor cuadrado responsivo */}
                 <div className="w-full max-w-xs sm:max-w-md md:max-w-lg lg:max-w-xl aspect-square flex items-center justify-center">
                     <Wheel
                         mustStartSpinning={mustSpin}
@@ -107,7 +107,7 @@ export default function RuletaPage() {
                         radiusLineWidth={2}
                         perpendicularText={false}
                         pointerProps={{
-                            style: { transform: "scale(0.6)" },
+                            style: { transform: "scale(0.7)" },
                         }}
                     />
                 </div>
@@ -116,10 +116,11 @@ export default function RuletaPage() {
             <button
                 onClick={handleSpin}
                 disabled={mustSpin}
-                className="mt-6 px-6 py-3 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-500 disabled:opacity-50"
+                className="mt-6 px-8 py-3 rounded-xl bg-red-600 text-white font-semibold text-lg shadow-md hover:bg-red-500 disabled:opacity-50 transition"
             >
-                Girar
+                {mustSpin ? "Girando..." : "Girar"}
             </button>
+
         </div>
     );
 }

@@ -29,7 +29,11 @@ export default function MiQRPage() {
       const hasNotif = typeof Notification !== "undefined";
 
       if (!isStandalone) {
-        Swal.fire("ℹ️", "Instalá la app (Añadir a inicio) para recibir notificaciones.", "info");
+        Swal.fire(
+          "ℹ️",
+          "Instalá la app (Añadir a inicio) para recibir notificaciones.",
+          "info"
+        );
         return;
       }
       if (!hasSW || !hasPush || !hasNotif) {
@@ -71,26 +75,53 @@ export default function MiQRPage() {
   }
 
   return (
-    <div className="max-w-xl mx-auto p-6 space-y-4">
-      <div className="rounded-2xl overflow-hidden border border-white/10 bg-white/[0.04]">
-        <div className="p-5 border-b border-white/10">
-          <h1 className="text-2xl font-extrabold">Mi QR</h1>
+    <div className="max-w-xl mx-auto p-6 space-y-4 bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen">
+      {/* Card principal */}
+      <div className="rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-md">
+        {/* Encabezado */}
+        <div className="p-5 border-b border-gray-200">
+          <h1 className="text-2xl font-extrabold text-black">Mi QR</h1>
         </div>
-        <div className="p-5 grid place-items-center">
-          {png && <img src={png} alt="Mi QR" className="rounded-xl shadow-lg" />}
+
+        {/* QR generado */}
+        <div className="p-6 grid place-items-center bg-gray-50">
+          {png ? (
+            <img
+              src={png}
+              alt="Mi QR"
+              className="rounded-xl shadow-lg border border-gray-200"
+            />
+          ) : (
+            <Loader size={48} />
+          )}
         </div>
-        <div className="p-5 bg-white/5 flex items-center justify-between">
-          <div className="flex">
-            <div className="text-3xl font-extrabold">{user.puntos ?? 0}</div>
-            <p className="mt-3 text-emerald-500 font-medium">pts</p>
+
+        {/* Puntos y botón */}
+        <div className="p-5 bg-gray-100 flex items-center justify-between border-t border-gray-200">
+          <div className="flex items-end">
+            <div className="text-3xl font-extrabold text-black">
+              {user.puntos ?? 0}
+            </div>
+            <p className="ml-2 mb-[2px] text-red-600 font-semibold text-lg">pts</p>
           </div>
+
           <a
             href="/cliente/historial"
-            className="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-500"
+            className="px-4 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-500 transition shadow-sm"
           >
             Ver historial
           </a>
         </div>
+      </div>
+
+      {/* Activar notificaciones */}
+      <div className="text-center mt-6">
+        <button
+          onClick={handleEnableNotifications}
+          className="px-5 py-3 rounded-xl bg-black text-white font-semibold hover:bg-gray-900 transition shadow"
+        >
+          Activar notificaciones 🔔
+        </button>
       </div>
     </div>
   );

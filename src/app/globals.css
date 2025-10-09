@@ -2,49 +2,62 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Fuerza esquema claro a nivel documento */
+/* Fuerza modo claro por defecto */
 :root {
   color-scheme: light;
+
+  /* Colores principales */
+  --color-bg: #ffffff;
+  --color-text: #1e293b;
+  --color-accent: #dc2626;
+  /* rojo principal */
+  --color-border: #e5e7eb;
+  --color-card: #f9fafb;
 }
 
-/* Si el SO está en dark, seguimos forzando claro */
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: light;
-  }
-}
-
-/* Si querés look claro real, fija explícito fondo/texto; 
-   si mantenés tu fondo oscuro con gradiente, podés omitir esto */
+/* Fondo y texto base */
 html,
 body {
-  background: #ffffff;
-  color: #0f172a;
+  background: var(--color-bg);
+  color: var(--color-text);
+  @apply min-h-screen antialiased;
 }
 
-
-body {
-  @apply bg-slate-900 text-slate-100 min-h-screen;
-}
-
+/* Tarjetas */
 .card {
-  @apply bg-white/5 border border-white/10 rounded-xl;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  @apply rounded-xl shadow-sm transition;
 }
 
-/* Sombra suave reusable */
+/* Botones principales */
+.btn {
+  background: var(--color-accent);
+  color: white;
+  @apply px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition;
+}
+
+/* Texto de botones desactivados */
+.btn:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+/* Sombra elegante reutilizable */
 .shadow-elegant {
-  box-shadow: 0 10px 25px -10px rgba(0, 0, 0, .4);
+  box-shadow: 0 10px 25px -10px rgba(0, 0, 0, .15);
 }
 
-/* Asegura texto visible en listas nativas del <select> (Android/Windows) */
-select, select option {
+/* Select nativo */
+select,
+select option {
   color: #111 !important;
 }
+
 select {
   background-color: #fff !important;
 }
 
+/* Import Swiper */
 @import "swiper/css";
 @import "swiper/css/pagination";
 @import "swiper/css/navigation";
-

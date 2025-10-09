@@ -20,7 +20,7 @@ import {
     X,
     Trash2,
     ShoppingCart,
-    ArrowUp, // 🆕 botón subir
+    ArrowUp,
 } from "lucide-react";
 import Loader from "@/components/Loader";
 
@@ -64,7 +64,7 @@ export default function PedidosClientePage() {
     const [items, setItems] = useState<Record<string, number>>({});
     const [tipoEntrega, setTipoEntrega] = useState("retira");
     const [drawerOpen, setDrawerOpen] = useState(false);
-    const [showScroll, setShowScroll] = useState(false); // 🆕 estado scroll
+    const [showScroll, setShowScroll] = useState(false);
     const [cargandoConfig, setCargandoConfig] = useState(true);
 
     useEffect(() => {
@@ -81,11 +81,10 @@ export default function PedidosClientePage() {
             } catch (error) {
                 console.error("Error cargando configuración de pedidos:", error);
             } finally {
-                setCargandoConfig(false); // ✅ solo acá
+                setCargandoConfig(false);
             }
         })();
 
-        // 🆕 mostrar botón scroll al bajar
         const handleScroll = () => setShowScroll(window.scrollY > 300);
         window.addEventListener("scroll", handleScroll);
         return () => window.removeEventListener("scroll", handleScroll);
@@ -97,7 +96,7 @@ export default function PedidosClientePage() {
             .map(([id, cant]) => ({ menuItemId: id, cantidad: cant }));
 
         if (seleccion.length === 0)
-            return Swal.fire("⚠️", "Selecciona al menos un ítem", "warning");
+            return Swal.fire("⚠️", "Seleccioná al menos un ítem", "warning");
 
         const res = await fetch("/api/pedidos", {
             method: "POST",
@@ -120,7 +119,7 @@ export default function PedidosClientePage() {
             showCancelButton: true,
             confirmButtonText: "Sí, vaciar",
             cancelButtonText: "Cancelar",
-            confirmButtonColor: "#ef4444",
+            confirmButtonColor: "#dc2626",
         }).then((r) => {
             if (r.isConfirmed) {
                 setItems({});
@@ -137,7 +136,6 @@ export default function PedidosClientePage() {
         });
     };
 
-    // ⏳ Mientras carga la configuración
     if (cargandoConfig) {
         return (
             <div className="flex justify-center items-center py-12">
@@ -146,13 +144,12 @@ export default function PedidosClientePage() {
         );
     }
 
-    // 🚫 Si los pedidos están desactivados
     if (!activo) {
         return (
-            <div className="flex flex-col items-center justify-center py-20 text-center text-gray-300">
-                <UtensilsCrossed size={50} className="mb-4 text-rose-500" />
-                <h2 className="text-xl font-semibold mb-2">Pedidos no disponibles</h2>
-                <p className="text-gray-400">
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+                <UtensilsCrossed size={50} className="mb-4 text-red-600" />
+                <h2 className="text-xl font-semibold mb-2 text-black">Pedidos no disponibles</h2>
+                <p className="text-gray-500">
                     En este momento no se están tomando pedidos. 🍽️
                 </p>
             </div>
@@ -171,8 +168,8 @@ export default function PedidosClientePage() {
     const totalItems = Object.values(items).reduce((a, b) => a + b, 0);
 
     return (
-        <div className="p-4 pb-28 relative">
-            <h1 className="text-3xl font-bold mb-8 text-center">Realizar Pedido</h1>
+        <div className="p-5 pb-28 bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen">
+            <h1 className="text-3xl font-bold mb-8 text-center text-black">Realizar Pedido</h1>
 
             {/* Categorías */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-8">
@@ -182,19 +179,17 @@ export default function PedidosClientePage() {
                         <a
                             key={cat}
                             href={`#${cat.replace(/\s+/g, "-")}`}
-                            className="flex flex-col items-center justify-center p-5 rounded-2xl shadow-md
-               bg-gradient-to-br from-emerald-600/20 to-slate-800/40
-               hover:from-emerald-600/40 hover:to-slate-800/60
-               hover:scale-105 transition-all duration-200 text-center"
+                            className="flex flex-col items-center justify-center p-5 rounded-2xl border border-gray-200
+                         bg-white shadow-sm hover:bg-red-50 hover:scale-[1.03] transition-all text-center"
                         >
-                            <Icon size={30} className="mb-2 text-emerald-400" />
-                            <span className="text-sm font-semibold">{cat}</span>
+                            <Icon size={30} className="mb-2 text-red-600" />
+                            <span className="text-sm font-semibold text-black">{cat}</span>
                         </a>
                     );
                 })}
             </div>
 
-            {/* Productos por categoría */}
+            {/* Productos */}
             {categorias.map((cat) => {
                 const Icon = categoryIcons[cat] || UtensilsCrossed;
                 const productos = menu.filter((i) => i.categoria === cat);
@@ -202,54 +197,58 @@ export default function PedidosClientePage() {
 
                 return (
                     <div key={cat} id={cat.replace(/\s+/g, "-")} className="mb-10 scroll-mt-20">
-                        <h2 className="text-2xl font-bold mb-5 flex items-center gap-2">
-                            <Icon size={24} className="text-emerald-400" /> {cat}
+                        <h2 className="text-2xl font-bold mb-5 flex items-center gap-2 text-black">
+                            <Icon size={24} className="text-red-600" /> {cat}
                         </h2>
 
                         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
                             {productos.map((item) => (
                                 <div
                                     key={item._id}
-                                    className="p-4 bg-white/5 rounded-2xl border border-white/10 shadow
-                   hover:shadow-emerald-500/10 transition-all"
+                                    className="p-5 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:-translate-y-[2px] transition-all flex flex-col justify-between"
                                 >
-                                    <p className="font-semibold text-lg">{item.nombre}</p>
-                                    {item.descripcion && (
-                                        <p className="text-sm text-gray-400">{item.descripcion}</p>
-                                    )}
-                                    <p className="mt-1 text-emerald-400 font-bold">
-                                        ${formatPrice(item.precio)}
-                                    </p>
+                                    <div>
+                                        <p className="font-semibold text-lg mb-1 text-black">{item.nombre}</p>
+                                        {item.descripcion && (
+                                            <p className="text-sm text-gray-600 mb-2 leading-snug">
+                                                {item.descripcion}
+                                            </p>
+                                        )}
+                                        <p className="text-red-600 font-bold text-lg">
+                                            ${formatPrice(item.precio)}
+                                        </p>
+                                    </div>
 
-                                    {/* Controles de cantidad */}
-                                    <div className="flex items-center mt-3">
-                                        <button
-                                            onClick={() =>
-                                                setItems((prev) => ({
-                                                    ...prev,
-                                                    [item._id]: Math.max((prev[item._id] || 0) - 1, 0),
-                                                }))
-                                            }
-                                            className="px-3 py-1 bg-white/10 rounded-l-xl"
-                                        >
-                                            -
-                                        </button>
-                                        <input
-                                            readOnly
-                                            value={items[item._id] || 0}
-                                            className="w-12 text-center bg-transparent border-t border-b border-white/10"
-                                        />
-                                        <button
-                                            onClick={() =>
-                                                setItems((prev) => ({
-                                                    ...prev,
-                                                    [item._id]: (prev[item._id] || 0) + 1,
-                                                }))
-                                            }
-                                            className="px-3 py-1 bg-white/10 rounded-r-xl"
-                                        >
-                                            +
-                                        </button>
+                                    <div className="flex justify-end mt-5">
+                                        <div className="flex items-center border border-gray-300 rounded-xl overflow-hidden shadow-sm">
+                                            <button
+                                                onClick={() =>
+                                                    setItems((prev) => ({
+                                                        ...prev,
+                                                        [item._id]: Math.max((prev[item._id] || 0) - 1, 0),
+                                                    }))
+                                                }
+                                                className="w-12 h-12 text-red-500 text-xl font-bold flex items-center justify-center hover:bg-gray-100 transition"
+                                            >
+                                                −
+                                            </button>
+
+                                            <span className="w-12 text-center text-lg font-semibold text-black">
+                                                {items[item._id] || 0}
+                                            </span>
+
+                                            <button
+                                                onClick={() =>
+                                                    setItems((prev) => ({
+                                                        ...prev,
+                                                        [item._id]: (prev[item._id] || 0) + 1,
+                                                    }))
+                                                }
+                                                className="w-12 h-12 text-red-500 text-xl font-bold flex items-center justify-center hover:bg-gray-100 transition"
+                                            >
+                                                +
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -267,9 +266,9 @@ export default function PedidosClientePage() {
                     exit={{ y: 100, opacity: 0 }}
                     transition={{ type: "spring", stiffness: 120 }}
                     onClick={() => setDrawerOpen(true)}
-                    className="fixed bottom-5 right-5 px-5 py-3 rounded-full bg-emerald-600 text-white 
-            shadow-lg shadow-emerald-600/30 backdrop-blur-md flex items-center gap-3 
-            font-semibold text-sm active:scale-95"
+                    className="fixed bottom-16 left-5 px-5 py-3 rounded-full bg-red-600 text-white 
+                     shadow-lg shadow-red-500/30 flex items-center gap-3 
+                     font-semibold text-sm active:scale-95"
                 >
                     <ShoppingCart size={20} />
                     <span>{totalItems} ítem{totalItems > 1 ? "s" : ""}</span>
@@ -277,7 +276,7 @@ export default function PedidosClientePage() {
                 </motion.button>
             )}
 
-            {/* 🆕 Botón subir arriba */}
+            {/* 🆙 Botón subir arriba */}
             <AnimatePresence>
                 {showScroll && (
                     <motion.button
@@ -285,8 +284,8 @@ export default function PedidosClientePage() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 80 }}
                         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                        className="fixed bottom-5 left-5 p-4 rounded-full bg-white/10 border border-white/20 text-white 
-              shadow-lg hover:bg-white/20 transition backdrop-blur-md"
+                        className="fixed bottom-16 right-5 p-4 rounded-full bg-black text-white 
+                       shadow-lg hover:bg-gray-800 transition"
                     >
                         <ArrowUp size={20} />
                     </motion.button>
@@ -297,14 +296,14 @@ export default function PedidosClientePage() {
             <AnimatePresence>
                 {drawerOpen && (
                     <motion.div
-                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex flex-col justify-end"
+                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex flex-col justify-end"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={() => setDrawerOpen(false)}
                     >
                         <motion.div
-                            className="bg-slate-900 rounded-t-3xl p-6 max-h-[80vh] overflow-y-auto shadow-xl"
+                            className="bg-white rounded-t-3xl p-6 max-h-[80vh] overflow-y-auto shadow-xl border-t border-gray-200"
                             initial={{ y: "100%" }}
                             animate={{ y: 0 }}
                             exit={{ y: "100%" }}
@@ -312,10 +311,10 @@ export default function PedidosClientePage() {
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-lg font-bold">Tu pedido</h2>
+                                <h2 className="text-lg font-bold text-black">Tu pedido</h2>
                                 <button
                                     onClick={vaciarCarrito}
-                                    className="flex items-center gap-1 text-rose-400 hover:text-rose-300 text-sm"
+                                    className="flex items-center gap-1 text-red-600 hover:text-red-500 text-sm"
                                 >
                                     <Trash2 size={18} /> Vaciar
                                 </button>
@@ -330,21 +329,21 @@ export default function PedidosClientePage() {
                                         <motion.div
                                             key={id}
                                             layout
-                                            className="flex justify-between items-center py-2 border-b border-white/10"
+                                            className="flex justify-between items-center py-2 border-b border-gray-200"
                                         >
                                             <div className="flex flex-col">
-                                                <p className="font-semibold">{item.nombre}</p>
-                                                <p className="text-sm text-gray-400">
+                                                <p className="font-semibold text-black">{item.nombre}</p>
+                                                <p className="text-sm text-gray-500">
                                                     {cant} × ${formatPrice(item.precio)}
                                                 </p>
                                             </div>
                                             <div className="flex items-center gap-3">
-                                                <p className="font-bold text-emerald-400">
+                                                <p className="font-bold text-red-600">
                                                     ${formatPrice(item.precio * cant)}
                                                 </p>
                                                 <button
                                                     onClick={() => eliminarProducto(id)}
-                                                    className="text-gray-400 hover:text-rose-400 transition"
+                                                    className="text-gray-400 hover:text-red-500 transition"
                                                 >
                                                     <X size={18} />
                                                 </button>
@@ -353,17 +352,17 @@ export default function PedidosClientePage() {
                                     );
                                 })}
 
-                            <div className="mt-4 flex justify-between font-bold text-lg">
+                            <div className="mt-4 flex justify-between font-bold text-lg text-black">
                                 <span>Total:</span>
-                                <span className="text-emerald-400">${formatPrice(total)}</span>
+                                <span className="text-red-600">${formatPrice(total)}</span>
                             </div>
 
                             <div className="mt-6 text-center">
-                                <p className="mb-2 font-semibold">Tipo de entrega</p>
+                                <p className="mb-2 font-semibold text-black">Tipo de entrega</p>
                                 <select
                                     value={tipoEntrega}
                                     onChange={(e) => setTipoEntrega(e.target.value)}
-                                    className="px-4 py-2 rounded-xl bg-white/10 w-full text-center"
+                                    className="px-4 py-2 rounded-xl border border-gray-300 w-full text-center focus:ring-2 focus:ring-red-400"
                                 >
                                     <option value="retira">Retira en el bar</option>
                                     <option value="envio">Envío a domicilio</option>
@@ -372,7 +371,7 @@ export default function PedidosClientePage() {
 
                             <button
                                 onClick={enviarPedido}
-                                className="w-full mt-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-semibold"
+                                className="w-full mt-6 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-semibold shadow"
                             >
                                 Finalizar pedido
                             </button>

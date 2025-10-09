@@ -154,45 +154,51 @@ export default function AdminPedidosPage() {
 
     return (
         <div className="p-6 min-h-screen text-white">
-            <h1 className="text-3xl font-bold text-center mb-6">Pedidos</h1>
+            <h1 className="text-3xl text-black font-bold text-center mb-6">Pedidos</h1>
 
             {/* 🔘 Selector de vista */}
-            <div className="flex justify-center gap-4 mb-8">
+            <div className="flex justify-center gap-1 mb-8">
                 <button
+                    type="button"
                     onClick={() => setVista("pendientes")}
-                    className={`relative px-5 py-2 rounded-full text-sm font-medium transition-all ${vista === "pendientes"
-                        ? "bg-amber-500/20 text-amber-300 border border-amber-400/50"
-                        : "bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10"
+                    aria-pressed={vista === "pendientes"}
+                    className={`relative px-5 py-2 rounded-full text-sm font-semibold border transition-colors ${vista === "pendientes"
+                        ? "bg-red-600 text-white border-red-600 shadow-sm"
+                        : "bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
                         }`}
                 >
                     Pendientes
                     {notificacionPendientes > 0 && (
-                        <span className="absolute -top-2 -right-2 bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                        <span className="absolute -top-2 -right-2 min-w-[1.5rem] px-2 py-0.5 rounded-full bg-red-600 text-white text-xs font-bold text-center">
                             {notificacionPendientes}
                         </span>
                     )}
                 </button>
 
                 <button
+                    type="button"
                     onClick={() => setVista("enProceso")}
-                    className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${vista === "enProceso"
-                        ? "bg-orange-500/20 text-orange-300 border border-orange-400/50"
-                        : "bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10"
+                    aria-pressed={vista === "enProceso"}
+                    className={`px-5 py-2 rounded-full text-sm font-semibold border transition-colors ${vista === "enProceso"
+                        ? "bg-red-600 text-white border-red-600 shadow-sm"
+                        : "bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
                         }`}
                 >
-                    En proceso
+                    Preparando
                 </button>
 
                 <button
+                    type="button"
                     onClick={() => setVista("finalizados")}
-                    className={`relative px-5 py-2 rounded-full text-sm font-medium transition-all ${vista === "finalizados"
-                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/50"
-                        : "bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10"
+                    aria-pressed={vista === "finalizados"}
+                    className={`relative px-5 py-2 rounded-full text-sm font-semibold border transition-colors ${vista === "finalizados"
+                        ? "bg-red-600 text-white border-red-600 shadow-sm"
+                        : "bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
                         }`}
                 >
                     Finalizados
                     {notificacionFinalizados > 0 && (
-                        <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                        <span className="absolute -top-2 -right-2 min-w-[1.5rem] px-2 py-0.5 rounded-full bg-red-600 text-white text-xs font-bold text-center">
                             {notificacionFinalizados}
                         </span>
                     )}
@@ -221,22 +227,21 @@ export default function AdminPedidosPage() {
                                     animate={{ opacity: 1, scale: 1, y: 0 }}
                                     exit={{ opacity: 0 }}
                                     transition={{ duration: 0.25 }}
-                                    className="p-5 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md shadow-md hover:shadow-xl transition-all"
+                                    className="p-5 rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-all"
                                 >
                                     {/* Cabecera */}
                                     <div className="flex justify-between items-start mb-3">
                                         <div>
-                                            <h2 className="text-lg font-semibold tracking-wide">
+                                            <h2 className="text-lg font-bold text-gray-900">
                                                 {p.userId?.nombre} {p.userId?.apellido}
                                             </h2>
-                                            <p className="text-sm text-gray-400">
+                                            <p className="text-sm text-gray-600">
                                                 Entrega: {p.tipoEntrega}
                                             </p>
                                             <p className="text-xs text-gray-500">{fechaHora}</p>
                                         </div>
                                         <span
-                                            className={`px-3 py-1 rounded-full text-xs font-medium capitalize border ${colorClasses[color] ||
-                                                "border-gray-500 text-gray-400 bg-gray-800/40"
+                                            className={`px-3 py-1 rounded-full text-xs font-semibold capitalize border ${colorClasses[color] || "border-gray-400 bg-gray-100 text-gray-600"
                                                 }`}
                                         >
                                             {p.estado}
@@ -244,103 +249,107 @@ export default function AdminPedidosPage() {
                                     </div>
 
                                     {/* Items */}
-                                    <ul className="space-y-1 text-sm text-gray-200 mb-4">
+                                    <ul className="space-y-1 text-sm text-gray-700 mb-4">
                                         {p.items.map((it: any) => (
                                             <li
                                                 key={it._id}
-                                                className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg"
+                                                className="flex items-center justify-between bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100"
                                             >
-                                                <span>
-                                                    {it.menuItemId?.nombre}{" "}
-                                                    <span className="text-emerald-500 font-semibold">
-                                                        ×{it.cantidad}
-                                                    </span>
+                                                <span>{it.menuItemId?.nombre}</span>
+                                                <span className="text-red-600 font-semibold">
+                                                    ×{it.cantidad}
                                                 </span>
                                             </li>
                                         ))}
                                     </ul>
 
-                                    {p.estado === "pendiente" ? (
-                                        // ✅ Botones aceptar/rechazar
-                                        <div className="flex justify-between mt-4">
-                                            <button
-                                                onClick={() =>
-                                                    actualizarEstado(p._id, "preparando")
-                                                }
-                                                className="flex-1 mr-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-lg transition"
-                                            >
-                                                Aceptar
-                                            </button>
-                                            <button
-                                                onClick={() => eliminarPedido(p._id)}
-                                                className="flex-1 ml-2 bg-red-600 hover:bg-red-700 text-white font-medium py-2 rounded-lg transition"
-                                            >
-                                                Rechazar
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        // 🔄 Línea de tiempo
-                                        <div className="relative w-full flex justify-between items-center mt-4">
-                                            <div className="absolute top-[18px] left-0 w-full h-[3px] bg-gray-700 rounded-full" />
-                                            <motion.div
-                                                className={`absolute top-[18px] left-0 h-[3px] ${barColors[color] || "bg-gray-500"
-                                                    } rounded-full`}
-                                                initial={{ width: 0 }}
-                                                animate={{
-                                                    width: `${(estadoIndex /
-                                                        (estados.length - 1)) *
-                                                        100
-                                                        }%`,
-                                                }}
-                                                transition={{ duration: 0.4 }}
-                                            />
-                                            {estados.map((estado, index) => {
-                                                const Icon = estado.icon;
-                                                const isActive = index <= estadoIndex;
-                                                const activeColor =
-                                                    colorClasses[estado.color];
+                                    {/* 🔄 Línea de tiempo */}
+                                    <div className="relative w-full flex justify-between items-center mt-5">
+                                        {/* Línea base */}
+                                        <div className="absolute top-[18px] left-0 w-full h-[3px] bg-gray-200 rounded-full" />
 
-                                                return (
-                                                    <div
-                                                        key={estado.key}
-                                                        className="flex flex-col items-center text-xs w-full relative z-10"
+                                        {/* Progreso dinámico */}
+                                        <motion.div
+                                            className={`absolute top-[18px] left-0 h-[3px] ${barColors[color] || "bg-gray-400"} rounded-full`}
+                                            initial={{ width: 0 }}
+                                            animate={{
+                                                width: `${(estadoIndex / (estados.length - 1)) * 100}%`,
+                                            }}
+                                            transition={{ duration: 0.4 }}
+                                        />
+
+                                        {estados.map((estado, index) => {
+                                            const Icon = estado.icon;
+                                            const isActive = index <= estadoIndex;
+
+                                            // Ajustes de visibilidad según color
+                                            let activeBorder = "";
+                                            let activeBg = "";
+                                            let activeText = "";
+
+                                            switch (estado.color) {
+                                                case "red":
+                                                    activeBorder = "border-red-500";
+                                                    activeBg = "bg-red-100";
+                                                    activeText = "text-red-600";
+                                                    break;
+                                                case "orange":
+                                                    activeBorder = "border-orange-500";
+                                                    activeBg = "bg-orange-100";
+                                                    activeText = "text-orange-600";
+                                                    break;
+                                                case "blue":
+                                                    activeBorder = "border-blue-500";
+                                                    activeBg = "bg-blue-100";
+                                                    activeText = "text-blue-600";
+                                                    break;
+                                                case "emerald":
+                                                    activeBorder = "border-emerald-500";
+                                                    activeBg = "bg-emerald-100";
+                                                    activeText = "text-emerald-600";
+                                                    break;
+                                                case "yellow": // 🔆 más contraste para amarillo
+                                                    activeBorder = "border-yellow-400";
+                                                    activeBg = "bg-yellow-300";
+                                                    activeText = "text-yellow-900";
+                                                    break;
+                                                default:
+                                                    activeBorder = "border-gray-400";
+                                                    activeBg = "bg-gray-100";
+                                                    activeText = "text-gray-600";
+                                            }
+
+                                            return (
+                                                <div key={estado.key} className="flex flex-col items-center text-xs w-full relative z-10">
+                                                    <motion.button
+                                                        onClick={() => actualizarEstado(p._id, estado.key)}
+                                                        whileTap={{ scale: 0.9 }}
+                                                        className={`flex items-center justify-center w-9 h-9 rounded-full border-2 transition-all
+            ${isActive
+                                                                ? `${activeBorder} ${activeBg} ${activeText}`
+                                                                : "border-gray-300 bg-white text-gray-400"
+                                                            }`}
                                                     >
-                                                        <motion.button
-                                                            onClick={() =>
-                                                                actualizarEstado(
-                                                                    p._id,
-                                                                    estado.key
-                                                                )
-                                                            }
-                                                            whileTap={{ scale: 0.9 }}
-                                                            className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all ${isActive
-                                                                ? activeColor
-                                                                : "border-gray-600 bg-gray-800 text-gray-500"
-                                                                }`}
-                                                        >
-                                                            <Icon className="w-4 h-4" />
-                                                        </motion.button>
-                                                        <span
-                                                            className={`mt-2 ${isActive
-                                                                ? textColors[
-                                                                estado.color
-                                                                ]
-                                                                : "text-gray-500"
-                                                                }`}
-                                                        >
-                                                            {estado.label}
-                                                        </span>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
+                                                        <Icon className="w-4 h-4" />
+                                                    </motion.button>
+                                                    <span
+                                                        className={`mt-2 font-medium ${isActive ? activeText : "text-gray-400"
+                                                            }`}
+                                                    >
+                                                        {estado.label}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
                                 </motion.div>
                             );
                         })
                     )}
                 </AnimatePresence>
             </div>
+
         </div>
     );
 }

@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
-import Loader from "./Loader";
 import Swal from "sweetalert2";
+import Loader from "./Loader";
 
 type Reward = { _id: string; titulo: string; puntos: number };
 type CamState = "idle" | "starting" | "on" | "error";
@@ -13,23 +13,18 @@ export default function ScanRewardPage() {
     const { data: rewards } = useSWR<Reward[]>("/api/rewards", fetcher);
 
     const [selectedReward, setSelectedReward] = useState<string | null>(null);
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const zxingReaderRef = useRef<any>(null);
-
-    const camStateRef = useRef<CamState>("idle");
     const [camState, setCamState] = useState<CamState>("idle");
-    const [status, setStatus] = useState("");
     const [errMsg, setErrMsg] = useState("");
     const [flash, setFlash] = useState(false);
     const [toast, setToast] = useState<string>("");
 
-    // anti-spam 
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const zxingReaderRef = useRef<any>(null);
+    const camStateRef = useRef<CamState>("idle");
     const busyRef = useRef(false);
     const inFlightTokensRef = useRef<Set<string>>(new Set());
 
-    useEffect(() => {
-        return () => stopCamera();
-    }, []);
+    useEffect(() => () => stopCamera(), []);
 
     async function supportsNativeQR(): Promise<boolean> {
         // @ts-expect-error experimental
@@ -49,7 +44,6 @@ export default function ScanRewardPage() {
             return;
         }
         setErrMsg("");
-        setStatus("Solicitando permisos de cámara…");
         setCamState("starting");
         stopCamera();
 
@@ -65,6 +59,7 @@ export default function ScanRewardPage() {
                         facingMode: { ideal: "environment" },
                         width: { ideal: 1280 },
                         height: { ideal: 720 },
+                        advanced: [{ focusMode: "continuous" } as any],
                     },
                 });
                 videoRef.current.srcObject = stream;
@@ -73,7 +68,6 @@ export default function ScanRewardPage() {
                 await videoRef.current.play();
 
                 const detector = new NativeBD({ formats: ["qr_code"] });
-
                 const tick = async () => {
                     if (!videoRef.current || camStateRef.current !== "on") return;
                     try {
@@ -86,7 +80,6 @@ export default function ScanRewardPage() {
 
                 camStateRef.current = "on";
                 setCamState("on");
-                setStatus("Cámara activa (nativo). Escaneá el QR.");
                 requestAnimationFrame(tick);
                 return;
             }
@@ -94,23 +87,16 @@ export default function ScanRewardPage() {
             // fallback ZXing
             const { BrowserMultiFormatReader } = await import("@zxing/browser");
             const { DecodeHintType, BarcodeFormat } = await import("@zxing/library");
-
             const hints = new Map();
             hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.QR_CODE]);
 
-            const reader = new BrowserMultiFormatReader(hints, {
-                delayBetweenScanAttempts: 120,
-            });
+            const reader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 120 });
             zxingReaderRef.current = reader;
 
             await reader.decodeFromConstraints(
                 {
                     audio: false,
-                    video: {
-                        facingMode: { ideal: "environment" },
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 },
-                    },
+                    video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
                 },
                 videoRef.current!,
                 async (result) => {
@@ -120,7 +106,6 @@ export default function ScanRewardPage() {
 
             camStateRef.current = "on";
             setCamState("on");
-            setStatus("Cámara activa (ZXing). Escaneá el QR.");
         } catch (err: any) {
             console.error(err);
             setCamState("error");
@@ -151,115 +136,52 @@ export default function ScanRewardPage() {
             if (parsed?.qrToken) token = String(parsed.qrToken);
         } catch { }
 
-        if (!selectedReward) {
-            setStatus("❌ Seleccioná una recompensa antes de escanear.");
-            busyRef.current = false;
-            return;
-        }
-
         try {
-            // 🔍 Buscar usuario del QR antes del canje
             const res = await fetch(`/api/usuarios/qr/${token}`);
-            if (!res.ok) {
-                await Swal.fire({
-                    icon: "error",
-                    title: "QR inválido",
-                    text: "No se encontró ningún usuario asociado a este código.",
-                    confirmButtonColor: "#ef4444",
-                    background: "#0f172a",
-                    color: "#f1f5f9",
-                });
-                busyRef.current = false;
-                return;
-            }
-
+            if (!res.ok) throw new Error("QR inválido");
             const user = await res.json();
             const reward = rewards?.find((r) => r._id === selectedReward);
 
-            // 🧾 Confirmación visual
             const result = await Swal.fire({
                 title: "",
                 html: `
-    <div style="
-        background: linear-gradient(145deg, #0f172a, #111827);
-        border-radius: 1rem;
-        padding: 1.5rem;
-        text-align: left;
-        box-shadow: 0 0 25px rgba(16, 185, 129, 0.15);
-        color: #f1f5f9;
-        font-family: 'Inter', sans-serif;
-    ">
-        <h2 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 1rem; color: #e2e8f0;">
-            Confirmar canje
-        </h2>
-        <div style="display: flex; flex-direction: column; gap: 0.4rem; line-height: 1.4;">
-            <p>${user.nombre} ${user.apellido || ""}</p>
-            <p>${user.dni || "-"}</p>
-            <b style="color:#10b981;">${user.puntos ?? 0} pts</b>
-        </div>
-
-        <hr style="margin: 1rem 0; border: none; border-top: 1px solid rgba(255,255,255,0.1);" />
-
-        <div style="display: flex; flex-direction: column; gap: 0.4rem;">
-            <p><span style="color:#9ca3af;">Canje:</p>
-            </span> <b>${reward?.titulo || "—"}</b>
-            <p><span style="color:#9ca3af;">Costo:</span> <b style="color:#10b981;">${reward?.puntos ?? 0} pts</b></p>
-        </div>
-    </div>
-    `,
+        <div style="background: linear-gradient(145deg,#0f172a,#111827);border-radius:1rem;padding:1.5rem;text-align:left;
+          box-shadow:0 0 25px rgba(239,68,68,0.15);color:#f1f5f9;font-family:'Inter',sans-serif;">
+          <h2 style="font-size:1.4rem;font-weight:700;margin-bottom:.8rem;color:#fca5a5;">Confirmar canje</h2>
+          <p>${user.nombre} ${user.apellido || ""} — <b>${user.puntos ?? 0} pts</b></p>
+          <hr style="margin:1rem 0;border:none;border-top:1px solid rgba(255,255,255,0.1);" />
+          <p><b>${reward?.titulo}</b> — <span style="color:#f87171;">-${reward?.puntos ?? 0} pts</span></p>
+        </div>`,
                 showCancelButton: true,
-                confirmButtonText: "Confirmar canje",
+                confirmButtonText: "Confirmar",
                 cancelButtonText: "Cancelar",
-                focusConfirm: false,
-                confirmButtonColor: "#10b981",
+                confirmButtonColor: "#ef4444",
                 cancelButtonColor: "#374151",
                 background: "#0f172a",
                 color: "#f1f5f9",
-                reverseButtons: true,
-                width: 420,
-                padding: "1.5rem",
-                showClass: {
-                    popup: "animate__animated animate__fadeInDown animate__faster",
-                },
-                hideClass: {
-                    popup: "animate__animated animate__fadeOutUp animate__faster",
-                },
             });
 
             if (!result.isConfirmed) {
-                setStatus("Canje cancelado.");
                 busyRef.current = false;
                 return;
             }
 
-            // ✅ Realizar el canje
             const canjeRes = await fetch("/api/canjes", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ rewardId: selectedReward, qrToken: token }),
             });
 
-            const data = await canjeRes.json();
-
             if (canjeRes.ok) {
-                const titulo = data?.canje?.rewardId?.titulo || reward?.titulo || "Recompensa";
-                const puntos = data?.canje?.puntosGastados || reward?.puntos || 0;
-
                 await Swal.fire({
                     icon: "success",
-                    title: "Canje realizado ✨",
-                    html: `
-                    <p style="font-size: 1.1rem; color: #e2e8f0;">
-                        <b>${titulo}</b><br/>
-                        <span style="color: #10b981;">-${puntos} pts</span>
-                    </p>
-                `,
-                    confirmButtonColor: "#10b981",
+                    title: "Canje realizado",
+                    html: `<b>${reward?.titulo}</b><br/><span style="color:#f87171;">-${reward?.puntos} pts</span>`,
+                    confirmButtonColor: "#ef4444",
                     background: "#0f172a",
                     color: "#f1f5f9",
-                    showConfirmButton: true,
                     timer: 2000,
-                    timerProgressBar: true,
+                    showConfirmButton: false,
                 });
 
                 setFlash(true);
@@ -268,21 +190,16 @@ export default function ScanRewardPage() {
                 await Swal.fire({
                     icon: "error",
                     title: "Error",
-                    text: data.message || "No se pudo completar el canje.",
+                    text: "No se pudo completar el canje.",
                     confirmButtonColor: "#ef4444",
                     background: "#0f172a",
                     color: "#f1f5f9",
                 });
             }
         } catch (e: any) {
-            await Swal.fire({
-                icon: "error",
-                title: "Error de red",
-                text: e.message || "Ocurrió un error inesperado.",
-                confirmButtonColor: "#ef4444",
-                background: "#0f172a",
-                color: "#f1f5f9",
-            });
+            console.error(e);
+            setToast("QR inválido o error de red");
+            setTimeout(() => setToast(""), 2500);
         } finally {
             setTimeout(() => {
                 busyRef.current = false;
@@ -298,26 +215,58 @@ export default function ScanRewardPage() {
     }[camState];
 
     return (
-        <div className="mx-auto max-w-4xl p-4 md:p-6 space-y-6">
-            <h1 className="text-2xl font-bold">Escanear QR para canje</h1>
+        <div className="mx-auto max-w-5xl p-4 md:p-6 space-y-6">
 
-            {/* Selector recompensas */}
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+            {/* Selector de recompensa */}
+            <div className="rounded-2xl border border-red-200 bg-gray-50 p-4">
                 {rewards ? (
-                    <select
-                        className="w-full rounded-xl bg-white/10 px-3 py-2.5 outline-none ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-emerald-500/70"
-                        value={selectedReward || ""}
-                        onChange={(e) => setSelectedReward(e.target.value)}
-                    >
-                        <option value="">Seleccioná un canje</option>
-                        {rewards.map((r) => (
-                            <option key={r._id} value={r._id}>
-                                {r.titulo} — {r.puntos} pts
-                            </option>
-                        ))}
-                    </select>
+                    <div className="flex flex-col gap-2">
+                        <label className="text-sm font-medium text-gray-700">Seleccionar recompensa</label>
+                        <div className="relative">
+                            <select
+                                className="w-full appearance-none rounded-xl border-2 border-red-300 bg-white text-gray-800 text-lg font-medium
+                     px-4 py-3 pr-10 shadow-sm outline-none
+                     focus:border-red-500 focus:ring-2 focus:ring-red-200 transition"
+                                value={selectedReward || ""}
+                                onChange={(e) => setSelectedReward(e.target.value)}
+                            >
+                                <option value="">Seleccioná un canje</option>
+                                {rewards.map((r) => (
+                                    <option key={r._id} value={r._id}>
+                                        {r.titulo} — {r.puntos} pts
+                                    </option>
+                                ))}
+                            </select>
+
+                            {/* 🔽 Flecha personalizada */}
+                            <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                    className="w-5 h-5 text-red-500"
+                                >
+                                    <path
+                                        fillRule="evenodd"
+                                        d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.173l3.71-3.942a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z"
+                                        clipRule="evenodd"
+                                    />
+                                </svg>
+                            </div>
+                        </div>
+
+                        {/* 💬 Texto informativo (opcional) */}
+                        {selectedReward && (
+                            <p className="text-sm text-gray-500 mt-1">
+                                Has seleccionado:{" "}
+                                <span className="font-semibold text-red-600">
+                                    {rewards.find((r) => r._id === selectedReward)?.titulo}
+                                </span>
+                            </p>
+                        )}
+                    </div>
                 ) : (
-                    <div className="py-12 flex justify-center">
+                    <div className="py-8 flex justify-center">
                         <Loader size={32} />
                     </div>
                 )}
@@ -342,37 +291,28 @@ export default function ScanRewardPage() {
 
                 {/* video */}
                 <div className="relative aspect-square md:aspect-[4/3] lg:aspect-[3/2] bg-black">
-                    <video
-                        ref={videoRef}
-                        className="absolute inset-0 h-full w-full object-cover"
-                        playsInline
-                        muted
-                        autoPlay
-                    />
-                    {flash && <div className="pointer-events-none absolute inset-0 bg-emerald-400/25 animate-pulse" />}
+                    <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover" playsInline muted autoPlay />
+                    {flash && <div className="pointer-events-none absolute inset-0 bg-rose-400/25 animate-pulse" />}
+                    <div className="pointer-events-none absolute inset-0">
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/25" />
+                        <div className="absolute inset-6 md:inset-8 rounded-2xl border-2 border-white/25" />
+                    </div>
                 </div>
 
                 {/* controles */}
-                <div className="flex items-center justify-center gap-3 p-3 border-t border-white/10 bg-black/40 backdrop-blur">
+                <div className="flex items-center justify-center p-3 border-t border-white/10 bg-black/40 backdrop-blur">
                     {camState !== "on" ? (
                         <button
                             onClick={startCamera}
-                            disabled={!selectedReward || camState === "starting"} // 👈 bloquea si no hay recompensa
-                            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold shadow transition-shadow
-        ${!selectedReward || camState === "starting"
-                                    ? "bg-indigo-600/40 text-white/70 cursor-not-allowed"
-                                    : "bg-indigo-600 text-white hover:shadow-lg"}`}
+                            disabled={!selectedReward || camState === "starting"}
+                            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-rose-600 text-white font-semibold disabled:opacity-60 disabled:cursor-not-allowed shadow hover:shadow-lg transition-shadow"
                         >
-                            {!selectedReward
-                                ? "Seleccioná un canje"
-                                : camState === "starting"
-                                    ? "Activando…"
-                                    : "Activar cámara"}
+                            {!selectedReward ? "Seleccioná un canje" : camState === "starting" ? "Activando…" : "Activar cámara"}
                         </button>
                     ) : (
                         <button
                             onClick={stopCamera}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-900 text-white font-semibold border border-white/10 hover:bg-zinc-800"
+                            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-zinc-900 text-white font-semibold border border-white/10 hover:bg-zinc-800"
                         >
                             Detener
                         </button>
@@ -382,11 +322,11 @@ export default function ScanRewardPage() {
                 {errMsg && <div className="px-3 pb-3 text-sm text-rose-300">{errMsg}</div>}
             </div>
 
-            {/* toast resultado */}
+            {/* toast */}
             {toast && (
                 <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4">
-                    <div className="pointer-events-auto w-full max-w-sm rounded-2xl bg-zinc-900/90 border border-emerald-500/30 shadow-xl backdrop-blur px-4 py-4 animate-in fade-in zoom-in-95 duration-200">
-                        <div className="font-semibold">{toast}</div>
+                    <div className="pointer-events-auto w-full max-w-sm rounded-2xl bg-zinc-900/90 border border-rose-500/30 shadow-xl backdrop-blur px-4 py-4 animate-in fade-in zoom-in-95 duration-200">
+                        <div className="font-semibold text-rose-400">{toast}</div>
                     </div>
                 </div>
             )}

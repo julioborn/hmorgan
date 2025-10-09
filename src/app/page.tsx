@@ -51,47 +51,40 @@ function Landing() {
     >
       {/* Fondo decorativo: solo arriba */}
       <div className="absolute inset-0 -z-10">
-        <div className="absolute top-20 left-1/2 w-[500px] h-[500px] bg-emerald-600/20 rounded-full blur-3xl animate-pulse -translate-x-1/2" />
+        <div className="absolute top-20 left-1/2 w-[500px] h-[500px] bg-red-600/20 rounded-full blur-3xl animate-pulse -translate-x-1/2" />
       </div>
 
       {/* Hero principal */}
       <section className="text-center space-y-3">
         <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight">
           Bienvenido a{" "}
-          <span className="bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent drop-shadow-lg">
+          <span className="bg-gradient-to-r from-red-600 to-red-400 bg-clip-text text-transparent drop-shadow-lg">
             H Morgan Bar
           </span>
+
         </h1>
-        <p className="text-emerald-400 font-semibold text-base sm:text-lg">
+        <p className="text-red-600 font-semibold text-base sm:text-lg">
           ¡Tu experiencia en el bar ahora tiene canjes!
         </p>
+
       </section>
 
       {/* Card de acceso */}
       <section className="flex justify-center">
-        <div className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 to-slate-800 shadow-2xl p-8 text-center">
+        <div className="relative w-full max-w-lg overflow-hidden rounded-2xl p-6 text-center space-x-2">
           {/* Glow solo arriba, chiquito */}
-          <div className="pointer-events-none absolute -top-12 -right-12 w-48 h-48 rounded-full bg-emerald-500/10 blur-2xl animate-pulse" />
-
-          <h2 className="text-2xl sm:text-3xl font-bold mb-3">Comenzá ahora</h2>
-          <p className="opacity-75 mb-6 text-base sm:text-lg">
-            Creá tu cuenta o ingresá para empezar a sumar puntos.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link
-              href="/register"
-              className="px-5 py-3 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-500 transition shadow-lg hover:scale-105"
-            >
-              Crear cuenta
-            </Link>
-            <Link
-              href="/login"
-              className="px-5 py-3 rounded-xl bg-white/10 font-semibold hover:bg-white/20 transition shadow-lg hover:scale-105"
-            >
-              Ingresar
-            </Link>
-          </div>
+          <Link
+            href="/register"
+            className="px-5 py-3 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-500 transition shadow-lg hover:scale-105"
+          >
+            Crear cuenta
+          </Link>
+          <Link
+            href="/login"
+            className="px-5 py-3 rounded-xl bg-black text-white font-semibold hover:bg-gray-900 transition shadow-lg hover:scale-105"
+          >
+            Ingresar
+          </Link>
         </div>
       </section>
     </div>
@@ -136,8 +129,8 @@ function ClientHome({ nombre }: { nombre?: string }) {
     >
       {/* Carrusel de recompensas */}
       <section className="relative">
-        <div className="relative rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 to-slate-800 shadow-2xl p-4">
-          <h2 className="text-xl font-bold mb-3 text-center">
+        <div className="relative rounded-2xl bg-gradient-to-b from-gray-50 to-gray-100 shadow-xl p-5 border border-gray-200">
+          <h2 className="text-xl font-bold mb-3 text-center text-black">
             Canjes disponibles
           </h2>
 
@@ -170,7 +163,7 @@ function ClientHome({ nombre }: { nombre?: string }) {
               >
                 {rewards.map((r) => (
                   <SwiperSlide key={r._id}>
-                    <div className="relative bg-white text-black rounded-2xl shadow-xl p-5 h-44 flex flex-col justify-between overflow-hidden">
+                    <div className="relative bg-white text-black rounded-2xl shadow-md border border-gray-200 p-5 h-44 flex flex-col justify-between overflow-hidden transition hover:shadow-lg hover:-translate-y-1">
                       <div className="flex-1 flex flex-col justify-between">
                         <h3 className="font-extrabold text-base md:text-lg line-clamp-2">
                           {r.titulo}
@@ -178,19 +171,23 @@ function ClientHome({ nombre }: { nombre?: string }) {
                         <p className="text-sm text-gray-600 line-clamp-2">
                           {r.descripcion || "Canje"}
                         </p>
-                        <span className="text-sm font-semibold text-emerald-600">
+                        <span className="text-sm font-semibold text-red-600">
                           {r.puntos} pts
                         </span>
                       </div>
+
+                      {/* Logo */}
                       <div className="absolute bottom-3 right-3">
                         <img
                           src="/icon-192x192.png"
                           alt="Logo"
-                          className="h-8 w-8 object-contain opacity-80"
+                          className="h-8 w-8 object-contain opacity-70"
                         />
                       </div>
-                      <span className="absolute -left-3 top-1/2 w-6 h-6 bg-slate-900 rounded-full" />
-                      <span className="absolute -right-3 top-1/2 w-6 h-6 bg-slate-900 rounded-full" />
+
+                      {/* Círculos laterales */}
+                      <span className="absolute -left-3 top-1/2 w-6 h-6 bg-gray-100 border border-gray-300 rounded-full shadow-sm" />
+                      <span className="absolute -right-3 top-1/2 w-6 h-6 bg-gray-100 border border-gray-300 rounded-full shadow-sm" />
                     </div>
                   </SwiperSlide>
                 ))}
@@ -198,7 +195,7 @@ function ClientHome({ nombre }: { nombre?: string }) {
               <div className="mt-4 flex justify-center">
                 <Link
                   href="/cliente/rewards"
-                  className="px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 transition"
+                  className="px-4 py-2 text-sm font-semibold rounded-lg bg-red-600 text-white hover:bg-red-500 transition"
                 >
                   Ver todos
                 </Link>
@@ -352,10 +349,10 @@ function ActionCard({
   const content = (
     <div
       className={`group relative flex flex-col items-center justify-center
-                  rounded-2xl border border-white/10
+                  rounded-2xl border border-gray-200
                   p-6 sm:p-8 min-h-[140px] lg:min-h-[160px]
-                  bg-gradient-to-br ${accent || "from-slate-800 to-slate-900"}
-                  hover:scale-105 hover:shadow-xl hover:shadow-emerald-500/30
+                  bg-gradient-to-br ${accent || "from-gray-100 to-gray-200"}
+                  hover:scale-105 hover:shadow-xl hover:shadow-red-500/30
                   transition-all duration-300 text-white`}
     >
       <Icon className="h-10 w-10 lg:h-12 lg:w-12 mb-3 opacity-95" aria-hidden />

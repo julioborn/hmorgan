@@ -2,8 +2,8 @@
 import useSWR from "swr";
 import { useState } from "react";
 import Link from "next/link";
-import { Gift, QrCode, Plus } from "lucide-react";
-import Loader from "@/components/Loader"; // 👈 importa tu loader
+import { Gift, QrCode, ChevronDown, ChevronUp } from "lucide-react";
+import Loader from "@/components/Loader";
 
 type Reward = {
     _id: string;
@@ -17,7 +17,6 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 export default function AdminRewardsPage() {
     const { data: rewards, mutate } = useSWR<Reward[]>("/api/rewards", fetcher);
 
-    // estado del form
     const [titulo, setTitulo] = useState("");
     const [descripcion, setDescripcion] = useState("");
     const [puntos, setPuntos] = useState<number>(0);
@@ -37,8 +36,9 @@ export default function AdminRewardsPage() {
                 body: JSON.stringify({ titulo, descripcion, puntos }),
             });
 
-            if (!res.ok) throw new Error("Error creando recompensa");
-            await mutate(); // refresca la lista
+            if (!res.ok) throw new Error("Error creando canje");
+            await mutate();
+
             setTitulo("");
             setDescripcion("");
             setPuntos(0);
@@ -50,42 +50,40 @@ export default function AdminRewardsPage() {
         }
     }
 
-    // 👇 loader global en vez de texto
     if (!rewards) {
         return (
-            <div className="flex justify-center items-center py-16">
-                <Loader size={64} />
+            <div className="p-12 flex justify-center">
+                <Loader size={40} />
             </div>
         );
     }
 
     return (
-        <div className="p-6 space-y-8">
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-                <Gift className="text-emerald-400" /> Canjes
+        <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-6">
+            {/* 🏷️ Título */}
+            <h1 className="text-3xl font-extrabold mb-8 text-black text-center md:text-left flex justify-center items-center gap-2">
+                Canjes (Administración)
             </h1>
 
-            {/* Formulario toggleable */}
-            <div className="bg-white/5 rounded-lg p-6 shadow-md">
+            {/* ➕ Formulario toggleable */}
+            <div className="mb-10 bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
                 <button
                     onClick={() => setShowForm(!showForm)}
-                    className="w-full flex items-center justify-between text-md font-bold text-emerald-400 hover:text-emerald-300 transition"
+                    className="w-full flex items-center justify-between text-lg font-bold text-red-600 hover:text-red-700 transition"
                 >
                     <span>Generar Canje</span>
-                    {showForm ? "−" : "+"}
+                    {showForm ? <ChevronUp /> : <ChevronDown />}
                 </button>
 
                 {showForm && (
                     <form onSubmit={handleCreate} className="mt-6 space-y-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <input
                                 value={titulo}
                                 onChange={(e) => setTitulo(e.target.value)}
                                 placeholder="Título"
                                 required
-                                className="bg-slate-800 border border-slate-600 text-slate-100 
-                           placeholder-slate-400 px-3 py-2 rounded 
-                           focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500"
                             />
                             <input
                                 type="number"
@@ -93,30 +91,24 @@ export default function AdminRewardsPage() {
                                 onChange={(e) => setPuntos(Number(e.target.value))}
                                 placeholder="Puntos"
                                 required
-                                className="bg-slate-800 border border-slate-600 text-slate-100 
-                           placeholder-slate-400 px-3 py-2 rounded 
-                           focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500"
                             />
                         </div>
 
-                        <div>
-                            <textarea
-                                value={descripcion}
-                                onChange={(e) => setDescripcion(e.target.value)}
-                                placeholder="Descripción (opcional)"
-                                className="w-full bg-slate-800 border border-slate-600 text-slate-100 
-                           placeholder-slate-400 px-3 py-2 rounded min-h-[80px] 
-                           focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                            />
-                        </div>
+                        <textarea
+                            value={descripcion}
+                            onChange={(e) => setDescripcion(e.target.value)}
+                            placeholder="Descripción (opcional)"
+                            className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-black placeholder-gray-400 min-h-[80px] focus:outline-none focus:ring-2 focus:ring-red-500"
+                        />
 
-                        {error && <p className="text-sm text-rose-400">{error}</p>}
+                        {error && <p className="text-sm text-red-600">{error}</p>}
 
                         <div className="flex justify-end">
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="bg-emerald-600 text-white px-6 py-2 rounded hover:bg-emerald-500 disabled:opacity-50"
+                                className="px-6 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-500 transition disabled:opacity-50"
                             >
                                 {loading ? <Loader size={20} /> : "Crear"}
                             </button>
@@ -125,31 +117,40 @@ export default function AdminRewardsPage() {
                 )}
             </div>
 
-            {/* Botón global de escanear */}
-            <div className="flex justify-center">
+            {/* 📱 Botón global Escanear */}
+            <div className="flex justify-center mb-10">
                 <Link
                     href="/admin/rewards/scan"
-                    className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-500 shadow-lg hover:scale-105 transition"
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-500 shadow-md hover:scale-105 transition"
                 >
                     <QrCode size={18} /> Escanear
                 </Link>
             </div>
 
-            {/* Lista de recompensas estilo ticket */}
+            {/* 🎟️ Lista de canjes */}
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {rewards.map((r) => (
                     <div
                         key={r._id}
-                        className="relative bg-white text-black rounded-2xl shadow-xl p-5 h-48 flex flex-col justify-between overflow-hidden"
+                        className="relative bg-white border border-gray-200 rounded-2xl shadow-sm p-5 flex flex-col justify-between hover:bg-red-50/40 transition overflow-visible"
                     >
-                        <div className="flex-1 flex flex-col justify-between">
-                            <h3 className="text-lg font-extrabold truncate">{r.titulo}</h3>
-                            <p className="text-sm text-gray-600 line-clamp-2">
-                                {r.descripcion || "Canje"}
+                        {/* Borde lateral tipo ticket */}
+                        <div className="absolute inset-y-0 -left-3 flex items-center">
+                            <span className="w-6 h-6 bg-gray-100 rounded-full border border-gray-200" />
+                        </div>
+                        <div className="absolute inset-y-0 -right-3 flex items-center">
+                            <span className="w-6 h-6 bg-gray-100 rounded-full border border-gray-200" />
+                        </div>
+
+                        {/* Contenido */}
+                        <div className="flex-1">
+                            <h3 className="text-lg font-bold text-black">{r.titulo}</h3>
+                            <p className="text-sm text-gray-600 mt-1">
+                                {r.descripcion || "Sin descripción"}
                             </p>
-                            <span className="text-sm font-semibold text-emerald-600">
-                                {r.puntos} pts
-                            </span>
+                            <p className="text-sm font-semibold text-red-600 mt-2">
+                                {r.puntos} puntos
+                            </p>
                         </div>
 
                         <div className="absolute bottom-3 right-3">
@@ -159,9 +160,6 @@ export default function AdminRewardsPage() {
                                 className="h-7 w-7 object-contain opacity-80"
                             />
                         </div>
-
-                        <span className="absolute -left-3 top-1/2 w-6 h-6 bg-slate-900 rounded-full" />
-                        <span className="absolute -right-3 top-1/2 w-6 h-6 bg-slate-900 rounded-full" />
                     </div>
                 ))}
             </div>

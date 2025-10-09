@@ -12,7 +12,7 @@ export default function Loader({
     return (
         <div className="flex items-center justify-center">
             <Utensils
-                className={`animate-spin text-emerald-500 ${className}`}
+                className={`animate-spin text-red-500 ${className}`}
                 size={size}
                 strokeWidth={2.5}
             />

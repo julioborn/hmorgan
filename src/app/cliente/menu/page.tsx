@@ -82,8 +82,9 @@ export default function ClienteMenuPage() {
     );
 
     return (
-        <div className="p-3 relative">
-            <h1 className="text-4xl font-extrabold mb-10 text-center tracking-tight bg-white bg-clip-text text-transparent">
+        <div className="p-5 bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen">
+            {/* Título principal */}
+            <h1 className="text-4xl font-extrabold mb-10 text-center text-black">
                 Menú
             </h1>
 
@@ -95,25 +96,29 @@ export default function ClienteMenuPage() {
                         <a
                             key={cat}
                             href={`#${cat.replace(/\s+/g, "-")}`}
-                            className="flex flex-col items-center justify-center p-6 rounded-2xl shadow-md
-                         bg-gradient-to-br from-emerald-600/20 to-slate-800/40
-                         hover:from-emerald-600/40 hover:to-slate-800/60
-                         hover:scale-105 transition-all duration-200 text-center"
+                            className="flex flex-col items-center justify-center p-6 rounded-2xl shadow-sm border border-gray-200
+                         bg-white hover:bg-red-50 hover:scale-[1.03] transition-all duration-200 text-center"
                         >
-                            <Icon size={36} className="mb-2 text-emerald-400" />
-                            <span className="text-sm font-semibold tracking-wide">{cat}</span>
+                            <Icon size={36} className="mb-2 text-red-600" />
+                            <span className="text-sm font-semibold tracking-wide text-black">
+                                {cat}
+                            </span>
                         </a>
                     );
                 })}
             </div>
 
-            {/* Productos */}
+            {/* Productos por categoría */}
             {categorias.map((cat: string) => {
                 const Icon = categoryIcons[cat] || UtensilsCrossed;
                 return (
-                    <div key={cat} id={cat.replace(/\s+/g, "-")} className="mb-12 scroll-mt-20">
-                        <h2 className="text-2xl font-bold mb-5 flex items-center gap-2">
-                            <Icon size={26} className="text-emerald-400" />
+                    <div
+                        key={cat}
+                        id={cat.replace(/\s+/g, "-")}
+                        className="mb-12 scroll-mt-20"
+                    >
+                        <h2 className="text-2xl font-bold mb-5 flex items-center gap-2 text-black">
+                            <Icon size={26} className="text-red-600" />
                             {cat}
                         </h2>
 
@@ -123,8 +128,8 @@ export default function ClienteMenuPage() {
                                 .map((i) => (
                                     <div
                                         key={i._id}
-                                        className="group bg-white/5 rounded-2xl overflow-hidden shadow hover:shadow-emerald-500/10
-                               transition-all duration-200 hover:scale-[1.02] border border-white/10"
+                                        className="group bg-white rounded-2xl overflow-hidden shadow-md border border-gray-200
+                               hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
                                     >
                                         {i.imagen && (
                                             <div className="relative h-40 w-full overflow-hidden">
@@ -133,15 +138,19 @@ export default function ClienteMenuPage() {
                                                     alt={i.nombre}
                                                     className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                                                 />
-                                                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
                                             </div>
                                         )}
                                         <div className="p-4">
-                                            <h3 className="text-lg font-bold mb-1">{i.nombre}</h3>
+                                            <h3 className="text-lg font-bold mb-1 text-black">
+                                                {i.nombre}
+                                            </h3>
                                             {i.descripcion && (
-                                                <p className="text-sm opacity-75 mb-2">{i.descripcion}</p>
+                                                <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                                                    {i.descripcion}
+                                                </p>
                                             )}
-                                            <p className="text-emerald-400 font-extrabold text-lg">
+                                            <p className="text-red-600 font-extrabold text-lg">
                                                 ${formatPrice(i.precio)}
                                             </p>
                                         </div>
@@ -152,12 +161,12 @@ export default function ClienteMenuPage() {
                 );
             })}
 
-            {/* Botón flotante */}
+            {/* Botón flotante scroll top */}
             {showScroll && (
                 <button
                     onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                    className="fixed bottom-6 right-6 p-4 rounded-full bg-emerald-600 text-white
-                     shadow-lg shadow-emerald-600/30 backdrop-blur hover:bg-emerald-500 transition"
+                    className="fixed bottom-16 right-6 p-4 rounded-full bg-red-600 text-white
+                     shadow-lg shadow-red-500/30 hover:bg-red-500 transition"
                 >
                     <ArrowUp size={24} />
                 </button>

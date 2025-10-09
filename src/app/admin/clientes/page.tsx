@@ -26,7 +26,9 @@ export default function AdminClientsPage() {
 
     const [q, setQ] = useState("");
     const [page, setPage] = useState(1);
-    const [sort, setSort] = useState<"nombre" | "apellido" | "dni" | "puntos">("apellido");
+    const [sort, setSort] = useState<"nombre" | "apellido" | "dni" | "puntos">(
+        "apellido"
+    );
     const [dir, setDir] = useState<"asc" | "desc">("asc");
 
     const [items, setItems] = useState<Client[]>([]);
@@ -85,8 +87,8 @@ export default function AdminClientsPage() {
     if (!isAdmin) {
         return (
             <div className={`${container} py-8`}>
-                <h1 className="text-2xl font-extrabold">Acceso restringido</h1>
-                <p className="opacity-80">Solo administradores.</p>
+                <h1 className="text-2xl font-extrabold text-black">Acceso restringido</h1>
+                <p className="text-gray-600">Solo administradores.</p>
             </div>
         );
     }
@@ -102,7 +104,6 @@ export default function AdminClientsPage() {
         }
     }
 
-    // 👇 antes del return principal
     if (authLoading || loading) {
         return (
             <div className={`${container} py-20 flex justify-center items-center`}>
@@ -112,185 +113,197 @@ export default function AdminClientsPage() {
     }
 
     return (
-        <div className={`${container} py-8 space-y-6`}>
-            {/* Header */}
-            <header className="space-y-2 text-center md:text-left">
-                <h1 className="text-3xl sm:text-4xl font-extrabold bg-white bg-clip-text text-transparent">
-                    Clientes
-                </h1>
-                {/* <p className="opacity-80 max-w-2xl mx-auto md:mx-0">
-                    Ver, editar y administrar clientes. {total ? `(${total} en total)` : ""}
-                </p> */}
-            </header>
+        <div className={`min-h-screen bg-gradient-to-b from-gray-50 to-gray-100`}>
+            <div className={`${container} py-8 space-y-6`}>
+                {/* Header */}
+                <header className="space-y-2 text-center md:text-left">
+                    <h1 className="text-3xl sm:text-4xl font-extrabold text-black">Clientes</h1>
+                </header>
 
-            {/* Barra de acciones */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="relative w-full sm:w-72">
-                    <input
-                        className="w-full rounded-xl bg-white/10 px-3 py-2.5 outline-none ring-1 ring-inset ring-white/10 
-                       focus:ring-2 focus:ring-emerald-500/70 placeholder-white/50"
-                        placeholder="🔍 Buscar por nombre o DNI…"
-                        value={q}
-                        onChange={(e) => setQ(e.target.value)}
-                    />
+                {/* Barra de acciones */}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="relative w-full sm:w-80">
+                        <input
+                            className="w-full h-11 rounded-xl border border-gray-300 bg-white px-3 text-black placeholder-gray-500
+                         focus:outline-none focus:ring-2 focus:ring-red-500"
+                            placeholder="Buscar por nombre o DNI…"
+                            value={q}
+                            onChange={(e) => {
+                                setPage(1);
+                                setQ(e.target.value);
+                            }}
+                        />
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm">
+                        <label className="text-gray-700">Ordenar</label>
+                        <select
+                            value={`${sort}:${dir}`}
+                            onChange={(e) => {
+                                const [s, d] = e.target.value.split(":") as any;
+                                setSort(s);
+                                setDir(d);
+                            }}
+                            className="rounded-lg h-11 px-3 border border-gray-300 bg-white text-black
+                         focus:outline-none focus:ring-2 focus:ring-red-500"
+                        >
+                            <option value="apellido:asc">Apellido ↑</option>
+                            <option value="apellido:desc">Apellido ↓</option>
+                            <option value="nombre:asc">Nombre ↑</option>
+                            <option value="nombre:desc">Nombre ↓</option>
+                            <option value="dni:asc">DNI ↑</option>
+                            <option value="dni:desc">DNI ↓</option>
+                            <option value="puntos:desc">Puntos ↓</option>
+                            <option value="puntos:asc">Puntos ↑</option>
+                        </select>
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-2 text-sm">
-                    <label className="opacity-70">Ordenar</label>
-                    <select
-                        value={`${sort}:${dir}`}
-                        onChange={(e) => {
-                            const [s, d] = e.target.value.split(":") as any;
-                            setSort(s);
-                            setDir(d);
+                {/* Tabla / lista */}
+                <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm">
+                    {/* head (desktop) */}
+                    <div className="hidden md:grid grid-cols-[1.6fr_1fr_1fr_0.8fr_160px] items-center gap-3 px-4 py-3 bg-gray-50 text-sm font-semibold text-gray-700 border-b border-gray-200">
+                        <button onClick={() => toggleSort("apellido")} className="text-left hover:text-red-600">
+                            Cliente
+                        </button>
+                        <button onClick={() => toggleSort("dni")} className="text-left hover:text-red-600">
+                            DNI
+                        </button>
+                        <div>Teléfono</div>
+                        <button onClick={() => toggleSort("puntos")} className="text-left hover:text-red-600">
+                            Puntos
+                        </button>
+                        <div className="text-right pr-1">Acciones</div>
+                    </div>
+
+                    {/* body */}
+                    {error ? (
+                        <div className="p-4 text-red-600">{error}</div>
+                    ) : items.length === 0 ? (
+                        <div className="p-6 text-gray-600">Sin resultados.</div>
+                    ) : (
+                        <ul className="divide-y divide-gray-200">
+                            {items.map((c) => (
+                                <li
+                                    key={c.id}
+                                    className="px-4 py-4 transition flex flex-col md:grid md:grid-cols-[1.6fr_1fr_1fr_0.8fr_160px] md:items-center gap-3 hover:bg-red-50/40"
+                                >
+                                    {/* Col 1: Cliente */}
+                                    <div className="min-w-0">
+                                        <div className="font-semibold truncate text-black">
+                                            {c.apellido}, {c.nombre}
+                                        </div>
+                                        <div className="text-xs text-gray-600 truncate flex items-center gap-1 mt-0.5">
+                                            {c.qrToken ? (
+                                                <span className="inline-flex items-center gap-1 text-red-600 font-medium">
+                                                    <QrCode className="h-3.5 w-3.5" /> QR activo
+                                                </span>
+                                            ) : (
+                                                <span className="text-gray-500">Sin QR</span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Col 2: DNI */}
+                                    <div className="tabular-nums text-black">{c.dni}</div>
+
+                                    {/* Col 3: Teléfono */}
+                                    <div className="truncate text-black">
+                                        {c.telefono || <span className="text-gray-500">—</span>}
+                                    </div>
+
+                                    {/* Col 4: Puntos */}
+                                    <div className="font-extrabold tabular-nums text-red-600">{c.puntos ?? 0} pts.</div>
+
+                                    {/* Col 5: Acciones */}
+                                    <div className="flex items-center justify-end gap-2">
+                                        <button
+                                            className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-300 bg-white text-black
+                                 hover:border-red-300 hover:bg-red-50 transition"
+                                            onClick={() => setEditing(c)}
+                                            title="Editar"
+                                        >
+                                            <Pencil className="h-4 w-4" />
+                                            <span className="text-sm font-medium">Editar</span>
+                                        </button>
+                                        <button
+                                            className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-red-600 text-white hover:bg-red-500 transition"
+                                            onClick={() => setToDelete(c)}
+                                            title="Eliminar"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                            <span className="text-sm font-semibold">Eliminar</span>
+                                        </button>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+
+                {/* Paginación */}
+                <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-600">
+                        Página {page} de {totalPages}
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-black hover:bg-red-50 disabled:opacity-50"
+                            onClick={() => setPage((p) => Math.max(1, p - 1))}
+                            disabled={page <= 1 || loading}
+                        >
+                            Anterior
+                        </button>
+                        <button
+                            className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-black hover:bg-red-50 disabled:opacity-50"
+                            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                            disabled={page >= totalPages || loading}
+                        >
+                            Siguiente
+                        </button>
+                    </div>
+                </div>
+
+                {/* MODAL: editar */}
+                {editing && (
+                    <EditClientModal
+                        client={editing}
+                        onClose={() => setEditing(null)}
+                        onSaved={(updated) => {
+                            setItems((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
+                            setEditing(null);
                         }}
-                        className="rounded-lg px-3 py-2 ring-1 ring-inset ring-white/10
-                       focus:ring-2 focus:ring-emerald-500/70 bg-white text-zinc-900
-                       font-medium shadow-sm"
-                    >
-                        <option value="apellido:asc">Apellido ↑</option>
-                        <option value="apellido:desc">Apellido ↓</option>
-                        <option value="nombre:asc">Nombre ↑</option>
-                        <option value="nombre:desc">Nombre ↓</option>
-                        <option value="dni:asc">DNI ↑</option>
-                        <option value="dni:desc">DNI ↓</option>
-                        <option value="puntos:desc">Puntos ↓</option>
-                        <option value="puntos:asc">Puntos ↑</option>
-                    </select>
-                </div>
-            </div>
+                    />
+                )}
 
-            {/* Tabla / lista */}
-            <div className="rounded-2xl border border-white/10 overflow-hidden">
-                {/* head */}
-                <div className="hidden md:grid grid-cols-[1.6fr_1fr_1fr_0.8fr_140px] items-center gap-3 px-4 py-2 bg-white/[0.04] text-sm font-semibold">
-                    <button onClick={() => toggleSort("apellido")} className="text-left">
-                        Cliente
-                    </button>
-                    <button onClick={() => toggleSort("dni")} className="text-left">
-                        DNI
-                    </button>
-                    <div>Teléfono</div>
-                    <button onClick={() => toggleSort("puntos")} className="text-left">
-                        Puntos
-                    </button>
-                    <div className="text-right pr-1">Acciones</div>
-                </div>
-
-                {/* body */}
-                {error ? (
-                    <div className="p-4 text-rose-300">{error}</div>
-                ) : items.length === 0 ? (
-                    <div className="p-6 opacity-70">Sin resultados.</div>
-                ) : (
-                    <ul className="divide-y divide-white/10">
-                        {items.map((c) => (
-                            <li
-                                key={c.id}
-                                className="px-4 py-3 transition hover:bg-white/5 rounded-xl flex flex-col md:grid md:grid-cols-[1.6fr_1fr_1fr_0.8fr_140px] md:items-center gap-3"
-                            >
-                                <div className="min-w-0">
-                                    <div className="font-semibold truncate">
-                                        {c.apellido}, {c.nombre}
-                                    </div>
-                                    <div className="text-xs opacity-70 truncate flex items-center gap-1">
-                                        {c.qrToken ? (
-                                            <span className="inline-flex items-center gap-1 text-emerald-400">
-                                                <QrCode className="h-3.5 w-3.5" /> QR activo
-                                            </span>
-                                        ) : (
-                                            <span className="opacity-60">Sin QR</span>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="tabular-nums">{c.dni}</div>
-                                <div className="truncate">{c.telefono || <span className="opacity-60">—</span>}</div>
-                                <div className="font-bold tabular-nums text-emerald-400">{c.puntos ?? 0}</div>
-
-                                <div className="flex items-center justify-end gap-2">
-                                    <button
-                                        className="px-2 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-500"
-                                        onClick={() => setEditing(c)}
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
-                                            <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
-                                            <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z" />
-                                        </svg>
-                                    </button>
-                                    <button
-                                        className="px-2 py-1 rounded bg-red-600 text-white hover:bg-red-500"
-                                        onClick={() => setToDelete(c)}
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
-                                            <path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z" clip-rule="evenodd" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
+                {/* MODAL: eliminar */}
+                {toDelete && (
+                    <ConfirmDelete
+                        client={toDelete}
+                        onCancel={() => setToDelete(null)}
+                        onConfirm={async () => {
+                            try {
+                                const res = await fetch(`/api/admin/clientes/${toDelete.id}`, {
+                                    method: "DELETE",
+                                });
+                                const data = await res.json().catch(() => ({}));
+                                if (!res.ok) throw new Error(data?.error || "No se pudo eliminar");
+                                setItems((prev) => prev.filter((x) => x.id !== toDelete.id));
+                                setToDelete(null);
+                            } catch (e: any) {
+                                alert(e?.message || "Error eliminando");
+                            }
+                        }}
+                    />
                 )}
             </div>
-
-            {/* Paginación */}
-            <div className="flex items-center justify-between">
-                <div className="text-sm opacity-70">
-                    Página {page} de {totalPages}
-                </div>
-                <div className="flex gap-2">
-                    <button
-                        className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 disabled:opacity-50"
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        disabled={page <= 1 || loading}
-                    >
-                        Anterior
-                    </button>
-                    <button
-                        className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 disabled:opacity-50"
-                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={page >= totalPages || loading}
-                    >
-                        Siguiente
-                    </button>
-                </div>
-            </div>
-
-            {/* MODAL: editar */}
-            {editing && (
-                <EditClientModal
-                    client={editing}
-                    onClose={() => setEditing(null)}
-                    onSaved={(updated) => {
-                        setItems((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
-                        setEditing(null);
-                    }}
-                />
-            )}
-
-            {/* MODAL: eliminar */}
-            {toDelete && (
-                <ConfirmDelete
-                    client={toDelete}
-                    onCancel={() => setToDelete(null)}
-                    onConfirm={async () => {
-                        try {
-                            const res = await fetch(`/api/admin/clientes/${toDelete.id}`, { method: "DELETE" });
-                            const data = await res.json().catch(() => ({}));
-                            if (!res.ok) throw new Error(data?.error || "No se pudo eliminar");
-                            setItems((prev) => prev.filter((x) => x.id !== toDelete.id));
-                            setToDelete(null);
-                        } catch (e: any) {
-                            alert(e?.message || "Error eliminando");
-                        }
-                    }}
-                />
-            )}
         </div>
     );
 }
 
-// ————————————————————————————————————————————————————————
-// Modal de edición
+/* ─────────────────────────────────────────────
+  Modal de edición (estilo blanco + rojo)
+────────────────────────────────────────────── */
 function EditClientModal({
     client,
     onClose,
@@ -331,55 +344,60 @@ function EditClientModal({
 
     return (
         <div className="fixed inset-0 z-50 grid place-items-center p-4" role="dialog" aria-modal="true">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur" onClick={onClose} />
-            <div className="relative w-full max-w-lg rounded-2xl border border-white/10 
-                      bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 shadow-2xl">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-                    <h3 className="font-bold text-lg text-emerald-400">Editar cliente</h3>
-                    <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10 transition">
+            <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+            <div className="relative w-full max-w-lg rounded-2xl border border-gray-200 bg-white shadow-2xl">
+                <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200">
+                    <h3 className="font-bold text-lg text-black">Editar cliente</h3>
+                    <button
+                        onClick={onClose}
+                        className="p-2 rounded-lg hover:bg-gray-100 transition text-gray-700"
+                        aria-label="Cerrar"
+                    >
                         <X className="h-5 w-5" />
                     </button>
                 </div>
 
                 <div className="p-6 space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Field label="Nombre">
                             <input
-                                className="w-full rounded-xl bg-white/10 px-3 py-2.5 outline-none 
-                           ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-emerald-500/70"
+                                className="w-full h-11 rounded-xl border border-gray-300 bg-white px-3 text-black
+                           focus:outline-none focus:ring-2 focus:ring-red-500"
                                 value={form.nombre}
                                 onChange={(e) => setForm({ ...form, nombre: e.target.value })}
                             />
                         </Field>
                         <Field label="Apellido">
                             <input
-                                className="w-full rounded-xl bg-white/10 px-3 py-2.5 outline-none 
-                           ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-emerald-500/70"
+                                className="w-full h-11 rounded-xl border border-gray-300 bg-white px-3 text-black
+                           focus:outline-none focus:ring-2 focus:ring-red-500"
                                 value={form.apellido}
                                 onChange={(e) => setForm({ ...form, apellido: e.target.value })}
                             />
                         </Field>
                         <Field label="DNI">
                             <input
-                                className="w-full rounded-xl bg-white/10 px-3 py-2.5 outline-none 
-                           ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-emerald-500/70 tabular-nums"
+                                className="w-full h-11 rounded-xl border border-gray-300 bg-white px-3 text-black tabular-nums
+                           focus:outline-none focus:ring-2 focus:ring-red-500"
                                 value={form.dni}
                                 inputMode="numeric"
-                                onChange={(e) => setForm({ ...form, dni: e.target.value.replace(/[^\d]/g, "") })}
+                                onChange={(e) =>
+                                    setForm({ ...form, dni: e.target.value.replace(/[^\d]/g, "") })
+                                }
                             />
                         </Field>
                         <Field label="Teléfono">
                             <input
-                                className="w-full rounded-xl bg-white/10 px-3 py-2.5 outline-none 
-                           ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-emerald-500/70"
+                                className="w-full h-11 rounded-xl border border-gray-300 bg-white px-3 text-black
+                           focus:outline-none focus:ring-2 focus:ring-red-500"
                                 value={form.telefono || ""}
                                 onChange={(e) => setForm({ ...form, telefono: e.target.value })}
                             />
                         </Field>
                         <Field label="Puntos">
                             <input
-                                className="w-full rounded-xl bg-white/10 px-3 py-2.5 outline-none 
-                           ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-emerald-500/70 tabular-nums"
+                                className="w-full h-11 rounded-xl border border-gray-300 bg-white px-3 text-black tabular-nums
+                           focus:outline-none focus:ring-2 focus:ring-red-500"
                                 value={String(form.puntos ?? 0)}
                                 inputMode="numeric"
                                 onChange={(e) =>
@@ -392,20 +410,20 @@ function EditClientModal({
                         </Field>
                     </div>
 
-                    {err && <div className="text-sm text-rose-300">{err}</div>}
+                    {err && <div className="text-sm text-red-600">{err}</div>}
 
                     <div className="flex items-center justify-end gap-2 pt-2">
                         <button
                             onClick={onClose}
-                            className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/15 transition"
+                            className="px-4 h-11 rounded-lg border border-gray-300 bg-white text-black hover:bg-gray-100 transition"
                         >
                             Cancelar
                         </button>
                         <button
                             onClick={handleSave}
                             disabled={saving}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 
-                         text-white font-semibold disabled:opacity-60 hover:bg-emerald-500 transition"
+                            className="inline-flex items-center gap-2 px-4 h-11 rounded-lg bg-red-600 
+                         text-white font-semibold disabled:opacity-60 hover:bg-red-500 transition"
                         >
                             <Save className="h-4 w-4" />
                             Guardar
@@ -417,8 +435,9 @@ function EditClientModal({
     );
 }
 
-// ————————————————————————————————————————————————————————
-// Modal confirmación de borrado
+/* ─────────────────────────────────────────────
+  Modal confirmación de borrado (blanco + rojo)
+────────────────────────────────────────────── */
 function ConfirmDelete({
     client,
     onCancel,
@@ -445,28 +464,27 @@ function ConfirmDelete({
 
     return (
         <div className="fixed inset-0 z-50 grid place-items-center p-4" role="dialog" aria-modal="true">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur" onClick={onCancel} />
-            <div className="relative w-full max-w-md rounded-2xl border border-white/10 
-                      bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 shadow-2xl">
-                <div className="px-4 py-3 border-b border-white/10 font-bold text-rose-400">
+            <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
+            <div className="relative w-full max-w-md rounded-2xl border border-gray-200 bg-white shadow-2xl">
+                <div className="px-5 py-3 border-b border-gray-200 font-bold text-red-600">
                     Eliminar cliente
                 </div>
-                <div className="p-6 space-y-4">
+                <div className="p-6 space-y-4 text-black">
                     <p>
                         ¿Eliminar a <b>{client.apellido}, {client.nombre}</b> (DNI {client.dni})?
                     </p>
-                    {err && <div className="text-sm text-rose-300">{err}</div>}
+                    {err && <div className="text-sm text-red-600">{err}</div>}
                     <div className="flex items-center justify-end gap-2">
                         <button
                             onClick={onCancel}
-                            className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/15 transition"
+                            className="px-4 h-11 rounded-lg border border-gray-300 bg-white text-black hover:bg-gray-100 transition"
                         >
                             Cancelar
                         </button>
                         <button
                             onClick={handle}
                             disabled={busy}
-                            className="px-4 py-2 rounded-lg bg-rose-600/80 hover:bg-rose-600 text-white 
+                            className="px-4 h-11 rounded-lg bg-red-600 hover:bg-red-500 text-white 
                          disabled:opacity-60 transition"
                         >
                             Eliminar
@@ -478,11 +496,11 @@ function ConfirmDelete({
     );
 }
 
-// ————————————————————————————————————————————————————————
+/* ───────────────────────────────────────────── */
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
     return (
         <label className="flex flex-col gap-1">
-            <span className="text-xs opacity-70">{label}</span>
+            <span className="text-xs text-gray-600">{label}</span>
             {children}
         </label>
     );
