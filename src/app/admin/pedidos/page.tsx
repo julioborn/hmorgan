@@ -10,7 +10,7 @@ import Loader from "@/components/Loader";
 export default function AdminPedidosPage() {
     const [pedidos, setPedidos] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [vista, setVista] = useState<"pendientes" | "enProceso" | "finalizados">("pendientes");
+    const [vista, setVista] = useState<"pendientes" | "preparando" | "listos" | "entregados">("pendientes");
 
     useEffect(() => {
         const loadPedidos = async () => await fetchPedidos();
@@ -26,16 +26,8 @@ export default function AdminPedidosPage() {
                 console.error("Error HTTP:", res.status);
                 return setPedidos([]);
             }
-
             const data = await res.json();
-
-            // 🔄 Solo actualizar si cambió algo
-            setPedidos((prev) => {
-                const prevStr = JSON.stringify(prev);
-                const newStr = JSON.stringify(data);
-                if (prevStr !== newStr) return Array.isArray(data) ? data : [];
-                return prev; // 👈 evita re-render innecesario
-            });
+            setPedidos(Array.isArray(data) ? data : []);
         } catch (err) {
             console.error("❌ Error cargando pedidos:", err);
             setPedidos([]);
@@ -67,7 +59,7 @@ export default function AdminPedidosPage() {
             });
 
             fetchPedidos();
-        } catch (error) {
+        } catch {
             Swal.fire("❌", "Error de conexión", "error");
         }
     }
@@ -98,7 +90,7 @@ export default function AdminPedidosPage() {
 
             Swal.fire("Eliminado", "El pedido fue rechazado.", "success");
             fetchPedidos();
-        } catch (error) {
+        } catch {
             Swal.fire("❌", "Error de conexión", "error");
         }
     }
@@ -126,89 +118,60 @@ export default function AdminPedidosPage() {
         emerald: "bg-emerald-500",
     };
 
-    const textColors: Record<string, string> = {
-        yellow: "text-yellow-300",
-        orange: "text-orange-300",
-        blue: "text-blue-300",
-        emerald: "text-emerald-300",
-    };
-
     const getEstadoIndex = (estado: string) =>
         estados.findIndex((e) => e.key === estado);
 
+    // 🧭 Filtros sin solapamiento
     const pendientes = pedidos.filter((p) => p.estado === "pendiente");
-    const enProceso = pedidos.filter(
-        (p) => p.estado === "preparando" || p.estado === "listo"
-    );
-    const finalizados = pedidos.filter((p) => p.estado === "listo" || p.estado === "entregado");
+    const preparando = pedidos.filter((p) => p.estado === "preparando");
+    const listos = pedidos.filter((p) => p.estado === "listo");
+    const entregados = pedidos.filter((p) => p.estado === "entregado");
 
+    // 🔢 Contadores
     const notificacionPendientes = pendientes.length;
-    const notificacionEnProceso = pedidos.filter((p) => p.estado === "preparando").length;
-    const notificacionFinalizados = pedidos.filter((p) => p.estado === "listo").length;
+    const notificacionPreparando = preparando.length;
+    const notificacionListos = listos.length;
+    const notificacionEntregados = entregados.length;
 
     const lista =
         vista === "pendientes"
             ? pendientes
-            : vista === "enProceso"
-                ? enProceso
-                : finalizados;
+            : vista === "preparando"
+                ? preparando
+                : vista === "listos"
+                    ? listos
+                    : entregados;
+
+    const renderBoton = (key: string, label: string, count: number) => (
+        <button
+            type="button"
+            onClick={() => setVista(key as any)}
+            aria-pressed={vista === key}
+            className={`relative min-w-[130px] text-center px-5 py-2 rounded-full text-sm font-semibold border transition-colors ${vista === key
+                    ? "bg-red-600 text-white border-red-600 shadow-sm"
+                    : "bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                }`}
+        >
+            {label}
+            {/* ❌ no mostrar burbuja en Entregados */}
+            {key !== "entregados" && count > 0 && (
+                <span className="absolute -top-2 -right-2 min-w-[1.5rem] px-2 py-0.5 rounded-full bg-red-600 text-white text-xs font-bold text-center">
+                    {count}
+                </span>
+            )}
+        </button>
+    );
 
     return (
         <div className="p-6 min-h-screen text-white">
             <h1 className="text-3xl text-black font-bold text-center mb-6">Pedidos</h1>
 
             {/* 🔘 Selector de vista */}
-            <div className="flex justify-center gap-1 mb-8">
-                <button
-                    type="button"
-                    onClick={() => setVista("pendientes")}
-                    aria-pressed={vista === "pendientes"}
-                    className={`relative px-5 py-2 rounded-full text-sm font-semibold border transition-colors ${vista === "pendientes"
-                        ? "bg-red-600 text-white border-red-600 shadow-sm"
-                        : "bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
-                        }`}
-                >
-                    Pendientes
-                    {notificacionPendientes > 0 && (
-                        <span className="absolute -top-2 -right-2 min-w-[1.5rem] px-2 py-0.5 rounded-full bg-red-600 text-white text-xs font-bold text-center">
-                            {notificacionPendientes}
-                        </span>
-                    )}
-                </button>
-
-                <button
-                    type="button"
-                    onClick={() => setVista("enProceso")}
-                    aria-pressed={vista === "enProceso"}
-                    className={`relative px-5 py-2 rounded-full text-sm font-semibold border transition-colors ${vista === "enProceso"
-                        ? "bg-red-600 text-white border-red-600 shadow-sm"
-                        : "bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
-                        }`}
-                >
-                    Preparando
-                    {notificacionEnProceso > 0 && (
-                        <span className="absolute -top-2 -right-2 min-w-[1.5rem] px-2 py-0.5 rounded-full bg-red-600 text-white text-xs font-bold text-center">
-                            {notificacionEnProceso}
-                        </span>
-                    )}
-                </button>
-
-                <button
-                    type="button"
-                    onClick={() => setVista("finalizados")}
-                    aria-pressed={vista === "finalizados"}
-                    className={`relative px-5 py-2 rounded-full text-sm font-semibold border transition-colors ${vista === "finalizados"
-                        ? "bg-red-600 text-white border-red-600 shadow-sm"
-                        : "bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
-                        }`}
-                >
-                    Finalizados
-                    {notificacionFinalizados > 0 && (
-                        <span className="absolute -top-2 -right-2 min-w-[1.5rem] px-2 py-0.5 rounded-full bg-red-600 text-white text-xs font-bold text-center">
-                            {notificacionFinalizados}
-                        </span>
-                    )}
-                </button>
+            <div className="flex justify-center flex-wrap gap-1 mb-8">
+                {renderBoton("pendientes", "Pendientes", notificacionPendientes)}
+                {renderBoton("preparando", "Preparando", notificacionPreparando)}
+                {renderBoton("listos", "Listos", notificacionListos)}
+                {renderBoton("entregados", "Entregados", notificacionEntregados)}
             </div>
 
             {/* 📋 Listado */}
@@ -245,7 +208,8 @@ export default function AdminPedidosPage() {
                                             <p className="text-xs text-gray-500">{fechaHora}</p>
                                         </div>
                                         <span
-                                            className={`px-3 py-1 rounded-full text-xs font-semibold capitalize border ${colorClasses[color] || "border-gray-400 bg-gray-100 text-gray-600"
+                                            className={`px-3 py-1 rounded-full text-xs font-semibold capitalize border ${colorClasses[color] ||
+                                                "border-gray-400 bg-gray-100 text-gray-600"
                                                 }`}
                                         >
                                             {p.estado}
@@ -282,7 +246,6 @@ export default function AdminPedidosPage() {
                                             </button>
                                         </div>
                                     ) : (
-                                        /* 🔄 Línea de tiempo */
                                         <div className="relative w-full flex justify-between items-center mt-5">
                                             {/* Línea base */}
                                             <div className="absolute top-[18px] left-0 w-full h-[3px] bg-gray-200 rounded-full" />
@@ -301,42 +264,7 @@ export default function AdminPedidosPage() {
                                             {estados.map((estado, index) => {
                                                 const Icon = estado.icon;
                                                 const isActive = index <= estadoIndex;
-
-                                                let activeBorder = "";
-                                                let activeBg = "";
-                                                let activeText = "";
-
-                                                switch (estado.color) {
-                                                    case "red":
-                                                        activeBorder = "border-red-500";
-                                                        activeBg = "bg-red-100";
-                                                        activeText = "text-red-600";
-                                                        break;
-                                                    case "orange":
-                                                        activeBorder = "border-orange-500";
-                                                        activeBg = "bg-orange-100";
-                                                        activeText = "text-orange-600";
-                                                        break;
-                                                    case "blue":
-                                                        activeBorder = "border-blue-500";
-                                                        activeBg = "bg-blue-100";
-                                                        activeText = "text-blue-600";
-                                                        break;
-                                                    case "emerald":
-                                                        activeBorder = "border-emerald-500";
-                                                        activeBg = "bg-emerald-100";
-                                                        activeText = "text-emerald-600";
-                                                        break;
-                                                    case "yellow":
-                                                        activeBorder = "border-yellow-400";
-                                                        activeBg = "bg-yellow-300";
-                                                        activeText = "text-yellow-900";
-                                                        break;
-                                                    default:
-                                                        activeBorder = "border-gray-400";
-                                                        activeBg = "bg-gray-100";
-                                                        activeText = "text-gray-600";
-                                                }
+                                                const activeColor = colorClasses[estado.color] || "";
 
                                                 return (
                                                     <div
@@ -347,14 +275,16 @@ export default function AdminPedidosPage() {
                                                             onClick={() => actualizarEstado(p._id, estado.key)}
                                                             whileTap={{ scale: 0.9 }}
                                                             className={`flex items-center justify-center w-9 h-9 rounded-full border-2 transition-all ${isActive
-                                                                ? `${activeBorder} ${activeBg} ${activeText}`
+                                                                ? activeColor
                                                                 : "border-gray-300 bg-white text-gray-400"
                                                                 }`}
                                                         >
                                                             <Icon className="w-4 h-4" />
                                                         </motion.button>
                                                         <span
-                                                            className={`mt-2 font-medium ${isActive ? activeText : "text-gray-400"
+                                                            className={`mt-2 font-medium ${isActive
+                                                                ? "text-gray-700"
+                                                                : "text-gray-400"
                                                                 }`}
                                                         >
                                                             {estado.label}
@@ -366,12 +296,10 @@ export default function AdminPedidosPage() {
                                     )}
                                 </motion.div>
                             );
-
                         })
                     )}
                 </AnimatePresence>
             </div>
-
-        </div >
+        </div>
     );
 }

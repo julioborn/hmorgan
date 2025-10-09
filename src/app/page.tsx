@@ -100,22 +100,20 @@ function ClientHome({ nombre }: { nombre?: string }) {
   const [pedidosActivosCount, setPedidosActivosCount] = useState(0);
 
   useEffect(() => {
-    const fetchPedidosActivos = async () => {
+    const fetchRewards = async () => {
       try {
-        const res = await fetch("/api/pedidos", { cache: "no-store" });
+        const res = await fetch("/api/rewards", { cache: "no-store" });
         if (!res.ok) return;
         const data = await res.json();
-        const activos = data?.filter((p: any) =>
-          ["pendiente", "preparando", "listo"].includes(p.estado)
-        );
-        setPedidosActivosCount(activos?.length || 0);
+        setRewards(Array.isArray(data) ? data : []);
       } catch (e) {
-        console.error("Error cargando pedidos activos:", e);
+        console.error("Error cargando recompensas:", e);
+      } finally {
+        setLoadingRewards(false); // 👈 importante
       }
     };
-    fetchPedidosActivos();
-    const interval = setInterval(fetchPedidosActivos, 5000);
-    return () => clearInterval(interval);
+
+    fetchRewards();
   }, []);
 
   if (loadingRewards) {
