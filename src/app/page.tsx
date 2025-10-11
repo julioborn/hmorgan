@@ -219,33 +219,33 @@ function ClientHome({ nombre }: { nombre?: string }) {
           href="/cliente/menu"
           title="Menú"
           Icon={Utensils}
-          accent="from-blue-600 to-blue-800"
+          accent="from-red-600 to-red-800"
         />
         {/* 🆕 Pedido y Mis Pedidos */}
         <ActionCard
           href="/cliente/pedidos"
           title="Nuevo Pedido"
           Icon={Storefront}
-          accent="from-emerald-600 to-emerald-800"
+          accent="from-red-600 to-red-800"
         />
         <ActionCard
           href="/cliente/mis-pedidos"
           title="Mis Pedidos"
           Icon={Bell}
-          accent="from-orange-500 to-orange-700"
+          accent="from-red-600 to-red-800"
           notificationCount={pedidosActivosCount}
         />
         <ActionCard
           href="/cliente/rewards"
           title="Canjes"
           Icon={Storefront}
-          accent="from-yellow-500 to-yellow-700"
+          accent="from-red-600 to-red-800"
         />
         <ActionCard
           href="/cliente/historial"
           title="Historial"
           Icon={Coins}
-          accent="from-green-600 to-green-800"
+          accent="from-red-600 to-red-800"
         />
       </div>
 
@@ -312,25 +312,25 @@ function AdminHome() {
           href="/admin/rewards/scan"
           title="Escanear Canjes"
           Icon={Scan}
-          accent="from-blue-600 to-blue-800"
+          accent="from-red-600 to-red-800"
         />
         <ActionCard
           href="/admin/clientes"
           title="Clientes"
           Icon={Users}
-          accent="from-green-600 to-green-800"
+          accent="from-red-600 to-red-800"
         />
         <ActionCard
           href="/admin/menu"
           title="Menú"
           Icon={Utensils}
-          accent="from-violet-600 to-violet-800"
+          accent="from-red-600 to-red-800"
         />
         <ActionCard
           href="/admin/rewards"
           title="Canjes"
           Icon={Storefront}
-          accent="from-yellow-500 to-yellow-700"
+          accent="from-red-600 to-red-800"
         />
 
         {/* 🆕 NUEVO: Pedidos */}
@@ -338,7 +338,7 @@ function AdminHome() {
           href="/admin/pedidos"
           title="Pedidos"
           Icon={Utensils}
-          accent="from-emerald-600 to-teal-700"
+          accent="from-red-600 to-red-800"
           notificationCount={pedidosActivosCount}
         />
         {/* Notificaciones */}
@@ -346,7 +346,7 @@ function AdminHome() {
           href="/admin/notificaciones"
           title="Notificaciones"
           Icon={Bell}
-          accent="from-pink-500 to-rose-700"
+          accent="from-red-600 to-red-800"
         />
       </div>
     </div>
