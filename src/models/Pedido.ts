@@ -10,6 +10,7 @@ const PedidoSchema = new Schema(
             },
         ],
         tipoEntrega: { type: String, enum: ["retira", "envio"], default: "retira" },
+        direccion: { type: String }, // ✅ nuevo campo opcional
         total: { type: Number },
         estado: {
             type: String,

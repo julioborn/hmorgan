@@ -67,8 +67,8 @@ export default function MisPedidosPage() {
                 <button
                     onClick={() => setVista("activos")}
                     className={`px-6 py-2 rounded-full text-sm font-medium border transition-all ${vista === "activos"
-                            ? "bg-red-600 text-white border-red-600"
-                            : "bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:text-red-700"
+                        ? "bg-red-600 text-white border-red-600"
+                        : "bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:text-red-700"
                         }`}
                 >
                     Pendientes
@@ -76,8 +76,8 @@ export default function MisPedidosPage() {
                 <button
                     onClick={() => setVista("completados")}
                     className={`px-6 py-2 rounded-full text-sm font-medium border transition-all ${vista === "completados"
-                            ? "bg-red-600 text-white border-red-600"
-                            : "bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:text-red-700"
+                        ? "bg-red-600 text-white border-red-600"
+                        : "bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:text-red-700"
                         }`}
                 >
                     Finalizados
@@ -140,9 +140,13 @@ function PedidosLista({
                             <div className="flex justify-between items-start mb-3">
                                 <div>
                                     <h2 className="text-lg font-bold text-gray-900">
-                                        {p.nombre || "Cliente"}
+                                        Pedido
                                     </h2>
-                                    <p className="text-sm text-gray-600">Entrega: {p.tipoEntrega}</p>
+                                    {p.tipoEntrega === "envio" && p.direccion && (
+                                        <p className="text-sm text-gray-700 mt-1">
+                                            📍 <span className="font-medium">{p.direccion}</span>
+                                        </p>
+                                    )}
                                     <p className="text-xs text-gray-500">{fechaHora}</p>
                                 </div>
                                 <span
@@ -193,8 +197,8 @@ function PedidosLista({
                                         >
                                             <div
                                                 className={`flex items-center justify-center w-9 h-9 rounded-full border-2 transition-all ${isActive
-                                                        ? `border-${estadoColor}-500 bg-${estadoColor}-100 text-${estadoColor}-700`
-                                                        : "border-gray-300 bg-white text-gray-400"
+                                                    ? `border-${estadoColor}-500 bg-${estadoColor}-100 text-${estadoColor}-700`
+                                                    : "border-gray-300 bg-white text-gray-400"
                                                     }`}
                                             >
                                                 <Icon className="w-4 h-4" />

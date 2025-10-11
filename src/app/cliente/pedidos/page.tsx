@@ -66,6 +66,26 @@ export default function PedidosClientePage() {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [showScroll, setShowScroll] = useState(false);
     const [cargandoConfig, setCargandoConfig] = useState(true);
+    // Dirección guardada del usuario
+    const [direccionPrincipal, setDireccionPrincipal] = useState<string>("");
+    const [direccionEnvio, setDireccionEnvio] = useState<string>("");
+    const [usarOtraDireccion, setUsarOtraDireccion] = useState(false);
+
+    // Cargar dirección del perfil
+    useEffect(() => {
+        (async () => {
+            try {
+                const res = await fetch("/api/cliente/perfil", { cache: "no-store" });
+                const data = await res.json();
+                if (res.ok && data?.direccion) {
+                    setDireccionPrincipal(data.direccion);
+                    setDireccionEnvio(data.direccion);
+                }
+            } catch (err) {
+                console.error("Error cargando dirección del usuario:", err);
+            }
+        })();
+    }, []);
 
     useEffect(() => {
         (async () => {
@@ -98,10 +118,28 @@ export default function PedidosClientePage() {
         if (seleccion.length === 0)
             return Swal.fire("⚠️", "Seleccioná al menos un ítem", "warning");
 
+        console.log("➡️ Enviando pedido:", {
+            tipoEntrega,
+            usarOtraDireccion,
+            direccionPrincipal,
+            direccionEnvio,
+        });
+
+        if (tipoEntrega === "envio" && !(direccionEnvio || direccionPrincipal)) {
+            return Swal.fire("⚠️", "Ingresá una dirección de envío", "warning");
+        }
+
         const res = await fetch("/api/pedidos", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ items: seleccion, tipoEntrega }),
+            body: JSON.stringify({
+                items: seleccion,
+                tipoEntrega,
+                direccion:
+                    tipoEntrega === "envio"
+                        ? direccionEnvio || direccionPrincipal || ""
+                        : undefined,
+            }),
         });
 
         if (res.ok) {
@@ -367,6 +405,49 @@ export default function PedidosClientePage() {
                                     <option value="retira">Retira en el bar</option>
                                     <option value="envio">Envío a domicilio</option>
                                 </select>
+                                {/* Dirección si elige envío */}
+                                {tipoEntrega === "envio" && (
+                                    <div className="mt-4 text-left">
+                                        {direccionPrincipal ? (
+                                            <>
+                                                <p className="text-sm text-gray-700 mb-2">
+                                                    Dirección principal:{" "}
+                                                    <span className="font-semibold">{direccionPrincipal}</span>
+                                                </p>
+
+                                                <label className="flex items-center gap-2 text-sm mb-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={usarOtraDireccion}
+                                                        onChange={(e) => setUsarOtraDireccion(e.target.checked)}
+                                                    />
+                                                    <span>Enviar a otra dirección</span>
+                                                </label>
+
+                                                {usarOtraDireccion && (
+                                                    <input
+                                                        value={direccionEnvio}
+                                                        onChange={(e) => setDireccionEnvio(e.target.value)}
+                                                        placeholder="Escribí la dirección de envío"
+                                                        className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-400"
+                                                    />
+                                                )}
+                                            </>
+                                        ) : (
+                                            <>
+                                                <p className="text-sm text-gray-700 mb-2">
+                                                    No tenés una dirección guardada.
+                                                </p>
+                                                <input
+                                                    value={direccionEnvio}
+                                                    onChange={(e) => setDireccionEnvio(e.target.value)}
+                                                    placeholder="Ingresá tu dirección"
+                                                    className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-400"
+                                                />
+                                            </>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             <button

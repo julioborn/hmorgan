@@ -11,6 +11,7 @@ type Perfil = {
     telefono: string;
     email?: string;
     fechaNacimiento?: string;
+    direccion?: string; // 👈 NUEVO
 };
 
 export default function PerfilPage() {
@@ -207,6 +208,19 @@ export default function PerfilPage() {
                                 setPerfil({ ...perfil, telefono: e.target.value })
                             }
                             className="w-full h-12 px-3 rounded-xl bg-gray-50 border border-gray-300 focus:ring-2 focus:ring-red-500 focus:outline-none"
+                        />
+                    </div>
+
+                    {/* Dirección */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Dirección
+                        </label>
+                        <input
+                            value={perfil.direccion || ""}
+                            onChange={(e) => setPerfil({ ...perfil, direccion: e.target.value })}
+                            className="w-full h-12 px-3 rounded-xl bg-gray-50 border border-gray-300 focus:ring-2 focus:ring-red-500 focus:outline-none"
+                            placeholder=""
                         />
                     </div>
 

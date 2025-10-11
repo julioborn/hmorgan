@@ -12,11 +12,10 @@ export interface IUser extends Document {
   puntos: number;
   pushSubscriptions?: any[];
 
-  // opcionales
   email?: string;
   fechaNacimiento?: Date;
+  direccion?: string;
 
-  // 👇 campos para recuperación de contraseña
   resetToken?: string;
   resetTokenExp?: Date;
 }
@@ -33,16 +32,16 @@ const UserSchema = new Schema<IUser>(
     puntos: { type: Number, default: 0 },
     pushSubscriptions: { type: Array, default: [] },
 
-    // opcionales
     email: { type: String, required: false },
     fechaNacimiento: { type: Date, required: false },
+    direccion: { type: String, required: false },
 
-    // 👇 para reset de contraseña
     resetToken: { type: String, required: false },
     resetTokenExp: { type: Date, required: false },
   },
   { timestamps: true }
 );
 
+// 👇 ESTA LÍNEA ES LA CLAVE
 export const User =
   mongoose.models.User || mongoose.model<IUser>("User", UserSchema);

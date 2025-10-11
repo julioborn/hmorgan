@@ -252,13 +252,13 @@ function ClientHome({ nombre }: { nombre?: string }) {
       {/* 👇 Invitación a la ruleta */}
       <Link
         href="/cliente/ruleta"
-        className="block w-full rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-500 text-white text-center p-6 shadow-xl hover:scale-[1.02] hover:shadow-emerald-500/30 transition-all duration-300"
+        className="block w-full rounded-2xl bg-black text-white text-center p-6 shadow-xl hover:scale-[1.02] hover:shadow-emerald-500/30 transition-all duration-300"
       >
         <h2 className="text-xl sm:text-2xl font-extrabold mb-2">
           ¿No sabés qué tomar?
         </h2>
         <p className="opacity-90 text-sm sm:text-base">
-          Dejalo en manos de la suerte con nuestra <span className="font-bold">Ruleta de Tragos</span> 🍸
+          Dejalo en manos de la suerte con nuestra <span className="font-bold">Ruleta de Tragos</span>
         </p>
       </Link>
     </div>

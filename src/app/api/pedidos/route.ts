@@ -50,7 +50,9 @@ export async function POST(req: NextRequest) {
         const payload = jwt.verify(token, NEXTAUTH_SECRET) as any;
         await connectMongoDB();
 
-        const { items, tipoEntrega } = await req.json();
+        // 👇 Ahora también traemos "direccion" desde el body
+        const { items, tipoEntrega, direccion } = await req.json();
+        console.log("📦 Body recibido:", { items, tipoEntrega, direccion });
         if (!items?.length)
             return NextResponse.json({ message: "Sin items" }, { status: 400 });
 
@@ -63,24 +65,40 @@ export async function POST(req: NextRequest) {
             return acc + (item?.precio || 0) * i.cantidad;
         }, 0);
 
+        // 🧠 Buscar usuario
+        const user = await User.findById(payload.sub);
+        if (!user)
+            return NextResponse.json({ message: "Usuario no encontrado" }, { status: 404 });
+
+        // 💾 Guardar dirección en el perfil si no tiene una
+        if (tipoEntrega === "envio" && direccion) {
+            if (!user.direccion) {
+                user.direccion = direccion;
+                await user.save();
+            }
+        }
+
+        // 📦 Crear pedido con dirección incluida
         const pedido = await Pedido.create({
             userId: payload.sub,
             items,
             tipoEntrega,
             total,
+            direccion: tipoEntrega === "envio" ? direccion : undefined,
             estado: "pendiente",
         });
+        console.log("✅ Pedido creado:", pedido);
 
         // 🔔 Notificar al admin
         const admin = await User.findOne({ role: "admin" });
         if (admin?.pushSubscriptions?.length) {
             await sendPushToSubscriptions(admin.pushSubscriptions, {
-                title: "🍔 ¡Nuevo pedido recibido!",
+                title: "¡Nuevo pedido recibido!",
                 body: `Nuevo pedido de ${payload?.nombre ?? "un cliente"}. Revisalo en la barra 👇`,
                 url: "/admin/pedidos",
-                icon: "/icon-192.png",          // ✅ se ve bien en Android (no blanco)
-                badge: "/icon-badge-96x96.png", // ✅ ícono pequeño de notificación
-                image: "/morganwhite.png",      // ✅ logo grande (opcional, solo Chrome Desktop)
+                icon: "/icon-192.png",
+                badge: "/icon-badge-96x96.png",
+                image: "/morganwhite.png",
             });
         }
 

@@ -11,6 +11,9 @@ export default function AdminPedidosPage() {
     const [pedidos, setPedidos] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [vista, setVista] = useState<"pendientes" | "preparando" | "listos" | "entregados">("pendientes");
+    const [direccionPrincipal, setDireccionPrincipal] = useState<string>("");
+    const [direccionEnvio, setDireccionEnvio] = useState<string>("");
+    const [usarOtraDireccion, setUsarOtraDireccion] = useState(false);
 
     useEffect(() => {
         const loadPedidos = async () => await fetchPedidos();
@@ -118,8 +121,7 @@ export default function AdminPedidosPage() {
         emerald: "bg-emerald-500",
     };
 
-    const getEstadoIndex = (estado: string) =>
-        estados.findIndex((e) => e.key === estado);
+    const getEstadoIndex = (estado: string) => estados.findIndex((e) => e.key === estado);
 
     // 🧭 Filtros sin solapamiento
     const pendientes = pedidos.filter((p) => p.estado === "pendiente");
@@ -133,14 +135,7 @@ export default function AdminPedidosPage() {
     const notificacionListos = listos.length;
     const notificacionEntregados = entregados.length;
 
-    const lista =
-        vista === "pendientes"
-            ? pendientes
-            : vista === "preparando"
-                ? preparando
-                : vista === "listos"
-                    ? listos
-                    : entregados;
+    const lista = vista === "pendientes" ? pendientes : vista === "preparando" ? preparando : vista === "listos" ? listos : entregados;
 
     const renderBoton = (key: string, label: string, count: number) => (
         <button
@@ -148,8 +143,8 @@ export default function AdminPedidosPage() {
             onClick={() => setVista(key as any)}
             aria-pressed={vista === key}
             className={`relative min-w-[130px] text-center px-5 py-2 rounded-full text-sm font-semibold border transition-colors ${vista === key
-                    ? "bg-red-600 text-white border-red-600 shadow-sm"
-                    : "bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                ? "bg-red-600 text-white border-red-600 shadow-sm"
+                : "bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
                 }`}
         >
             {label}
@@ -205,6 +200,11 @@ export default function AdminPedidosPage() {
                                                 {p.userId?.nombre} {p.userId?.apellido}
                                             </h2>
                                             <p className="text-sm text-gray-600">Entrega: {p.tipoEntrega}</p>
+                                            {p.tipoEntrega === "envio" && p.direccion && (
+                                                <p className="text-sm text-gray-700 mt-1">
+                                                    📍 <span className="font-medium">{p.direccion}</span>
+                                                </p>
+                                            )}
                                             <p className="text-xs text-gray-500">{fechaHora}</p>
                                         </div>
                                         <span
@@ -214,6 +214,11 @@ export default function AdminPedidosPage() {
                                         >
                                             {p.estado}
                                         </span>
+                                        {p.tipoEntrega === "envio" && p.direccion && (
+                                            <p className="text-sm text-gray-700 mt-1">
+                                                📍 <span className="font-medium">{p.direccion}</span>
+                                            </p>
+                                        )}
                                     </div>
 
                                     {/* Items */}
