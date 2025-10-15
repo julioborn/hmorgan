@@ -387,23 +387,24 @@ export default function PedidosClientePage() {
                                blur-xl rounded-full pointer-events-none"
                                     />
 
-                                    {/* 🛒 Botón del carrito */}
+                                    {/* 🛒 Botón del carrito (crece desde su posición final) */}
                                     <motion.button
                                         layout
-                                        initial={{ opacity: 0, scale: 0.9, x: -200 }}
-                                        animate={{ opacity: 1, scale: 1, x: 0 }}
-                                        exit={{ opacity: 0, scale: 0.7, x: -30 }}
+                                        initial={{ opacity: 0, scale: 1.5 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.8 }}
                                         transition={{
                                             type: "spring",
-                                            stiffness: 250,
-                                            damping: 18,
-                                            duration: 0.45,
+                                            stiffness: 300,
+                                            damping: 20,
+                                            duration: 0.5,
+                                            ease: [0.16, 1, 0.3, 1], // back-out suave
                                         }}
                                         onClick={() => setDrawerOpen(true)}
                                         className="relative px-6 py-3 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-full
-                        shadow-[0_0_25px_rgba(239,68,68,0.6)] flex items-center gap-3 font-bold text-lg
-                        active:scale-95 hover:from-red-500 hover:to-rose-500 hover:shadow-[0_0_40px_rgba(239,68,68,0.8)]
-                        border border-white/10 backdrop-blur-sm transition-all duration-300"
+    shadow-[0_0_25px_rgba(239,68,68,0.6)] flex items-center gap-3 font-bold text-lg
+    active:scale-95 hover:from-red-500 hover:to-rose-500 hover:shadow-[0_0_40px_rgba(239,68,68,0.8)]
+    border border-white/10 backdrop-blur-sm transition-all duration-300 origin-bottom-right"
                                     >
                                         <motion.div
                                             key={totalItems}
@@ -435,6 +436,7 @@ export default function PedidosClientePage() {
                                             ${formatPrice(total)}
                                         </motion.span>
                                     </motion.button>
+
                                 </>
                             )}
                         </AnimatePresence>
