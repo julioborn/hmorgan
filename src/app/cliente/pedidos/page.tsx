@@ -365,55 +365,80 @@ export default function PedidosClientePage() {
                         )}
                     </AnimatePresence>
 
-                    {/* 🔴 Botón del carrito */}
-                    <motion.button
-                        layout
-                        initial={{ opacity: 0, scale: 0.8, y: -500 }} // 👈 arranca desde arriba de todo
-                        animate={{ opacity: 1, scale: 1, y: 0 }} // 👈 baja hasta su posición
-                        exit={{ opacity: 0, scale: 0.7, y: -30 }}
-                        transition={{
-                            type: "spring",
-                            stiffness: 120,
-                            damping: 15,
-                            duration: 1.2, // 👈 animación más fluida
-                        }}
-                        onClick={() => setDrawerOpen(true)}
-                        className="px-6 py-3 bg-red-600 text-white rounded-full shadow-[0_0_25px_rgba(239,68,68,0.6)]
-        flex items-center gap-3 font-bold text-lg active:scale-95
-        hover:bg-red-500 hover:shadow-[0_0_40px_rgba(239,68,68,0.8)]
-        transition-all duration-300"
-                    >
-                        <motion.div
-                            key={totalItems}
-                            animate={{ scale: [1, 1.2, 1] }}
-                            transition={{ duration: 0.8 }}
-                            className="relative flex items-center justify-center"
-                        >
-                            <ShoppingCart
-                                size={28}
-                                strokeWidth={2.4}
-                                color="white"
-                                className="pointer-events-none"
-                            />
-                            <motion.span
-                                key={`badge-${totalItems}`}
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                className="absolute -top-2 -right-2 bg-white text-red-600 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow"
-                            >
-                                {totalItems}
-                            </motion.span>
-                        </motion.div>
+                    {/* 🔴 Botón del carrito (entrada rápida con estela luminosa) */}
+                    <div className="fixed bottom-32 right-5 z-50 flex flex-col items-end gap-2 overflow-visible">
+                        <AnimatePresence>
+                            {totalItems > 0 && (
+                                <>
+                                    {/* 🌟 Estela luminosa detrás del botón */}
+                                    <motion.div
+                                        initial={{ opacity: 0, x: -300, scaleX: 0.2 }}
+                                        animate={{
+                                            opacity: [0.3, 0.6, 0],
+                                            x: [-200, -80, 0],
+                                            scaleX: [0.3, 1, 1.2],
+                                        }}
+                                        transition={{
+                                            duration: 0.5,
+                                            ease: "easeOut",
+                                        }}
+                                        className="absolute bottom-0 right-0 w-[180px] h-[60px] 
+                               bg-gradient-to-r from-red-500/60 to-transparent 
+                               blur-xl rounded-full pointer-events-none"
+                                    />
 
-                        <motion.span
-                            animate={{ scale: [1, 1.1, 1] }}
-                            transition={{ repeat: Infinity, duration: 2 }}
-                            className="font-extrabold text-white"
-                        >
-                            ${formatPrice(total)}
-                        </motion.span>
-                    </motion.button>
+                                    {/* 🛒 Botón del carrito */}
+                                    <motion.button
+                                        layout
+                                        initial={{ opacity: 0, scale: 0.9, x: -200 }}
+                                        animate={{ opacity: 1, scale: 1, x: 0 }}
+                                        exit={{ opacity: 0, scale: 0.7, x: -30 }}
+                                        transition={{
+                                            type: "spring",
+                                            stiffness: 250,
+                                            damping: 18,
+                                            duration: 0.45,
+                                        }}
+                                        onClick={() => setDrawerOpen(true)}
+                                        className="relative px-6 py-3 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-full
+                        shadow-[0_0_25px_rgba(239,68,68,0.6)] flex items-center gap-3 font-bold text-lg
+                        active:scale-95 hover:from-red-500 hover:to-rose-500 hover:shadow-[0_0_40px_rgba(239,68,68,0.8)]
+                        border border-white/10 backdrop-blur-sm transition-all duration-300"
+                                    >
+                                        <motion.div
+                                            key={totalItems}
+                                            animate={{ scale: [1, 1.2, 1] }}
+                                            transition={{ duration: 0.6 }}
+                                            className="relative flex items-center justify-center"
+                                        >
+                                            <ShoppingCart
+                                                size={28}
+                                                strokeWidth={2.4}
+                                                color="white"
+                                                className="pointer-events-none"
+                                            />
+                                            <motion.span
+                                                key={`badge-${totalItems}`}
+                                                initial={{ scale: 0 }}
+                                                animate={{ scale: 1 }}
+                                                className="absolute -top-2 -right-2 bg-white text-red-600 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow"
+                                            >
+                                                {totalItems}
+                                            </motion.span>
+                                        </motion.div>
 
+                                        <motion.span
+                                            animate={{ scale: [1, 1.1, 1] }}
+                                            transition={{ repeat: Infinity, duration: 1.8 }}
+                                            className="font-extrabold text-white"
+                                        >
+                                            ${formatPrice(total)}
+                                        </motion.span>
+                                    </motion.button>
+                                </>
+                            )}
+                        </AnimatePresence>
+                    </div>
                 </div>
             )}
 
@@ -433,7 +458,7 @@ export default function PedidosClientePage() {
                 )}
             </AnimatePresence>
 
-            {/* Drawer del carrito */}
+            {/* 🛍 Drawer del carrito mejorado */}
             <AnimatePresence>
                 {drawerOpen && (
                     <motion.div
@@ -444,71 +469,126 @@ export default function PedidosClientePage() {
                         onClick={() => setDrawerOpen(false)}
                     >
                         <motion.div
-                            className="bg-white rounded-t-3xl p-6 max-h-[80vh] overflow-y-auto shadow-xl border-t border-gray-200"
+                            className="relative bg-white rounded-t-3xl shadow-[0_-5px_40px_rgba(0,0,0,0.15)] 
+                   max-h-[80vh] overflow-y-auto border-t border-gray-100 p-6"
                             initial={{ y: "100%" }}
                             animate={{ y: 0 }}
                             exit={{ y: "100%" }}
                             transition={{ type: "spring", damping: 25 }}
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-lg font-bold text-black">Tu pedido</h2>
+                            {/* 🔶 Brillo superior decorativo */}
+                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-1.5 bg-gradient-to-r from-red-500 to-rose-400 rounded-full" />
+
+                            {/* 🧾 Header */}
+                            <div className="flex justify-between items-center mb-5">
+                                <h2 className="text-xl font-extrabold text-gray-900 tracking-wide">
+                                    Tu pedido
+                                </h2>
                                 <button
                                     onClick={vaciarCarrito}
-                                    className="flex items-center gap-1 text-red-600 hover:text-red-500 text-sm"
+                                    className="flex items-center gap-1 text-red-500 hover:text-red-400 text-sm font-medium transition"
                                 >
                                     <Trash2 size={18} /> Vaciar
                                 </button>
                             </div>
 
-                            {Object.entries(items)
-                                .filter(([_, cant]) => cant > 0)
-                                .map(([id, cant]) => {
-                                    const item = menu.find((m) => m._id === id);
-                                    if (!item) return null;
-                                    return (
-                                        <motion.div
-                                            key={id}
-                                            layout
-                                            className="flex justify-between items-center py-2 border-b border-gray-200"
-                                        >
-                                            <div className="flex flex-col">
-                                                <p className="font-semibold text-black">{item.nombre}</p>
-                                                <p className="text-sm text-gray-500">
-                                                    {cant} × ${formatPrice(item.precio)}
-                                                </p>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                <p className="font-bold text-red-600">
-                                                    ${formatPrice(item.precio * cant)}
-                                                </p>
-                                                <button
-                                                    onClick={() => eliminarProducto(id)}
-                                                    className="text-gray-400 hover:text-red-500 transition"
-                                                >
-                                                    <X size={18} />
-                                                </button>
-                                            </div>
-                                        </motion.div>
-                                    );
-                                })}
+                            {/* 🧺 Lista de productos */}
+                            <div className="space-y-3">
+                                {Object.entries(items)
+                                    .filter(([_, cant]) => cant > 0)
+                                    .map(([id, cant]) => {
+                                        const item = menu.find((m) => m._id === id);
+                                        if (!item) return null;
 
-                            <div className="mt-6 flex justify-center items-center gap-3 font-bold text-lg text-black bg-red-50 border border-red-200 rounded-xl py-2 px-5">
-                                <span>Total:</span>
-                                <span className="text-red-600">${formatPrice(total)}</span>
+                                        return (
+                                            <motion.div
+                                                key={id}
+                                                layout
+                                                className="py-4 px-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md 
+                     bg-white/80 transition-all flex flex-col"
+                                            >
+                                                {/* 🧾 Detalle del producto */}
+                                                <div>
+                                                    <p className="font-semibold text-gray-900 leading-tight">{item.nombre}</p>
+                                                    {/* <p className="text-sm text-gray-500">${formatPrice(item.precio)} c/u</p> */}
+                                                </div>
+
+                                                {/* ➕➖ Controles de cantidad y subtotal */}
+                                                <div className="flex justify-between items-center mt-3">
+                                                    {/* Controles */}
+                                                    <div className="flex items-center border border-gray-300 rounded-xl overflow-hidden shadow-sm">
+                                                        <button
+                                                            onClick={() =>
+                                                                setItems((prev) => ({
+                                                                    ...prev,
+                                                                    [id]: Math.max((prev[id] || 0) - 1, 0),
+                                                                }))
+                                                            }
+                                                            className="w-8 h-8 flex items-center justify-center text-red-500 
+                           hover:bg-gray-100 transition text-lg"
+                                                        >
+                                                            −
+                                                        </button>
+
+                                                        <span className="w-8 text-center font-semibold text-gray-800">
+                                                            {cant}
+                                                        </span>
+
+                                                        <button
+                                                            onClick={() =>
+                                                                setItems((prev) => ({
+                                                                    ...prev,
+                                                                    [id]: (prev[id] || 0) + 1,
+                                                                }))
+                                                            }
+                                                            className="w-8 h-8 flex items-center justify-center text-red-500 
+                           hover:bg-gray-100 transition text-lg"
+                                                        >
+                                                            +
+                                                        </button>
+                                                    </div>
+
+                                                    {/* 💰 Subtotal + Eliminar */}
+                                                    <div className="flex items-center gap-3">
+                                                        <p className="font-bold text-red-600 text-lg">
+                                                            ${formatPrice(item.precio * cant)}
+                                                        </p>
+                                                        <button
+                                                            onClick={() => eliminarProducto(id)}
+                                                            className="text-gray-400 hover:text-red-500 transition"
+                                                        >
+                                                            <X size={18} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        );
+                                    })}
                             </div>
 
-                            <div className="mt-6 text-center">
-                                <p className="mb-2 font-semibold text-black">Tipo de entrega</p>
+                            {/* 💰 Total */}
+                            <div className="mt-6 flex flex-col justify-center items-center bg-gradient-to-r from-red-50 to-white
+                        border border-red-100 rounded-2xl py-4 px-6 shadow-inner">
+                                <span className="font-semibold text-gray-800 text-lg">Total</span>
+                                <span className="font-extrabold text-red-600 text-2xl">
+                                    ${formatPrice(total)}
+                                </span>
+                            </div>
+
+                            {/* 🚚 Tipo de entrega */}
+                            <div className="mt-8 text-center">
+                                <p className="mb-2 font-semibold text-gray-800">Tipo de entrega</p>
                                 <select
                                     value={tipoEntrega}
                                     onChange={(e) => setTipoEntrega(e.target.value)}
-                                    className="px-4 py-2 rounded-xl border border-gray-300 w-full text-center focus:ring-2 focus:ring-red-400"
+                                    className="px-4 py-3 rounded-xl border border-gray-300 w-full text-center bg-white 
+                       text-gray-900 font-medium focus:ring-2 focus:ring-red-400 focus:border-red-300 transition"
                                 >
                                     <option value="retira">Retira en el bar</option>
                                     <option value="envio">Envío a domicilio</option>
                                 </select>
-                                {/* Dirección si elige envío */}
+
                                 {tipoEntrega === "envio" && (
                                     <div className="mt-4 text-left">
                                         {direccionPrincipal ? (
@@ -517,22 +597,22 @@ export default function PedidosClientePage() {
                                                     Dirección principal:{" "}
                                                     <span className="font-semibold">{direccionPrincipal}</span>
                                                 </p>
-
-                                                <label className="flex items-center gap-2 text-sm mb-2">
+                                                <label className="flex items-center gap-2 text-sm mb-2 text-gray-600">
                                                     <input
                                                         type="checkbox"
                                                         checked={usarOtraDireccion}
                                                         onChange={(e) => setUsarOtraDireccion(e.target.checked)}
+                                                        className="accent-red-500"
                                                     />
                                                     <span>Enviar a otra dirección</span>
                                                 </label>
-
                                                 {usarOtraDireccion && (
                                                     <input
                                                         value={direccionEnvio}
                                                         onChange={(e) => setDireccionEnvio(e.target.value)}
                                                         placeholder="Escribí la dirección de envío"
-                                                        className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-400"
+                                                        className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:ring-2 
+                                 focus:ring-red-400 text-gray-900"
                                                     />
                                                 )}
                                             </>
@@ -545,7 +625,8 @@ export default function PedidosClientePage() {
                                                     value={direccionEnvio}
                                                     onChange={(e) => setDireccionEnvio(e.target.value)}
                                                     placeholder="Ingresá tu dirección"
-                                                    className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-400"
+                                                    className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:ring-2 
+                               focus:ring-red-400 text-gray-900"
                                                 />
                                             </>
                                         )}
@@ -553,16 +634,22 @@ export default function PedidosClientePage() {
                                 )}
                             </div>
 
-                            <button
+                            {/* 🧠 Botón Finalizar Pedido */}
+                            <motion.button
+                                whileHover={{ scale: 1.03 }}
+                                whileTap={{ scale: 0.97 }}
                                 onClick={enviarPedido}
-                                className="w-full mt-6 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-semibold shadow"
+                                className="w-full mt-8 py-4 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-red-500
+                     text-white font-semibold text-lg shadow-[0_0_25px_rgba(239,68,68,0.4)]
+                     hover:shadow-[0_0_35px_rgba(239,68,68,0.6)] transition-all duration-300"
                             >
                                 Finalizar pedido
-                            </button>
+                            </motion.button>
                         </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>
+
         </div>
     );
 }
