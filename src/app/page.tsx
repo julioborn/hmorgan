@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
-import { QrCode, Award, Utensils, Scan, Users, Bell } from "lucide-react";
+import { QrCode, Award, Utensils, Scan, Users, Bell, ChefHat } from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 import "swiper/css";
@@ -332,16 +332,13 @@ function AdminHome() {
           Icon={Storefront}
           accent="from-red-600 to-red-800"
         />
-
-        {/* 🆕 NUEVO: Pedidos */}
         <ActionCard
           href="/admin/pedidos"
           title="Pedidos"
-          Icon={Utensils}
+          Icon={ChefHat}
           accent="from-red-600 to-red-800"
           notificationCount={pedidosActivosCount}
         />
-        {/* Notificaciones */}
         <ActionCard
           href="/admin/notificaciones"
           title="Notificaciones"

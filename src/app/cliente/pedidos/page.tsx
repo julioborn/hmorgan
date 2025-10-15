@@ -21,6 +21,7 @@ import {
     Trash2,
     ShoppingCart,
     ArrowUp,
+    Icon,
 } from "lucide-react";
 import Loader from "@/components/Loader";
 
@@ -66,10 +67,11 @@ export default function PedidosClientePage() {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [showScroll, setShowScroll] = useState(false);
     const [cargandoConfig, setCargandoConfig] = useState(true);
-    // Dirección guardada del usuario
     const [direccionPrincipal, setDireccionPrincipal] = useState<string>("");
     const [direccionEnvio, setDireccionEnvio] = useState<string>("");
     const [usarOtraDireccion, setUsarOtraDireccion] = useState(false);
+    const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null);
+    const [mostrarBurbuja, setMostrarBurbuja] = useState(false);
 
     // Cargar dirección del perfil
     useEffect(() => {
@@ -174,6 +176,21 @@ export default function PedidosClientePage() {
         });
     };
 
+    const totalItems = Object.values(items).reduce((a, b) => a + b, 0);
+
+    // /// 💬 Mostrar la burbuja cuando aparece el carrito por primera vez
+    // useEffect(() => {
+    //     if (totalItems > 0) {
+    //         // Solo mostrar si nunca se mostró antes
+    //         if (!localStorage.getItem("burbujaMostrada")) {
+    //             setMostrarBurbuja(true);
+    //             localStorage.setItem("burbujaMostrada", "true");
+    //             const hideTimer = setTimeout(() => setMostrarBurbuja(false), 5000);
+    //             return () => clearTimeout(hideTimer);
+    //         }
+    //     }
+    // }, [totalItems]);
+
     if (cargandoConfig) {
         return (
             <div className="flex justify-center items-center py-12">
@@ -203,26 +220,37 @@ export default function PedidosClientePage() {
         return acc + item.precio * cant;
     }, 0);
 
-    const totalItems = Object.values(items).reduce((a, b) => a + b, 0);
-
     return (
         <div className="p-5 pb-28 bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen">
             <h1 className="text-3xl font-bold mb-8 text-center text-black">Realizar Pedido</h1>
 
             {/* Categorías */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-8">
-                {categorias.map((cat) => {
+                {categorias.map((cat: string) => {
                     const Icon = categoryIcons[cat] || UtensilsCrossed;
+
+                    const handleScroll = () => {
+                        setCategoriaSeleccionada(cat);
+                        const section = document.getElementById(cat.replace(/\s+/g, "-"));
+                        if (section) {
+                            const yOffset = -130; // ⬅️ aumentamos el espacio (ajustá si querés más o menos)
+                            const y = section.getBoundingClientRect().top + window.scrollY + yOffset;
+                            window.scrollTo({ top: y, behavior: "smooth" });
+                        }
+                    };
+
                     return (
-                        <a
+                        <button
                             key={cat}
-                            href={`#${cat.replace(/\s+/g, "-")}`}
-                            className="flex flex-col items-center justify-center p-5 rounded-2xl border border-gray-200
-                         bg-white shadow-sm hover:bg-red-50 hover:scale-[1.03] transition-all text-center"
+                            onClick={handleScroll}
+                            className="flex flex-col items-center justify-center p-6 rounded-2xl shadow-sm border border-gray-200
+             bg-white hover:bg-red-50 hover:scale-[1.03] transition-all duration-200 text-center"
                         >
-                            <Icon size={30} className="mb-2 text-red-600" />
-                            <span className="text-sm font-semibold text-black">{cat}</span>
-                        </a>
+                            <Icon size={36} className="mb-2 text-red-600" />
+                            <span className="text-sm font-semibold tracking-wide text-black">
+                                {cat}
+                            </span>
+                        </button>
                     );
                 })}
             </div>
@@ -230,27 +258,50 @@ export default function PedidosClientePage() {
             {/* Productos */}
             {categorias.map((cat) => {
                 const Icon = categoryIcons[cat] || UtensilsCrossed;
-                const productos = menu.filter((i) => i.categoria === cat);
+                let productos = menu.filter((i) => i.categoria === cat);
+
+                // ✅ Ordenar las pizzas: primero las comunes, luego las "1/2"
+                if (cat === "PIZZAS") {
+                    productos = productos.sort((a, b) => {
+                        const aIsHalf = a.nombre.trim().startsWith("1/2");
+                        const bIsHalf = b.nombre.trim().startsWith("1/2");
+                        if (aIsHalf === bIsHalf) return 0; // ambos son o no son "1/2"
+                        return aIsHalf ? 1 : -1; // las "1/2" van después
+                    });
+                }
+
                 if (!productos.length) return null;
 
                 return (
-                    <div key={cat} id={cat.replace(/\s+/g, "-")} className="mb-10 scroll-mt-20">
+                    <motion.div
+                        key={cat}
+                        id={cat.replace(/\s+/g, "-")}
+                        className="mb-16 pt-10 scroll-mt-24"
+                        initial={{ opacity: 0, y: 40 }}
+                        animate={{
+                            opacity: categoriaSeleccionada === cat ? 1 : 0.9,
+                            y: categoriaSeleccionada === cat ? 0 : 40,
+                        }}
+                        transition={{ duration: 0.5, ease: "easeOut" }}
+                    >
                         <h2 className="text-2xl font-bold mb-5 flex items-center gap-2 text-black">
                             <Icon size={24} className="text-red-600" /> {cat}
                         </h2>
 
                         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
                             {productos.map((item) => (
-                                <div
+                                <motion.div
                                     key={item._id}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{ duration: 0.4 }}
                                     className="p-5 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:-translate-y-[2px] transition-all flex flex-col justify-between"
                                 >
                                     <div>
                                         <p className="font-semibold text-lg mb-1 text-black">{item.nombre}</p>
                                         {item.descripcion && (
-                                            <p className="text-sm text-gray-600 mb-2 leading-snug">
-                                                {item.descripcion}
-                                            </p>
+                                            <p className="text-sm text-gray-600 mb-2 leading-snug">{item.descripcion}</p>
                                         )}
                                         <p className="text-red-600 font-bold text-lg">
                                             ${formatPrice(item.precio)}
@@ -288,30 +339,82 @@ export default function PedidosClientePage() {
                                             </button>
                                         </div>
                                     </div>
-                                </div>
+                                </motion.div>
                             ))}
                         </div>
-                    </div>
+                    </motion.div>
                 );
             })}
 
-            {/* 🛒 Carrito flotante */}
+            {/* 🛒 Carrito flotante rojo sólido (con burbuja de ayuda) */}
             {totalItems > 0 && (
-                <motion.button
-                    layout
-                    initial={{ y: 100, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: 100, opacity: 0 }}
-                    transition={{ type: "spring", stiffness: 120 }}
-                    onClick={() => setDrawerOpen(true)}
-                    className="fixed bottom-16 left-5 px-5 py-3 rounded-full bg-red-600 text-white 
-                     shadow-lg shadow-red-500/30 flex items-center gap-3 
-                     font-semibold text-sm active:scale-95"
-                >
-                    <ShoppingCart size={20} />
-                    <span>{totalItems} ítem{totalItems > 1 ? "s" : ""}</span>
-                    <span className="font-bold">${formatPrice(total)}</span>
-                </motion.button>
+                <div className="fixed bottom-32 right-5 z-50 flex flex-col items-end gap-2">
+                    {/* 💬 Burbuja flotante animada */}
+                    <AnimatePresence>
+                        {mostrarBurbuja && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                                transition={{ duration: 0.5 }}
+                                className="relative bg-white text-black text-sm font-medium shadow-lg border border-gray-200 px-4 py-2 rounded-xl"
+                            >
+                                Aquí podés ver tu pedido 🛒
+                                <div className="absolute bottom-[-6px] right-6 w-3 h-3 bg-white rotate-45 border-r border-b border-gray-200"></div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {/* 🔴 Botón del carrito */}
+                    <motion.button
+                        layout
+                        initial={{ opacity: 0, scale: 0.8, y: -500 }} // 👈 arranca desde arriba de todo
+                        animate={{ opacity: 1, scale: 1, y: 0 }} // 👈 baja hasta su posición
+                        exit={{ opacity: 0, scale: 0.7, y: -30 }}
+                        transition={{
+                            type: "spring",
+                            stiffness: 120,
+                            damping: 15,
+                            duration: 1.2, // 👈 animación más fluida
+                        }}
+                        onClick={() => setDrawerOpen(true)}
+                        className="px-6 py-3 bg-red-600 text-white rounded-full shadow-[0_0_25px_rgba(239,68,68,0.6)]
+        flex items-center gap-3 font-bold text-lg active:scale-95
+        hover:bg-red-500 hover:shadow-[0_0_40px_rgba(239,68,68,0.8)]
+        transition-all duration-300"
+                    >
+                        <motion.div
+                            key={totalItems}
+                            animate={{ scale: [1, 1.2, 1] }}
+                            transition={{ duration: 0.8 }}
+                            className="relative flex items-center justify-center"
+                        >
+                            <ShoppingCart
+                                size={28}
+                                strokeWidth={2.4}
+                                color="white"
+                                className="pointer-events-none"
+                            />
+                            <motion.span
+                                key={`badge-${totalItems}`}
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="absolute -top-2 -right-2 bg-white text-red-600 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow"
+                            >
+                                {totalItems}
+                            </motion.span>
+                        </motion.div>
+
+                        <motion.span
+                            animate={{ scale: [1, 1.1, 1] }}
+                            transition={{ repeat: Infinity, duration: 2 }}
+                            className="font-extrabold text-white"
+                        >
+                            ${formatPrice(total)}
+                        </motion.span>
+                    </motion.button>
+
+                </div>
             )}
 
             {/* 🆙 Botón subir arriba */}
@@ -390,7 +493,7 @@ export default function PedidosClientePage() {
                                     );
                                 })}
 
-                            <div className="mt-4 flex justify-between font-bold text-lg text-black">
+                            <div className="mt-6 flex justify-center items-center gap-3 font-bold text-lg text-black bg-red-50 border border-red-200 rounded-xl py-2 px-5">
                                 <span>Total:</span>
                                 <span className="text-red-600">${formatPrice(total)}</span>
                             </div>

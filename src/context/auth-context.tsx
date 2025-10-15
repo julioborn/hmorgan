@@ -90,13 +90,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             // 🔕 Desuscribir notificaciones push
             try {
-                // Si el browser soporta SW y Push, intentamos borrar suscripción
                 if ("serviceWorker" in navigator && "PushManager" in window) {
                     const reg = await navigator.serviceWorker.ready;
                     const sub = await reg.pushManager.getSubscription();
 
                     if (sub) {
-                        // 1️⃣ Eliminar del backend (usuario actual y globalmente)
                         await fetch("/api/push/unsubscribe", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
@@ -111,38 +109,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             body: JSON.stringify({ endpoint: sub.endpoint }),
                         }).catch(() => { });
 
-                        // 2️⃣ Cancelar suscripción en el navegador
                         await sub.unsubscribe().catch(() => { });
                     }
 
-                    // 3️⃣ Borrar el SW viejo si existiera (para evitar bugs en reinstalación)
+                    // 🧹 Borrar service workers viejos
                     const regs = await navigator.serviceWorker.getRegistrations();
-                    for (const r of regs) {
-                        try {
-                            await r.unregister();
-                            console.log("🧹 Service Worker eliminado:", r.scope);
-                        } catch { }
-                    }
+                    for (const r of regs) await r.unregister().catch(() => { });
                 }
             } catch (err) {
                 console.warn("⚠️ Error al desuscribir push:", err);
             }
 
-            // 4️⃣ Cerrar sesión en backend
-            await fetch("/api/auth/logout", { method: "POST" });
+            // 🔸 Logout backend (borra cookie)
+            await fetch("/api/auth/logout", { method: "POST", cache: "no-store" });
 
-            // 5️⃣ Limpiar flags locales
-            try {
-                localStorage.removeItem(`hm_push_done_${uid}`);
-                localStorage.removeItem("hm_push_done_generic");
-                console.log("🧽 Flags locales eliminados");
-            } catch { }
-
-            // 6️⃣ Resetear usuario en contexto
+            // 🔸 Limpieza local
+            localStorage.removeItem(`hm_push_done_${uid}`);
+            localStorage.removeItem("hm_push_done_generic");
             setUser(null);
 
-            // 7️⃣ Redirigir
-            window.location.href = "/login";
+            console.log("✅ Sesión cerrada correctamente");
+
+            // 🕐 Esperar un poco antes de redirigir para asegurar borrado de cookie
+            setTimeout(() => {
+                window.location.href = "/login";
+            }, 400);
         } catch (err) {
             console.error("❌ Error durante logout:", err);
         }

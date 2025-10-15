@@ -14,6 +14,7 @@ import {
     Users,
     RefreshCw,
     Bell,
+    ChefHat,
 } from "lucide-react";
 import Image from "next/image";
 import { Coins, Storefront } from "phosphor-react";
@@ -48,7 +49,7 @@ export default function Header() {
         { href: "/admin/clientes", label: "Clientes", icon: Users },
         { href: "/admin/menu", label: "Menú", icon: Utensils },
         { href: "/admin/rewards", label: "Canjes", icon: Storefront },
-        { href: "/admin/pedidos", label: "Pedidos", icon: Utensils },
+        { href: "/admin/pedidos", label: "Pedidos", icon: ChefHat },
         { href: "/admin/notificaciones", label: "Notificaciones", icon: Bell },
     ];
 

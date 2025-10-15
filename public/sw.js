@@ -17,7 +17,7 @@ self.addEventListener("install", (e) => {
     e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
     self.skipWaiting();
 });
-A
+
 // ===============================
 // ACTIVACIÓN (recarga automática)
 // ===============================
