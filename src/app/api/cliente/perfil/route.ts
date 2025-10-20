@@ -31,6 +31,7 @@ export async function GET(req: Request) {
         return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
     }
 
+    // 👇 Incluimos el campo dirección en la respuesta
     return NextResponse.json({
         nombre: user.nombre,
         apellido: user.apellido,
@@ -38,6 +39,7 @@ export async function GET(req: Request) {
         telefono: user.telefono,
         email: user.email || null,
         fechaNacimiento: user.fechaNacimiento || null,
+        direccion: user.direccion || "", // ✅ agregado
     });
 }
 
@@ -50,7 +52,7 @@ export async function PUT(req: Request) {
         return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
-    const { nombre, apellido, telefono, email, fechaNacimiento } = await req.json();
+    const { nombre, apellido, telefono, email, fechaNacimiento, direccion } = await req.json(); // ✅ incluir dirección
 
     if (nombre?.trim().length < 2 || apellido?.trim().length < 2) {
         return NextResponse.json(
@@ -69,6 +71,7 @@ export async function PUT(req: Request) {
     user.telefono = telefono;
     if (email) user.email = email;
     if (fechaNacimiento) user.fechaNacimiento = new Date(fechaNacimiento);
+    if (direccion !== undefined) user.direccion = direccion; // ✅ ahora también guarda dirección
 
     await user.save();
 

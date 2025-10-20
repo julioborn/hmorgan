@@ -50,9 +50,7 @@ export async function POST(req: NextRequest) {
         const payload = jwt.verify(token, NEXTAUTH_SECRET) as any;
         await connectMongoDB();
 
-        // 👇 Ahora también traemos "direccion" desde el body
         const { items, tipoEntrega, direccion } = await req.json();
-        console.log("📦 Body recibido:", { items, tipoEntrega, direccion });
         if (!items?.length)
             return NextResponse.json({ message: "Sin items" }, { status: 400 });
 
@@ -65,36 +63,36 @@ export async function POST(req: NextRequest) {
             return acc + (item?.precio || 0) * i.cantidad;
         }, 0);
 
-        // 🧠 Buscar usuario
+        // 🧠 Buscar usuario con seguridad
         const user = await User.findById(payload.sub);
         if (!user)
             return NextResponse.json({ message: "Usuario no encontrado" }, { status: 404 });
 
-        // 💾 Guardar dirección en el perfil si no tiene una
+        // 💾 Guardar o actualizar dirección
         if (tipoEntrega === "envio" && direccion) {
-            if (!user.direccion) {
+            if (!user.direccion || user.direccion !== direccion) {
                 user.direccion = direccion;
-                await user.save();
+                await user.save(); // <-- 🔥 guarda efectivamente
+                console.log("✅ Dirección guardada o actualizada:", direccion);
             }
         }
 
-        // 📦 Crear pedido con dirección incluida
+        // 📦 Crear pedido
         const pedido = await Pedido.create({
-            userId: payload.sub,
+            userId: user._id,
             items,
             tipoEntrega,
             total,
             direccion: tipoEntrega === "envio" ? direccion : undefined,
             estado: "pendiente",
         });
-        console.log("✅ Pedido creado:", pedido);
 
-        // 🔔 Notificar al admin
+        // 🔔 Notificación push
         const admin = await User.findOne({ role: "admin" });
         if (admin?.pushSubscriptions?.length) {
             await sendPushToSubscriptions(admin.pushSubscriptions, {
                 title: "¡Nuevo pedido recibido!",
-                body: `Nuevo pedido de ${payload?.nombre ?? "un cliente"}. Revisalo en la barra 👇`,
+                body: `Nuevo pedido de ${user.nombre ?? "un cliente"}. Revisalo en la barra 👇`,
                 url: "/admin/pedidos",
                 icon: "/icon-192.png",
                 badge: "/icon-badge-96x96.png",
@@ -104,7 +102,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ ok: true, pedido }, { status: 201 });
     } catch (error) {
-        console.error("Error en POST /api/pedidos:", error);
+        console.error("❌ Error en POST /api/pedidos:", error);
         return NextResponse.json({ message: "Error interno" }, { status: 500 });
     }
 }

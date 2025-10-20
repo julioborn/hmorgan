@@ -72,6 +72,7 @@ export default function PedidosClientePage() {
     const [usarOtraDireccion, setUsarOtraDireccion] = useState(false);
     const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null);
     const [mostrarBurbuja, setMostrarBurbuja] = useState(false);
+    const [enviando, setEnviando] = useState(false);
 
     // Cargar dirección del perfil
     useEffect(() => {
@@ -120,35 +121,38 @@ export default function PedidosClientePage() {
         if (seleccion.length === 0)
             return Swal.fire("⚠️", "Seleccioná al menos un ítem", "warning");
 
-        console.log("➡️ Enviando pedido:", {
-            tipoEntrega,
-            usarOtraDireccion,
-            direccionPrincipal,
-            direccionEnvio,
-        });
-
         if (tipoEntrega === "envio" && !(direccionEnvio || direccionPrincipal)) {
             return Swal.fire("⚠️", "Ingresá una dirección de envío", "warning");
         }
 
-        const res = await fetch("/api/pedidos", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                items: seleccion,
-                tipoEntrega,
-                direccion:
-                    tipoEntrega === "envio"
-                        ? direccionEnvio || direccionPrincipal || ""
-                        : undefined,
-            }),
-        });
+        try {
+            setEnviando(true);
 
-        if (res.ok) {
-            Swal.fire("✅", "Pedido enviado correctamente", "success");
-            setItems({});
-            setDrawerOpen(false);
-        } else Swal.fire("❌", "Error al enviar el pedido", "error");
+            const res = await fetch("/api/pedidos", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    items: seleccion,
+                    tipoEntrega,
+                    direccion:
+                        tipoEntrega === "envio"
+                            ? direccionEnvio || direccionPrincipal || ""
+                            : undefined,
+                }),
+            });
+
+            if (res.ok) {
+                Swal.fire("✅", "Pedido enviado correctamente", "success");
+                setItems({});
+                setDrawerOpen(false);
+            } else {
+                Swal.fire("❌", "Error al enviar el pedido", "error");
+            }
+        } catch (error) {
+            Swal.fire("❌", "Error de conexión", "error");
+        } finally {
+            setEnviando(false);
+        }
     }
 
     const vaciarCarrito = () => {
@@ -219,6 +223,15 @@ export default function PedidosClientePage() {
         const cant = items[item._id] || 0;
         return acc + item.precio * cant;
     }, 0);
+
+    if (enviando) {
+        return (
+            <div className="fixed inset-0 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm z-[9999]">
+                <Loader size={50} />
+                <p className="mt-4 text-gray-700 font-semibold text-lg">Enviando tu pedido...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="p-5 pb-28 bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen">
@@ -638,14 +651,43 @@ export default function PedidosClientePage() {
 
                             {/* 🧠 Botón Finalizar Pedido */}
                             <motion.button
-                                whileHover={{ scale: 1.03 }}
-                                whileTap={{ scale: 0.97 }}
-                                onClick={enviarPedido}
-                                className="w-full mt-8 py-4 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-red-500
-                     text-white font-semibold text-lg shadow-[0_0_25px_rgba(239,68,68,0.4)]
-                     hover:shadow-[0_0_35px_rgba(239,68,68,0.6)] transition-all duration-300"
+                                whileHover={!enviando ? { scale: 1.03 } : {}}
+                                whileTap={!enviando ? { scale: 0.97 } : {}}
+                                onClick={!enviando ? enviarPedido : undefined}
+                                disabled={enviando}
+                                className={`w-full mt-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 flex justify-center items-center gap-2
+        ${enviando
+                                        ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                                        : "bg-gradient-to-r from-red-600 via-rose-600 to-red-500 text-white shadow-[0_0_25px_rgba(239,68,68,0.4)] hover:shadow-[0_0_35px_rgba(239,68,68,0.6)]"
+                                    }`}
                             >
-                                Finalizar pedido
+                                {enviando ? (
+                                    <>
+                                        <svg
+                                            className="animate-spin h-5 w-5 text-gray-600"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <circle
+                                                className="opacity-25"
+                                                cx="12"
+                                                cy="12"
+                                                r="10"
+                                                stroke="currentColor"
+                                                strokeWidth="4"
+                                            ></circle>
+                                            <path
+                                                className="opacity-75"
+                                                fill="currentColor"
+                                                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                                            ></path>
+                                        </svg>
+                                        <span>Enviando...</span>
+                                    </>
+                                ) : (
+                                    "Finalizar pedido"
+                                )}
                             </motion.button>
                         </motion.div>
                     </motion.div>
