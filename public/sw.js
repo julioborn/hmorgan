@@ -1,7 +1,7 @@
 // ===============================
 // SW: cache + push notifications
 // ===============================
-const CACHE = "hmorgan-v22"; // ⬅️ subí la versión para forzar actualización
+const CACHE = "hmorgan-v23"; // ⬅️ subí la versión para forzar actualización
 
 const ASSETS = [
     "/",

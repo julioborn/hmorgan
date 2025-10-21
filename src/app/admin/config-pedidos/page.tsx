@@ -23,11 +23,12 @@ export default function ConfigPedidosPage() {
         });
         if (res.ok) {
             setActivo(nuevoEstado);
-            swalBase.fire(
-                "✅",
-                nuevoEstado ? "Pedidos habilitados" : "Pedidos deshabilitados",
-                "success"
-            );
+            await swalBase.fire({
+                icon: "success",
+                title: nuevoEstado ? "Pedidos habilitados" : "Pedidos deshabilitados",
+                timer: 2000,
+                showConfirmButton: false,
+            });
         }
     }
 

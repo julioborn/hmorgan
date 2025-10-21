@@ -143,7 +143,12 @@ export default function PedidosClientePage() {
             });
 
             if (res.ok) {
-                swalBase.fire("✅", "Pedido enviado correctamente", "success");
+                await swalBase.fire({
+                    icon: "success",
+                    title: "Pedido enviado correctamente",
+                    timer: 2000,
+                    showConfirmButton: false,
+                });
                 setItems({});
                 setDrawerOpen(false);
             } else {
@@ -224,15 +229,6 @@ export default function PedidosClientePage() {
         const cant = items[item._id] || 0;
         return acc + item.precio * cant;
     }, 0);
-
-    if (enviando) {
-        return (
-            <div className="fixed inset-0 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm z-[9999]">
-                <Loader size={50} />
-                <p className="mt-4 text-gray-700 font-semibold text-lg">Enviando tu pedido...</p>
-            </div>
-        );
-    }
 
     return (
         <div className="p-5 pb-28 bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen">
@@ -656,8 +652,8 @@ export default function PedidosClientePage() {
                                 whileTap={!enviando ? { scale: 0.97 } : {}}
                                 onClick={!enviando ? enviarPedido : undefined}
                                 disabled={enviando}
-                                className={`w-full mt-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 flex justify-center items-center gap-2
-        ${enviando
+                                className={`w-full mt-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 flex justify-center items-center gap-3
+    ${enviando
                                         ? "bg-gray-300 text-gray-600 cursor-not-allowed"
                                         : "bg-gradient-to-r from-red-600 via-rose-600 to-red-500 text-white shadow-[0_0_25px_rgba(239,68,68,0.4)] hover:shadow-[0_0_35px_rgba(239,68,68,0.6)]"
                                     }`}
@@ -665,7 +661,7 @@ export default function PedidosClientePage() {
                                 {enviando ? (
                                     <>
                                         <svg
-                                            className="animate-spin h-5 w-5 text-gray-600"
+                                            className="animate-spin h-5 w-5 text-white"
                                             xmlns="http://www.w3.org/2000/svg"
                                             fill="none"
                                             viewBox="0 0 24 24"
@@ -684,10 +680,13 @@ export default function PedidosClientePage() {
                                                 d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
                                             ></path>
                                         </svg>
-                                        <span>Enviando...</span>
+                                        <span className="ml-2 font-medium">Enviando pedido...</span>
                                     </>
                                 ) : (
-                                    "Finalizar pedido"
+                                    <>
+                                        <ShoppingCart size={22} />
+                                        <span>Finalizar pedido</span>
+                                    </>
                                 )}
                             </motion.button>
                         </motion.div>

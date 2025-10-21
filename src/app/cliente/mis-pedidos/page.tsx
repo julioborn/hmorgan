@@ -128,23 +128,42 @@ function CancelButton({ pedidoId, cancelableUntil }: { pedidoId: string; cancela
 
         if (!confirm.isConfirmed) return;
 
-        const res = await fetch(`/api/pedidos/${pedidoId}/cancelar`, { method: "PUT" });
-        const data = await res.json();
+        // 🌀 Mostrar loader mientras se procesa la cancelación
+        swalBase.fire({
+            title: "Cancelando pedido...",
+            html: '<div class="flex justify-center mt-3"><div class="loader"></div></div>',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                swalBase.showLoading();
+            },
+        });
 
-        if (res.ok) {
-            await swalBase.fire({
-                icon: "success",
-                title: "Pedido cancelado",
-                text: "Tu pedido fue cancelado correctamente.",
-                timer: 2000,
-                showConfirmButton: false,
-            });
-            window.location.reload();
-        } else {
+        try {
+            const res = await fetch(`/api/pedidos/${pedidoId}/cancelar`, { method: "PUT" });
+            const data = await res.json();
+
+            if (res.ok) {
+                await swalBase.fire({
+                    icon: "success",
+                    title: "Pedido cancelado",
+                    text: "Tu pedido fue cancelado correctamente.",
+                    timer: 2000,
+                    showConfirmButton: false,
+                });
+                window.location.reload();
+            } else {
+                await swalBase.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: data.message || "No se pudo cancelar el pedido.",
+                });
+            }
+        } catch (error) {
             await swalBase.fire({
                 icon: "error",
-                title: "Error",
-                text: data.message || "No se pudo cancelar el pedido.",
+                title: "Error de conexión",
+                text: "No se pudo contactar con el servidor.",
             });
         }
     };
