@@ -1,4 +1,5 @@
 "use client";
+import { swalBase } from "@/lib/swalConfig";
 import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 
@@ -22,7 +23,7 @@ export default function ConfigPedidosPage() {
         });
         if (res.ok) {
             setActivo(nuevoEstado);
-            Swal.fire(
+            swalBase.fire(
                 "✅",
                 nuevoEstado ? "Pedidos habilitados" : "Pedidos deshabilitados",
                 "success"

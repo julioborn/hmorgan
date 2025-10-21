@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import Loader from "@/components/Loader";
+import { swalBase } from "@/lib/swalConfig";
 
 export default function ResetPasswordPage({
     searchParams,
@@ -62,7 +63,7 @@ export default function ResetPasswordPage({
         if (!token) return;
 
         if (password !== confirmPassword) {
-            Swal.fire({
+            swalBase.fire({
                 icon: "error",
                 title: "Las contraseñas no coinciden",
                 confirmButtonColor: "#ef4444",
@@ -81,7 +82,7 @@ export default function ResetPasswordPage({
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Error al cambiar contraseña");
 
-            Swal.fire({
+            swalBase.fire({
                 icon: "success",
                 title: "✅ Contraseña actualizada",
                 text: "Ya puedes iniciar sesión con tu nueva contraseña.",
@@ -90,7 +91,7 @@ export default function ResetPasswordPage({
                 window.location.href = "/login";
             });
         } catch (err: any) {
-            Swal.fire({
+            swalBase.fire({
                 icon: "error",
                 title: "❌ Error",
                 text: err.message,

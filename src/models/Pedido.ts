@@ -1,4 +1,4 @@
-import mongoose, { Schema, model, models } from "mongoose";
+import { Schema, model, models } from "mongoose";
 
 const PedidoSchema = new Schema(
     {
@@ -10,13 +10,14 @@ const PedidoSchema = new Schema(
             },
         ],
         tipoEntrega: { type: String, enum: ["retira", "envio"], default: "retira" },
-        direccion: { type: String }, // ✅ nuevo campo opcional
+        direccion: { type: String },
         total: { type: Number },
         estado: {
             type: String,
-            enum: ["pendiente", "preparando", "listo", "entregado"],
+            enum: ["pendiente", "preparando", "listo", "entregado", "cancelado"], // 👈 nuevo estado
             default: "pendiente",
         },
+        cancelableUntil: { type: Date }, // 👈 nuevo campo
     },
     { timestamps: true }
 );

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Loader from "@/components/Loader";
 import Swal from "sweetalert2";
+import { swalBase } from "@/lib/swalConfig";
 
 type Perfil = {
     nombre: string;
@@ -29,7 +30,7 @@ export default function PerfilPage() {
                 if (res.ok) setPerfil(data);
                 else throw new Error(data.error || "Error al cargar perfil");
             } catch (err: any) {
-                Swal.fire({
+                swalBase.fire({
                     icon: "error",
                     title: "❌ Error",
                     text: err.message || "Error de red",
@@ -64,14 +65,14 @@ export default function PerfilPage() {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Error al guardar");
 
-            Swal.fire({
+            swalBase.fire({
                 icon: "success",
                 title: "✅ Perfil actualizado",
                 text: "Tus datos se guardaron correctamente.",
                 confirmButtonColor: "#dc2626",
             });
         } catch (err: any) {
-            Swal.fire({
+            swalBase.fire({
                 icon: "error",
                 title: "❌ Error",
                 text: err.message,
@@ -84,7 +85,7 @@ export default function PerfilPage() {
 
     async function handleRequestReset() {
         if (!perfil?.email) {
-            Swal.fire({
+            swalBase.fire({
                 icon: "warning",
                 title: "⚠️ Email requerido",
                 text: "Debes ingresar tu email en el perfil para cambiar la contraseña.",
@@ -103,14 +104,14 @@ export default function PerfilPage() {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Error al solicitar cambio");
 
-            Swal.fire({
+            swalBase.fire({
                 icon: "success",
                 title: "📧 Correo enviado",
                 text: `Revisa ${perfil.email} para cambiar tu contraseña.`,
                 confirmButtonColor: "#dc2626",
             });
         } catch (err: any) {
-            Swal.fire({
+            swalBase.fire({
                 icon: "error",
                 title: "❌ Error",
                 text: err.message,

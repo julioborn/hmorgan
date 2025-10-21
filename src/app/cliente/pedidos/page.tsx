@@ -24,6 +24,7 @@ import {
     Icon,
 } from "lucide-react";
 import Loader from "@/components/Loader";
+import { swalBase } from "@/lib/swalConfig";
 
 type MenuItem = {
     _id: string;
@@ -119,10 +120,10 @@ export default function PedidosClientePage() {
             .map(([id, cant]) => ({ menuItemId: id, cantidad: cant }));
 
         if (seleccion.length === 0)
-            return Swal.fire("⚠️", "Seleccioná al menos un ítem", "warning");
+            return swalBase.fire("⚠️", "Seleccioná al menos un ítem", "warning");
 
         if (tipoEntrega === "envio" && !(direccionEnvio || direccionPrincipal)) {
-            return Swal.fire("⚠️", "Ingresá una dirección de envío", "warning");
+            return swalBase.fire("⚠️", "Ingresá una dirección de envío", "warning");
         }
 
         try {
@@ -142,21 +143,21 @@ export default function PedidosClientePage() {
             });
 
             if (res.ok) {
-                Swal.fire("✅", "Pedido enviado correctamente", "success");
+                swalBase.fire("✅", "Pedido enviado correctamente", "success");
                 setItems({});
                 setDrawerOpen(false);
             } else {
-                Swal.fire("❌", "Error al enviar el pedido", "error");
+                swalBase.fire("❌", "Error al enviar el pedido", "error");
             }
         } catch (error) {
-            Swal.fire("❌", "Error de conexión", "error");
+            swalBase.fire("❌", "Error de conexión", "error");
         } finally {
             setEnviando(false);
         }
     }
 
     const vaciarCarrito = () => {
-        Swal.fire({
+        swalBase.fire({
             title: "¿Vaciar carrito?",
             text: "Se eliminarán todos los productos seleccionados.",
             icon: "warning",

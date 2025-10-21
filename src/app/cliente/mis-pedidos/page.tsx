@@ -5,6 +5,7 @@ import { Clock, Flame, CheckCircle, Truck } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import Loader from "@/components/Loader";
+import { swalBase } from "@/lib/swalConfig";
 
 type EstadoColor = "yellow" | "orange" | "blue" | "emerald";
 
@@ -98,6 +99,71 @@ export default function MisPedidosPage() {
     );
 }
 
+function CancelButton({ pedidoId, cancelableUntil }: { pedidoId: string; cancelableUntil: string }) {
+    const [timeLeft, setTimeLeft] = useState<number>(
+        new Date(cancelableUntil).getTime() - Date.now()
+    );
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setTimeLeft(new Date(cancelableUntil).getTime() - Date.now());
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [cancelableUntil]);
+
+    if (timeLeft <= 0) return null;
+
+    const minutos = Math.floor(timeLeft / 60000);
+    const segundos = Math.floor((timeLeft % 60000) / 1000);
+
+    const handleCancel = async () => {
+        const confirm = await swalBase.fire({
+            title: "¿Cancelar pedido?",
+            text: "Tenés unos minutos para arrepentirte, pero si confirmás se cancelará definitivamente.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Sí, cancelar",
+            cancelButtonText: "No, volver",
+        });
+
+        if (!confirm.isConfirmed) return;
+
+        const res = await fetch(`/api/pedidos/${pedidoId}/cancelar`, { method: "PUT" });
+        const data = await res.json();
+
+        if (res.ok) {
+            await swalBase.fire({
+                icon: "success",
+                title: "Pedido cancelado",
+                text: "Tu pedido fue cancelado correctamente.",
+                timer: 2000,
+                showConfirmButton: false,
+            });
+            window.location.reload();
+        } else {
+            await swalBase.fire({
+                icon: "error",
+                title: "Error",
+                text: data.message || "No se pudo cancelar el pedido.",
+            });
+        }
+    };
+
+    return (
+        <div className="flex justify-between items-center mb-3">
+            <button
+                onClick={handleCancel}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-500 transition"
+            >
+                Cancelar pedido
+            </button>
+            <span className="text-gray-600 text-sm font-medium">
+                ⏳ {minutos}:{segundos.toString().padStart(2, "0")}
+            </span>
+        </div>
+    );
+}
+
 function PedidosLista({
     pedidos,
     estados,
@@ -168,6 +234,11 @@ function PedidosLista({
                                     </li>
                                 ))}
                             </ul>
+
+                            {/* Cancelación (solo si es pendiente y dentro del tiempo límite) */}
+                            {p.estado === "pendiente" && p.cancelableUntil && (
+                                <CancelButton pedidoId={p._id} cancelableUntil={p.cancelableUntil} />
+                            )}
 
                             {/* Timeline */}
                             <div className="relative w-full flex justify-between items-center mt-5">

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import Swal from "sweetalert2";
 import Loader from "./Loader";
+import { swalBase } from "@/lib/swalConfig";
 
 type Reward = { _id: string; titulo: string; puntos: number };
 type CamState = "idle" | "starting" | "on" | "error";
@@ -142,7 +143,7 @@ export default function ScanRewardPage() {
             const user = await res.json();
             const reward = rewards?.find((r) => r._id === selectedReward);
 
-            const result = await Swal.fire({
+            const result = await swalBase.fire({
                 title: "",
                 html: `
         <div style="background: linear-gradient(145deg,#0f172a,#111827);border-radius:1rem;padding:1.5rem;text-align:left;
@@ -173,7 +174,7 @@ export default function ScanRewardPage() {
             });
 
             if (canjeRes.ok) {
-                await Swal.fire({
+                await swalBase.fire({
                     icon: "success",
                     title: "Canje realizado",
                     html: `<b>${reward?.titulo}</b><br/><span style="color:#f87171;">-${reward?.puntos} pts</span>`,
@@ -187,7 +188,7 @@ export default function ScanRewardPage() {
                 setFlash(true);
                 setTimeout(() => setFlash(false), 200);
             } else {
-                await Swal.fire({
+                await swalBase.fire({
                     icon: "error",
                     title: "Error",
                     text: "No se pudo completar el canje.",

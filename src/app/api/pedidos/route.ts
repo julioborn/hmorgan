@@ -78,6 +78,9 @@ export async function POST(req: NextRequest) {
         }
 
         // 📦 Crear pedido
+        const ahora = new Date();
+        const cancelableUntil = new Date(ahora.getTime() + 5 * 60 * 1000); // +5 minutos
+
         const pedido = await Pedido.create({
             userId: user._id,
             items,
@@ -85,6 +88,7 @@ export async function POST(req: NextRequest) {
             total,
             direccion: tipoEntrega === "envio" ? direccion : undefined,
             estado: "pendiente",
+            cancelableUntil, // 👈 nuevo
         });
 
         // 🔔 Notificación push

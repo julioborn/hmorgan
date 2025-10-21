@@ -6,6 +6,7 @@ import { Clock, Flame, CheckCircle, Truck } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import Loader from "@/components/Loader";
+import { swalBase } from "@/lib/swalConfig";
 
 export default function AdminPedidosPage() {
     const [pedidos, setPedidos] = useState<any[]>([]);
@@ -50,11 +51,11 @@ export default function AdminPedidosPage() {
 
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
-                Swal.fire("❌", err.message || "Error al actualizar", "error");
+                swalBase.fire("❌", err.message || "Error al actualizar", "error");
                 return;
             }
 
-            Swal.fire({
+            swalBase.fire({
                 title: "Actualizado",
                 icon: "success",
                 timer: 1000,
@@ -63,13 +64,13 @@ export default function AdminPedidosPage() {
 
             fetchPedidos();
         } catch {
-            Swal.fire("❌", "Error de conexión", "error");
+            swalBase.fire("❌", "Error de conexión", "error");
         }
     }
 
     async function eliminarPedido(id: string) {
         try {
-            const confirm = await Swal.fire({
+            const confirm = await swalBase.fire({
                 title: "¿Rechazar pedido?",
                 text: "Esta acción eliminará el pedido.",
                 icon: "warning",
@@ -87,14 +88,14 @@ export default function AdminPedidosPage() {
             });
 
             if (!res.ok) {
-                Swal.fire("❌", "Error al eliminar el pedido", "error");
+                swalBase.fire("❌", "Error al eliminar el pedido", "error");
                 return;
             }
 
-            Swal.fire("Eliminado", "El pedido fue rechazado.", "success");
+            swalBase.fire("Eliminado", "El pedido fue rechazado.", "success");
             fetchPedidos();
         } catch {
-            Swal.fire("❌", "Error de conexión", "error");
+            swalBase.fire("❌", "Error de conexión", "error");
         }
     }
 

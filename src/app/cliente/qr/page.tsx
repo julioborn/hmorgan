@@ -5,6 +5,7 @@ import { useAuth } from "@/context/auth-context";
 import { registerSW, subscribeUser } from "@/lib/push-client";
 import Loader from "@/components/Loader";
 import Swal from "sweetalert2";
+import { swalBase } from "@/lib/swalConfig";
 
 export default function MiQRPage() {
   const { user } = useAuth();
@@ -29,7 +30,7 @@ export default function MiQRPage() {
       const hasNotif = typeof Notification !== "undefined";
 
       if (!isStandalone) {
-        Swal.fire(
+        swalBase.fire(
           "ℹ️",
           "Instalá la app (Añadir a inicio) para recibir notificaciones.",
           "info"
@@ -37,32 +38,32 @@ export default function MiQRPage() {
         return;
       }
       if (!hasSW || !hasPush || !hasNotif) {
-        Swal.fire("❌", "Este dispositivo no soporta notificaciones push.", "error");
+        swalBase.fire("❌", "Este dispositivo no soporta notificaciones push.", "error");
         return;
       }
 
       const perm = await Notification.requestPermission();
       if (perm !== "granted") {
-        Swal.fire("⚠️", "No activaste las notificaciones.", "warning");
+        swalBase.fire("⚠️", "No activaste las notificaciones.", "warning");
         return;
       }
 
       const reg = await registerSW();
       if (!reg) {
-        Swal.fire("❌", "No se pudo registrar el Service Worker.", "error");
+        swalBase.fire("❌", "No se pudo registrar el Service Worker.", "error");
         return;
       }
 
       const sub = await subscribeUser(reg);
       if (!sub) {
-        Swal.fire("❌", "No se pudo crear la suscripción.", "error");
+        swalBase.fire("❌", "No se pudo crear la suscripción.", "error");
         return;
       }
 
-      Swal.fire("✅ Listo", "Las notificaciones fueron activadas.", "success");
+      swalBase.fire("✅ Listo", "Las notificaciones fueron activadas.", "success");
     } catch (e: any) {
       console.error(e);
-      Swal.fire("❌ Error", e?.message || "Falló la activación", "error");
+      swalBase.fire("❌ Error", e?.message || "Falló la activación", "error");
     }
   }
 

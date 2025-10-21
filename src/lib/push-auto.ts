@@ -1,5 +1,6 @@
 import { registerSW, subscribeUser, forceResubscribe } from "@/lib/push-client";
 import Swal from "sweetalert2";
+import { swalBase } from "./swalConfig";
 
 /**
  * Registra el SW y la suscripción Push justo después del login.
@@ -39,7 +40,7 @@ export async function ensurePushAfterLogin(userId?: string) {
     }
 
     // Preguntar al usuario
-    const result = await Swal.fire({
+    const result = await swalBase.fire({
         title: "🔔 Activar notificaciones",
         text: "¿Querés recibir avisos de pedidos y novedades?",
         icon: "info",
@@ -65,12 +66,12 @@ export async function ensurePushAfterLogin(userId?: string) {
         try {
             perm = await Notification.requestPermission();
         } catch {
-            Swal.fire("⚠️", "No se pudo solicitar permiso de notificaciones.", "warning");
+            swalBase.fire("⚠️", "No se pudo solicitar permiso de notificaciones.", "warning");
             return;
         }
     }
     if (perm !== "granted") {
-        Swal.fire("⚠️", "No activaste las notificaciones.", "warning");
+        swalBase.fire("⚠️", "No activaste las notificaciones.", "warning");
         return;
     }
 
@@ -82,7 +83,7 @@ export async function ensurePushAfterLogin(userId?: string) {
     } catch (err) {
         console.error("❌ Error registrando Service Worker:", err);
         localStorage.removeItem(flagKey); // limpia flag por si quedó mal
-        Swal.fire("❌", "No se pudo registrar el Service Worker.", "error");
+        swalBase.fire("❌", "No se pudo registrar el Service Worker.", "error");
         return;
     }
 
@@ -92,7 +93,7 @@ export async function ensurePushAfterLogin(userId?: string) {
 
         if (!sub) {
             sub = await subscribeUser(reg);
-            Swal.fire("✅ Listo", "Las notificaciones fueron activadas correctamente.", "success");
+            swalBase.fire("✅ Listo", "Las notificaciones fueron activadas correctamente.", "success");
         } else {
             // Probamos que el endpoint sirva. Si no, forzamos resuscripción
             console.log("ℹ️ Suscripción existente:", sub.endpoint);
@@ -100,13 +101,13 @@ export async function ensurePushAfterLogin(userId?: string) {
             if (!test?.ok) throw new Error("No se pudo validar suscripción anterior");
             // Opcional: resuscribir siempre tras reinstalar
             sub = await forceResubscribe(reg);
-            Swal.fire("✅ Renovado", "Las notificaciones se reactivaron correctamente.", "success");
+            swalBase.fire("✅ Renovado", "Las notificaciones se reactivaron correctamente.", "success");
         }
 
         localStorage.setItem(flagKey, "1");
     } catch (err) {
         console.error("❌ Error al suscribir Push:", err);
         localStorage.removeItem(flagKey); // limpiar flag corrupto
-        Swal.fire("❌", "Falló la activación de notificaciones.", "error");
+        swalBase.fire("❌", "Falló la activación de notificaciones.", "error");
     }
 }

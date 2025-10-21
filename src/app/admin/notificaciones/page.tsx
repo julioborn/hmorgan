@@ -1,4 +1,5 @@
 "use client";
+import { swalBase } from "@/lib/swalConfig";
 import { useState } from "react";
 import Swal from "sweetalert2";
 
@@ -10,7 +11,7 @@ export default function EnviarNotificacionPage() {
 
     async function enviar() {
         if (!title || !body) {
-            Swal.fire("Campos incompletos", "Completá título y mensaje", "warning");
+            swalBase.fire("Campos incompletos", "Completá título y mensaje", "warning");
             return;
         }
 
@@ -26,7 +27,7 @@ export default function EnviarNotificacionPage() {
             console.log("🔍 Respuesta del servidor:", data);
 
             if (data.ok) {
-                Swal.fire({
+                swalBase.fire({
                     title: "✅ Notificación enviada",
                     text: `Se envió a ${data.total} dispositivos.`,
                     icon: "success",
@@ -37,10 +38,10 @@ export default function EnviarNotificacionPage() {
                 setBody("");
                 setUrl("/");
             } else {
-                Swal.fire("❌ Error", data.message || "No se pudo enviar la notificación", "error");
+                swalBase.fire("❌ Error", data.message || "No se pudo enviar la notificación", "error");
             }
         } catch (error) {
-            Swal.fire("❌", "Error de conexión con el servidor", "error");
+            swalBase.fire("❌", "Error de conexión con el servidor", "error");
         } finally {
             setLoading(false);
         }
