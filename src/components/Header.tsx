@@ -8,16 +8,20 @@ import {
     Menu,
     X,
     QrCode,
-    Award,
     Utensils,
     Scan,
     Users,
     RefreshCw,
     Bell,
-    ChefHat,
+    PackagePlus,
+    History,
+    Ticket,
+    Package,
+    LoaderPinwheel,
+    ScanText,
+    ScanQrCode,
 } from "lucide-react";
 import Image from "next/image";
-import { Coins, Storefront } from "phosphor-react";
 
 export default function Header() {
     const { user, loading, logout } = useAuth();
@@ -35,21 +39,21 @@ export default function Header() {
         { href: "/", label: "Inicio" },
         { href: "/cliente/qr", label: "Mi QR", icon: QrCode },
         { href: "/cliente/menu", label: "Menú", icon: Utensils },
-        { href: "/cliente/pedidos", label: "Nuevo Pedido", icon: Storefront },
-        { href: "/cliente/mis-pedidos", label: "Mis Pedidos", icon: Bell },
-        { href: "/cliente/rewards", label: "Canjes", icon: Award },
-        { href: "/cliente/historial", label: "Historial", icon: Coins },
-        { href: "/cliente/ruleta", label: "Ruleta de Tragos", icon: RefreshCw },
+        { href: "/cliente/pedidos", label: "Nuevo Pedido", icon: PackagePlus },
+        { href: "/cliente/mis-pedidos", label: "Mis Pedidos", icon: Package },
+        { href: "/cliente/rewards", label: "Canjes", icon: Ticket },
+        { href: "/cliente/historial", label: "Historial", icon: History },
+        { href: "/cliente/ruleta", label: "Ruleta de Tragos", icon: LoaderPinwheel },
     ];
 
     const linksAdmin = [
         { href: "/", label: "Inicio" },
-        { href: "/admin/scan", label: "Escanear Puntos", icon: Scan },
-        { href: "/admin/rewards/scan", label: "Escanear Canjes", icon: Scan },
+        { href: "/admin/scan", label: "Escanear Puntos", icon: ScanQrCode },
+        { href: "/admin/rewards/scan", label: "Escanear Canjes", icon: ScanText },
         { href: "/admin/clientes", label: "Clientes", icon: Users },
         { href: "/admin/menu", label: "Menú", icon: Utensils },
-        { href: "/admin/rewards", label: "Canjes", icon: Storefront },
-        { href: "/admin/pedidos", label: "Pedidos", icon: ChefHat },
+        { href: "/admin/rewards", label: "Canjes", icon: Ticket },
+        { href: "/admin/pedidos", label: "Pedidos", icon: Package },
         { href: "/admin/notificaciones", label: "Notificaciones", icon: Bell },
     ];
 
@@ -160,8 +164,8 @@ export default function Header() {
                                                         href={l.href}
                                                         onClick={() => setOpen(false)}
                                                         className={`flex items-center gap-4 px-4 py-4 rounded-xl font-semibold text-lg transition ${active
-                                                                ? "bg-red-600 text-white"
-                                                                : "hover:bg-red-700/20 text-gray-200"
+                                                            ? "bg-red-600 text-white"
+                                                            : "hover:bg-red-700/20 text-gray-200"
                                                             }`}
                                                     >
                                                         {l.icon && <l.icon size={22} />}
@@ -176,8 +180,8 @@ export default function Header() {
                                         <Link
                                             href="/login"
                                             className={`px-3 py-2 rounded-lg text-sm ${pathname === "/login"
-                                                    ? "bg-red-600 text-white"
-                                                    : "text-white hover:bg-red-700/20"
+                                                ? "bg-red-600 text-white"
+                                                : "text-white hover:bg-red-700/20"
                                                 }`}
                                             onClick={() => setOpen(false)}
                                         >

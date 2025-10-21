@@ -2,13 +2,12 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
-import { QrCode, Award, Utensils, Scan, Users, Bell, ChefHat } from "lucide-react";
+import { QrCode, Scan, Users, Bell, ChefHat, PackagePlus, Package, Utensils, Ticket, Coins, History, ScanQrCode, ScanText } from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 import Loader from "@/components/Loader";
-import { Coins, Storefront } from "phosphor-react";
 
 const container =
   "mx-auto w-full max-w-screen-sm md:max-w-2xl lg:max-w-4xl xl:max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8";
@@ -225,26 +224,26 @@ function ClientHome({ nombre }: { nombre?: string }) {
         <ActionCard
           href="/cliente/pedidos"
           title="Nuevo Pedido"
-          Icon={Storefront}
+          Icon={PackagePlus}
           accent="from-red-600 to-red-800"
         />
         <ActionCard
           href="/cliente/mis-pedidos"
           title="Mis Pedidos"
-          Icon={Bell}
+          Icon={Package}
           accent="from-red-600 to-red-800"
           notificationCount={pedidosActivosCount}
         />
         <ActionCard
           href="/cliente/rewards"
           title="Canjes"
-          Icon={Storefront}
+          Icon={Ticket}
           accent="from-red-600 to-red-800"
         />
         <ActionCard
           href="/cliente/historial"
           title="Historial"
-          Icon={Coins}
+          Icon={History}
           accent="from-red-600 to-red-800"
         />
       </div>
@@ -305,13 +304,13 @@ function AdminHome() {
         <ActionCard
           href="/admin/scan"
           title="Escanear Puntos"
-          Icon={Scan}
+          Icon={ScanQrCode}
           accent="from-red-600 to-red-800"
         />
         <ActionCard
           href="/admin/rewards/scan"
           title="Escanear Canjes"
-          Icon={Scan}
+          Icon={ScanText}
           accent="from-red-600 to-red-800"
         />
         <ActionCard
@@ -329,23 +328,28 @@ function AdminHome() {
         <ActionCard
           href="/admin/rewards"
           title="Canjes"
-          Icon={Storefront}
+          Icon={Ticket}
           accent="from-red-600 to-red-800"
         />
         <ActionCard
           href="/admin/pedidos"
           title="Pedidos"
-          Icon={ChefHat}
+          Icon={Package}
           accent="from-red-600 to-red-800"
           notificationCount={pedidosActivosCount}
         />
-        <ActionCard
-          href="/admin/notificaciones"
-          title="Notificaciones"
-          Icon={Bell}
-          accent="from-red-600 to-red-800"
-        />
+
+        {/* ✅ Notificaciones - ocupa todo el ancho y fondo negro */}
+        <div className="col-span-2">
+          <ActionCard
+            href="/admin/notificaciones"
+            title="Notificaciones"
+            Icon={Bell}
+            accent="from-black to-gray-900"
+          />
+        </div>
       </div>
+
     </div>
   );
 }
