@@ -26,15 +26,20 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
         texto,
     });
 
+    // ✅ Este mantiene las notificaciones generales
     await pusherServer.trigger(
         `notificaciones-${remitente === "admin" ? "cliente" : "admin"}`,
         "nuevo-mensaje",
         {
             remitente,
-            pedidoId: params.pedidoId, // ✅ usamos el ID correcto
+            pedidoId: params.pedidoId,
             texto,
         }
     );
 
+    // ✅ Este activa el chat en tiempo real
+    await pusherServer.trigger(`pedido-${params.pedidoId}`, "mensaje-creado", nuevo);
+
     return NextResponse.json(nuevo);
+
 }

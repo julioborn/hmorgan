@@ -38,8 +38,8 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
             if (data.remitente !== remitente) {
                 setEscribiendo(
                     data.remitente === "admin"
-                        ? "El administrador está escribiendo..."
-                        : "El cliente está escribiendo..."
+                        ? "Escribiendo..."
+                        : "Escribiendo..."
                 );
                 // borrar mensaje a los 3s
                 if (timeoutRef.current) clearTimeout(timeoutRef.current);
