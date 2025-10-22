@@ -280,8 +280,8 @@ export default function AdminPedidosPage() {
                                                             onClick={() => actualizarEstado(p._id, estado.key)}
                                                             whileTap={{ scale: 0.9 }}
                                                             className={`flex items-center justify-center w-9 h-9 rounded-full border-2 transition-all ${isActive
-                                                                    ? activeColor
-                                                                    : "border-gray-300 bg-white text-gray-400"
+                                                                ? activeColor
+                                                                : "border-gray-300 bg-white text-gray-400"
                                                                 }`}
                                                         >
                                                             <Icon className="w-4 h-4" />
@@ -297,6 +297,14 @@ export default function AdminPedidosPage() {
                                             })}
                                         </div>
                                     )}
+
+                                    <button
+                                        onClick={() => window.location.href = `/admin/pedidos/${p._id}/chat`}
+                                        className="mt-3 w-full bg-zinc-800 hover:bg-zinc-700 text-white py-2 rounded-lg transition"
+                                    >
+                                        💬 Ver chat
+                                    </button>
+
                                 </motion.div>
                             );
                         })

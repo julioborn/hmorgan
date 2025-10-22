@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { AuthProvider } from "@/context/auth-context";
 import NextAuthSessionProvider from "@/providers/session-provider"; // 👈
 import Header from "@/components/Header";
+import Notificador from "@/components/Notificador"; // 👈 agregá esto arriba junto a los imports
 import RegisterSW from "@/components/RegisterSW";
 import "./globals.css";
 
@@ -48,6 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <NextAuthSessionProvider>
           <AuthProvider>
             <Header />
+            <Notificador userRole="cliente" /> {/* 👈 o "admin", según el layout */}
             <main className="container mx-auto px-4 py-6">{children}</main>
           </AuthProvider>
         </NextAuthSessionProvider>

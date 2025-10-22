@@ -303,6 +303,14 @@ function PedidosLista({
                                     );
                                 })}
                             </div>
+
+                            <button
+                                onClick={() => window.location.href = `/cliente/mis-pedidos/${p._id}/chat`}
+                                className="mt-3 w-full bg-zinc-900 hover:bg-zinc-800 text-white py-2 rounded-lg transition"
+                            >
+                                💬 Ver chat con el bar
+                            </button>
+
                         </motion.div>
                     );
                 })}
