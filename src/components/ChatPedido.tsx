@@ -39,7 +39,7 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
 
     // 📦 Cargar datos del pedido
     useEffect(() => {
-        fetch(`/api/pedidos/${pedidoId}`)
+        fetch(`/api/pedidos?id=${pedidoId}`)
             .then((r) => r.json())
             .then((data) => {
                 if (Array.isArray(data)) setPedido(data[0]);
@@ -185,8 +185,8 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
                         >
                             <div
                                 className={`max-w-[80%] px-4 py-2 rounded-2xl text-sm shadow-sm ${esPropio
-                                    ? "bg-red-600 text-white rounded-br-none"
-                                    : "bg-zinc-800 text-gray-100 rounded-bl-none"
+                                        ? "bg-red-600 text-white rounded-br-none"
+                                        : "bg-zinc-800 text-gray-100 rounded-bl-none"
                                     }`}
                             >
                                 {m.texto}
@@ -224,8 +224,8 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
                     onClick={enviarMensaje}
                     disabled={!nuevo.trim()}
                     className={`flex items-center gap-1 px-4 py-2 rounded-xl font-semibold transition ${nuevo.trim()
-                        ? "bg-red-600 hover:bg-red-500 text-white"
-                        : "bg-zinc-800 text-gray-500 cursor-not-allowed"
+                            ? "bg-red-600 hover:bg-red-500 text-white"
+                            : "bg-zinc-800 text-gray-500 cursor-not-allowed"
                         }`}
                 >
                     <SendHorizonal className="w-4 h-4" />

@@ -39,7 +39,7 @@ export default function Header() {
         { href: "/", label: "Inicio" },
         { href: "/cliente/qr", label: "Mi QR", icon: QrCode },
         { href: "/cliente/menu", label: "Menú", icon: Utensils },
-        { href: "/cliente/pedidos", label: "Nuevo Pedido", icon: PackagePlus },
+        { href: "/cliente/pedidos", label: "Pedir", icon: PackagePlus },
         { href: "/cliente/mis-pedidos", label: "Mis Pedidos", icon: Package },
         { href: "/cliente/rewards", label: "Canjes", icon: Ticket },
         { href: "/cliente/historial", label: "Historial", icon: History },

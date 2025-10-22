@@ -223,7 +223,7 @@ function ClientHome({ nombre }: { nombre?: string }) {
         {/* 🆕 Pedido y Mis Pedidos */}
         <ActionCard
           href="/cliente/pedidos"
-          title="Nuevo Pedido"
+          title="Pedir"
           Icon={PackagePlus}
           accent="from-red-600 to-red-800"
         />
