@@ -1,4 +1,5 @@
 "use client";
+import { swalBase } from "@/lib/swalConfig";
 import { useEffect, useRef, useState } from "react";
 
 // Tipos
@@ -239,14 +240,28 @@ export default function ScanPage() {
         setPeople((prev) => [...prev, user]);
         setStatus(`Agregado: ${user.nombre} ${user.apellido} (${user.dni})`);
 
-        // 🎉 Feedback visual
-        setScanToast(`${user.nombre} ${user.apellido}`);
-        if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-        toastTimerRef.current = setTimeout(() => setScanToast(""), 1800);
+        // 🎉 Nueva alerta visible
+        swalBase.fire({
+          icon: "success",
+          title: "Cliente escaneado ✅",
+          html: `
+      <div style="font-size: 1.1rem; margin-top: 0.5rem;">
+        <b>${user.nombre} ${user.apellido}</b><br/>
+        DNI: ${user.dni}<br/>
+        Puntos actuales: ${user.puntos}
+      </div>
+    `,
+          timer: 1800,
+          showConfirmButton: false,
+          background: "rgba(0,0,0,0.85)",
+          color: "#fff",
+        });
 
+        // Feedback visual secundario (mantiene tu flash verde)
         setFlash(true);
         setTimeout(() => setFlash(false), 180);
-      } else {
+      }
+      else {
         setStatus("Ya estaba escaneado.");
       }
     } catch (e: any) {
