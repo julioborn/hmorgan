@@ -164,8 +164,7 @@ export default function ClienteMenuPage() {
                                         whileInView={{ opacity: 1, y: 0 }}
                                         viewport={{ once: true }}
                                         transition={{ duration: 0.4 }}
-                                        className="group bg-white rounded-2xl overflow-hidden shadow-md border border-gray-200
-                                    hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+                                        className="bg-white rounded-2xl overflow-hidden border border-gray-200"
                                     >
                                         {i.imagen && (
                                             <div className="relative h-40 w-full overflow-hidden">

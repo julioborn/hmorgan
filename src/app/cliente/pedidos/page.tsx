@@ -306,7 +306,7 @@ export default function PedidosClientePage() {
                                     whileInView={{ opacity: 1, y: 0 }}
                                     viewport={{ once: true }}
                                     transition={{ duration: 0.4 }}
-                                    className="p-5 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:-translate-y-[2px] transition-all flex flex-col justify-between"
+                                    className="p-5 bg-white rounded-2xl border border-gray-200 flex flex-col justify-between"
                                 >
                                     <div>
                                         <p className="font-semibold text-lg mb-1 text-black">{item.nombre}</p>

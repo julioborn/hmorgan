@@ -241,8 +241,7 @@ export default function AdminMenuPage() {
                                 .map((i) => (
                                     <div
                                         key={i._id}
-                                        className="p-4 bg-white border border-gray-200 rounded-xl flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow-sm hover:bg-red-50/50 transition"
-                                    >
+                                        className="p-4 bg-white border border-gray-200 rounded-xl flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                                         {editando?._id === i._id ? (
                                             <div className="flex-1 flex flex-col md:flex-row gap-3">
                                                 <input

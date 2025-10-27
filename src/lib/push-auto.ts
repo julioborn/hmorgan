@@ -47,14 +47,6 @@ export async function ensurePushAfterLogin(userId?: string) {
         showCancelButton: true,
         confirmButtonText: "Activar",
         cancelButtonText: "Ahora no",
-        confirmButtonColor: "#10b981",
-        cancelButtonColor: "#6b7280",
-        customClass: {
-            popup: "rounded-2xl bg-slate-900 text-white shadow-lg",
-            title: "text-xl font-bold",
-            confirmButton: "px-4 py-2 rounded-lg font-semibold",
-            cancelButton: "px-4 py-2 rounded-lg font-semibold",
-        },
     });
 
     if (!result.isConfirmed) return;
