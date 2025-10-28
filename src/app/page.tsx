@@ -164,7 +164,7 @@ function ClientHome({ nombre }: { nombre?: string }) {
               >
                 {rewards.map((r) => (
                   <SwiperSlide key={r._id}>
-                    <div className="relative bg-white text-black rounded-2xl shadow-md border border-gray-200 p-5 h-44 flex flex-col justify-between overflow-hidden transition hover:shadow-lg hover:-translate-y-1">
+                    <div className="relative bg-white text-black rounded-2xl shadow-md border border-gray-200 p-5 h-44 flex flex-col justify-between overflow-hidden">
                       <div className="flex-1 flex flex-col justify-between">
                         <h3 className="font-extrabold text-base md:text-lg line-clamp-2">
                           {r.titulo}
