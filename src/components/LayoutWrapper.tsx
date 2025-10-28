@@ -16,7 +16,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
 
             <NextAuthSessionProvider>
                 <AuthProvider>
-                    {/* 👇 SIEMPRE mostrar el header */}
+                    {/* 👇 SIEMPRE mostrar el Header */}
                     <Header />
                     <Notificador userRole="cliente" />
 
