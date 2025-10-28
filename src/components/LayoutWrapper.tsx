@@ -8,7 +8,11 @@ import RegisterSW from "@/components/RegisterSW";
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
-    const esChat = pathname.includes("/chat") || pathname.includes("/pedido");
+
+    // 🖤 Fondo oscuro solo en los chats específicos
+    const esChat =
+        pathname.match(/^\/admin\/pedidos\/[^/]+\/chat$/) ||
+        pathname.match(/^\/cliente\/mis-pedidos\/[^/]+\/chat$/);
 
     return (
         <>
@@ -16,15 +20,15 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
 
             <NextAuthSessionProvider>
                 <AuthProvider>
-                    {/* 👇 SIEMPRE mostrar el Header */}
+                    {/* 👇 Siempre mostrar el Header */}
                     <Header />
                     <Notificador userRole="cliente" />
 
                     {/* Fondo condicional */}
                     <main
                         className={`min-h-screen ${esChat
-                            ? "bg-black text-white p-0"
-                            : "bg-white text-black px-4 py-6 container mx-auto"
+                                ? "bg-black text-white p-0"
+                                : "bg-white text-black px-4 py-6 container mx-auto"
                             }`}
                     >
                         {children}

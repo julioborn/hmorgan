@@ -61,3 +61,18 @@ select {
 @import "swiper/css";
 @import "swiper/css/pagination";
 @import "swiper/css/navigation";
+
+/* 🔴 Personalizar los bullets del carrusel */
+.swiper-pagination-bullet {
+  background: #333 !important;
+  /* negro o gris oscuro */
+  opacity: 0.4;
+  transition: all 0.3s ease;
+}
+
+.swiper-pagination-bullet-active {
+  background: #dc2626 !important;
+  /* rojo-600 de Tailwind (#dc2626) */
+  opacity: 1;
+  transform: scale(1.15);
+}
