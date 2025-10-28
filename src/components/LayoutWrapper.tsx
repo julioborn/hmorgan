@@ -23,8 +23,8 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
                     {/* Fondo condicional */}
                     <main
                         className={`min-h-screen ${esChat
-                                ? "bg-black text-white p-0"
-                                : "bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-white px-4 py-6 container mx-auto"
+                            ? "bg-black text-white p-0"
+                            : "bg-white text-black px-4 py-6 container mx-auto"
                             }`}
                     >
                         {children}
