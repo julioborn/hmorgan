@@ -9,7 +9,6 @@ import {
     X,
     QrCode,
     Utensils,
-    Scan,
     Users,
     RefreshCw,
     Bell,
@@ -20,8 +19,11 @@ import {
     LoaderPinwheel,
     ScanText,
     ScanQrCode,
+    UserRoundPen,
 } from "lucide-react";
 import Image from "next/image";
+import { registerSW, subscribeUser } from "@/lib/push-client";
+import { swalBase } from "@/lib/swalConfig";
 
 export default function Header() {
     const { user, loading, logout } = useAuth();
@@ -38,6 +40,7 @@ export default function Header() {
     const linksCliente = [
         { href: "/", label: "Inicio" },
         { href: "/cliente/qr", label: "Mi QR", icon: QrCode },
+        { href: "/cliente/perfil", label: "Mi Perfil", icon: UserRoundPen },
         { href: "/cliente/menu", label: "Menú", icon: Utensils },
         { href: "/cliente/pedidos", label: "Pedir", icon: PackagePlus },
         { href: "/cliente/mis-pedidos", label: "Mis Pedidos", icon: Package },
@@ -59,11 +62,65 @@ export default function Header() {
 
     const links = user?.role === "admin" ? linksAdmin : linksCliente;
 
-    function getInitials(nombre?: string, apellido?: string) {
-        if (!nombre && !apellido) return "";
-        const n = nombre ? nombre[0].toUpperCase() : "";
-        const a = apellido ? apellido[0].toUpperCase() : "";
-        return n + a;
+    // function getInitials(nombre?: string, apellido?: string) {
+    //     if (!nombre && !apellido) return "";
+    //     const n = nombre ? nombre[0].toUpperCase() : "";
+    //     const a = apellido ? apellido[0].toUpperCase() : "";
+    //     return n + a;
+    // }
+
+    async function handleNotificationsClick() {
+        try {
+            // Verificar compatibilidad
+            const hasSW = "serviceWorker" in navigator;
+            const hasPush = "PushManager" in window;
+            const hasNotif = typeof Notification !== "undefined";
+
+            if (!hasSW || !hasPush || !hasNotif) {
+                await swalBase.fire("❌", "Este dispositivo no soporta notificaciones push.", "error");
+                return;
+            }
+
+            const perm = await Notification.permission;
+            if (perm === "granted") {
+                await swalBase.fire("✅", "Las notificaciones ya están activadas.", "success");
+                return;
+            }
+
+            const result = await swalBase.fire({
+                title: "🔔 Activar notificaciones",
+                text: "¿Querés recibir avisos de pedidos y novedades?",
+                icon: "question",
+                showCancelButton: true,
+                confirmButtonText: "Activar",
+                cancelButtonText: "Cancelar",
+            });
+
+            if (!result.isConfirmed) return;
+
+            const permission = await Notification.requestPermission();
+            if (permission !== "granted") {
+                await swalBase.fire("⚠️", "No activaste las notificaciones.", "warning");
+                return;
+            }
+
+            const reg = await registerSW();
+            if (!reg) {
+                await swalBase.fire("❌", "No se pudo registrar el Service Worker.", "error");
+                return;
+            }
+
+            const sub = await subscribeUser(reg);
+            if (!sub) {
+                await swalBase.fire("❌", "No se pudo crear la suscripción.", "error");
+                return;
+            }
+
+            await swalBase.fire("✅ Listo", "Las notificaciones fueron activadas.", "success");
+        } catch (e: any) {
+            console.error(e);
+            await swalBase.fire("❌ Error", e?.message || "Falló la activación", "error");
+        }
     }
 
     return (
@@ -98,15 +155,16 @@ export default function Header() {
 
                 {/* Perfil + Recargar */}
                 <div className="w-1/3 flex justify-end items-center gap-3">
-                    {user && (
-                        <Link
-                            href="/cliente/perfil"
-                            className="w-9 h-9 flex items-center justify-center rounded-full bg-red-600 hover:bg-red-500 text-white font-bold transition"
-                            title="Mi Perfil"
-                        >
-                            {getInitials(user.nombre, user.apellido)}
-                        </Link>
-                    )}
+                    {/* 🔔 Botón notificaciones */}
+                    <button
+                        onClick={handleNotificationsClick}
+                        className="p-2 rounded-full bg-red-600 hover:bg-red-500 text-white transition"
+                        title="Activar notificaciones"
+                    >
+                        <Bell size={20} />
+                    </button>
+
+                    {/* 🔄 Botón recargar */}
                     <button
                         onClick={() => window.location.reload()}
                         className="p-2 rounded-full bg-red-600 hover:bg-red-500 text-white transition"
