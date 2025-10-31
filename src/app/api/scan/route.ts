@@ -3,6 +3,7 @@ import { connectMongoDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import { PointTransaction } from "@/models/PointTransaction";
 import jwt from "jsonwebtoken";
+import { getPointsRatio } from "@/lib/getPointsRatio";
 
 // Rate-limit simple por IP
 const hits = new Map<string, { count: number, ts: number }>();
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
     const user = await User.findOne({ qrToken });
     if (!user) return NextResponse.json({ error: "QR inválido" }, { status: 404 });
 
-    const ratio = Number(process.env.POINTS_PER_ARS ?? (1 / 1000));
+    const ratio = await getPointsRatio();
     const puntos = Math.floor(consumoARS * ratio);
     if (puntos <= 0) {
       return NextResponse.json({ ok: true, message: "Consumo muy bajo, 0 puntos" });

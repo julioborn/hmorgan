@@ -20,6 +20,7 @@ import {
     ScanText,
     ScanQrCode,
     UserRoundPen,
+    Settings,
 } from "lucide-react";
 import Image from "next/image";
 import { registerSW, subscribeUser } from "@/lib/push-client";
@@ -58,6 +59,7 @@ export default function Header() {
         { href: "/admin/rewards", label: "Canjes", icon: Ticket },
         { href: "/admin/pedidos", label: "Pedidos", icon: Package },
         { href: "/admin/notificaciones", label: "Notificaciones", icon: Bell },
+        { href: "/admin/configuracion", label: "Ajustes", icon: Settings},
     ];
 
     const links = user?.role === "admin" ? linksAdmin : linksCliente;

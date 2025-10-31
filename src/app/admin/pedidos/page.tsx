@@ -175,7 +175,7 @@ export default function AdminPedidosPage() {
                 <AnimatePresence>
                     {lista.length === 0 ? (
                         <p className="col-span-full text-center text-gray-500 mt-12">
-                            No hay pedidos en esta vista.
+                            No hay pedidos.
                         </p>
                     ) : (
                         lista.map((p) => {

@@ -6,11 +6,9 @@ import { useEffect, useRef, useState } from "react";
 type CamState = "idle" | "starting" | "on" | "error";
 type Person = { id: string; nombre: string; apellido: string; dni: string; puntos: number };
 
-const RATIO = Number(process.env.NEXT_PUBLIC_POINTS_PER_ARS ?? 0.001);
-
 export default function ScanPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const zxingReaderRef = useRef<any>(null); // BrowserMultiFormatReader
+  const zxingReaderRef = useRef<any>(null);
   const seenIdsRef = useRef<Set<string>>(new Set());
   const busyRef = useRef(false);
   const inFlightTokensRef = useRef<Set<string>>(new Set());
@@ -21,9 +19,22 @@ export default function ScanPage() {
   const [consumoStr, setConsumoStr] = useState<string>("");
   const [mesa, setMesa] = useState<string>("");
   const [people, setPeople] = useState<Person[]>([]);
+  const [ratio, setRatio] = useState<number>(0.001); // 👈 ahora dinámico
 
   const camStateRef = useRef<CamState>("idle");
-  useEffect(() => { camStateRef.current = camState; }, [camState]);
+  useEffect(() => {
+    camStateRef.current = camState;
+  }, [camState]);
+
+  // 🔄 Obtener ratio desde API al cargar
+  useEffect(() => {
+    fetch("/api/configuracion")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.valor) setRatio(Number(data.valor));
+      })
+      .catch(() => setRatio(0.001));
+  }, []);
 
   async function supportsNativeQR(): Promise<boolean> {
     // @ts-expect-error experimental
@@ -34,31 +45,24 @@ export default function ScanPage() {
         const formats: string[] = await BD.getSupportedFormats();
         return formats.includes("qr_code");
       }
-      // Algunos navegadores antiguos no exponen getSupportedFormats; asumimos OK
       return true;
     } catch {
       return false;
     }
   }
 
-  // 🎉 Toast y flash de escaneo
   const [scanToast, setScanToast] = useState<string>("");
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [flash, setFlash] = useState(false);
-  // 🎉 Alerta de finalización
-  const [finishToast, setFinishToast] = useState<{
-    totalPoints: number;
-    repartidos: number;
-    mesa?: string;
-  } | null>(null);
+  const [finishToast, setFinishToast] = useState<{ totalPoints: number; repartidos: number; mesa?: string } | null>(null);
   const finishTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // helpers
   function sanitizeMesa(v: string) {
     let s = v.replace(/\D/g, "");
     s = s.replace(/^0+(?=\d)/, "");
     return s;
   }
+
   function sanitizeMoney(v: string) {
     let s = v.replace(/,/g, ".").replace(/[^0-9.]/g, "");
     if (s.startsWith(".")) s = "0" + s;
@@ -81,10 +85,9 @@ export default function ScanPage() {
     const stream = videoRef.current?.srcObject as MediaStream | null;
     stream?.getTracks().forEach((t) => t.stop());
     if (videoRef.current) (videoRef.current as HTMLVideoElement).srcObject = null;
-
-    try { zxingReaderRef.current?.reset?.(); } catch { }
-
-    // 👇 mantiene el loop a raya si queda un rAF pendiente
+    try {
+      zxingReaderRef.current?.reset?.();
+    } catch { }
     camStateRef.current = "idle";
   }
 
@@ -92,7 +95,7 @@ export default function ScanPage() {
     return () => {
       stopCamera();
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-      if (finishTimerRef.current) clearTimeout(finishTimerRef.current); // 👈
+      if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
     };
   }, []);
 
@@ -109,10 +112,7 @@ export default function ScanPage() {
     stopCamera();
 
     try {
-      // 0) Ver si el nativo sirve de verdad
       const canNative = await supportsNativeQR();
-
-      // 1) Nativo con verificación real
       // @ts-expect-error experimental
       const NativeBD = window.BarcodeDetector;
       if (canNative && NativeBD && videoRef.current) {
@@ -120,7 +120,6 @@ export default function ScanPage() {
           audio: false,
           video: {
             facingMode: { ideal: "environment" },
-            // mejorá un poco la resolución por si la cámara elige muy bajo
             width: { ideal: 1280 },
             height: { ideal: 720 },
             advanced: [{ focusMode: "continuous" } as any],
@@ -132,15 +131,13 @@ export default function ScanPage() {
         await videoRef.current.play();
 
         const detector = new NativeBD({ formats: ["qr_code"] });
-
         const tick = async () => {
-          // usá el ref, no el estado directo, para evitar cierres stale
           if (!videoRef.current || camStateRef.current !== "on") return;
           try {
             const det = await detector.detect(videoRef.current);
             const raw = det?.[0]?.rawValue;
             if (raw) await onRawQr(raw);
-          } catch { /* ignore */ }
+          } catch { }
           requestAnimationFrame(tick);
         };
 
@@ -151,16 +148,16 @@ export default function ScanPage() {
         return;
       }
 
-      // 2) Fallback ZXing con constraints “amigables” a Android
+      // Fallback ZXing
       const { BrowserMultiFormatReader } = await import("@zxing/browser");
       const { DecodeHintType, BarcodeFormat } = await import("@zxing/library");
 
       const hints = new Map();
       hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.QR_CODE]);
-      hints.set(DecodeHintType.TRY_HARDER, true); // 💪 mejora en Android
+      hints.set(DecodeHintType.TRY_HARDER, true);
 
       const reader = new BrowserMultiFormatReader(hints, {
-        delayBetweenScanAttempts: 120, // un poco más rápido que 200ms
+        delayBetweenScanAttempts: 120,
       });
       zxingReaderRef.current = reader;
 
@@ -176,14 +173,12 @@ export default function ScanPage() {
         },
         videoRef.current!,
         async (result) => {
-          if (result?.getText) {
-            await onRawQr(result.getText());
-          }
+          if (result?.getText) await onRawQr(result.getText());
         }
       );
 
-      camStateRef.current = "on";           // ✅
-      setCamState("on");                    // ✅
+      camStateRef.current = "on";
+      setCamState("on");
       setStatus("Cámara activa. Escaneá QRs de la mesa.");
     } catch (err: any) {
       console.error(err);
@@ -196,8 +191,6 @@ export default function ScanPage() {
     }
   }
 
-  // Acepta JSON {qrToken} o token plano
-  // 🔒 Anti doble escaneo y protección de concurrencia
   const lastScanRef = useRef<{ token: string; time: number } | null>(null);
 
   async function onRawQr(raw: string) {
@@ -208,21 +201,15 @@ export default function ScanPage() {
     try {
       const parsed = JSON.parse(raw);
       if (parsed?.qrToken) token = String(parsed.qrToken);
-    } catch { /* no era JSON, sigue como texto */ }
+    } catch { }
 
-    // 🚫 Evita procesar el mismo QR varias veces seguidas (dentro de 1.5 s)
     const now = Date.now();
-    if (
-      lastScanRef.current &&
-      lastScanRef.current.token === token &&
-      now - lastScanRef.current.time < 1500
-    ) {
+    if (lastScanRef.current && lastScanRef.current.token === token && now - lastScanRef.current.time < 1500) {
       busyRef.current = false;
       return;
     }
     lastScanRef.current = { token, time: now };
 
-    // 🚫 Si el token ya se está procesando, no lo repitas
     if (inFlightTokensRef.current.has(token)) {
       busyRef.current = false;
       return;
@@ -240,28 +227,25 @@ export default function ScanPage() {
         setPeople((prev) => [...prev, user]);
         setStatus(`Agregado: ${user.nombre} ${user.apellido} (${user.dni})`);
 
-        // 🎉 Nueva alerta visible
         swalBase.fire({
           icon: "success",
           title: "Cliente escaneado ✅",
           html: `
-      <div style="font-size: 1.1rem; margin-top: 0.5rem;">
-        <b>${user.nombre} ${user.apellido}</b><br/>
-        DNI: ${user.dni}<br/>
-        Puntos actuales: ${user.puntos}
-      </div>
-    `,
+            <div style="font-size: 1.1rem; margin-top: 0.5rem;">
+              <b>${user.nombre} ${user.apellido}</b><br/>
+              DNI: ${user.dni}<br/>
+              Puntos actuales: ${user.puntos}
+            </div>
+          `,
           timer: 1800,
           showConfirmButton: false,
           background: "rgba(0,0,0,0.85)",
           color: "#fff",
         });
 
-        // Feedback visual secundario (mantiene tu flash verde)
         setFlash(true);
         setTimeout(() => setFlash(false), 180);
-      }
-      else {
+      } else {
         setStatus("Ya estaba escaneado.");
       }
     } catch (e: any) {
@@ -275,23 +259,26 @@ export default function ScanPage() {
   }
 
   async function finalizeTable() {
-    if (!consumo || consumo <= 0) { alert("Ingresá el consumo total de la mesa."); return; }
-    if (people.length === 0) { alert("Escaneá al menos un cliente."); return; }
+    if (!consumo || consumo <= 0) {
+      alert("Ingresá el consumo total de la mesa.");
+      return;
+    }
+    if (people.length === 0) {
+      alert("Escaneá al menos un cliente.");
+      return;
+    }
 
     const userIds = people.map((p) => p.id);
-
     const res = await fetch("/api/scan/finalize", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ consumoARS: consumo, userIds, mesa: mesa || undefined })
+      body: JSON.stringify({ consumoARS: consumo, userIds, mesa: mesa || undefined }),
     });
 
     const data = await res.json();
 
     if (res.ok) {
       setStatus(`OK: ${data.totalPoints} puntos repartidos entre ${data.repartidos}.`);
-
-      // 👇 Mostrar alerta de finalización por 3 segundos
       setFinishToast({ totalPoints: data.totalPoints, repartidos: data.repartidos, mesa });
       if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
       finishTimerRef.current = setTimeout(() => setFinishToast(null), 3000);
@@ -308,8 +295,8 @@ export default function ScanPage() {
     }
   }
 
-  // PREVIEW
-  const totalPoints = Math.floor(Number(consumo || 0) * RATIO);
+  // 👇 Cálculo dinámico según ratio
+  const totalPoints = Math.floor(Number(consumo || 0) * ratio);
   const porCabeza = people.length ? Math.floor(totalPoints / people.length) : 0;
   const resto = people.length ? totalPoints - porCabeza * people.length : 0;
 

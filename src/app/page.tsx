@@ -128,12 +128,12 @@ function ClientHome({ nombre }: { nombre?: string }) {
       className={`${container} py-8 space-y-8`}
       style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
     >
+
+      {/* 👑 Título principal */}
+
       {/* Carrusel de recompensas */}
       <section className="relative">
         <div className="relative rounded-2xl bg-gradient-to-b from-gray-50 to-gray-100 shadow-xl p-5 border border-gray-200">
-          <h2 className="text-xl font-bold mb-3 text-center text-black">
-            Canjes disponibles
-          </h2>
 
           {rewards.length === 0 ? (
             <p className="text-center py-10 opacity-70">
@@ -198,7 +198,7 @@ function ClientHome({ nombre }: { nombre?: string }) {
                   href="/cliente/rewards"
                   className="px-4 py-2 text-sm font-semibold rounded-lg bg-red-600 text-white hover:bg-red-500 transition"
                 >
-                  Ver todos
+                  Ver todos los canjes
                 </Link>
               </div>
             </>

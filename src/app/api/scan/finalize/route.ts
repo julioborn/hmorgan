@@ -5,6 +5,7 @@ import { User } from "@/models/User";
 import { PointTransaction } from "@/models/PointTransaction";
 import { sendPushAndCollectInvalid } from "@/lib/push-server";
 import jwt from "jsonwebtoken";
+import { getPointsRatio } from "@/lib/getPointsRatio";
 
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET!;
 
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
 
         await connectMongoDB();
 
-        const ratio = Number(process.env.POINTS_PER_ARS ?? (1 / 1000)); // ej 0.001 => 1 punto c/ $1000
+        const ratio = await getPointsRatio();
         const totalPoints = Math.floor(consumoARS * ratio);
         if (totalPoints <= 0) {
             return NextResponse.json({ ok: true, message: "Consumo bajo, 0 puntos" });
