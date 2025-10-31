@@ -115,15 +115,6 @@ export default function MiQRPage() {
         </div>
       </div>
 
-      {/* Activar notificaciones */}
-      <div className="text-center mt-6">
-        <button
-          onClick={handleEnableNotifications}
-          className="px-5 py-3 rounded-xl bg-black text-white font-semibold hover:bg-gray-900 transition shadow"
-        >
-          Activar notificaciones 🔔
-        </button>
-      </div>
     </div>
   );
 }
