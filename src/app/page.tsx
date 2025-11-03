@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
-import { QrCode, Scan, Users, Bell, ChefHat, PackagePlus, Package, Utensils, Ticket, Coins, History, ScanQrCode, ScanText } from "lucide-react";
+import { QrCode, Scan, Users, Bell, ChefHat, PackagePlus, Package, Utensils, Ticket, Coins, History, ScanQrCode, ScanText, MessageSquare } from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 import "swiper/css";
@@ -129,8 +129,6 @@ function ClientHome({ nombre }: { nombre?: string }) {
       style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
     >
 
-      {/* 👑 Título principal */}
-
       {/* Carrusel de recompensas */}
       <section className="relative">
         <div className="relative rounded-2xl bg-gradient-to-b from-gray-50 to-gray-100 shadow-xl p-5 border border-gray-200">
@@ -205,6 +203,20 @@ function ClientHome({ nombre }: { nombre?: string }) {
           )}
         </div>
       </section>
+
+      {/* 🔴 Acceso rápido al chat */}
+      <Link
+        href="/cliente/chats"
+        className="flex items-center justify-between w-full bg-black text-white rounded-2xl px-5 py-4 shadow-lg hover:scale-[1.02] transition-all duration-300"
+      >
+        <div className="flex items-center gap-3">
+          <MessageSquare className="w-6 h-6" />
+          <div className="flex flex-col leading-tight">
+            <span className="text-lg font-bold">Chats</span>
+            <span className="text-xs opacity-80">Habla con el bar sobre tu pedido</span>
+          </div>
+        </div>
+      </Link>
 
       {/* Botonera */}
       <div className="grid grid-cols-2 gap-4">
@@ -299,6 +311,20 @@ function AdminHome() {
           Administración
         </h1>
       </header>
+
+      {/* 🔴 Acceso rápido a chats activos */}
+      <Link
+        href="/admin/chats"
+        className="flex items-center justify-between w-full bg-black text-white rounded-2xl px-5 py-4 shadow-lg hover:scale-[1.02] transition-all duration-300"
+      >
+        <div className="flex items-center gap-3">
+          <MessageSquare className="w-6 h-6" />
+          <div className="flex flex-col leading-tight">
+            <span className="text-lg font-bold">Chats Activos</span>
+            <span className="text-xs opacity-80">Ver todos los pedidos con chat</span>
+          </div>
+        </div>
+      </Link>
 
       <div className="grid grid-cols-2 gap-4">
         <ActionCard
