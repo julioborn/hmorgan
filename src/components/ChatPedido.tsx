@@ -194,10 +194,12 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
             {/* 💬 Lista de mensajes scrollable */}
             <div
                 ref={scrollRef}
-                className="flex-1 overflow-y-auto px-3 pt-4 pb-[90px] space-y-3 scrollbar-thin scrollbar-thumb-gray-300 relative z-10"
+                className="flex-1 overflow-y-auto px-3 pt-4 space-y-3 scrollbar-thin scrollbar-thumb-gray-300 relative z-10"
                 style={{
                     overscrollBehavior: "contain",
                     WebkitOverflowScrolling: "touch",
+                    paddingBottom: `${document.getElementById("chat-input-container")?.offsetHeight || 80
+                        }px`,
                 }}
             >
                 {mensajes.map((m, i) => {
@@ -255,10 +257,10 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
                         onClick={enviarMensaje}
                         disabled={!nuevo.trim() || bloquearEnvio}
                         className={`p-2 rounded-full transition ${bloquearEnvio
-                                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                : nuevo.trim()
-                                    ? "bg-red-500 text-white hover:bg-red-400"
-                                    : "bg-gray-200 text-gray-500"
+                            ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                            : nuevo.trim()
+                                ? "bg-red-500 text-white hover:bg-red-400"
+                                : "bg-gray-200 text-gray-500"
                             }`}
                     >
                         <Send className="w-4 h-4" />
