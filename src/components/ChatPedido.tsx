@@ -55,6 +55,31 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
             .catch(console.error);
     }, [pedidoId]);
 
+    // 🕒 Bloquear envío si pasó 1 hora desde que se marcó entregado
+    useEffect(() => {
+        if (pedido?.estado?.toLowerCase() === "entregado" && pedido.updatedAt) {
+            const fechaEntrega = new Date(pedido.updatedAt).getTime();
+            const ahora = Date.now();
+            const horasDesdeEntrega = (ahora - fechaEntrega) / (1000 * 60 * 60);
+
+            // 🔒 Bloquea si pasó más de 1 hora
+            if (horasDesdeEntrega > 1) {
+                setBloquearEnvio(true);
+            }
+
+            // 🕐 También revisa cada minuto por si cambia mientras el usuario tiene el chat abierto
+            const intervalo = setInterval(() => {
+                const horasActualizadas = (Date.now() - fechaEntrega) / (1000 * 60 * 60);
+                if (horasActualizadas > 1) {
+                    setBloquearEnvio(true);
+                    clearInterval(intervalo);
+                }
+            }, 60000);
+
+            return () => clearInterval(intervalo);
+        }
+    }, [pedido]);
+
     // 📡 Pusher
     useEffect(() => {
         const canal = pusherClient.subscribe(`pedido-${pedidoId}`);
@@ -178,8 +203,8 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
                         >
                             <div
                                 className={`max-w-[85%] px-4 py-2 rounded-2xl text-sm shadow-sm ${esPropio
-                                        ? "bg-red-500 text-white rounded-br-none"
-                                        : "bg-gray-200 text-gray-800 rounded-bl-none"
+                                    ? "bg-red-500 text-white rounded-br-none"
+                                    : "bg-gray-200 text-gray-800 rounded-bl-none"
                                     }`}
                                 style={{ wordBreak: "break-word" }}
                             >
@@ -230,10 +255,10 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
                         onClick={enviarMensaje}
                         disabled={!nuevo.trim() || bloquearEnvio}
                         className={`p-2 rounded-full transition ${bloquearEnvio
-                                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                : nuevo.trim()
-                                    ? "bg-red-500 text-white hover:bg-red-400"
-                                    : "bg-gray-200 text-gray-500"
+                            ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                            : nuevo.trim()
+                                ? "bg-red-500 text-white hover:bg-red-400"
+                                : "bg-gray-200 text-gray-500"
                             }`}
                     >
                         <Send className="w-4 h-4" />
