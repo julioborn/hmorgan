@@ -131,32 +131,32 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
     }, []);
 
     return (
-        <div className="fixed inset-0 flex flex-col bg-black text-white w-full h-[100dvh] overflow-hidden">
+        <div className="fixed inset-0 flex flex-col bg-white text-black w-full h-[100dvh] overflow-hidden">
             {/* 🔝 Encabezado fijo */}
             <div className="flex-shrink-0 z-30 relative">
-                <div className="bg-black border-b border-zinc-800 px-4 py-3 flex items-center justify-center">
+                <div className="bg-white border-b border-gray-300 px-4 py-3 flex items-center justify-center">
                     <h1 className="text-lg font-semibold tracking-wide">Chat del Pedido</h1>
                 </div>
 
                 {/* 📦 Card del pedido */}
                 {pedido && (
-                    <div className="relative border-b border-zinc-800 bg-zinc-900/70 px-4 py-3 mt-7">
+                    <div className="relative border-b border-gray-300 bg-gray-100 px-4 py-3 mt-7">
                         <div
                             className="flex justify-between items-center cursor-pointer"
                             onClick={() => setMostrarPedido(!mostrarPedido)}
                         >
                             <div>
-                                <h2 className="font-medium text-sm text-gray-200">
+                                <h2 className="font-medium text-sm text-gray-700">
                                     Pedido #{pedido._id.slice(-6)}
                                 </h2>
-                                <p className="text-xs text-gray-400 capitalize">
+                                <p className="text-xs text-gray-500 capitalize">
                                     {pedido.estado} • {pedido.tipoEntrega}
                                 </p>
                             </div>
                             {mostrarPedido ? (
-                                <ChevronUp className="w-5 h-5 text-gray-400" />
+                                <ChevronUp className="w-5 h-5 text-gray-500" />
                             ) : (
-                                <ChevronDown className="w-5 h-5 text-gray-400" />
+                                <ChevronDown className="w-5 h-5 text-gray-500" />
                             )}
                         </div>
 
@@ -167,21 +167,21 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
                                     animate={{ height: "auto", opacity: 1 }}
                                     exit={{ height: 0, opacity: 0 }}
                                     transition={{ duration: 0.3 }}
-                                    className="absolute left-0 right-0 top-full bg-zinc-900/95 border-t border-zinc-800 z-40 p-4 max-h-[40vh] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-700"
+                                    className="absolute left-0 right-0 top-full bg-white border-t border-gray-200 z-40 p-4 max-h-[40vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300"
                                 >
                                     {pedido.items.map((it) => (
                                         <div
                                             key={it._id}
-                                            className="flex justify-between text-xs bg-zinc-800/70 rounded-lg px-3 py-1 mb-1"
+                                            className="flex justify-between text-xs bg-gray-100 rounded-lg px-3 py-1 mb-1"
                                         >
                                             <span>{it.menuItemId?.nombre}</span>
-                                            <span className="text-red-400 font-semibold">×{it.cantidad}</span>
+                                            <span className="text-red-600 font-semibold">×{it.cantidad}</span>
                                         </div>
                                     ))}
                                     {pedido.direccion && (
-                                        <p className="text-xs text-gray-400 mt-2">📍 {pedido.direccion}</p>
+                                        <p className="text-xs text-gray-500 mt-2">📍 {pedido.direccion}</p>
                                     )}
-                                    <p className="text-[11px] text-gray-500 mt-1">
+                                    <p className="text-[11px] text-gray-400 mt-1">
                                         {format(new Date(pedido.createdAt), "dd/MM/yyyy HH:mm", { locale: es })}
                                     </p>
                                 </motion.div>
@@ -194,7 +194,7 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
             {/* 💬 Lista de mensajes scrollable */}
             <div
                 ref={scrollRef}
-                className="flex-1 overflow-y-auto px-3 py-4 space-y-3 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent relative z-10"
+                className="flex-1 overflow-y-auto px-3 pt-4 pb-[90px] space-y-3 scrollbar-thin scrollbar-thumb-gray-300 relative z-10"
                 style={{
                     overscrollBehavior: "contain",
                     WebkitOverflowScrolling: "touch",
@@ -214,15 +214,15 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
                         >
                             <div
                                 className={`max-w-[85%] px-4 py-2 rounded-2xl text-sm shadow-sm ${esPropio
-                                    ? "bg-red-600 text-white rounded-br-none"
-                                    : "bg-zinc-800 text-gray-100 rounded-bl-none"
+                                        ? "bg-red-500 text-white rounded-br-none"
+                                        : "bg-gray-200 text-gray-800 rounded-bl-none"
                                     }`}
                                 style={{ wordBreak: "break-word" }}
                             >
                                 {m.texto}
                             </div>
                             <span
-                                className={`text-[11px] mt-1 text-gray-400 ${esPropio ? "text-right pr-1" : "text-left pl-1"
+                                className={`text-[11px] mt-1 text-gray-500 ${esPropio ? "text-right pr-1" : "text-left pl-1"
                                     }`}
                             >
                                 {hora}
@@ -235,7 +235,7 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
             {/* 📨 Input fijo */}
             <div
                 id="chat-input-container"
-                className="flex-shrink-0 bg-black border-t border-zinc-800 px-3 py-2 z-30 fixed bottom-0 left-0 right-0"
+                className="flex-shrink-0 bg-white border-t border-gray-300 px-3 py-2 z-30 fixed bottom-0 left-0 right-0"
             >
                 <div className="flex items-center gap-2">
                     <input
@@ -249,16 +249,16 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
                             bloquearEnvio ? "⏳ El chat está cerrado." : "Escribí un mensaje..."
                         }
                         disabled={bloquearEnvio}
-                        className="flex-1 bg-zinc-900 rounded-full px-4 py-2 text-base text-white outline-none border border-zinc-800 focus:ring-1 focus:ring-red-600"
+                        className="flex-1 bg-gray-100 rounded-full px-4 py-2 text-base text-gray-800 outline-none border border-gray-300 focus:ring-1 focus:ring-red-400"
                     />
                     <button
                         onClick={enviarMensaje}
                         disabled={!nuevo.trim() || bloquearEnvio}
                         className={`p-2 rounded-full transition ${bloquearEnvio
-                                ? "bg-zinc-800 text-gray-500 cursor-not-allowed"
+                                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                                 : nuevo.trim()
-                                    ? "bg-red-600 text-white hover:bg-red-500"
-                                    : "bg-zinc-800 text-gray-500"
+                                    ? "bg-red-500 text-white hover:bg-red-400"
+                                    : "bg-gray-200 text-gray-500"
                             }`}
                     >
                         <Send className="w-4 h-4" />
@@ -268,4 +268,4 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
         </div>
     );
 
-}
+} 
