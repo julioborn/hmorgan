@@ -110,6 +110,26 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
         });
     }
 
+    useEffect(() => {
+        const inputContainer = document.getElementById("chat-input-container");
+
+        function ajustarAltura() {
+            if (!inputContainer) return;
+            const viewport = window.visualViewport;
+            if (!viewport) return;
+            const offset = viewport.height < window.innerHeight ? viewport.height - 80 : 0;
+            inputContainer.style.bottom = `${window.innerHeight - viewport.height + 8}px`;
+        }
+
+        window.visualViewport?.addEventListener("resize", ajustarAltura);
+        window.visualViewport?.addEventListener("scroll", ajustarAltura);
+
+        return () => {
+            window.visualViewport?.removeEventListener("resize", ajustarAltura);
+            window.visualViewport?.removeEventListener("scroll", ajustarAltura);
+        };
+    }, []);
+
     return (
         <div className="fixed inset-0 flex flex-col bg-black text-white w-full h-[100dvh] overflow-hidden">
             {/* 🔝 Encabezado fijo */}
@@ -194,8 +214,8 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
                         >
                             <div
                                 className={`max-w-[85%] px-4 py-2 rounded-2xl text-sm shadow-sm ${esPropio
-                                        ? "bg-red-600 text-white rounded-br-none"
-                                        : "bg-zinc-800 text-gray-100 rounded-bl-none"
+                                    ? "bg-red-600 text-white rounded-br-none"
+                                    : "bg-zinc-800 text-gray-100 rounded-bl-none"
                                     }`}
                                 style={{ wordBreak: "break-word" }}
                             >
@@ -213,7 +233,10 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
             </div>
 
             {/* 📨 Input fijo */}
-            <div className="flex-shrink-0 bg-black border-t border-zinc-800 px-3 py-2 z-30 relative">
+            <div
+                id="chat-input-container"
+                className="flex-shrink-0 bg-black border-t border-zinc-800 px-3 py-2 z-30 fixed bottom-0 left-0 right-0"
+            >
                 <div className="flex items-center gap-2">
                     <input
                         value={nuevo}
