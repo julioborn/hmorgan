@@ -249,7 +249,7 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
                             bloquearEnvio ? "⏳ El chat está cerrado." : "Escribí un mensaje..."
                         }
                         disabled={bloquearEnvio}
-                        className="flex-1 bg-zinc-900 rounded-full px-4 py-2 text-sm text-white outline-none border border-zinc-800 focus:ring-1 focus:ring-red-600"
+                        className="flex-1 bg-zinc-900 rounded-full px-4 py-2 text-base text-white outline-none border border-zinc-800 focus:ring-1 focus:ring-red-600"
                     />
                     <button
                         onClick={enviarMensaje}
