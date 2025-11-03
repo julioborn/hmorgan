@@ -4,7 +4,7 @@ import { pusherClient } from "@/lib/pusherClient";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Send, ChevronDown, ChevronUp } from "lucide-react";
+import { Send, ChevronDown, ChevronUp, ArrowDown } from "lucide-react";
 
 type Mensaje = {
     _id?: string;
@@ -33,9 +33,9 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
     const [mensajes, setMensajes] = useState<Mensaje[]>([]);
     const [nuevo, setNuevo] = useState("");
     const [bloquearEnvio, setBloquearEnvio] = useState(false);
-    const [escribiendo, setEscribiendo] = useState<string | null>(null);
     const [pedido, setPedido] = useState<Pedido | null>(null);
     const [mostrarPedido, setMostrarPedido] = useState(false);
+    const [mostrarBotonScroll, setMostrarBotonScroll] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -58,36 +58,38 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
     // 📡 Pusher
     useEffect(() => {
         const canal = pusherClient.subscribe(`pedido-${pedidoId}`);
-
         canal.bind("mensaje-creado", (msg: Mensaje) => {
             setMensajes((prev) => [...prev, msg]);
-        });
-
-        canal.bind("usuario-escribiendo", (data: { remitente: string }) => {
-            if (data.remitente !== remitente) {
-                setEscribiendo(
-                    data.remitente === "admin"
-                        ? "El administrador está escribiendo..."
-                        : "El cliente está escribiendo..."
-                );
-                if (timeoutRef.current) clearTimeout(timeoutRef.current);
-                timeoutRef.current = setTimeout(() => setEscribiendo(null), 2000);
-            }
         });
 
         return () => {
             canal.unbind_all();
             pusherClient.unsubscribe(`pedido-${pedidoId}`);
         };
-    }, [pedidoId, remitente]);
+    }, [pedidoId]);
 
-    // 📜 Scroll automático
-    useEffect(() => {
-        scrollRef.current?.scrollTo({
-            top: scrollRef.current.scrollHeight,
-            behavior: "smooth",
+    // 📜 Scroll automático al final
+    const scrollToBottom = (smooth = true) => {
+        const el = scrollRef.current;
+        if (!el) return;
+        el.scrollTo({
+            top: el.scrollHeight,
+            behavior: smooth ? "smooth" : "auto",
         });
+    };
+
+    // Cuando llegan mensajes nuevos → bajar
+    useEffect(() => {
+        scrollToBottom();
     }, [mensajes]);
+
+    // Mostrar / ocultar botón de bajar
+    const handleScroll = () => {
+        const el = scrollRef.current;
+        if (!el) return;
+        const isBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+        setMostrarBotonScroll(!isBottom);
+    };
 
     // 📨 Enviar mensaje
     async function enviarMensaje() {
@@ -98,37 +100,8 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
             body: JSON.stringify({ remitente, texto: nuevo }),
         });
         setNuevo("");
+        setTimeout(() => scrollToBottom(), 100);
     }
-
-    // ✍️ Notificar escritura
-    async function notificarEscribiendo() {
-        if (bloquearEnvio) return;
-        await fetch(`/api/mensajes/${pedidoId}/escribiendo`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ remitente }),
-        });
-    }
-
-    useEffect(() => {
-        const inputContainer = document.getElementById("chat-input-container");
-
-        function ajustarAltura() {
-            if (!inputContainer) return;
-            const viewport = window.visualViewport;
-            if (!viewport) return;
-            const offset = viewport.height < window.innerHeight ? viewport.height - 80 : 0;
-            inputContainer.style.bottom = `${window.innerHeight - viewport.height + 8}px`;
-        }
-
-        window.visualViewport?.addEventListener("resize", ajustarAltura);
-        window.visualViewport?.addEventListener("scroll", ajustarAltura);
-
-        return () => {
-            window.visualViewport?.removeEventListener("resize", ajustarAltura);
-            window.visualViewport?.removeEventListener("scroll", ajustarAltura);
-        };
-    }, []);
 
     return (
         <div className="fixed inset-0 flex flex-col bg-white text-black w-full h-[100dvh] overflow-hidden">
@@ -178,12 +151,6 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
                                             <span className="text-red-600 font-semibold">×{it.cantidad}</span>
                                         </div>
                                     ))}
-                                    {pedido.direccion && (
-                                        <p className="text-xs text-gray-500 mt-2">📍 {pedido.direccion}</p>
-                                    )}
-                                    <p className="text-[11px] text-gray-400 mt-1">
-                                        {format(new Date(pedido.createdAt), "dd/MM/yyyy HH:mm", { locale: es })}
-                                    </p>
                                 </motion.div>
                             )}
                         </AnimatePresence>
@@ -191,16 +158,11 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
                 )}
             </div>
 
-            {/* 💬 Lista de mensajes scrollable */}
+            {/* 💬 Lista de mensajes */}
             <div
                 ref={scrollRef}
-                className="flex-1 overflow-y-auto px-3 pt-4 space-y-3 scrollbar-thin scrollbar-thumb-gray-300 relative z-10"
-                style={{
-                    overscrollBehavior: "contain",
-                    WebkitOverflowScrolling: "touch",
-                    paddingBottom: `${document.getElementById("chat-input-container")?.offsetHeight || 80
-                        }px`,
-                }}
+                onScroll={handleScroll}
+                className="flex-1 overflow-y-auto px-3 pt-4 pb-[90px] space-y-3 scrollbar-thin scrollbar-thumb-gray-300 relative z-10"
             >
                 {mensajes.map((m, i) => {
                     const esPropio = m.remitente === remitente;
@@ -232,6 +194,22 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
                         </motion.div>
                     );
                 })}
+
+                {/* 📍Botón para bajar */}
+                <AnimatePresence>
+                    {mostrarBotonScroll && (
+                        <motion.button
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 20 }}
+                            transition={{ duration: 0.2 }}
+                            onClick={() => scrollToBottom()}
+                            className="fixed bottom-20 right-4 bg-red-500 hover:bg-red-600 text-white p-2 rounded-full shadow-lg"
+                        >
+                            <ArrowDown className="w-5 h-5" />
+                        </motion.button>
+                    )}
+                </AnimatePresence>
             </div>
 
             {/* 📨 Input fijo */}
@@ -242,14 +220,9 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
                 <div className="flex items-center gap-2">
                     <input
                         value={nuevo}
-                        onChange={(e) => {
-                            setNuevo(e.target.value);
-                            if (e.target.value.trim()) notificarEscribiendo();
-                        }}
+                        onChange={(e) => setNuevo(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && enviarMensaje()}
-                        placeholder={
-                            bloquearEnvio ? "⏳ El chat está cerrado." : "Escribí un mensaje..."
-                        }
+                        placeholder="Escribí un mensaje..."
                         disabled={bloquearEnvio}
                         className="flex-1 bg-gray-100 rounded-full px-4 py-2 text-base text-gray-800 outline-none border border-gray-300 focus:ring-1 focus:ring-red-400"
                     />
@@ -257,10 +230,10 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
                         onClick={enviarMensaje}
                         disabled={!nuevo.trim() || bloquearEnvio}
                         className={`p-2 rounded-full transition ${bloquearEnvio
-                            ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                            : nuevo.trim()
-                                ? "bg-red-500 text-white hover:bg-red-400"
-                                : "bg-gray-200 text-gray-500"
+                                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                : nuevo.trim()
+                                    ? "bg-red-500 text-white hover:bg-red-400"
+                                    : "bg-gray-200 text-gray-500"
                             }`}
                     >
                         <Send className="w-4 h-4" />
@@ -269,5 +242,4 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
             </div>
         </div>
     );
-
-} 
+}
