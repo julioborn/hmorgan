@@ -204,7 +204,7 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
                             exit={{ opacity: 0, y: 20 }}
                             transition={{ duration: 0.2 }}
                             onClick={() => scrollToBottom()}
-                            className="fixed bottom-20 right-4 bg-red-500 hover:bg-red-600 text-white p-2 rounded-full shadow-lg"
+                            className="fixed bottom-20 right-4 bg-black text-white p-2 rounded-full shadow-lg"
                         >
                             <ArrowDown className="w-5 h-5" />
                         </motion.button>
