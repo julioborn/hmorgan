@@ -83,8 +83,19 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
     // 📡 Pusher
     useEffect(() => {
         const canal = pusherClient.subscribe(`pedido-${pedidoId}`);
+
         canal.bind("mensaje-creado", (msg: Mensaje) => {
-            setMensajes((prev) => [...prev, msg]);
+            setMensajes((prev) => {
+                // Evita duplicados comparando texto, remitente y fecha
+                const yaExiste = prev.some(
+                    (m) =>
+                        m.texto === msg.texto &&
+                        m.remitente === msg.remitente &&
+                        Math.abs(new Date(m.createdAt || "").getTime() - new Date(msg.createdAt || "").getTime()) < 2000
+                );
+                if (yaExiste) return prev;
+                return [...prev, msg];
+            });
         });
 
         return () => {
@@ -119,13 +130,42 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
     // 📨 Enviar mensaje
     async function enviarMensaje() {
         if (!nuevo.trim() || bloquearEnvio) return;
-        await fetch(`/api/mensajes/${pedidoId}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ remitente, texto: nuevo }),
-        });
+
+        const texto = nuevo.trim();
+
+        // ⛔️ Evitar spam rápido
+        setBloquearEnvio(true);
+
+        // 💨 Feedback inmediato en la interfaz (optimistic UI)
+        const tempMsg: Mensaje = {
+            pedidoId,
+            remitente,
+            texto,
+            createdAt: new Date().toISOString(),
+        };
+        setMensajes((prev) => [...prev, tempMsg]);
         setNuevo("");
-        setTimeout(() => scrollToBottom(), 100);
+        scrollToBottom(false);
+
+        try {
+            const res = await fetch(`/api/mensajes/${pedidoId}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ remitente, texto }),
+            });
+
+            if (!res.ok) throw new Error("Error al enviar");
+
+            // No hace falta setMensajes de nuevo, Pusher lo actualiza
+        } catch (err) {
+            console.error("❌ Error enviando mensaje:", err);
+            // 🔁 Si falla, eliminar el temporal
+            setMensajes((prev) => prev.filter((m) => m !== tempMsg));
+            alert("Error al enviar el mensaje");
+        } finally {
+            // 🔓 Desbloquea el botón después de un pequeño retraso para evitar spam
+            setTimeout(() => setBloquearEnvio(false), 600);
+        }
     }
 
     return (
