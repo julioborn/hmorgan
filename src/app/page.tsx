@@ -123,6 +123,27 @@ function ClientHome({ nombre }: { nombre?: string }) {
     );
   }
 
+  const [chatsActivosCount, setChatsActivosCount] = useState(0);
+
+  useEffect(() => {
+    const fetchChatsActivos = async () => {
+      try {
+        const res = await fetch("/api/pedidos", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        // Filtramos los pedidos que tengan chat activo (según tu campo o condición)
+        const activos = data.filter((p: any) => p.chatActivo || ["pendiente", "preparando", "listo"].includes(p.estado));
+        setChatsActivosCount(activos.length || 0);
+      } catch (e) {
+        console.error("Error cargando chats activos:", e);
+      }
+    };
+
+    fetchChatsActivos();
+    const interval = setInterval(fetchChatsActivos, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div
       className={`${container} py-8 space-y-8`}
@@ -204,19 +225,27 @@ function ClientHome({ nombre }: { nombre?: string }) {
         </div>
       </section>
 
-      {/* 🔴 Acceso rápido al chat */}
-      <Link
-        href="/cliente/chats"
-        className="flex items-center justify-between w-full bg-black text-white rounded-2xl px-5 py-4 shadow-lg hover:scale-[1.02] transition-all duration-300"
-      >
-        <div className="flex items-center gap-3">
-          <MessageSquare className="w-6 h-6" />
-          <div className="flex flex-col leading-tight">
-            <span className="text-lg font-bold">Chats</span>
-            <span className="text-xs opacity-80">Habla con el bar sobre tu pedido</span>
+      {/* 🗨️ Chats activos (botón negro largo con burbuja) */}
+      <div className="relative">
+        <Link
+          href="/cliente/chats"
+          className="flex items-center justify-between w-full bg-black text-white rounded-2xl px-5 py-4 shadow-lg hover:scale-[1.02] transition-all duration-300"
+        >
+          <div className="flex items-center gap-3">
+            <MessageSquare className="w-6 h-6" />
+            <div className="flex flex-col leading-tight">
+              <span className="text-lg font-bold">Chats Activos</span>
+              <span className="text-xs opacity-80">Habla con el bar sobre tu pedido</span>
+            </div>
           </div>
-        </div>
-      </Link>
+
+          {chatsActivosCount > 0 && (
+            <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded-full ring-2 ring-white shadow-md animate-pulse">
+              {chatsActivosCount}
+            </span>
+          )}
+        </Link>
+      </div>
 
       {/* Botonera */}
       <div className="grid grid-cols-2 gap-4">
@@ -301,6 +330,26 @@ function AdminHome() {
     return () => clearInterval(interval);
   }, []);
 
+  const [chatsActivosCount, setChatsActivosCount] = useState(0);
+
+  useEffect(() => {
+    const fetchChatsActivos = async () => {
+      try {
+        const res = await fetch("/api/pedidos", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        const activos = data.filter((p: any) => p.chatActivo || ["pendiente", "preparando", "listo"].includes(p.estado));
+        setChatsActivosCount(activos.length || 0);
+      } catch (e) {
+        console.error("Error cargando chats activos:", e);
+      }
+    };
+
+    fetchChatsActivos();
+    const interval = setInterval(fetchChatsActivos, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div
       className={`${container} py-8 space-y-8`}
@@ -312,19 +361,28 @@ function AdminHome() {
         </h1>
       </header>
 
-      {/* 🔴 Acceso rápido a chats activos */}
-      <Link
-        href="/admin/chats"
-        className="flex items-center justify-between w-full bg-black text-white rounded-2xl px-5 py-4 shadow-lg hover:scale-[1.02] transition-all duration-300"
-      >
-        <div className="flex items-center gap-3">
-          <MessageSquare className="w-6 h-6" />
-          <div className="flex flex-col leading-tight">
-            <span className="text-lg font-bold">Chats Activos</span>
-            <span className="text-xs opacity-80">Ver todos los pedidos con chat</span>
+      {/* 🗨️ Chats activos (botón negro largo con burbuja) */}
+      <div className="relative">
+        <Link
+          href="/admin/chats"
+          className="flex items-center justify-between w-full bg-black text-white rounded-2xl px-5 py-4 shadow-lg hover:scale-[1.02] transition-all duration-300"
+        >
+          <div className="flex items-center gap-3">
+            <MessageSquare className="w-6 h-6" />
+            <div className="flex flex-col leading-tight">
+              <span className="text-lg font-bold">Chats Activos</span>
+              <span className="text-xs opacity-80">Ver todos los pedidos con chat</span>
+            </div>
           </div>
-        </div>
-      </Link>
+
+          {chatsActivosCount > 0 && (
+            <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded-full ring-2 ring-white shadow-md animate-pulse">
+              {chatsActivosCount}
+            </span>
+          )}
+        </Link>
+      </div>
+
 
       <div className="grid grid-cols-2 gap-4">
         <ActionCard
