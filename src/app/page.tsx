@@ -3,11 +3,9 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
 import { QrCode, Scan, Users, Bell, ChefHat, PackagePlus, Package, Utensils, Ticket, Coins, History, ScanQrCode, ScanText, MessageSquare } from "lucide-react";
-import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay, Pagination } from "swiper/modules";
-import "swiper/css";
-import "swiper/css/pagination";
 import Loader from "@/components/Loader";
+import dynamic from "next/dynamic";
+const SafeSwiper = dynamic(() => import("@/components/SafeSwiper"), { ssr: false });
 
 const container =
   "mx-auto w-full max-w-screen-sm md:max-w-2xl lg:max-w-4xl xl:max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8";
@@ -168,58 +166,7 @@ function ClientHome({ nombre }: { nombre?: string }) {
             </p>
           ) : (
             <>
-              {/* Swiper */}
-              <Swiper
-                modules={[Autoplay, Pagination]}
-                autoplay={{
-                  delay: 3250,
-                  disableOnInteraction: false,
-                  pauseOnMouseEnter: false,
-                }}
-                speed={1250}
-                loop={true}
-                spaceBetween={16}
-                slidesPerView={1.1}
-                pagination={{
-                  clickable: true,
-                  dynamicBullets: true,
-                }}
-                breakpoints={{
-                  640: { slidesPerView: 2 },
-                  1024: { slidesPerView: 3 },
-                }}
-              >
-                {rewards.map((r) => (
-                  <SwiperSlide key={r._id}>
-                    <div className="relative bg-white text-black rounded-2xl shadow-md border border-gray-200 p-5 h-44 flex flex-col justify-between overflow-hidden">
-                      <div className="flex-1 flex flex-col justify-between">
-                        <h3 className="font-extrabold text-base md:text-lg line-clamp-2">
-                          {r.titulo}
-                        </h3>
-                        <p className="text-sm text-gray-600 line-clamp-2">
-                          {r.descripcion || "Canje"}
-                        </p>
-                        <span className="text-sm font-semibold text-red-600">
-                          {r.puntos} pts
-                        </span>
-                      </div>
-
-                      {/* Logo */}
-                      <div className="absolute bottom-3 right-3">
-                        <img
-                          src="/icon-192x192.png"
-                          alt="Logo"
-                          className="h-8 w-8 object-contain opacity-70"
-                        />
-                      </div>
-
-                      {/* Círculos laterales */}
-                      <span className="absolute -left-3 top-1/2 w-6 h-6 bg-gray-100 border border-gray-300 rounded-full shadow-sm" />
-                      <span className="absolute -right-3 top-1/2 w-6 h-6 bg-gray-100 border border-gray-300 rounded-full shadow-sm" />
-                    </div>
-                  </SwiperSlide>
-                ))}
-              </Swiper>
+              <SafeSwiper rewards={rewards} />
               <div className="mt-4 flex justify-center">
                 <Link
                   href="/cliente/rewards"
