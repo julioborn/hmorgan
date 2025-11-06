@@ -29,30 +29,30 @@ self.addEventListener("activate", (event) => {
             const keys = await caches.keys();
             await Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)));
 
-            // Desregistra SW viejos (rescate preventivo)
             try {
+                // Desregistrar SW viejos si existieran
                 const regs = await self.registration.scope
                     ? [self.registration]
                     : await self.registration.unregister();
             } catch { }
 
-            // Reclama control inmediato
+            // Reclamar control inmediato
             await self.clients.claim();
 
-            // Refresca ventanas activas
+            // ✅ Intentar refrescar ventanas activas solo si es seguro
             const clientsArr = await self.clients.matchAll({ type: "window" });
             for (const client of clientsArr) {
-                if (client.url && !client.url.startsWith("about:")) {
-                    try {
-                        client.navigate(client.url);
-                    } catch (e) {
-                        console.warn("No se pudo recargar:", e);
-                    }
+                try {
+                    // En Safari / PWA root puede tirar error → usamos reload por mensaje
+                    client.postMessage({ type: "RELOAD_PAGE" });
+                } catch (e) {
+                    console.warn("No se pudo notificar reload:", e);
                 }
             }
         })()
     );
 });
+
 
 // ===============================
 // ⚡ FETCH (manejo inteligente de cache)
@@ -141,3 +141,13 @@ self.addEventListener("notificationclick", (event) => {
         })()
     );
 });
+
+// ===============================
+// 🔄 Escucha de mensajes desde el SW
+// ===============================
+self.addEventListener("message", (event) => {
+    if (event.data?.type === "SKIP_WAITING") {
+        self.skipWaiting();
+    }
+});
+
