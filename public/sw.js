@@ -1,5 +1,5 @@
 // ✅ H MORGAN BAR - SERVICE WORKER v31
-const CACHE = "hmorgan-v32";
+const CACHE = "hmorgan-v33";
 const ASSETS = ["/", "/favicon.ico", "/manifest.json", "/icon-192x192.png", "/icon-512x512.png"];
 
 self.addEventListener("install", (event) => {
