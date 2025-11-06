@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import { useAuth } from "@/context/auth-context";
-import { ensurePushAfterLogin } from "@/lib/push-auto";
+import { ensurePushAfterLogin } from "@/lib/ensurePushAfterLogin";
 
 type Errors = { dni?: string; password?: string; general?: string };
 
@@ -50,9 +50,15 @@ export default function LoginPage() {
       return;
     }
 
+    await refresh(); // 🔹 Primero refrescamos el contexto de autenticación
+    await new Promise((r) => setTimeout(r, 300)); // Pequeño delay para evitar race condition
+
+    // 🔹 Activar las notificaciones después del login exitoso
     await ensurePushAfterLogin();
-    await refresh();
+
+    // 🔁 Finalmente redirigimos al inicio
     window.location.href = "/";
+
   }
 
   return (
@@ -76,8 +82,8 @@ export default function LoginPage() {
             <input
               placeholder="DNI"
               className={`w-full h-12 px-3 rounded-xl border text-gray-800 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 transition ${touched.dni && currentErrors.dni
-                  ? "border-red-400 focus:ring-red-400"
-                  : "border-gray-300"
+                ? "border-red-400 focus:ring-red-400"
+                : "border-gray-300"
                 }`}
               value={dni}
               onChange={(e) => setDni(onlyDigits(e.target.value))}
@@ -96,8 +102,8 @@ export default function LoginPage() {
               placeholder="Contraseña"
               type="password"
               className={`w-full h-12 px-3 rounded-xl border text-gray-800 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 transition ${touched.password && currentErrors.password
-                  ? "border-red-400 focus:ring-red-400"
-                  : "border-gray-300"
+                ? "border-red-400 focus:ring-red-400"
+                : "border-gray-300"
                 }`}
               value={password}
               onChange={(e) => setPassword(e.target.value)}

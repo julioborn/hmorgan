@@ -23,7 +23,7 @@ import {
     Settings,
 } from "lucide-react";
 import Image from "next/image";
-import { registerSW, subscribeUser } from "@/lib/push-client";
+import { clearPushData, registerSW, subscribeUser } from "@/lib/push-client";
 import { swalBase } from "@/lib/swalConfig";
 
 export default function Header() {
@@ -59,7 +59,7 @@ export default function Header() {
         { href: "/admin/rewards", label: "Canjes", icon: Ticket },
         { href: "/admin/pedidos", label: "Pedidos", icon: Package },
         { href: "/admin/notificaciones", label: "Notificaciones", icon: Bell },
-        { href: "/admin/configuracion", label: "Ajustes", icon: Settings},
+        { href: "/admin/configuracion", label: "Ajustes", icon: Settings },
     ];
 
     const links = user?.role === "admin" ? linksAdmin : linksCliente;
@@ -73,7 +73,7 @@ export default function Header() {
 
     async function handleNotificationsClick() {
         try {
-            // Verificar compatibilidad
+            // ⚙️ Verificar compatibilidad
             const hasSW = "serviceWorker" in navigator;
             const hasPush = "PushManager" in window;
             const hasNotif = typeof Notification !== "undefined";
@@ -83,45 +83,44 @@ export default function Header() {
                 return;
             }
 
-            const perm = await Notification.permission;
-            if (perm === "granted") {
-                await swalBase.fire("✅", "Las notificaciones ya están activadas.", "success");
+            // 🔔 Verificar permisos del usuario
+            let perm = Notification.permission;
+            if (perm === "default") {
+                perm = await Notification.requestPermission();
+            }
+
+            if (perm !== "granted") {
+                await swalBase.fire("🚫", "Debes permitir las notificaciones para activarlas.", "info");
                 return;
             }
 
-            const result = await swalBase.fire({
-                title: "🔔 Activar notificaciones",
-                text: "¿Querés recibir avisos de pedidos y novedades?",
-                icon: "question",
-                showCancelButton: true,
-                confirmButtonText: "Activar",
-                cancelButtonText: "Cancelar",
-            });
-
-            if (!result.isConfirmed) return;
-
-            const permission = await Notification.requestPermission();
-            if (permission !== "granted") {
-                await swalBase.fire("⚠️", "No activaste las notificaciones.", "warning");
-                return;
-            }
-
+            // 📱 Registrar o actualizar el Service Worker
             const reg = await registerSW();
             if (!reg) {
                 await swalBase.fire("❌", "No se pudo registrar el Service Worker.", "error");
                 return;
             }
 
+            await reg.update(); // 👈 fuerza actualización del SW
+            console.log("SW actualizado:", reg);
+
+            // 💬 Crear nueva suscripción limpia
             const sub = await subscribeUser(reg);
             if (!sub) {
-                await swalBase.fire("❌", "No se pudo crear la suscripción.", "error");
+                await swalBase.fire("❌", "No se pudo crear la suscripción push.", "error");
                 return;
             }
 
-            await swalBase.fire("✅ Listo", "Las notificaciones fueron activadas.", "success");
-        } catch (e: any) {
-            console.error(e);
-            await swalBase.fire("❌ Error", e?.message || "Falló la activación", "error");
+            console.log("✅ Suscripción activa:", sub.endpoint);
+
+            // 🎉 Confirmar al usuario
+            await swalBase.fire("✅ Listo", "Las notificaciones fueron activadas correctamente.", "success");
+
+            // 🔄 En PWA es mejor recargar la app para aplicar el SW nuevo
+            window.location.href = "/";
+        } catch (err: any) {
+            console.error("❌ Error general en handleNotificationsClick:", err);
+            await swalBase.fire("⚠️", "Ocurrió un error al activar las notificaciones.", "error");
         }
     }
 
@@ -262,9 +261,11 @@ export default function Header() {
                             {user && !loading && (
                                 <div className="p-4 border-t border-red-800 bg-neutral-950">
                                     <button
-                                        onClick={() => {
-                                            logout();
+                                        onClick={async () => {
+                                            await logout(); // Cierra la sesión
+                                            await clearPushData(); // 👈 Limpia flags y suscripción push
                                             setOpen(false);
+                                            window.location.href = "/login"; // 🔁 Redirigir a login o inicio
                                         }}
                                         className="w-full px-3 py-2 rounded-lg bg-red-700 hover:bg-red-600 text-sm text-white transition font-semibold"
                                     >
