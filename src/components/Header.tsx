@@ -21,6 +21,7 @@ import {
     ScanQrCode,
     UserRoundPen,
     Settings,
+    Wrench,               // 👈 nuevo
 } from "lucide-react";
 import Image from "next/image";
 import { clearPushData, registerSW, subscribeUser } from "@/lib/push-client";
@@ -64,16 +65,8 @@ export default function Header() {
 
     const links = user?.role === "admin" ? linksAdmin : linksCliente;
 
-    // function getInitials(nombre?: string, apellido?: string) {
-    //     if (!nombre && !apellido) return "";
-    //     const n = nombre ? nombre[0].toUpperCase() : "";
-    //     const a = apellido ? apellido[0].toUpperCase() : "";
-    //     return n + a;
-    // }
-
     async function handleNotificationsClick() {
         try {
-            // ⚙️ Verificar compatibilidad
             const hasSW = "serviceWorker" in navigator;
             const hasPush = "PushManager" in window;
             const hasNotif = typeof Notification !== "undefined";
@@ -83,7 +76,6 @@ export default function Header() {
                 return;
             }
 
-            // 🔔 Verificar permisos del usuario
             let perm = Notification.permission;
             if (perm === "default") {
                 perm = await Notification.requestPermission();
@@ -94,29 +86,20 @@ export default function Header() {
                 return;
             }
 
-            // 📱 Registrar o actualizar el Service Worker
             const reg = await registerSW();
             if (!reg) {
                 await swalBase.fire("❌", "No se pudo registrar el Service Worker.", "error");
                 return;
             }
 
-            await reg.update(); // 👈 fuerza actualización del SW
-            console.log("SW actualizado:", reg);
-
-            // 💬 Crear nueva suscripción limpia
+            await reg.update();
             const sub = await subscribeUser(reg);
             if (!sub) {
                 await swalBase.fire("❌", "No se pudo crear la suscripción push.", "error");
                 return;
             }
 
-            console.log("✅ Suscripción activa:", sub.endpoint);
-
-            // 🎉 Confirmar al usuario
             await swalBase.fire("✅ Listo", "Las notificaciones fueron activadas correctamente.", "success");
-
-            // 🔄 En PWA es mejor recargar la app para aplicar el SW nuevo
             window.location.href = "/";
         } catch (err: any) {
             console.error("❌ Error general en handleNotificationsClick:", err);
@@ -154,9 +137,20 @@ export default function Header() {
                     </Link>
                 </div>
 
-                {/* Perfil + Recargar */}
+                {/* Acciones derecha */}
                 <div className="w-1/3 flex justify-end items-center gap-3">
-                    {/* 🔔 Botón notificaciones */}
+                    {/* 🔧 Modo Técnico (solo admin) */}
+                    {user?.role === "admin" && (
+                        <Link
+                            href="/debug/reset"
+                            className="p-2 rounded-full bg-yellow-600 hover:bg-yellow-500 text-white transition"
+                            title="Modo técnico"
+                        >
+                            <Wrench size={20} />
+                        </Link>
+                    )}
+
+                    {/* 🔔 Notificaciones */}
                     <button
                         onClick={handleNotificationsClick}
                         className="p-2 rounded-full bg-red-600 hover:bg-red-500 text-white transition"
@@ -165,7 +159,7 @@ export default function Header() {
                         <Bell size={20} />
                     </button>
 
-                    {/* 🔄 Botón recargar */}
+                    {/* 🔄 Recargar */}
                     <button
                         onClick={() => window.location.reload()}
                         className="p-2 rounded-full bg-red-600 hover:bg-red-500 text-white transition"
@@ -190,7 +184,7 @@ export default function Header() {
                             onClick={() => setOpen(false)}
                         />
 
-                        {/* Drawer con scroll oculto */}
+                        {/* Drawer */}
                         <motion.div
                             initial={{ x: "-100%" }}
                             animate={{ x: 0 }}
@@ -198,7 +192,6 @@ export default function Header() {
                             transition={{ duration: 0.3 }}
                             className="fixed top-0 left-0 h-screen w-72 bg-neutral-900/95 border-r border-red-700 z-50 shadow-xl flex flex-col backdrop-blur-md"
                         >
-                            {/* Contenido scrolleable con scrollbar oculta */}
                             <div className="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar">
                                 <button
                                     onClick={() => setOpen(false)}
@@ -223,8 +216,8 @@ export default function Header() {
                                                         href={l.href}
                                                         onClick={() => setOpen(false)}
                                                         className={`flex items-center gap-4 px-4 py-4 rounded-xl font-semibold text-lg transition ${active
-                                                            ? "bg-red-600 text-white"
-                                                            : "hover:bg-red-700/20 text-gray-200"
+                                                                ? "bg-red-600 text-white"
+                                                                : "hover:bg-red-700/20 text-gray-200"
                                                             }`}
                                                     >
                                                         {l.icon && <l.icon size={22} />}
@@ -232,6 +225,18 @@ export default function Header() {
                                                     </Link>
                                                 );
                                             })}
+
+                                            {/* 🔧 Link al modo técnico también en el menú (solo admin) */}
+                                            {user.role === "admin" && (
+                                                <Link
+                                                    href="/debug/reset"
+                                                    onClick={() => setOpen(false)}
+                                                    className="flex items-center gap-4 px-4 py-4 rounded-xl font-semibold text-lg transition hover:bg-yellow-600/20 text-yellow-300"
+                                                >
+                                                    <Wrench size={22} />
+                                                    Modo Técnico
+                                                </Link>
+                                            )}
                                         </nav>
                                     </>
                                 ) : (
@@ -239,8 +244,8 @@ export default function Header() {
                                         <Link
                                             href="/login"
                                             className={`px-3 py-2 rounded-lg text-sm ${pathname === "/login"
-                                                ? "bg-red-600 text-white"
-                                                : "text-white hover:bg-red-700/20"
+                                                    ? "bg-red-600 text-white"
+                                                    : "text-white hover:bg-red-700/20"
                                                 }`}
                                             onClick={() => setOpen(false)}
                                         >
@@ -262,10 +267,10 @@ export default function Header() {
                                 <div className="p-4 border-t border-red-800 bg-neutral-950">
                                     <button
                                         onClick={async () => {
-                                            await logout(); // Cierra la sesión
-                                            await clearPushData(); // 👈 Limpia flags y suscripción push
+                                            await logout();
+                                            await clearPushData();
                                             setOpen(false);
-                                            window.location.href = "/login"; // 🔁 Redirigir a login o inicio
+                                            window.location.href = "/login";
                                         }}
                                         className="w-full px-3 py-2 rounded-lg bg-red-700 hover:bg-red-600 text-sm text-white transition font-semibold"
                                     >
@@ -278,14 +283,13 @@ export default function Header() {
                 )}
             </AnimatePresence>
 
-            {/* 🔹 Estilo para ocultar scroll pero mantenerlo funcional */}
             <style jsx global>{`
         .no-scrollbar {
-          scrollbar-width: none; /* Firefox */
-          -ms-overflow-style: none; /* IE y Edge */
+          scrollbar-width: none;
+          -ms-overflow-style: none;
         }
         .no-scrollbar::-webkit-scrollbar {
-          display: none; /* Chrome, Safari y Opera */
+          display: none;
         }
       `}</style>
         </header>
