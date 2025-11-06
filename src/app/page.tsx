@@ -22,6 +22,7 @@ type Reward = {
 export default function Home() {
   const { user, loading } = useAuth();
 
+  // 🔸 Si todavía está cargando el usuario:
   if (loading) {
     return (
       <div className={`${container} py-10 flex justify-center`}>
@@ -30,13 +31,20 @@ export default function Home() {
     );
   }
 
+  // 🔸 Cuando ya terminó de cargar, mostramos HomeContent
+  // (así React no cambia el orden de los hooks)
+  return <HomeContent user={user} />;
+}
+
+function HomeContent({ user }: { user: any }) {
+  // 🔸 Si no hay usuario logueado, mostramos la landing
   if (!user) return <Landing />;
 
-  return user.role === "admin" ? (
-    <AdminHome />
-  ) : (
-    <ClientHome nombre={user.nombre} />
-  );
+  // 🔸 Si es admin, mostramos el Home del administrador
+  if (user.role === "admin") return <AdminHome />;
+
+  // 🔸 Si es cliente, mostramos el Home del cliente
+  return <ClientHome nombre={user.nombre} />;
 }
 
 /* =========================
@@ -226,7 +234,7 @@ function ClientHome({ nombre }: { nombre?: string }) {
       </section>
 
       {/* 🗨️ Chats activos (botón negro largo con burbuja) */}
-      {/* <div className="relative">
+      <div className="relative">
         <Link
           href="/cliente/chats"
           className="flex items-center justify-between w-full bg-black text-white rounded-2xl px-5 py-4 shadow-lg hover:scale-[1.02] transition-all duration-300"
@@ -245,7 +253,7 @@ function ClientHome({ nombre }: { nombre?: string }) {
             </span>
           )}
         </Link>
-      </div> */}
+      </div>
 
       {/* Botonera */}
       <div className="grid grid-cols-2 gap-4">
