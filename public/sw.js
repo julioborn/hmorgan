@@ -1,34 +1,38 @@
 // ===============================
-// SW: cache + push notifications
+// SW: CACHE + PUSH NOTIFICATIONS
 // ===============================
-const CACHE = "hmorgan-v25"; // ⬅️ subí la versión para forzar actualización
+const CACHE = "hmorgan-v30"; // ⬅️ 🔥 Subí la versión en cada deploy
 
 const ASSETS = [
     "/",
     "/manifest.webmanifest",
     "/favicon-32x32.png",
     "/favicon-16x16.png",
+    "/icon-192.png",
+    "/icon-badge-96x96.png",
 ];
 
 // ===============================
 // INSTALACIÓN
 // ===============================
-self.addEventListener("install", (e) => {
-    e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
-    self.skipWaiting();
+self.addEventListener("install", (event) => {
+    console.log("💾 [SW] Instalando nueva versión:", CACHE);
+    event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)));
+    self.skipWaiting(); // 🔥 fuerza activación inmediata
 });
 
 // ===============================
-// ACTIVACIÓN (recarga automática)
+// ACTIVACIÓN (limpieza automática + recarga)
 // ===============================
 self.addEventListener("activate", (event) => {
+    console.log("🚀 [SW] Activando y limpiando cachés viejos...");
     event.waitUntil(
         (async () => {
             const keys = await caches.keys();
-            // 🔥 Eliminamos versiones anteriores
             await Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)));
+            self.clients.claim();
 
-            // 🔄 Recargamos todas las pestañas activas para aplicar el nuevo SW
+            // 🔁 Recargar todas las pestañas activas para aplicar nueva versión
             const clientsArr = await self.clients.matchAll({ type: "window" });
             for (const client of clientsArr) {
                 client.navigate(client.url);
@@ -40,36 +44,38 @@ self.addEventListener("activate", (event) => {
 // ===============================
 // FETCH (manejo de caché selectivo)
 // ===============================
-self.addEventListener("fetch", (e) => {
-    const req = e.request;
+self.addEventListener("fetch", (event) => {
+    const req = event.request;
     const url = new URL(req.url);
 
-    // ❌ Nunca cachear autenticación ni APIs dinámicas
+    // ❌ Nunca cachear APIs o autenticación
     if (
         url.pathname.startsWith("/api/") ||
-        url.pathname.startsWith("/login") ||
-        url.pathname.startsWith("/logout") ||
-        url.pathname.startsWith("/register") ||
-        url.pathname.startsWith("/auth")
+        url.pathname.startsWith("/auth") ||
+        url.pathname.includes("login") ||
+        url.pathname.includes("logout") ||
+        url.pathname.includes("register")
     ) {
-        return; // Deja pasar al servidor sin interceptar
+        return; // dejar pasar al servidor directamente
     }
 
-    // ✅ Páginas de navegación
+    // ✅ Páginas principales
     if (req.mode === "navigate") {
-        e.respondWith(fetch(req).catch(() => caches.match("/")));
+        event.respondWith(fetch(req).catch(() => caches.match("/")));
         return;
     }
 
-    // ✅ Archivos estáticos (imágenes, estilos, fuentes, scripts)
+    // ✅ Archivos estáticos
     if (/\.(png|jpg|jpeg|gif|svg|webp|css|js|woff2?)($|\?)/i.test(req.url)) {
-        e.respondWith(
+        event.respondWith(
             caches.match(req).then((res) => {
-                const fetchAndCache = fetch(req).then((netRes) => {
-                    const copy = netRes.clone();
-                    caches.open(CACHE).then((c) => c.put(req, copy));
-                    return netRes;
-                });
+                const fetchAndCache = fetch(req)
+                    .then((netRes) => {
+                        const copy = netRes.clone();
+                        caches.open(CACHE).then((cache) => cache.put(req, copy));
+                        return netRes;
+                    })
+                    .catch(() => res);
                 return res || fetchAndCache;
             })
         );
@@ -77,20 +83,19 @@ self.addEventListener("fetch", (e) => {
 });
 
 // ===============================
-// Notificaciones Push (en español 🇦🇷)
+// PUSH NOTIFICATIONS 🇦🇷
 // ===============================
 self.addEventListener("push", (event) => {
     let data = {};
     try {
-        data = event.data.json(); // esperado: { title, body, url, tag? }
+        data = event.data.json();
     } catch {
         data = { title: "", body: event.data?.text() || "", url: "/" };
     }
 
     const title = (data.title || "").trim();
     const body =
-        data.body ||
-        "Tienes una nueva actualización en tu cuenta de puntos.";
+        data.body || "Tienes una nueva actualización en tu cuenta de puntos.";
     const url = data.url || "/";
     const tag = data.tag || "hmorgan-push";
 
@@ -104,7 +109,7 @@ self.addEventListener("push", (event) => {
         vibrate: [80, 30, 80],
         timestamp: Date.now(),
         tag,
-        renotify: false, // 👈 evita mostrar "from HMorgan"
+        renotify: false,
         silent: false,
         actions: [
             { action: "open-qr", title: "Ver mi código QR" },
@@ -112,33 +117,23 @@ self.addEventListener("push", (event) => {
         ],
     };
 
-    // ✅ Mostrar notificación sin "from HMorgan"
     event.waitUntil(
         (async () => {
-            // 🔇 Si querés eliminar totalmente el título visible (solo texto)
-            const notifTitle = title || "";
-            const notifOptions = {
-                ...options,
-                requireInteraction: false, // no mostrar origen
-            };
-
-            // 🔧 Truco: si querés evitar "from HMorgan", no uses 'title' como nombre visible,
-            // sino todo dentro de 'body', simulando un mensaje completo
-            const displayTitle = ""; // <- vacío elimina el "from"
-            const displayBody = notifTitle
-                ? `${notifTitle}\n${body}`
-                : body;
+            // ✅ Notificación limpia (sin "from HMorgan")
+            const displayTitle = ""; // 👈 vacío evita mostrar "from HMorgan"
+            const displayBody = title ? `${title}\n${body}` : body;
 
             await self.registration.showNotification(displayTitle, {
-                ...notifOptions,
+                ...options,
                 body: displayBody,
+                requireInteraction: false,
             });
         })()
     );
 });
 
 // ===============================
-// Click en notificación
+// CLICK EN NOTIFICACIÓN
 // ===============================
 self.addEventListener("notificationclick", (event) => {
     event.notification.close();
@@ -152,16 +147,17 @@ self.addEventListener("notificationclick", (event) => {
 
     event.waitUntil(
         (async () => {
-            const all = await clients.matchAll({
+            const allClients = await clients.matchAll({
                 type: "window",
                 includeUncontrolled: true,
             });
-            for (const c of all) {
-                const u = new URL(c.url);
+
+            for (const client of allClients) {
+                const u = new URL(client.url);
                 if (u.origin === self.location.origin) {
-                    c.focus();
+                    client.focus();
                     try {
-                        c.postMessage({ type: "OPEN_URL", url: urlToOpen });
+                        client.postMessage({ type: "OPEN_URL", url: urlToOpen });
                     } catch { }
                     return;
                 }
