@@ -41,7 +41,6 @@ export default function SafeSwiper({ rewards }: { rewards: any[] }) {
                                 {r.puntos} pts
                             </span>
                         </div>
-
                         <div className="absolute bottom-3 right-3">
                             <img
                                 src="/icon-192x192.png"
@@ -49,9 +48,6 @@ export default function SafeSwiper({ rewards }: { rewards: any[] }) {
                                 className="h-8 w-8 object-contain opacity-70"
                             />
                         </div>
-
-                        <span className="absolute -left-3 top-1/2 w-6 h-6 bg-gray-100 border border-gray-300 rounded-full shadow-sm" />
-                        <span className="absolute -right-3 top-1/2 w-6 h-6 bg-gray-100 border border-gray-300 rounded-full shadow-sm" />
                     </div>
                 </SwiperSlide>
             ))}

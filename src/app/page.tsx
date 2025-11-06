@@ -1,11 +1,30 @@
 "use client";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
-import { QrCode, Scan, Users, Bell, ChefHat, PackagePlus, Package, Utensils, Ticket, Coins, History, ScanQrCode, ScanText, MessageSquare } from "lucide-react";
+import {
+  QrCode,
+  Scan,
+  Users,
+  Bell,
+  ChefHat,
+  PackagePlus,
+  Package,
+  Utensils,
+  Ticket,
+  Coins,
+  History,
+  ScanQrCode,
+  ScanText,
+  MessageSquare,
+} from "lucide-react";
 import Loader from "@/components/Loader";
-import dynamic from "next/dynamic";
-const SafeSwiper = dynamic(() => import("@/components/SafeSwiper"), { ssr: false });
+import nextDynamic from "next/dynamic"; // 👈 renombramos para evitar conflicto
+const SafeSwiper = nextDynamic(() => import("@/components/SafeSwiper"), { ssr: false });
 
 const container =
   "mx-auto w-full max-w-screen-sm md:max-w-2xl lg:max-w-4xl xl:max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8";
@@ -20,7 +39,6 @@ type Reward = {
 export default function Home() {
   const { user, loading } = useAuth();
 
-  // 🔸 Si todavía está cargando el usuario:
   if (loading) {
     return (
       <div className={`${container} py-10 flex justify-center`}>
@@ -29,20 +47,13 @@ export default function Home() {
     );
   }
 
-  // 🔸 Cuando ya terminó de cargar, mostramos HomeContent
-  // (así React no cambia el orden de los hooks)
-  return <HomeContent user={user} />;
-}
-
-function HomeContent({ user }: { user: any }) {
-  // 🔸 Si no hay usuario logueado, mostramos la landing
   if (!user) return <Landing />;
 
-  // 🔸 Si es admin, mostramos el Home del administrador
-  if (user.role === "admin") return <AdminHome />;
-
-  // 🔸 Si es cliente, mostramos el Home del cliente
-  return <ClientHome nombre={user.nombre} />;
+  return user.role === "admin" ? (
+    <AdminHome />
+  ) : (
+    <ClientHome nombre={user.nombre} />
+  );
 }
 
 /* =========================
@@ -166,6 +177,7 @@ function ClientHome({ nombre }: { nombre?: string }) {
             </p>
           ) : (
             <>
+              {/* Swiper */}
               <SafeSwiper rewards={rewards} />
               <div className="mt-4 flex justify-center">
                 <Link
