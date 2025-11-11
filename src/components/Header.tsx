@@ -225,18 +225,6 @@ export default function Header() {
                                                     </Link>
                                                 );
                                             })}
-
-                                            {/* 🔧 Link al modo técnico también en el menú (solo admin) */}
-                                            {user.role === "admin" && (
-                                                <Link
-                                                    href="/debug/reset"
-                                                    onClick={() => setOpen(false)}
-                                                    className="flex items-center gap-4 px-4 py-4 rounded-xl font-semibold text-lg transition hover:bg-yellow-600/20 text-yellow-300"
-                                                >
-                                                    <Wrench size={22} />
-                                                    Modo Técnico
-                                                </Link>
-                                            )}
                                         </nav>
                                     </>
                                 ) : (

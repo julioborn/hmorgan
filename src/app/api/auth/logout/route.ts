@@ -1,17 +1,27 @@
 import { NextResponse } from "next/server";
 
 export async function POST() {
-  const isProd = process.env.NODE_ENV === "production";
-
   const res = NextResponse.json({ ok: true });
 
-  // Borrar la cookie `session`
+  // 🧹 Forzar eliminación total de la cookie "session"
   res.cookies.set("session", "", {
     httpOnly: true,
     sameSite: "lax",
-    secure: isProd,
+    secure: process.env.NODE_ENV === "production",
     path: "/",
-    expires: new Date(0), // ✅ mejor que maxAge: 0, borra siempre
+    expires: new Date(0), // ✅ elimina siempre
+  });
+
+  // ⚙️ También borramos variantes residuales por seguridad
+  res.cookies.set("session", "", {
+    path: "/api",
+    expires: new Date(0),
+  });
+
+  res.cookies.set("session", "", {
+    path: "/",
+    secure: false,
+    expires: new Date(0),
   });
 
   return res;
