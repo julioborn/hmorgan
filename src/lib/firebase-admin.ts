@@ -39,16 +39,38 @@ export async function enviarNotificacionFCM(
     url?: string
 ) {
     try {
-        await admin.messaging().send({
+        const payload: admin.messaging.Message = {
             token,
             notification: {
                 title,
                 body,
+                // 👇 solo los campos reconocidos por el tipo `Notification`
             },
-            data: url ? { url } : {},
-        });
+            data: {
+                url: url || "/",
+                // 👇 mandamos la imagen aquí para usarla en webpush/android
+                imageUrl: "https://hmorgan.vercel.app/morganwhite.png",
+                icon: "https://hmorgan.vercel.app/morganwhite.png",
+            },
+            android: {
+                notification: {
+                    color: "#B91C1C",
+                    imageUrl: "https://hmorgan.vercel.app/morganwhite.png",
+                },
+            },
+            webpush: {
+                fcmOptions: { link: url || "/" },
+                notification: {
+                    icon: "https://hmorgan.vercel.app/morganwhite.png",
+                    badge: "https://hmorgan.vercel.app/icon-badge-96x96.png",
+                    image: "https://hmorgan.vercel.app/morganwhite.png",
+                },
+            },
+        };
 
-        console.log(`✅ Notificación FCM enviada a ${token.slice(0, 10)}...`);
+        await admin.messaging().send(payload);
+
+        console.log(`✅ Notificación FCM enviada con logo a ${token.slice(0, 10)}...`);
     } catch (err) {
         console.error("❌ Error al enviar FCM:", err);
     }

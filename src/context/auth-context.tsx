@@ -86,15 +86,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 🔓 Cerrar sesión
     const logout = async () => {
         try {
-            console.log("🚪 Iniciando logout...");
             const res = await fetch("/api/auth/logout", {
                 method: "POST",
                 credentials: "include",
             });
 
-            console.log("🧾 Respuesta del logout:", res.status);
             setUser(null);
-            console.log("✅ Sesión cerrada correctamente");
             window.location.href = "/login";
         } catch (err) {
             console.error("❌ Error durante logout:", err);

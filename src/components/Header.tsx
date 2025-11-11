@@ -244,7 +244,6 @@ export default function Header() {
                                 <div className="p-4 border-t border-red-800 bg-neutral-950">
                                     <button
                                         onClick={async () => {
-                                            console.log("🧭 Click en cerrar sesión"); // 👈 agrega esto
                                             await logout();
                                             await clearPushData();
                                             setOpen(false);
