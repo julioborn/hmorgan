@@ -4,3 +4,8 @@ node_modules/
 .vercel/
 dist/
 coverage/
+android/
+
+# Firebase credentials
+hmorganbar-d55417a72378.json
+firebase-service-account.json

@@ -6,6 +6,7 @@ import { PointTransaction } from "@/models/PointTransaction";
 import { sendPushAndCollectInvalid } from "@/lib/push-server";
 import jwt from "jsonwebtoken";
 import { getPointsRatio } from "@/lib/getPointsRatio";
+import { enviarNotificacionFCM } from "@/lib/firebase-admin";
 
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET!;
 
@@ -46,6 +47,7 @@ export async function POST(req: NextRequest) {
             if (!u.pushSubscriptions?.length) {
                 console.log(`[finalize] user ${u._id} sin pushSubscriptions`);
             }
+
             const extra = resto > 0 ? 1 : 0; // distribuir el sobrante a los primeros
             if (resto > 0) resto--;
 
@@ -61,6 +63,48 @@ export async function POST(req: NextRequest) {
 
             u.puntos += puntos;
             await u.save();
+
+            // ---------- 🔔 PUSH WEB (VAPID) ----------
+            if (Array.isArray(u.pushSubscriptions) && u.pushSubscriptions.length) {
+                try {
+                    const uniqueSubs = Array.from(
+                        new Map(
+                            u.pushSubscriptions.map(
+                                (s: { endpoint: string; keys?: { p256dh?: string; auth?: string } }) => [s.endpoint, s]
+                            )
+                        ).values()
+                    ) as { endpoint: string; keys?: { p256dh?: string; auth?: string } }[];
+
+                    const invalid = await sendPushAndCollectInvalid(uniqueSubs, {
+                        title: "¡Puntos sumados!",
+                        body: `Se acreditaron ${puntos} puntos por tu consumo 🍻`,
+                        url: "/cliente/qr",
+                    });
+
+                    if (invalid.length) {
+                        await User.updateOne(
+                            { _id: u._id },
+                            { $pull: { pushSubscriptions: { endpoint: { $in: invalid } } } }
+                        );
+                    }
+                } catch (e) {
+                    console.error("push error user", u._id, e);
+                }
+            }
+
+            // ---------- 🔥 PUSH NATIVO (FCM) ----------
+            if (u.tokenFCM) {
+                try {
+                    await enviarNotificacionFCM(
+                        u.tokenFCM,
+                        "¡Puntos sumados!",
+                        `Se acreditaron ${puntos} puntos. ¡Gracias por venir!`,
+                        "/cliente/qr"
+                    );
+                } catch (err) {
+                    console.error("❌ Error al enviar FCM:", err);
+                }
+            }
         }
 
         // ---------- 🔔 PUSH A LOS CLIENTES (único y deduplicado) ----------

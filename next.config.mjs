@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // ❌ eliminamos "output: export" porque rompe las API routes
+  reactStrictMode: true,
+
   async headers() {
     return [
       {
@@ -13,4 +16,5 @@ const nextConfig = {
     ];
   },
 };
+
 export default nextConfig;

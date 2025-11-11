@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import webpush from "web-push";
 import { User, IUser } from "@/models/User";
+import { enviarNotificacionFCM } from "@/lib/firebase-admin";
 
 webpush.setVapidDetails(
     process.env.VAPID_MAIL || "mailto:admin@morgan.com",
@@ -42,6 +43,21 @@ export async function POST(req: NextRequest) {
         });
 
         await Promise.all(sendPromises);
+
+        // 🔥 Enviar también a los usuarios con tokenFCM
+        const fcmUsers = await User.find({ tokenFCM: { $exists: true, $ne: null } });
+        for (const u of fcmUsers) {
+            try {
+                await enviarNotificacionFCM(
+                    u.tokenFCM!,
+                    title || "Morgan",
+                    body || "Nueva actualización disponible",
+                    url || "/"
+                );
+            } catch (err) {
+                console.error("❌ Error al enviar FCM a", u.nombre, err);
+            }
+        }
 
         return NextResponse.json({ ok: true, total: subs.length });
     } catch (error) {

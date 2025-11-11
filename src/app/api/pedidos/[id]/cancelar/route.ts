@@ -3,6 +3,7 @@ import { connectMongoDB } from "@/lib/mongodb";
 import { Pedido } from "@/models/Pedido";
 import { User } from "@/models/User";
 import { sendPushToSubscriptions } from "@/lib/push-server";
+import { enviarNotificacionFCM } from "@/lib/firebase-admin";
 
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
     await connectMongoDB();
@@ -32,6 +33,16 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
             url: "/admin/pedidos",
             icon: "/icon-192.png",
         });
+    }
+
+    // 🔥 Notificación FCM al admin
+    if (admin?.tokenFCM) {
+        await enviarNotificacionFCM(
+            admin.tokenFCM,
+            "Pedido cancelado ❌",
+            `El cliente canceló el pedido #${pedido._id.toString().slice(-4)}`,
+            "/admin/pedidos"
+        );
     }
 
     return NextResponse.json({ ok: true, message: "Pedido cancelado correctamente" });

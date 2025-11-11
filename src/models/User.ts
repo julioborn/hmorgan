@@ -11,6 +11,7 @@ export interface IUser extends Document {
   qrToken: string;
   puntos: number;
   pushSubscriptions?: any[];
+  tokenFCM?: string; // 🔥 Nuevo campo: token del dispositivo Firebase
 
   email?: string;
   fechaNacimiento?: Date;
@@ -32,6 +33,8 @@ const UserSchema = new Schema<IUser>(
     puntos: { type: Number, default: 0 },
     pushSubscriptions: { type: Array, default: [] },
 
+    tokenFCM: { type: String, required: false }, // 🔥 Nuevo campo para notificaciones nativas
+
     email: { type: String, required: false },
     fechaNacimiento: { type: Date, required: false },
     direccion: { type: String, required: false },
@@ -42,6 +45,5 @@ const UserSchema = new Schema<IUser>(
   { timestamps: true }
 );
 
-// 👇 ESTA LÍNEA ES LA CLAVE
 export const User =
   mongoose.models.User || mongoose.model<IUser>("User", UserSchema);

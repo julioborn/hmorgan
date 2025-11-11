@@ -5,9 +5,16 @@ import NextAuthSessionProvider from "@/providers/session-provider";
 import Header from "@/components/Header";
 import Notificador from "@/components/Notificador";
 import RegisterSW from "@/components/RegisterSW";
+import { useEffect } from "react";
+import { initPush } from "@/lib/pushNotifications";
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
+
+    useEffect(() => {
+        initPush();
+    }, []);
+
 
     // 🖤 Fondo oscuro solo en los chats específicos
     const esChat =
@@ -27,8 +34,8 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
                     {/* Fondo condicional */}
                     <main
                         className={`min-h-screen ${esChat
-                                ? "bg-black text-white p-0"
-                                : "bg-white text-black px-4 py-6 container mx-auto"
+                            ? "bg-black text-white p-0"
+                            : "bg-white text-black px-4 py-6 container mx-auto"
                             }`}
                     >
                         {children}

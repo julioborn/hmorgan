@@ -5,6 +5,7 @@ import { pusherServer } from "@/lib/pusherServer";
 import { Pedido } from "@/models/Pedido";
 import { User } from "@/models/User";
 import { sendPushToSubscriptions } from "@/lib/push-server";
+import { enviarNotificacionFCM } from "@/lib/firebase-admin";
 
 interface Params {
     pedidoId: string;
@@ -54,6 +55,18 @@ export async function POST(req: NextRequest, { params }: { params: { pedidoId: s
             badge: "/icon-badge-96x96.png",
             image: "/morganwhite.png",
         });
+    }
+
+    // 🔥 Notificación FCM si el destinatario tiene tokenFCM
+    if (destinatario?.tokenFCM) {
+        await enviarNotificacionFCM(
+            destinatario.tokenFCM,
+            remitente === "admin" ? "Nuevo mensaje del bar 🍻" : "Nuevo mensaje del cliente 💬",
+            texto.length > 80 ? texto.slice(0, 80) + "..." : texto,
+            remitente === "admin"
+                ? `/cliente/mis-pedidos/${params.pedidoId}/chat`
+                : `/admin/pedidos/${params.pedidoId}/chat`
+        );
     }
 
     return NextResponse.json(nuevo);

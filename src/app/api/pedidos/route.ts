@@ -5,6 +5,7 @@ import { MenuItem } from "@/models/MenuItem";
 import { User } from "@/models/User";
 import jwt from "jsonwebtoken";
 import { sendPushToSubscriptions } from "@/lib/push-server";
+import { enviarNotificacionFCM } from "@/lib/firebase-admin";
 
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET!;
 
@@ -104,6 +105,16 @@ export async function POST(req: NextRequest) {
             });
         }
 
+        // 🔥 Notificación FCM al admin
+        if (admin?.tokenFCM) {
+            await enviarNotificacionFCM(
+                admin.tokenFCM,
+                "¡Nuevo pedido recibido!",
+                `Nuevo pedido de ${user.nombre ?? "un cliente"}. Revisalo en la barra 👇`,
+                "/admin/pedidos"
+            );
+        }
+
         return NextResponse.json({ ok: true, pedido }, { status: 201 });
     } catch (error) {
         console.error("❌ Error en POST /api/pedidos:", error);
@@ -187,6 +198,16 @@ export async function PUT(req: NextRequest) {
             });
         }
 
+        // 🔥 Notificación FCM al cliente
+        if (user?.tokenFCM) {
+            await enviarNotificacionFCM(
+                user.tokenFCM,
+                msg.title,
+                msg.body,
+                "/cliente/mis-pedidos"
+            );
+        }
+
         return NextResponse.json({ ok: true, pedido });
     } catch (err: any) {
         console.error("Error en PUT /api/pedidos:", err.message);
@@ -232,6 +253,16 @@ export async function DELETE(req: NextRequest) {
                 badge: "/icon-badge-96x96.png",
                 image: "/morganwhite.png",
             });
+        }
+
+        // 🔥 Notificación FCM al cliente
+        if (user?.tokenFCM) {
+            await enviarNotificacionFCM(
+                user.tokenFCM,
+                "Pedido rechazado ❌",
+                "Tu pedido fue rechazado. Si creés que es un error, consultá en el bar.",
+                "/cliente/mis-pedidos"
+            );
         }
 
         return NextResponse.json({ ok: true, message: "Pedido eliminado correctamente" });

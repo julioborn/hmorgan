@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1069658782814",
+    "project_id": "hmorganbar",
+    "storage_bucket": "hmorganbar.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1069658782814:android:2685040d3829a2e1db88cf",
+        "android_client_info": {
+          "package_name": "com.hmorgan.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDNoHbb1OzXddz1wVJ5BuFTKmixNFoMT-4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
