@@ -86,61 +86,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 🔓 Cerrar sesión
     const logout = async () => {
         try {
-            const uid = (user as any)?.id || (user as any)?._id || "generic";
-
-            // 🔕 Desuscribir notificaciones push
-            try {
-                if ("serviceWorker" in navigator && "PushManager" in window) {
-                    const reg = await navigator.serviceWorker.ready;
-                    const sub = await reg.pushManager.getSubscription();
-
-                    if (sub) {
-                        await fetch("/api/push/unsubscribe", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            credentials: "include",
-                            body: JSON.stringify({ endpoint: sub.endpoint }),
-                        }).catch(() => { });
-
-                        await fetch("/api/push/unsubscribe-any", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            credentials: "include",
-                            body: JSON.stringify({ endpoint: sub.endpoint }),
-                        }).catch(() => { });
-
-                        await sub.unsubscribe().catch(() => { });
-                    }
-
-                    // 🧹 Borrar service workers viejos
-                    const regs = await navigator.serviceWorker.getRegistrations();
-                    for (const r of regs) await r.unregister().catch(() => { });
-                }
-            } catch (err) {
-                console.warn("⚠️ Error al desuscribir push:", err);
-            }
-
-            // 🔸 Logout backend (borra cookie)
-            await fetch("/api/auth/logout", {
+            console.log("🚪 Iniciando logout...");
+            const res = await fetch("/api/auth/logout", {
                 method: "POST",
-                cache: "no-store",
-                credentials: "include", // ✅ necesario en producción
+                credentials: "include",
             });
 
-            // 🔸 Limpieza local
-            localStorage.removeItem(`hm_push_done_${uid}`);
-            localStorage.removeItem("hm_push_done_generic");
+            console.log("🧾 Respuesta del logout:", res.status);
             setUser(null);
-
-            // 🧹 Borrar cookie residual por si el backend no la elimina
-            document.cookie = "session=; Max-Age=0; path=/; Secure; SameSite=Lax;";
-
             console.log("✅ Sesión cerrada correctamente");
-
-            // 🕐 Esperar un poco antes de redirigir para asegurar borrado de cookie
-            setTimeout(() => {
-                window.location.href = "/login";
-            }, 400);
+            window.location.href = "/login";
         } catch (err) {
             console.error("❌ Error durante logout:", err);
         }

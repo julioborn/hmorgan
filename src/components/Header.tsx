@@ -20,8 +20,7 @@ import {
     ScanText,
     ScanQrCode,
     UserRoundPen,
-    Settings,
-    Wrench,               // 👈 nuevo
+    Settings,           // 👈 nuevo
 } from "lucide-react";
 import Image from "next/image";
 import { clearPushData, registerSW, subscribeUser } from "@/lib/push-client";
@@ -139,16 +138,6 @@ export default function Header() {
 
                 {/* Acciones derecha */}
                 <div className="w-1/3 flex justify-end items-center gap-3">
-                    {/* 🔧 Modo Técnico (solo admin) */}
-                    {user?.role === "admin" && (
-                        <Link
-                            href="/debug/reset"
-                            className="p-2 rounded-full bg-yellow-600 hover:bg-yellow-500 text-white transition"
-                            title="Modo técnico"
-                        >
-                            <Wrench size={20} />
-                        </Link>
-                    )}
 
                     {/* 🔔 Notificaciones */}
                     <button
@@ -216,8 +205,8 @@ export default function Header() {
                                                         href={l.href}
                                                         onClick={() => setOpen(false)}
                                                         className={`flex items-center gap-4 px-4 py-4 rounded-xl font-semibold text-lg transition ${active
-                                                                ? "bg-red-600 text-white"
-                                                                : "hover:bg-red-700/20 text-gray-200"
+                                                            ? "bg-red-600 text-white"
+                                                            : "hover:bg-red-700/20 text-gray-200"
                                                             }`}
                                                     >
                                                         {l.icon && <l.icon size={22} />}
@@ -232,8 +221,8 @@ export default function Header() {
                                         <Link
                                             href="/login"
                                             className={`px-3 py-2 rounded-lg text-sm ${pathname === "/login"
-                                                    ? "bg-red-600 text-white"
-                                                    : "text-white hover:bg-red-700/20"
+                                                ? "bg-red-600 text-white"
+                                                : "text-white hover:bg-red-700/20"
                                                 }`}
                                             onClick={() => setOpen(false)}
                                         >
@@ -255,6 +244,7 @@ export default function Header() {
                                 <div className="p-4 border-t border-red-800 bg-neutral-950">
                                     <button
                                         onClick={async () => {
+                                            console.log("🧭 Click en cerrar sesión"); // 👈 agrega esto
                                             await logout();
                                             await clearPushData();
                                             setOpen(false);
