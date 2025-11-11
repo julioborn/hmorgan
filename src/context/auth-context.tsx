@@ -98,14 +98,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         await fetch("/api/push/unsubscribe", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
-                            credentials: "same-origin",
+                            credentials: "include",
                             body: JSON.stringify({ endpoint: sub.endpoint }),
                         }).catch(() => { });
 
                         await fetch("/api/push/unsubscribe-any", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
-                            credentials: "same-origin",
+                            credentials: "include",
                             body: JSON.stringify({ endpoint: sub.endpoint }),
                         }).catch(() => { });
 
@@ -121,12 +121,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
 
             // 🔸 Logout backend (borra cookie)
-            await fetch("/api/auth/logout", { method: "POST", cache: "no-store" });
+            await fetch("/api/auth/logout", {
+                method: "POST",
+                cache: "no-store",
+                credentials: "include", // ✅ necesario en producción
+            });
 
             // 🔸 Limpieza local
             localStorage.removeItem(`hm_push_done_${uid}`);
             localStorage.removeItem("hm_push_done_generic");
             setUser(null);
+
+            // 🧹 Borrar cookie residual por si el backend no la elimina
+            document.cookie = "session=; Max-Age=0; path=/; Secure; SameSite=Lax;";
 
             console.log("✅ Sesión cerrada correctamente");
 
