@@ -59,6 +59,8 @@ export async function POST(req: NextRequest, { params }: { params: { pedidoId: s
 
     // 🔥 Notificación FCM si el destinatario tiene tokenFCM
     if (destinatario?.tokenFCM) {
+        console.log("📩 Enviando notificación FCM a token:", destinatario.tokenFCM); // 👈 AGREGA ESTO
+
         await enviarNotificacionFCM(
             destinatario.tokenFCM,
             remitente === "admin" ? "Nuevo mensaje del bar 🍻" : "Nuevo mensaje del cliente 💬",

@@ -44,17 +44,18 @@ export async function enviarNotificacionFCM(
             notification: {
                 title,
                 body,
-                // 👇 solo los campos reconocidos por el tipo `Notification`
             },
             data: {
                 url: url || "/",
-                // 👇 mandamos la imagen aquí para usarla en webpush/android
                 imageUrl: "https://hmorgan.vercel.app/morganwhite.png",
                 icon: "https://hmorgan.vercel.app/morganwhite.png",
             },
             android: {
                 notification: {
-                    color: "#B91C1C",
+                    icon: "morganwhite", // 👈 este es el ícono local en /res/mipmap/
+                    color: "#B91C1C", // rojo institucional
+                    channelId: "default", // para Android 8+
+                    sound: "default",
                     imageUrl: "https://hmorgan.vercel.app/morganwhite.png",
                 },
             },

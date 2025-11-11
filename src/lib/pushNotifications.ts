@@ -12,7 +12,7 @@ export async function initPush() {
             await PushNotifications.requestPermissions();
         }
         if (permStatus.receive !== "granted") {
-            alert("🚫 Permisos no concedidos");
+            //alert("🚫 Permisos no concedidos");
             return;
         }
 
@@ -21,8 +21,8 @@ export async function initPush() {
         const fcmToken = await FirebaseMessaging.getToken();
 
         if (fcmToken?.token) {
-            console.log("🔥 Token FCM obtenido:", fcmToken.token);
-            alert(`🔥 Token FCM: ${fcmToken.token}`);
+            //console.log("🔥 Token FCM obtenido:", fcmToken.token);
+            //alert(`🔥 Token FCM: ${fcmToken.token}`);
 
             // Detectar si estás en Vercel o en localhost
             const isLocal = location.hostname === "localhost" || location.hostname.startsWith("192.168.");
