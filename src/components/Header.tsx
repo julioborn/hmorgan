@@ -33,8 +33,10 @@ export default function Header() {
 
     useEffect(() => {
         document.body.style.overflow = open ? "hidden" : "";
+        document.body.style.overflowX = open ? "hidden" : "auto"; // 👈 agrega esto
         return () => {
             document.body.style.overflow = "";
+            document.body.style.overflowX = "";
         };
     }, [open]);
 
@@ -114,7 +116,7 @@ export default function Header() {
                 backgroundColor: "#000", // 👈 fuerza fondo negro también en el área del notch
             }}
         >
-            <div className="container mx-auto px-4 min-h-[72px] flex items-center justify-between">
+            <div className="w-full px-6 lg:px-12 min-h-[72px] flex items-center justify-between">
                 {/* Hamburguesa */}
                 <div className="w-1/3 flex">
                     <button
