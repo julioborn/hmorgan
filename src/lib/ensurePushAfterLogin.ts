@@ -41,19 +41,6 @@ export async function ensurePushAfterLogin(userId?: string) {
         return
     }
 
-    // Preguntar al usuario
-    const result = await swalBase.fire({
-        title: "🔔 Activar notificaciones",
-        text: "¿Querés recibir avisos de pedidos y novedades?",
-        icon: "question",
-        showCancelButton: true,
-        confirmButtonText: "Activar",
-        cancelButtonText: "Ahora no",
-    })
-
-    if (!result.isConfirmed) return
-    swalBase.close()
-
     // Pedir permiso de notificación
     let perm: NotificationPermission = Notification.permission
     if (perm === "default") {

@@ -25,7 +25,8 @@ export default function RegisterPage() {
     if (!f.nombre || f.nombre.trim().length < 2) e.nombre = "Nombre demasiado corto";
     if (!f.apellido || f.apellido.trim().length < 2) e.apellido = "Apellido demasiado corto";
     if (!f.dni) e.dni = "Ingresá DNI";
-    else if (f.dni.length < 7 || f.dni.length > 9) e.dni = "DNI inválido";
+    else if (onlyDigits(f.dni).length < 7 || onlyDigits(f.dni).length > 9)
+      e.dni = "DNI inválido";
     if (!f.telefono) e.telefono = "Ingresá teléfono";
     else if (f.telefono.length < 6 || f.telefono.length > 15) e.telefono = "Teléfono inválido";
     return e;
@@ -44,7 +45,7 @@ export default function RegisterPage() {
 
     const res = await fetch("/api/auth/register", {
       method: "POST",
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, dni: onlyDigits(form.dni) }),
       headers: { "Content-Type": "application/json" },
     });
 
@@ -64,7 +65,7 @@ export default function RegisterPage() {
       const loginRes = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dni: form.dni, password: data.provisionalPassword }),
+        body: JSON.stringify({ dni: onlyDigits(form.dni), password: data.provisionalPassword }),
       });
 
       if (!loginRes.ok) {
@@ -116,33 +117,42 @@ export default function RegisterPage() {
           {(["nombre", "apellido", "dni", "telefono"] as (keyof RegisterForm)[]).map((field) => (
             <div key={field}>
               <input
-                type={field === "dni" || field === "telefono" ? "tel" : "text"}
+                type="text"
                 inputMode={field === "dni" || field === "telefono" ? "numeric" : "text"}
-                pattern={field === "dni" || field === "telefono" ? "[0-9]*" : undefined}
                 placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
+                autoComplete={field === "dni" ? "username" : undefined}
+                enterKeyHint="next"
                 className={`w-full h-12 px-3 rounded-xl border text-gray-800 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 transition ${touched[field] && currentErrors[field]
-                  ? "border-red-400 focus:ring-red-400"
-                  : "border-gray-300"
+                    ? "border-red-400 focus:ring-red-400"
+                    : "border-gray-300"
                   }`}
                 value={form[field]}
                 onChange={(e) => {
                   let value = e.target.value;
+
                   if (field === "dni") {
-                    value = onlyDigits(value).slice(0, 8);
-                    value = formatDni(value);
+                    // 🔹 Solo permitir números reales (sin puntos)
+                    const digits = onlyDigits(value).slice(0, 8);
+                    // 🔹 Mostrar con puntos visualmente
+                    value = formatDni(digits);
                   } else if (field === "telefono") {
+                    // 🔹 Permitir solo números, sin formateo visual
                     value = onlyDigits(value).slice(0, 15);
                   }
+
                   setField(field, value);
                 }}
                 onBlur={() => setTouched((t) => ({ ...t, [field]: true }))}
+                // 🚫 Evita validaciones HTML5 nativas
+                pattern={undefined}
+                onInvalid={(e) => e.preventDefault()}
               />
+
               {touched[field] && currentErrors[field] && (
                 <p className="mt-1 text-xs text-red-600">{currentErrors[field]}</p>
               )}
             </div>
           ))}
-
           <button
             disabled={loading || hasErrors}
             className="w-full h-12 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold shadow-sm transition disabled:opacity-60"

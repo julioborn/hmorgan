@@ -24,7 +24,8 @@ export default function LoginPage() {
   const validate = (vals: { dni: string; password: string }): Errors => {
     const e: Errors = {};
     if (!vals.dni) e.dni = "Ingresá tu DNI";
-    else if (vals.dni.length < 7 || vals.dni.length > 9) e.dni = "DNI inválido";
+    else if (onlyDigits(vals.dni).length < 7 || onlyDigits(vals.dni).length > 9)
+      e.dni = "DNI inválido";
     if (!vals.password) e.password = "Ingresá tu contraseña";
     return e;
   };
@@ -42,7 +43,7 @@ export default function LoginPage() {
 
     const res = await fetch("/api/auth/login", {
       method: "POST",
-      body: JSON.stringify({ dni, password }),
+      body: JSON.stringify({ dni: onlyDigits(dni), password }),
       headers: { "Content-Type": "application/json" },
     });
 
@@ -69,7 +70,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-start justify-center p-4">
+    <div className="min-h-screen flex items-start justify-center p-4 mt-6">
       <form
         onSubmit={onSubmit}
         className="w-full max-w-md rounded-2xl border border-gray-200 bg-white shadow-md p-6"
@@ -87,20 +88,25 @@ export default function LoginPage() {
         <div className="space-y-4">
           <div>
             <input
+              type="text" // 👈 mantiene formato libre para mostrar los puntos
+              inputMode="numeric" // 👈 muestra teclado numérico en móviles
               placeholder="DNI"
+              autoComplete="username"
+              enterKeyHint="next"
               className={`w-full h-12 px-3 rounded-xl border text-gray-800 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 transition ${touched.dni && currentErrors.dni
-                ? "border-red-400 focus:ring-red-400"
-                : "border-gray-300"
+                  ? "border-red-400 focus:ring-red-400"
+                  : "border-gray-300"
                 }`}
               value={dni}
               onChange={(e) => {
+                // 🔹 Solo permitir números reales (sin puntos)
                 const digits = onlyDigits(e.target.value).slice(0, 8);
+                // 🔹 Mostrar con puntos visualmente
                 setDni(formatDni(digits));
               }}
               onBlur={() => setTouched((t) => ({ ...t, dni: true }))}
-              inputMode="numeric"
-              pattern="[0-9]*"
-              autoComplete="username"
+              pattern={undefined} // 👈 elimina validación HTML5
+              onInvalid={(e) => e.preventDefault()} // 👈 evita mensaje “formato no válido”
             />
             {touched.dni && currentErrors.dni && (
               <p className="mt-1 text-xs text-red-600">{currentErrors.dni}</p>
