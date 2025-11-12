@@ -21,6 +21,12 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
   @apply min-h-screen antialiased;
+
+  /* ✅ Safe areas */
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
 }
 
 /* Tarjetas */
@@ -75,26 +81,4 @@ select {
   /* rojo-600 de Tailwind (#dc2626) */
   opacity: 1;
   transform: scale(1.15);
-}
-
-/* ==============================
-  SAFE AREA FIX (para Android/iOS)
-   ============================== */
-
-.app-body {
-  min-height: 100svh;
-  /* Usa altura real del viewport dinámico */
-  background-color: white;
-  color: black;
-  display: flex;
-  flex-direction: column;
-
-  /* Márgenes seguros automáticos */
-  padding-top: env(safe-area-inset-top, 16px);
-  padding-bottom: env(safe-area-inset-bottom, 16px);
-  padding-left: env(safe-area-inset-left, 0);
-  padding-right: env(safe-area-inset-right, 0);
-
-  /* Prevenir que algo quede detrás del notch o barra inferior */
-  box-sizing: border-box;
 }

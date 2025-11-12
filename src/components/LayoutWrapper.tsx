@@ -15,7 +15,6 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
         initPush();
     }, []);
 
-
     // 🖤 Fondo oscuro solo en los chats específicos
     const esChat =
         pathname.match(/^\/admin\/pedidos\/[^/]+\/chat$/) ||
@@ -34,9 +33,13 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
                     {/* Fondo condicional */}
                     <main
                         className={`min-h-screen ${esChat
-                            ? "bg-black text-white p-0"
-                            : "bg-white text-black px-4 py-6 container mx-auto"
+                                ? "bg-black text-white p-0"
+                                : "bg-white text-black px-4 pb-6 container mx-auto"
                             }`}
+                        style={{
+                            // ✅ Deja espacio para el header y el área segura superior
+                            paddingTop: "calc(env(safe-area-inset-top, 0px) + 80px)",
+                        }}
                     >
                         {children}
                     </main>

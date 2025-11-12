@@ -108,9 +108,10 @@ export default function Header() {
 
     return (
         <header
-            className="sticky top-0 z-30 bg-black border-b border-red-700 shadow-lg"
+            className="fixed top-0 left-0 right-0 z-30 border-b border-red-700 shadow-lg"
             style={{
-                paddingTop: "env(safe-area-inset-top)",
+                paddingTop: "env(safe-area-inset-top, 0px)",
+                backgroundColor: "#000", // 👈 fuerza fondo negro también en el área del notch
             }}
         >
             <div className="container mx-auto px-4 min-h-[72px] flex items-center justify-between">
