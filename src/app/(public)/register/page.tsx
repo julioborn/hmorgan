@@ -90,8 +90,14 @@ export default function RegisterPage() {
     else window.location.href = "/cliente/qr";
   }
 
+  // 👉 Formatea el DNI como "12.345.678"
+  function formatDni(value: string) {
+    const clean = value.replace(/\D/g, "");
+    return clean.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  }
+
   return (
-    <div className="min-h-screen flex items-start justify-centergray-50 to-gray-100 p-4">
+    <div className="min-h-screen flex items-start mt-6 justify-center bg-gradient-to-b from-gray-50 to-gray-100 px-4 py-[env(safe-area-inset-bottom)]">
       <form
         onSubmit={onSubmit}
         className="w-full max-w-md rounded-2xl border border-gray-200 bg-white shadow-md p-6"
@@ -110,20 +116,25 @@ export default function RegisterPage() {
           {(["nombre", "apellido", "dni", "telefono"] as (keyof RegisterForm)[]).map((field) => (
             <div key={field}>
               <input
+                type={field === "dni" || field === "telefono" ? "tel" : "text"}
+                inputMode={field === "dni" || field === "telefono" ? "numeric" : "text"}
+                pattern={field === "dni" || field === "telefono" ? "[0-9]*" : undefined}
                 placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
                 className={`w-full h-12 px-3 rounded-xl border text-gray-800 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 transition ${touched[field] && currentErrors[field]
-                    ? "border-red-400 focus:ring-red-400"
-                    : "border-gray-300"
+                  ? "border-red-400 focus:ring-red-400"
+                  : "border-gray-300"
                   }`}
                 value={form[field]}
-                onChange={(e) =>
-                  setField(
-                    field,
-                    field === "dni" || field === "telefono"
-                      ? onlyDigits(e.target.value)
-                      : e.target.value
-                  )
-                }
+                onChange={(e) => {
+                  let value = e.target.value;
+                  if (field === "dni") {
+                    value = onlyDigits(value).slice(0, 8);
+                    value = formatDni(value);
+                  } else if (field === "telefono") {
+                    value = onlyDigits(value).slice(0, 15);
+                  }
+                  setField(field, value);
+                }}
                 onBlur={() => setTouched((t) => ({ ...t, [field]: true }))}
               />
               {touched[field] && currentErrors[field] && (

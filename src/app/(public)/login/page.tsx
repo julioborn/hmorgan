@@ -14,6 +14,13 @@ export default function LoginPage() {
   const { refresh } = useAuth();
 
   const onlyDigits = (s: string) => s.replace(/\D/g, "");
+
+  // 👉 Formatea el DNI como "12.345.678"
+  function formatDni(value: string) {
+    const clean = value.replace(/\D/g, "");
+    return clean.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  }
+
   const validate = (vals: { dni: string; password: string }): Errors => {
     const e: Errors = {};
     if (!vals.dni) e.dni = "Ingresá tu DNI";
@@ -86,7 +93,10 @@ export default function LoginPage() {
                 : "border-gray-300"
                 }`}
               value={dni}
-              onChange={(e) => setDni(onlyDigits(e.target.value))}
+              onChange={(e) => {
+                const digits = onlyDigits(e.target.value).slice(0, 8);
+                setDni(formatDni(digits));
+              }}
               onBlur={() => setTouched((t) => ({ ...t, dni: true }))}
               inputMode="numeric"
               pattern="[0-9]*"

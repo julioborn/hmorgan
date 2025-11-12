@@ -37,7 +37,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="manifest" href="/manifest-v2.webmanifest" />
       </head>
 
-      <body className="min-h-svh">
+      <body
+        className="min-h-svh bg-white flex flex-col"
+        style={{
+          paddingTop: "env(safe-area-inset-top)",
+          paddingBottom: "env(safe-area-inset-bottom)",
+          paddingLeft: "env(safe-area-inset-left)",
+          paddingRight: "env(safe-area-inset-right)",
+          backgroundColor: "#ffffff",
+        }}
+      >
         <LayoutWrapper>{children}</LayoutWrapper>
       </body>
     </html>

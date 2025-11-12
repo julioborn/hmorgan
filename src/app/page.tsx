@@ -56,14 +56,14 @@ function Landing() {
       {/* Hero principal */}
       <section className="text-center space-y-3">
         <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight">
-          Bienvenido a{" "}
-          <span className="bg-gradient-to-r from-red-600 to-red-400 bg-clip-text text-transparent drop-shadow-lg">
+          Bienvenido
+          {/* <span className="bg-gradient-to-r from-red-600 to-red-400 bg-clip-text text-transparent drop-shadow-lg">
             H Morgan Bar
-          </span>
+          </span> */}
 
         </h1>
         <p className="text-red-600 font-semibold text-base sm:text-lg">
-          ¡Tu experiencia en el bar ahora tiene canjes!
+          ¡Mejorá tu experiencia en el bar!
         </p>
 
       </section>

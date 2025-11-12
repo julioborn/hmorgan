@@ -107,8 +107,13 @@ export default function Header() {
     }
 
     return (
-        <header className="sticky top-0 z-30 bg-black border-b border-red-700 shadow-lg">
-            <div className="container mx-auto px-4 h-20 flex items-center justify-between">
+        <header
+            className="sticky top-0 z-30 bg-black border-b border-red-700 shadow-lg"
+            style={{
+                paddingTop: "env(safe-area-inset-top)",
+            }}
+        >
+            <div className="container mx-auto px-4 min-h-[72px] flex items-center justify-between">
                 {/* Hamburguesa */}
                 <div className="w-1/3 flex">
                     <button
