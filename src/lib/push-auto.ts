@@ -50,7 +50,7 @@ export async function ensurePushAfterLogin(userId?: string) {
         }
     }
     if (perm !== "granted") {
-        swalBase.fire("⚠️", "No activaste las notificaciones.", "warning");
+        //swalBase.fire("⚠️", "No activaste las notificaciones.", "warning");
         return;
     }
 

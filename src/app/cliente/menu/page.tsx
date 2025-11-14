@@ -81,7 +81,7 @@ export default function ClienteMenuPage() {
     );
 
     return (
-        <div className="p-5 bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen">
+        <div className="p-5 bg-white min-h-screen">
             {/* Título principal */}
             <h1 className="text-4xl font-extrabold mb-10 text-center text-black">
                 Menú

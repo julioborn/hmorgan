@@ -61,7 +61,7 @@ export default function MisPedidosPage() {
 
     return (
         <div className="p-6 min-h-screen bg-white">
-            <h1 className="text-3xl font-bold mb-6 text-center text-black">Mis Pedidos</h1>
+            <h1 className="text-4xl font-extrabold mb-10 text-center text-black">Mis Pedidos</h1>
 
             {/* 🔘 Selector de vista */}
             <div className="flex justify-center gap-4 mb-8">

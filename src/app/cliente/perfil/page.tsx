@@ -155,9 +155,9 @@ export default function PerfilPage() {
     }
 
     return (
-        <div className="max-w-lg mx-auto py-10 px-6 bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen">
+        <div className="max-w-lg mx-auto py-10 px-6 bg-white min-h-screen">
             <div className="rounded-2xl border border-gray-200 bg-white shadow-md p-6">
-                <h1 className="text-3xl font-extrabold text-center text-black mb-6">
+                <h1 className="text-4xl font-extrabold mb-6 text-center text-black">
                     Mi Perfil
                 </h1>
 

@@ -231,8 +231,8 @@ export default function PedidosClientePage() {
     }, 0);
 
     return (
-        <div className="p-5 pb-28 bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen">
-            <h1 className="text-3xl font-bold mb-8 text-center text-black">Realizar Pedido</h1>
+        <div className="p-5 pb-28 bg-white min-h-screen">
+            <h1 className="text-4xl font-extrabold mb-10 text-center text-black">Realizar Pedido</h1>
 
             {/* Categorías */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-8">
@@ -463,7 +463,7 @@ export default function PedidosClientePage() {
                         exit={{ opacity: 0, y: 80 }}
                         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
                         className="fixed bottom-16 right-5 p-4 rounded-full bg-black text-white 
-                       shadow-lg hover:bg-gray-800 transition"
+                        shadow-lg hover:bg-gray-800 transition"
                     >
                         <ArrowUp size={20} />
                     </motion.button>
@@ -481,8 +481,9 @@ export default function PedidosClientePage() {
                         onClick={() => setDrawerOpen(false)}
                     >
                         <motion.div
-                            className="relative bg-white rounded-t-3xl shadow-[0_-5px_40px_rgba(0,0,0,0.15)] 
-                   max-h-[80vh] overflow-y-auto border-t border-gray-100 p-6"
+                            className="relative bg-white rounded-t-3xl shadow-[0_-5px_40px_rgba(0,0,0,0.15)]
+                            max-h-[80vh] overflow-y-auto border-t border-gray-100 p-6
+                            pb-[calc(env(safe-area-inset-bottom)+1.5rem)]" // ✅ margen dinámico inferior
                             initial={{ y: "100%" }}
                             animate={{ y: 0 }}
                             exit={{ y: "100%" }}

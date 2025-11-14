@@ -62,8 +62,8 @@ export default function HistorialPage() {
         });
 
     return (
-        <div className="p-6 space-y-6 bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen">
-            <h1 className="text-3xl font-extrabold text-center text-black">Historial</h1>
+        <div className="p-6 space-y-6 bg-white min-h-screen">
+            <h1 className="text-4xl font-extrabold mb-10 text-center text-black">Historial</h1>
 
             {/* Tabs */}
             <div className="flex justify-center gap-4">

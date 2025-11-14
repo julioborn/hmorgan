@@ -160,7 +160,7 @@ export default function AdminPedidosPage() {
 
     return (
         <div className="p-6 min-h-screen text-white">
-            <h1 className="text-3xl text-black font-bold text-center mb-6">Pedidos</h1>
+            <h1 className="text-4xl font-extrabold mb-6 text-center text-black">Pedidos</h1>
 
             {/* 🔘 Selector de vista */}
             <div className="flex justify-center flex-wrap gap-1 mb-8">

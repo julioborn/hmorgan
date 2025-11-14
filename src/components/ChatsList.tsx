@@ -63,7 +63,7 @@ export default function ChatsList({ remitente }: { remitente: "admin" | "cliente
 
     return (
         <div className="flex flex-col w-full max-w-2xl mx-auto py-4">
-            <h1 className="text-2xl font-bold text-center mb-4 text-gray-800">Chats Activos</h1>
+            <h1 className="text-4xl font-extrabold mb-10 text-center text-black">Chats Activos</h1>
 
             <div className="divide-y divide-gray-200 rounded-2xl bg-white shadow-md overflow-hidden">
                 {pedidos.map((p) => (

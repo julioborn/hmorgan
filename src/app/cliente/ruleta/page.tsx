@@ -90,8 +90,8 @@ export default function RuletaPage() {
     };
 
     return (
-        <div className="p-6 text-center space-y-6 bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen">
-            <h1 className="text-3xl font-extrabold text-black">
+        <div className="p-6 text-center space-y-6 bg-white min-h-screen">
+            <h1 className="text-4xl font-extrabold mb-10 text-center text-black">
                 Ruleta de <span className="text-red-600">Tragos</span>
             </h1>
 

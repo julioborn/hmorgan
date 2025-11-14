@@ -356,7 +356,7 @@ function AdminHome() {
       style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
     >
       <header>
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-center">
+        <h1 className="text-4xl font-extrabold mb-10 text-center text-black">
           Administración
         </h1>
       </header>

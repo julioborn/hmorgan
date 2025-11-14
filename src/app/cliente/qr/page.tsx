@@ -43,7 +43,7 @@ export default function MiQRPage() {
 
             const perm = await Notification.requestPermission();
             if (perm !== "granted") {
-                Swal.fire("⚠️", "No activaste las notificaciones.", "warning");
+                //Swal.fire("⚠️", "No activaste las notificaciones.", "warning");
                 return;
             }
 
@@ -75,12 +75,12 @@ export default function MiQRPage() {
     }
 
     return (
-        <div className="max-w-xl mx-auto p-6 space-y-4 bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen">
+        <div className="max-w-xl mx-auto p-6 space-y-4 bg-white min-h-screen">
             {/* Card principal */}
             <div className="rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-md">
                 {/* Encabezado */}
                 <div className="p-5 border-b border-gray-200">
-                    <h1 className="text-2xl font-extrabold text-black text-center">Mi QR</h1>
+                    <h1 className="text-4xl font-extrabold text-center text-black">Mi QR</h1>
                 </div>
 
                 {/* QR generado */}
@@ -111,16 +111,6 @@ export default function MiQRPage() {
                         </a>
                     </div>
                 </div>
-            </div>
-
-            {/* Activar notificaciones */}
-            <div className="text-center mt-6">
-                <button
-                    onClick={handleEnableNotifications}
-                    className="px-5 py-3 rounded-xl bg-black text-white font-semibold hover:bg-gray-900 transition shadow"
-                >
-                    Activar notificaciones 🔔
-                </button>
             </div>
         </div>
     );

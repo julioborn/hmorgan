@@ -113,11 +113,11 @@ export default function AdminClientsPage() {
     }
 
     return (
-        <div className={`min-h-screen bg-gradient-to-b from-gray-50 to-gray-100`}>
+        <div className={`min-h-screen bg-white`}>
             <div className={`${container} py-8 space-y-6`}>
                 {/* Header */}
                 <header className="space-y-2 text-center md:text-left">
-                    <h1 className="text-3xl sm:text-4xl font-extrabold text-black">Clientes</h1>
+                    <h1 className="text-4xl font-extrabold mb-10 text-center text-black">Clientes</h1>
                 </header>
 
                 {/* Barra de acciones */}

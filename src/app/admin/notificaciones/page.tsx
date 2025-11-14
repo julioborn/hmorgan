@@ -48,9 +48,9 @@ export default function EnviarNotificacionPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-200 p-6">
-            <div className="max-w-lg w-full mx-auto p-8 bg-white rounded-2xl shadow-xl border border-red-100">
-                <h1 className="text-3xl font-extrabold text-center text-black mb-6">
+        <div className="min-h-screen flex items-center justify-center bg-white p-6">
+            <div className="max-w-lg w-full mx-auto p-8 bg-white rounded-2xl shadow-xl ">
+                <h1 className="text-4xl font-extrabold mb-10 text-center text-black">
                     Enviar notificación
                 </h1>
 

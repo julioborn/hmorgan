@@ -53,7 +53,7 @@ export async function ensurePushAfterLogin(userId?: string) {
     }
 
     if (perm !== "granted") {
-        await swalBase.fire("⚠️", "No activaste las notificaciones.", "warning")
+        //await swalBase.fire("⚠️", "No activaste las notificaciones.", "warning")
         return
     }
 
