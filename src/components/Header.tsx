@@ -20,7 +20,7 @@ import {
     ScanText,
     ScanQrCode,
     UserRoundPen,
-    Settings,           // 👈 nuevo
+    Settings,
 } from "lucide-react";
 import Image from "next/image";
 import { clearPushData, registerSW, subscribeUser } from "@/lib/push-client";
@@ -33,7 +33,7 @@ export default function Header() {
 
     useEffect(() => {
         document.body.style.overflow = open ? "hidden" : "";
-        document.body.style.overflowX = open ? "hidden" : "auto"; // 👈 agrega esto
+        document.body.style.overflowX = open ? "hidden" : "auto";
         return () => {
             document.body.style.overflow = "";
             document.body.style.overflowX = "";
@@ -83,7 +83,7 @@ export default function Header() {
             }
 
             if (perm !== "granted") {
-                await swalBase.fire("🚫", "Debes permitir las notificaciones para activarlas.", "info");
+                await swalBase.fire("🚫", "Debes permitir las notificaciones.", "info");
                 return;
             }
 
@@ -100,23 +100,25 @@ export default function Header() {
                 return;
             }
 
-            await swalBase.fire("✅ Listo", "Las notificaciones fueron activadas correctamente.", "success");
+            await swalBase.fire("✅ Listo", "Notificaciones activadas.", "success");
             window.location.href = "/";
         } catch (err: any) {
-            console.error("❌ Error general en handleNotificationsClick:", err);
-            await swalBase.fire("⚠️", "Ocurrió un error al activar las notificaciones.", "error");
+            console.error("❌ Error:", err);
+            await swalBase.fire("⚠️", "Ocurrió un error.", "error");
         }
     }
 
     return (
         <header
-            className="fixed top-0 left-0 right-0 z-30 border-b border-red-700 shadow-lg"
+            className="fixed left-0 right-0 z-30 border-b border-red-700 shadow-lg"
             style={{
-                paddingTop: "env(safe-area-inset-top, 0px)",
-                backgroundColor: "#000", // 👈 fuerza fondo negro también en el área del notch
+                top: "0",
+                paddingTop: "env(safe-area-inset-top)",
+                backgroundColor: "#000",
             }}
         >
-            <div className="w-full px-6 lg:px-12 min-h-[72px] flex items-center justify-between">
+            {/* ⬇️ Quitado min-h-[72px], agregado padding normal */}
+            <div className="w-full px-6 lg:px-12 py-3 flex items-center justify-between">
                 {/* Hamburguesa */}
                 <div className="w-1/3 flex">
                     <button
@@ -144,50 +146,47 @@ export default function Header() {
                     </Link>
                 </div>
 
-                {/* Acciones derecha */}
+                {/* Botones derecha */}
                 <div className="w-1/3 flex justify-end items-center gap-3">
-
-                    {/* 🔔 Notificaciones */}
                     <button
                         onClick={handleNotificationsClick}
                         className="p-2 rounded-full bg-red-600 hover:bg-red-500 text-white transition"
-                        title="Activar notificaciones"
                     >
                         <Bell size={20} />
                     </button>
 
-                    {/* 🔄 Recargar */}
                     <button
                         onClick={() => window.location.reload()}
                         className="p-2 rounded-full bg-red-600 hover:bg-red-500 text-white transition"
-                        title="Recargar página"
                     >
                         <RefreshCw size={20} />
                     </button>
                 </div>
             </div>
 
-            {/* Drawer lateral */}
+            {/* Drawer */}
             <AnimatePresence>
                 {open && (
                     <>
-                        {/* Overlay */}
+                        {/* Overlay seguro en iOS */}
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 0.6 }}
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.3 }}
-                            className="fixed inset-0 bg-black z-40"
+                            className="fixed left-0 right-0 bottom-0 bg-black z-40"
+                            style={{ top: "env(safe-area-inset-top)" }}
                             onClick={() => setOpen(false)}
                         />
 
-                        {/* Drawer */}
+                        {/* Drawer lateral */}
                         <motion.div
                             initial={{ x: "-100%" }}
                             animate={{ x: 0 }}
                             exit={{ x: "-100%" }}
                             transition={{ duration: 0.3 }}
-                            className="fixed top-0 left-0 h-screen w-72 bg-neutral-900/95 border-r border-red-700 z-50 shadow-xl flex flex-col backdrop-blur-md"
+                            className="fixed left-0 h-screen w-72 bg-neutral-900/95 border-r border-red-700 z-50 shadow-xl flex flex-col backdrop-blur-md"
+                            style={{ top: "env(safe-area-inset-top)" }}
                         >
                             <div className="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar">
                                 <button
@@ -213,8 +212,8 @@ export default function Header() {
                                                         href={l.href}
                                                         onClick={() => setOpen(false)}
                                                         className={`flex items-center gap-4 px-4 py-4 rounded-xl font-semibold text-lg transition ${active
-                                                            ? "bg-red-600 text-white"
-                                                            : "hover:bg-red-700/20 text-gray-200"
+                                                                ? "bg-red-600 text-white"
+                                                                : "hover:bg-red-700/20 text-gray-200"
                                                             }`}
                                                     >
                                                         {l.icon && <l.icon size={22} />}
@@ -224,30 +223,9 @@ export default function Header() {
                                             })}
                                         </nav>
                                     </>
-                                ) : (
-                                    <>
-                                        <Link
-                                            href="/login"
-                                            className={`px-3 py-2 rounded-lg text-sm ${pathname === "/login"
-                                                ? "bg-red-600 text-white"
-                                                : "text-white hover:bg-red-700/20"
-                                                }`}
-                                            onClick={() => setOpen(false)}
-                                        >
-                                            Ingresar
-                                        </Link>
-                                        <Link
-                                            href="/register"
-                                            className="px-3 py-2 rounded-lg text-sm bg-red-600 hover:bg-red-500 text-white"
-                                            onClick={() => setOpen(false)}
-                                        >
-                                            Crear cuenta
-                                        </Link>
-                                    </>
-                                )}
+                                ) : null}
                             </div>
 
-                            {/* Footer fijo: cerrar sesión */}
                             {user && !loading && (
                                 <div className="p-4 border-t border-red-800 bg-neutral-950">
                                     <button
@@ -269,14 +247,14 @@ export default function Header() {
             </AnimatePresence>
 
             <style jsx global>{`
-        .no-scrollbar {
-          scrollbar-width: none;
-          -ms-overflow-style: none;
-        }
-        .no-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
+                .no-scrollbar {
+                    scrollbar-width: none;
+                    -ms-overflow-style: none;
+                }
+                .no-scrollbar::-webkit-scrollbar {
+                    display: none;
+                }
+            `}</style>
         </header>
     );
 }
