@@ -186,7 +186,10 @@ export default function Header() {
                             exit={{ x: "-100%" }}
                             transition={{ duration: 0.3 }}
                             className="fixed left-0 h-screen w-72 bg-neutral-900/95 border-r border-red-700 z-50 shadow-xl flex flex-col backdrop-blur-md"
-                            style={{ top: "env(safe-area-inset-top)" }}
+                            style={{
+                                top: "env(safe-area-inset-top)",
+                                paddingTop: "env(safe-area-inset-top)"
+                            }}
                         >
                             <div className="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar">
                                 <button
@@ -212,8 +215,8 @@ export default function Header() {
                                                         href={l.href}
                                                         onClick={() => setOpen(false)}
                                                         className={`flex items-center gap-4 px-4 py-4 rounded-xl font-semibold text-lg transition ${active
-                                                                ? "bg-red-600 text-white"
-                                                                : "hover:bg-red-700/20 text-gray-200"
+                                                            ? "bg-red-600 text-white"
+                                                            : "hover:bg-red-700/20 text-gray-200"
                                                             }`}
                                                     >
                                                         {l.icon && <l.icon size={22} />}
