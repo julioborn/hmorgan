@@ -1,11 +1,66 @@
+# === Node / Next.js ===
 node_modules/
 .next/
-.env.local
-.vercel/
 dist/
 coverage/
+out/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Vercel
+.vercel/
+
+# Build outputs
+*.log
+*.cache
+.cache/
+*.tmp
+
+# Capacitor
+capacitor.config.json
+
+# === ANDROID ===
 android/
+**/android/app/build/
+**/android/app/release/
+**/android/.gradle/
+**/android/local.properties
+**/android/captures/
+**/android/app/debug/
+**/android/app/build/
+**/android/.idea/
+
+# === iOS ===
+ios/
+Pods/
+**/ios/App/build/
+**/ios/App/Pods/
+**/ios/DerivedData/
+**/ios/build/
+**/*.xcuserdata/
+**/*.xcworkspace/
+**/*.xcodeproj/project.xcworkspace/
+**/*.xcodeproj/xcuserdata/
+
+# Xcode extra
+*.xccheckout
+*.xcscmblueprint
+*.DS_Store
+
+# Mac / Windows extras
+.DS_Store
+Thumbs.db
 
 # Firebase credentials
 hmorganbar-d55417a72378.json
 firebase-service-account.json
+
+# Editor configs
+.vscode/
+.idea/
