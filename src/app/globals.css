@@ -82,3 +82,8 @@ select {
   box-sizing: border-box;
   max-width: 100vw;
 }
+
+/* FIX para iOS – espacio debajo del header */
+.mt-safe {
+  margin-top: calc(env(safe-area-inset-top) + 72px);
+}
