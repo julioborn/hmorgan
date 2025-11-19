@@ -33,11 +33,11 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
 
                     <main
                         className={`min-h-screen ${esChat
-                            ? "bg-black text-white p-0"
-                            : "bg-white text-black px-4 pb-6 container mx-auto"
+                                ? "bg-black text-white p-0"
+                                : "bg-white text-black px-4 pb-6 container mx-auto"
                             }`}
                         style={{
-                            paddingTop: "70px"
+                            paddingTop: "calc(env(safe-area-inset-top) + 100px)"
                         }}
                     >
                         {children}
