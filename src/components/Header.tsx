@@ -114,26 +114,26 @@ export default function Header() {
             {/* BLOQUE QUE CREA ESPACIO REAL PARA LA ISLA DE IPHONE */}
             <div
                 style={{
-                    height: "calc(env(safe-area-inset-top) + 20px)",
+                    height: "env(safe-area-inset-top)"
                 }}
             />
 
             {/* CONTENIDO REAL DEL HEADER */}
             <div className="w-full px-6 lg:px-12 py-3 flex items-center justify-between">
                 {/* Hamburguesa */}
-                <div className="w-1/3 flex">
+                <div className="flex flex-1">
                     <button className="p-2 rounded-md hover:bg-red-700/20 transition">
                         <Menu size={26} className="text-red-600" />
                     </button>
                 </div>
 
                 {/* Logo */}
-                <div className="w-1/3 flex justify-center">
-                    <img src="/morganwhite.png" width={75} height={75} />
+                <div className="flex flex-1 justify-center">
+                    <img src="/morganwhite.png" width={58} height={58} />
                 </div>
 
                 {/* Botones */}
-                <div className="w-1/3 flex justify-end items-center gap-3">
+                <div className="flex flex-1 justify-end items-center gap-3">
                     <button className="p-2 rounded-full bg-red-600 text-white">
                         <Bell size={20} />
                     </button>
