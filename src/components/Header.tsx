@@ -111,7 +111,7 @@ export default function Header() {
     return (
         <header className="fixed left-0 right-0 z-30 bg-black">
 
-            {/* BLOQUE QUE CREA ESPACIO REAL PARA LA ISLA DE IPHONE */}
+            {/* BLOQUE QUE CREA ESPACIO REAL PARA LA ISLA */}
             <div
                 style={{
                     height: "env(safe-area-inset-top)"
