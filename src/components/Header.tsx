@@ -112,15 +112,16 @@ export default function Header() {
         <header
             className="fixed left-0 right-0 z-30 border-b border-red-700 shadow-lg"
             style={{
-                // 👇 Ahora el header completo baja debajo de la barra de estado
                 top: "env(safe-area-inset-top, 0px)",
-                // 👇 Ya NO necesitamos paddingTop aquí
-                paddingTop: 0,
                 backgroundColor: "#000",
+                paddingTop: "env(safe-area-inset-top, 0px)",
+                minHeight: "88px",  // 👈 ESTA ES LA CLAVE
+                display: "flex",
+                alignItems: "center"
             }}
         >
             {/* ⬇️ Quitado min-h-[72px], agregado padding normal */}
-            <div className="w-full px-6 lg:px-12 py-3 flex items-center justify-between">                
+            <div className="w-full px-6 lg:px-12 py-4 flex items-center justify-between min-h-[70px]">
                 {/* Hamburguesa */}
                 <div className="w-1/3 flex">
                     <button

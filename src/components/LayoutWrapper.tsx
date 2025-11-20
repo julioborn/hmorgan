@@ -36,7 +36,9 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
                             ? "bg-black text-white p-0"
                             : "bg-white text-black px-4 pb-6 container mx-auto"
                             }`}
-                        style={{ paddingTop: 0 }}
+                        style={{
+                            paddingTop: "calc(env(safe-area-inset-top) + 88px)"
+                        }}
                     >
                         {children}
                     </main>
