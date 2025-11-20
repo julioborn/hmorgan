@@ -110,14 +110,12 @@ export default function Header() {
 
     return (
         <header
-            className="fixed left-0 right-0 z-30 border-b border-red-700 shadow-lg"
+            className="fixed left-0 right-0 z-50"
             style={{
-                top: "env(safe-area-inset-top, 0px)",
-                backgroundColor: "#000",
-                paddingTop: "env(safe-area-inset-top, 0px)",
-                minHeight: "88px",  // 👈 ESTA ES LA CLAVE
-                display: "flex",
-                alignItems: "center"
+                backgroundColor: "red",
+                height: "250px",          // 👈 ALTURA ABSURDAMENTE ALTA
+                top: "0px",               // 👈 SIN SAFE AREA
+                paddingTop: "0px",
             }}
         >
             {/* ⬇️ Quitado min-h-[72px], agregado padding normal */}
