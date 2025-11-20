@@ -109,46 +109,40 @@ export default function Header() {
     }
 
     return (
-        <header
-            className="fixed left-0 right-0 z-30 border-b border-red-700 shadow-lg"
-            style={{
-                top: 0,
-                backgroundColor: "#000",
-                paddingTop: "env(safe-area-inset-top, 24px)",
-                height: "180px",             // ⬅️ HACE EL HEADER GIGANTE PARA PROBAR
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "flex-end"   // ⬅️ BAJA EL CONTENIDO
-            }}
-        >
-            <div className="w-full px-6 py-6 flex items-center justify-between">
+        <header className="fixed left-0 right-0 z-30 bg-black">
+
+            {/* BLOQUE QUE CREA ESPACIO REAL PARA LA ISLA DE IPHONE */}
+            <div
+                style={{
+                    height: "calc(env(safe-area-inset-top) + 20px)",
+                }}
+            />
+
+            {/* CONTENIDO REAL DEL HEADER */}
+            <div className="w-full px-6 lg:px-12 py-3 flex items-center justify-between">
                 {/* Hamburguesa */}
-                <div>
-                    <button className="p-2">
-                        <Menu size={28} className="text-red-500" />
+                <div className="w-1/3 flex">
+                    <button className="p-2 rounded-md hover:bg-red-700/20 transition">
+                        <Menu size={26} className="text-red-600" />
                     </button>
                 </div>
 
                 {/* Logo */}
-                <div className="flex justify-center flex-1">
-                    <Image
-                        src="/morganwhite.png"
-                        alt="Morgan Bar"
-                        width={90}
-                        height={90}
-                    />
+                <div className="w-1/3 flex justify-center">
+                    <img src="/morganwhite.png" width={75} height={75} />
                 </div>
 
-                {/* Iconos derecha */}
-                <div className="flex items-center gap-4">
-                    <button className="p-2 bg-red-600 rounded-full">
-                        <Bell size={20} className="text-white" />
+                {/* Botones */}
+                <div className="w-1/3 flex justify-end items-center gap-3">
+                    <button className="p-2 rounded-full bg-red-600 text-white">
+                        <Bell size={20} />
                     </button>
-                    <button className="p-2 bg-red-600 rounded-full">
-                        <RefreshCw size={20} className="text-white" />
+                    <button className="p-2 rounded-full bg-red-600 text-white">
+                        <RefreshCw size={20} />
                     </button>
                 </div>
             </div>
         </header>
+
     );
 }
