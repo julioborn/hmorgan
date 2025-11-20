@@ -114,12 +114,13 @@ export default function Header() {
             {/* BLOQUE QUE CREA ESPACIO REAL PARA LA ISLA */}
             <div
                 style={{
-                    height: "env(safe-area-inset-top)"
+                    height: "calc(env(safe-area-inset-top) + 40px)"
                 }}
             />
 
             {/* CONTENIDO REAL DEL HEADER */}
-            <div className="w-full px-6 lg:px-12 py-3 flex items-center justify-between">
+            <div className="w-full px-6 lg:px-12 py-4 flex items-center justify-between"
+                style={{ paddingTop: 20 }}>
                 {/* Hamburguesa */}
                 <div className="flex flex-1">
                     <button className="p-2 rounded-md hover:bg-red-700/20 transition">
