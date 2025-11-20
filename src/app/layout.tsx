@@ -35,15 +35,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
 
       <body
-        className="min-h-svh bg-white flex flex-col"
+        className="bg-white"
         style={{
-          /* Safe areas SOLO desde el layout */
-          paddingTop: "env(safe-area-inset-top)",
           backgroundColor: "#ffffff",
         }}
       >
         <LayoutWrapper>{children}</LayoutWrapper>
       </body>
+
     </html>
   );
 }
