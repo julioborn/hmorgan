@@ -37,7 +37,8 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
                             : "bg-white text-black px-4 pb-6 container mx-auto"
                             }`}
                         style={{
-                            paddingTop: "calc(env(safe-area-inset-top) + 150px)"
+                            // Altura aproximada del header (ajustable según como te guste)
+                            paddingTop: "88px",   // probá 88 / 96 / 100 si querés más aire
                         }}
                     >
                         {children}
