@@ -112,58 +112,40 @@ export default function Header() {
         <header
             className="fixed left-0 right-0 z-30 border-b border-red-700 shadow-lg"
             style={{
-                top: 0, // el safe-area lo manejamos dentro
+                top: 0,
                 backgroundColor: "#000",
-                paddingTop: "calc(env(safe-area-inset-top) + 12px)", // ⬅️ BAJA EL CONTENIDO DEL HEADER
-                paddingBottom: "12px",
-                minHeight: "calc(env(safe-area-inset-top) + 88px)", // ⬅️ AGRANDA EL HEADER REAL
+                paddingTop: "env(safe-area-inset-top, 24px)",
+                height: "180px",             // ⬅️ HACE EL HEADER GIGANTE PARA PROBAR
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                flexDirection: "column",
+                justifyContent: "flex-end"   // ⬅️ BAJA EL CONTENIDO
             }}
         >
-            <div className="w-full px-6 lg:px-12 flex items-center justify-between">
+            <div className="w-full px-6 py-6 flex items-center justify-between">
                 {/* Hamburguesa */}
-                <div className="w-1/3 flex">
-                    <button
-                        onClick={() => setOpen(!open)}
-                        className="p-2 rounded-md hover:bg-red-700/20 transition"
-                    >
-                        {open ? (
-                            <X size={26} className="text-red-600" />
-                        ) : (
-                            <Menu size={26} className="text-red-600" />
-                        )}
+                <div>
+                    <button className="p-2">
+                        <Menu size={28} className="text-red-500" />
                     </button>
                 </div>
 
                 {/* Logo */}
-                <div className="w-1/3 flex justify-center">
-                    <Link href="/" className="flex justify-center">
-                        <Image
-                            src="/morganwhite.png"
-                            alt="Morgan Bar"
-                            width={70}
-                            height={70}
-                            priority
-                        />
-                    </Link>
+                <div className="flex justify-center flex-1">
+                    <Image
+                        src="/morganwhite.png"
+                        alt="Morgan Bar"
+                        width={90}
+                        height={90}
+                    />
                 </div>
 
-                {/* Botones derecha */}
-                <div className="w-1/3 flex justify-end items-center gap-3">
-                    <button
-                        onClick={handleNotificationsClick}
-                        className="p-2 rounded-full bg-red-600 hover:bg-red-500 text-white transition"
-                    >
-                        <Bell size={20} />
+                {/* Iconos derecha */}
+                <div className="flex items-center gap-4">
+                    <button className="p-2 bg-red-600 rounded-full">
+                        <Bell size={20} className="text-white" />
                     </button>
-
-                    <button
-                        onClick={() => window.location.reload()}
-                        className="p-2 rounded-full bg-red-600 hover:bg-red-500 text-white transition"
-                    >
-                        <RefreshCw size={20} />
+                    <button className="p-2 bg-red-600 rounded-full">
+                        <RefreshCw size={20} className="text-white" />
                     </button>
                 </div>
             </div>
