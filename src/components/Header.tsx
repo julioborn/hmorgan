@@ -118,7 +118,7 @@ export default function Header() {
                 }}
             />
 
-            {/* CONTENIDO REAL DEL HEADER */}
+            {/* CONTENIDO REAL DEL HEADER  */}
             <div className="w-full px-6 lg:px-12 py-4 flex items-center justify-between"
                 style={{ paddingTop: 20 }}>
                 {/* Hamburguesa */}
