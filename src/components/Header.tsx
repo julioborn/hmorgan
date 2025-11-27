@@ -118,23 +118,26 @@ export default function Header() {
                 }}
             />
 
-            {/* CONTENIDO REAL DEL HEADER  */}
-            <div className="w-full px-6 lg:px-12 py-4 flex items-center justify-between"
-                style={{ paddingTop: 20 }}>
-                {/* Hamburguesa */}
-                <div className="flex flex-1">
-                    <button className="p-2 rounded-md hover:bg-red-700/20 transition">
+            {/* CONTENIDO REAL DEL HEADER */}
+            <div className="w-full px-6 lg:px-12 py-4 flex items-center" style={{ paddingTop: 20 }}>
+
+                {/* IZQUIERDA */}
+                <div className="flex-1 flex justify-start">
+                    <button
+                        onClick={() => setOpen(true)}
+                        className="p-2 rounded-md hover:bg-red-700/20 transition"
+                    >
                         <Menu size={26} className="text-red-600" />
                     </button>
                 </div>
 
-                {/* Logo */}
-                <div className="flex flex-1 justify-center">
+                {/* CENTRO */}
+                <div className="flex-1 flex justify-center">
                     <img src="/morganwhite.png" width={58} height={58} />
                 </div>
 
-                {/* Botones */}
-                <div className="flex flex-1 justify-end items-center gap-3">
+                {/* DERECHA */}
+                <div className="flex-1 flex justify-end items-center gap-3">
                     <button className="p-2 rounded-full bg-red-600 text-white">
                         <Bell size={20} />
                     </button>
@@ -142,7 +145,67 @@ export default function Header() {
                         <RefreshCw size={20} />
                     </button>
                 </div>
+
             </div>
+
+            <AnimatePresence>
+                {open && (
+                    <>
+                        {/* Fondo oscuro */}
+                        <div
+                            onClick={() => setOpen(false)}
+                            className="fixed inset-0 bg-black/60 z-40"
+                        />
+
+                        {/* Menú lateral */}
+                        <motion.div
+                            initial={{ x: "-100%" }}
+                            animate={{ x: 0 }}
+                            exit={{ x: "-100%" }}
+                            transition={{ duration: 0.3 }}
+                            className="fixed top-0 left-0 h-full w-72 bg-black z-50 p-6"
+                        >
+                            <button
+                                onClick={() => setOpen(false)}
+                                className="text-white mb-6"
+                            >
+                                <X size={28} />
+                            </button>
+
+                            <nav className="flex flex-col gap-4">
+                                {links.map((link) => {
+                                    const Icon = link.icon
+
+                                    return (
+                                        <Link
+                                            key={link.href}
+                                            href={link.href}
+                                            onClick={() => setOpen(false)}
+                                            className="flex items-center gap-3 text-white text-lg hover:text-red-500 transition"
+                                        >
+                                            {Icon && <Icon size={20} />}
+                                            {link.label}
+                                        </Link>
+                                    )
+                                })}
+                            </nav>
+
+                            {/* BOTÓN CERRAR SESIÓN */}
+                            <button
+                                onClick={() => {
+                                    setOpen(false)
+                                    logout()
+                                }}
+                                className="mt-8 flex items-center gap-3 text-red-500 text-lg hover:text-red-400 transition"
+                            >
+                                Cerrar sesión
+                            </button>
+
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+
         </header>
 
     );
