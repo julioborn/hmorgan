@@ -21,6 +21,7 @@ import {
     ScanQrCode,
     UserRoundPen,
     Settings,
+    Star,
 } from "lucide-react";
 import Image from "next/image";
 import { clearPushData, registerSW, subscribeUser } from "@/lib/push-client";
@@ -62,50 +63,28 @@ export default function Header() {
         { href: "/admin/pedidos", label: "Pedidos", icon: Package },
         { href: "/admin/notificaciones", label: "Notificaciones", icon: Bell },
         { href: "/admin/configuracion", label: "Ajustes", icon: Settings },
+        { href: "/admin/reviews", label: "Reseñas", icon: Star },
     ];
 
     const links = user?.role === "admin" ? linksAdmin : linksCliente;
 
-    async function handleNotificationsClick() {
-        try {
-            const hasSW = "serviceWorker" in navigator;
-            const hasPush = "PushManager" in window;
-            const hasNotif = typeof Notification !== "undefined";
+    // Si todavía está cargando la sesión → no mostrar nada
+    if (loading) return null;
 
-            if (!hasSW || !hasPush || !hasNotif) {
-                await swalBase.fire("❌", "Este dispositivo no soporta notificaciones push.", "error");
-                return;
-            }
+    // Si NO hay usuario → header minimal
+    if (!user) {
+        return (
+            <header className="fixed left-0 right-0 z-30 bg-black">
 
-            let perm = Notification.permission;
-            if (perm === "default") {
-                perm = await Notification.requestPermission();
-            }
+                <div style={{ height: "calc(env(safe-area-inset-top) + 40px)" }} />
 
-            if (perm !== "granted") {
-                await swalBase.fire("🚫", "Debes permitir las notificaciones.", "info");
-                return;
-            }
+                <div className="w-full px-6 lg:px-12 py-4 flex justify-center"
+                    style={{ paddingTop: 20 }}>
+                    <img src="/morganwhite.png" width={58} height={58} />
+                </div>
 
-            const reg = await registerSW();
-            if (!reg) {
-                await swalBase.fire("❌", "No se pudo registrar el Service Worker.", "error");
-                return;
-            }
-
-            await reg.update();
-            const sub = await subscribeUser(reg);
-            if (!sub) {
-                await swalBase.fire("❌", "No se pudo crear la suscripción push.", "error");
-                return;
-            }
-
-            await swalBase.fire("✅ Listo", "Notificaciones activadas.", "success");
-            window.location.href = "/";
-        } catch (err: any) {
-            console.error("❌ Error:", err);
-            await swalBase.fire("⚠️", "Ocurrió un error.", "error");
-        }
+            </header>
+        );
     }
 
     return (

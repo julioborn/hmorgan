@@ -54,6 +54,7 @@ export async function POST(req: NextRequest) {
       source: "consumo",
       amount: puntos,
       meta: { consumoARS, mozoId: payload.sub },
+      pendingReview: true
     });
 
     user.puntos += puntos;

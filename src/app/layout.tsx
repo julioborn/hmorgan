@@ -34,15 +34,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="manifest" href="/manifest-v2.webmanifest" />
       </head>
 
-      <body
-        className="bg-white"
-        style={{
-          backgroundColor: "#ffffff",
-        }}
-      >
+      <body className="bg-white" style={{ backgroundColor: "#ffffff" }}>
         <LayoutWrapper>{children}</LayoutWrapper>
       </body>
-
     </html>
   );
 }

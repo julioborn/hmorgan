@@ -5,14 +5,33 @@ import NextAuthSessionProvider from "@/providers/session-provider";
 import Header from "@/components/Header";
 import Notificador from "@/components/Notificador";
 import RegisterSW from "@/components/RegisterSW";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { initPush } from "@/lib/pushNotifications";
+import ReviewModal from "@/components/ReviewModal";
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
+    const [showReview, setShowReview] = useState(false);
+    const [pendingTxId, setPendingTxId] = useState<string | null>(null);
 
     useEffect(() => {
         initPush();
+
+        async function checkReview() {
+            try {
+                const res = await fetch("/api/reviews/pending");
+                const data = await res.json();
+
+                if (data?.tx?._id) {
+                    setPendingTxId(data.tx._id);
+                    setShowReview(true);
+                }
+            } catch (e) {
+                console.error("Error obteniendo review pendiente", e);
+            }
+        }
+
+        checkReview();
     }, []);
 
     const esChat =
@@ -26,23 +45,42 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
             <NextAuthSessionProvider>
                 <AuthProvider>
 
-                    {/* HEADER — ahora con su propio safe-area */}
                     <Header />
-
                     <Notificador userRole="cliente" />
 
                     <main
                         className={`min-h-screen ${esChat
-                            ? "bg-black text-white p-0"
-                            : "bg-white text-black px-4 pb-6 container mx-auto"
+                                ? "bg-black text-white p-0"
+                                : "bg-white text-black px-4 pb-6 container mx-auto"
                             }`}
                         style={{
                             paddingTop: "calc(env(safe-area-inset-top) + 140px)",
-                            marginTop: 0,        // 👈 Asegura que nunca desplace hacia abajo
                         }}
                     >
                         {children}
                     </main>
+
+                    <ReviewModal
+                        open={showReview}
+                        onClose={() => setShowReview(false)}
+                        onSubmit={async ({ rating, comment }) => {
+                            if (!pendingTxId) return;
+
+                            const res = await fetch("/api/reviews/create", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    rating,
+                                    comentario: comment,
+                                }),
+                            });
+
+                            if (res.ok) {
+                                setShowReview(false);
+                                setPendingTxId(null);
+                            }
+                        }}
+                    />
 
                 </AuthProvider>
             </NextAuthSessionProvider>

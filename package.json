@@ -58,7 +58,7 @@
     "@types/node": "^20.11.30",
     "@types/nodemailer": "^7.0.1",
     "@types/qrcode": "^1.5.5",
-    "@types/react": "^18.2.67",
+    "@types/react": "^18.3.27",
     "@types/socket.io": "^3.0.1",
     "@types/socket.io-client": "^1.4.36",
     "@types/web-push": "^3.6.4",

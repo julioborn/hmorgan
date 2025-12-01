@@ -44,11 +44,7 @@ export async function POST(req: NextRequest) {
 
         // --- Aplicar transacciones y sumar puntos ---
         for (const u of users) {
-            if (!u.pushSubscriptions?.length) {
-                console.log(`[finalize] user ${u._id} sin pushSubscriptions`);
-            }
-
-            const extra = resto > 0 ? 1 : 0; // distribuir el sobrante a los primeros
+            const extra = resto > 0 ? 1 : 0;
             if (resto > 0) resto--;
 
             const puntos = base + extra;
@@ -62,6 +58,10 @@ export async function POST(req: NextRequest) {
             });
 
             u.puntos += puntos;
+
+            // 🔥 Nuevo: cuando un usuario recibe puntos → pedimos reseña
+            u.needsReview = true;
+
             await u.save();
 
             // ---------- 🔔 PUSH WEB (VAPID) ----------

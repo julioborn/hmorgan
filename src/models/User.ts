@@ -11,7 +11,7 @@ export interface IUser extends Document {
   qrToken: string;
   puntos: number;
   pushSubscriptions?: any[];
-  tokenFCM?: string; // 🔥 Nuevo campo: token del dispositivo Firebase
+  tokenFCM?: string;
 
   email?: string;
   fechaNacimiento?: Date;
@@ -19,6 +19,8 @@ export interface IUser extends Document {
 
   resetToken?: string;
   resetTokenExp?: Date;
+
+  needsReview?: boolean; // 🔥 NUEVO
 }
 
 const UserSchema = new Schema<IUser>(
@@ -33,7 +35,7 @@ const UserSchema = new Schema<IUser>(
     puntos: { type: Number, default: 0 },
     pushSubscriptions: { type: Array, default: [] },
 
-    tokenFCM: { type: String, required: false }, // 🔥 Nuevo campo para notificaciones nativas
+    tokenFCM: { type: String, required: false },
 
     email: { type: String, required: false },
     fechaNacimiento: { type: Date, required: false },
@@ -41,6 +43,9 @@ const UserSchema = new Schema<IUser>(
 
     resetToken: { type: String, required: false },
     resetTokenExp: { type: Date, required: false },
+
+    // ⭐⭐⭐ Aquí está el nuevo campo
+    needsReview: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
