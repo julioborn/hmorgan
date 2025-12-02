@@ -17,5 +17,7 @@ const reviewSchema = new Schema<IReview>(
     { timestamps: { createdAt: true, updatedAt: false } }
 );
 
-export const Review =
-    mongoose.models.Review || model<IReview>("Review", reviewSchema);
+// 🧨 Forzar recarga del modelo
+delete mongoose.models.Review;
+
+export const Review = model<IReview>("Review", reviewSchema);

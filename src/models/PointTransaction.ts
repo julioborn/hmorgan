@@ -12,10 +12,7 @@ export interface IPointTransaction {
     mesa?: string;
     share?: number;
   };
-
-  /** 🔥 Indica si el cliente tiene reseña pendiente */
   pendingReview: boolean;
-
   createdAt: Date;
 }
 
@@ -35,12 +32,9 @@ const txSchema = new Schema<IPointTransaction>(
     },
 
     amount: { type: Number, required: true },
-
     notes: { type: String },
-
     meta: { type: Object },
 
-    /** 🔥 Se activa cuando se suman puntos */
     pendingReview: {
       type: Boolean,
       default: false,
@@ -51,6 +45,12 @@ const txSchema = new Schema<IPointTransaction>(
   }
 );
 
+// 🟢 INDICADO POR MONGOOSE (VERSIONES NUEVAS)
+try {
+  mongoose.deleteModel("PointTransaction");
+} catch (err) {
+  // ignore si no existe
+}
+
 export const PointTransaction =
-  mongoose.models.PointTransaction ||
   model<IPointTransaction>("PointTransaction", txSchema);

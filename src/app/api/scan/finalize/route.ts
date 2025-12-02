@@ -55,6 +55,8 @@ export async function POST(req: NextRequest) {
                 amount: puntos,
                 notes: `Mesa ${mesa || "-"}`,
                 meta: { consumoARS, mesa: mesa || null, mozoId: payload.sub, share: userIds.length },
+
+                pendingReview: true,   // 🔥 AGREGADO
             });
 
             u.puntos += puntos;

@@ -10,6 +10,7 @@ export interface IUser extends Document {
   role: "cliente" | "admin";
   qrToken: string;
   puntos: number;
+
   pushSubscriptions?: any[];
   tokenFCM?: string;
 
@@ -20,7 +21,7 @@ export interface IUser extends Document {
   resetToken?: string;
   resetTokenExp?: Date;
 
-  needsReview?: boolean; // 🔥 NUEVO
+  needsReview?: boolean; // ⭐
 }
 
 const UserSchema = new Schema<IUser>(
@@ -33,22 +34,23 @@ const UserSchema = new Schema<IUser>(
     role: { type: String, enum: ["cliente", "admin"], required: true },
     qrToken: { type: String, required: true },
     puntos: { type: Number, default: 0 },
+
     pushSubscriptions: { type: Array, default: [] },
+    tokenFCM: { type: String },
 
-    tokenFCM: { type: String, required: false },
+    email: { type: String },
+    fechaNacimiento: { type: Date },
+    direccion: { type: String },
 
-    email: { type: String, required: false },
-    fechaNacimiento: { type: Date, required: false },
-    direccion: { type: String, required: false },
+    resetToken: { type: String },
+    resetTokenExp: { type: Date },
 
-    resetToken: { type: String, required: false },
-    resetTokenExp: { type: Date, required: false },
-
-    // ⭐⭐⭐ Aquí está el nuevo campo
     needsReview: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
 
-export const User =
-  mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
+// 🧨 Forzar recarga del modelo
+delete mongoose.models.User;
+
+export const User = mongoose.model<IUser>("User", UserSchema);

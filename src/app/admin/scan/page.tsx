@@ -231,16 +231,27 @@ export default function ScanPage() {
           icon: "success",
           title: "Cliente escaneado ✅",
           html: `
-            <div style="font-size: 1.1rem; margin-top: 0.5rem;">
-              <b>${user.nombre} ${user.apellido}</b><br/>
-              DNI: ${user.dni}<br/>
-              Puntos actuales: ${user.puntos}
-            </div>
-          `,
-          timer: 1800,
-          showConfirmButton: false,
-          background: "rgba(0,0,0,0.85)",
-          color: "#fff",
+    <div class="text-black">
+      <div style="font-size: 1.1rem; margin-top: 0.5rem;">
+        <b>${user.nombre} ${user.apellido}</b><br/>
+        DNI: ${user.dni}<br/>
+        Puntos actuales: ${user.puntos}
+      </div>
+    </div>
+  `,
+
+          background: "#ffffff",
+
+          showConfirmButton: true,
+          confirmButtonColor: "#dc2626",
+          confirmButtonText: "OK",
+
+          customClass: {
+            popup: "rounded-2xl shadow-xl border border-red-600/20",
+            title: "text-black font-semibold",        // 🔥 OVERRIDE
+            htmlContainer: "text-black",              // 🔥 OVERRIDE
+            confirmButton: "bg-red-600 text-white rounded-lg px-5 py-2 font-semibold hover:bg-red-500",
+          },
         });
 
         setFlash(true);
@@ -552,7 +563,7 @@ export default function ScanPage() {
 
       </div>
 
-      {/* === Toast de finalización === */}
+      {/* === Toast estilo swalBase === */}
       {finishToast && (
         <div
           className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4"
@@ -561,26 +572,40 @@ export default function ScanPage() {
           onClick={() => setFinishToast(null)}
         >
           <div
-            className="pointer-events-auto w-full max-w-sm rounded-2xl bg-zinc-900/90 border border-emerald-500/30
-                 shadow-xl backdrop-blur px-4 py-4 animate-in fade-in zoom-in-95 duration-200"
+            className="pointer-events-auto w-full max-w-sm rounded-2xl 
+                 bg-[#0b0b0b] border border-red-600/20  /* igual swalBase */
+                 shadow-xl backdrop-blur px-4 py-4 
+                 animate-in fade-in zoom-in-95 duration-200"
           >
             <div className="flex items-start gap-3">
-              <div className="shrink-0 grid place-items-center h-9 w-9 rounded-full bg-emerald-500/20 text-emerald-300">
-                {/* Check inline SVG */}
+
+              {/* Ícono check estilo rojo */}
+              <div className="shrink-0 grid place-items-center h-9 w-9 
+                        rounded-full bg-red-600/20 text-red-400">
                 <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
-              <div className="min-w-0">
-                <div className="font-bold">Mesa finalizada</div>
-                <div className="text-sm opacity-90">
-                  Se acreditaron <b>{finishToast.totalPoints}</b> puntos entre{" "}
-                  <b>{finishToast.repartidos}</b> persona{finishToast.repartidos !== 1 ? "s" : ""}.
-                  {finishToast.mesa ? <> Mesa <b>{finishToast.mesa}</b>.</> : null}
+
+              {/* Texto */}
+              <div className="min-w-0 text-white">
+                <div className="font-semibold text-white">Mesa finalizada</div>
+
+                <div className="text-sm text-gray-300 mt-0.5">
+                  Se acreditaron <b className="text-white">{finishToast.totalPoints}</b> puntos entre{" "}
+                  <b className="text-white">{finishToast.repartidos}</b> persona
+                  {finishToast.repartidos !== 1 ? "s" : ""}.
+                  {finishToast.mesa && (
+                    <> Mesa <b className="text-white">{finishToast.mesa}</b>.</>
+                  )}
                 </div>
               </div>
+
+              {/* Botón cerrar */}
               <button
-                className="ml-auto text-xs px-2 py-1 rounded bg-white/10 hover:bg-white/15"
+                className="ml-auto text-xs px-2 py-1 rounded 
+                     bg-red-600 text-white font-semibold
+                     hover:bg-red-500 transition"
                 onClick={(e) => { e.stopPropagation(); setFinishToast(null); }}
                 aria-label="Cerrar"
               >

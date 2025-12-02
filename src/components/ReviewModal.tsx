@@ -5,6 +5,8 @@ import { useState } from "react";
 interface ModalReviewProps {
     open: boolean;
     onClose: () => void;
+
+    // ⬇️ Ahora onSubmit puede recibir datos adicionales
     onSubmit: (data: { rating: number; comment: string }) => void;
 }
 
@@ -23,7 +25,7 @@ export default function ModalReview({ open, onClose, onSubmit }: ModalReviewProp
                 onClick={onClose}
             ></div>
 
-            {/* Contenido del modal */}
+            {/* Contenido */}
             <div className="relative z-50 bg-white rounded-xl p-5 w-[90%] max-w-sm shadow-xl">
                 <h2 className="text-lg font-semibold text-center mb-3">
                     ¡Calificá tu experiencia!
@@ -47,10 +49,10 @@ export default function ModalReview({ open, onClose, onSubmit }: ModalReviewProp
                     ))}
                 </div>
 
-                {/* Comentario opcional */}
+                {/* Comentario */}
                 <textarea
                     placeholder="¿Querés dejar un comentario?"
-                    className="w-full border rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-black"
+                    className="w-full border rounded-lg p-2 text-sm"
                     rows={3}
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
@@ -70,7 +72,6 @@ export default function ModalReview({ open, onClose, onSubmit }: ModalReviewProp
                         onClick={() => {
                             if (rating === 0) return alert("Selecciona una calificación");
                             onSubmit({ rating, comment });
-                            onClose();
                         }}
                     >
                         Enviar
