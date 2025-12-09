@@ -2,6 +2,8 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IUser extends Document {
+  _id: mongoose.Types.ObjectId; // 👈 agregar esto
+
   nombre: string;
   apellido: string;
   dni: string;
@@ -21,7 +23,7 @@ export interface IUser extends Document {
   resetToken?: string;
   resetTokenExp?: Date;
 
-  needsReview?: boolean; // ⭐
+  needsReview?: boolean;
 }
 
 const UserSchema = new Schema<IUser>(
