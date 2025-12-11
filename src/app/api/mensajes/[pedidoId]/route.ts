@@ -34,27 +34,33 @@ export async function POST(req: NextRequest, { params }: { params: { pedidoId: s
     await pusherServer.trigger(`pedido-${params.pedidoId}`, "mensaje-creado", nuevo);
 
     // 📦 Obtener pedido y usuarios
-    const pedido = await Pedido.findById(params.pedidoId).populate("userId", "nombre pushSubscriptions");
+    const pedido = await Pedido.findById(params.pedidoId)
+        .populate("userId", "nombre pushSubscriptions tokenFCM");
     if (!pedido) return NextResponse.json({ message: "Pedido no encontrado" }, { status: 404 });
 
-    const admin = await User.findOne({ role: "admin" });
+    const admin = await User.findOne({ role: "admin" }).select("pushSubscriptions tokenFCM nombre");
 
     // 👤 Determinar destinatario
     const destinatario = remitente === "admin" ? pedido.userId : admin;
+    console.log("📩 Destinatario:", destinatario?._id?.toString());
+    console.log("📩 Destinatario tokenFCM:", destinatario?.tokenFCM);
 
     // 📲 Enviar push notification (aunque la app esté cerrada)
     if (destinatario?.pushSubscriptions?.length) {
-        await sendPushToSubscriptions(destinatario.pushSubscriptions, {
-            title: remitente === "admin" ? "Nuevo mensaje del bar 🍻" : "Nuevo mensaje del cliente 💬",
-            body: texto.length > 80 ? texto.slice(0, 80) + "..." : texto,
-            url:
-                remitente === "admin"
+        try {
+            await sendPushToSubscriptions(destinatario.pushSubscriptions, {
+                title: remitente === "admin" ? "Nuevo mensaje del bar 🍻" : "Nuevo mensaje del cliente 💬",
+                body: texto.length > 80 ? texto.slice(0, 80) + "..." : texto,
+                url: remitente === "admin"
                     ? `/cliente/mis-pedidos/${params.pedidoId}/chat`
                     : `/admin/pedidos/${params.pedidoId}/chat`,
-            icon: "/icon-192.png",
-            badge: "/icon-badge-96x96.png",
-            image: "/morganwhite.png",
-        });
+                icon: "/icon-192.png",
+                badge: "/icon-badge-96x96.png",
+                image: "/morganwhite.png",
+            });
+        } catch (err) {
+            console.error("❌ Error enviando WebPush:", err);
+        }
     }
 
     // 🔥 Notificación FCM si el destinatario tiene tokenFCM
