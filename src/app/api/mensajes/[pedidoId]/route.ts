@@ -49,7 +49,7 @@ export async function POST(req: NextRequest, { params }: { params: { pedidoId: s
     if (destinatario?.pushSubscriptions?.length) {
         try {
             await sendPushToSubscriptions(destinatario.pushSubscriptions, {
-                title: remitente === "admin" ? "Nuevo mensaje del bar 🍻" : "Nuevo mensaje del cliente 💬",
+                title: remitente === "admin" ? "Nuevo mensaje del bar 💬" : "Nuevo mensaje del cliente 💬",
                 body: texto.length > 80 ? texto.slice(0, 80) + "..." : texto,
                 url: remitente === "admin"
                     ? `/cliente/mis-pedidos/${params.pedidoId}/chat`
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest, { params }: { params: { pedidoId: s
 
         await enviarNotificacionFCM(
             destinatario.tokenFCM,
-            remitente === "admin" ? "Nuevo mensaje del bar 🍻" : "Nuevo mensaje del cliente 💬",
+            remitente === "admin" ? "Nuevo mensaje del bar 💬" : "Nuevo mensaje del cliente 💬",
             texto.length > 80 ? texto.slice(0, 80) + "..." : texto,
             remitente === "admin"
                 ? `/cliente/mis-pedidos/${params.pedidoId}/chat`

@@ -1,5 +1,5 @@
 "use client";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { AuthProvider } from "@/context/auth-context";
 import NextAuthSessionProvider from "@/providers/session-provider";
 import Header from "@/components/Header";
@@ -11,9 +11,35 @@ import ReviewModal from "@/components/ReviewModal";
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
+    const router = useRouter();
+
     const [showReview, setShowReview] = useState(false);
     const [pendingTxId, setPendingTxId] = useState<string | null>(null);
 
+    // 👉 SWIPE BACK ACTIVATION
+    useEffect(() => {
+        const handler = () => {
+            console.log("⬅️ Swipe detectado: navegando atrás");
+            router.back();
+        };
+
+        // Escuchar evento proveniente del plugin nativo (Swift)
+        window.addEventListener("swipeBack", handler);
+
+        // Activar plugin nativo cuando existe Capacitor
+        if (typeof window !== "undefined" && (window as any).Capacitor) {
+            try {
+                (window as any).Capacitor.Plugins.SwipeBackPlugin.enableSwipeBack();
+                console.log("✨ SwipeBackPlugin habilitado");
+            } catch (err) {
+                console.error("❌ Error activando SwipeBackPlugin:", err);
+            }
+        }
+
+        return () => window.removeEventListener("swipeBack", handler);
+    }, []);
+
+    // 👉 Inicialización de push + review pendiente
     useEffect(() => {
         initPush();
 
