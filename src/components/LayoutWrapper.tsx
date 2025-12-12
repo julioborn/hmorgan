@@ -10,95 +10,102 @@ import { useEffect, useState } from "react";
 import { initPush } from "@/lib/pushNotifications";
 import ReviewModal from "@/components/ReviewModal";
 
-// 👈 Nuevo hook de swipe-back
 import { useSwipeBack } from "@/hooks/useSwipeBack";
-// 👈 Zona invisible para mejorar el gesto
 import SwipeBackZone from "@/components/SwipeBackZone";
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
-    const pathname = usePathname();
+  const pathname = usePathname();
 
-    const [showReview, setShowReview] = useState(false);
-    const [pendingTxId, setPendingTxId] = useState<string | null>(null);
+  const [showReview, setShowReview] = useState(false);
+  const [pendingTxId, setPendingTxId] = useState<string | null>(null);
 
-    // 👈 Activa el SWIPE BACK universal
-    useSwipeBack();
+  useSwipeBack();
 
-    // 👉 Inicialización de push + review pendiente
-    useEffect(() => {
-        initPush();
+  useEffect(() => {
+    initPush();
 
-        async function checkReview() {
-            try {
-                const res = await fetch("/api/reviews/pending");
-                const data = await res.json();
+    async function checkReview() {
+      try {
+        const res = await fetch("/api/reviews/pending");
+        const data = await res.json();
 
-                if (data?.tx?._id) {
-                    setPendingTxId(data.tx._id);
-                    setShowReview(true);
-                }
-            } catch (e) {
-                console.error("Error obteniendo review pendiente", e);
-            }
+        if (data?.tx?._id) {
+          setPendingTxId(data.tx._id);
+          setShowReview(true);
         }
+      } catch (e) {
+        console.error("Error obteniendo review pendiente", e);
+      }
+    }
 
-        checkReview();
-    }, []);
+    checkReview();
+  }, []);
 
-    const esChat =
-        pathname.match(/^\/admin\/pedidos\/[^/]+\/chat$/) ||
-        pathname.match(/^\/cliente\/mis-pedidos\/[^/]+\/chat$/);
+  const esChat =
+    pathname.match(/^\/admin\/pedidos\/[^/]+\/chat$/) ||
+    pathname.match(/^\/cliente\/mis-pedidos\/[^/]+\/chat$/);
 
-    return (
-        <>
-            {/* 👈 Zona de swipe: 24px invisibles al borde izquierdo */}
-            <SwipeBackZone />
+  return (
+    <>
+      {/* 👈 Zona de swipe */}
+      <SwipeBackZone />
 
-            <RegisterSW />
+      <RegisterSW />
 
-            <NextAuthSessionProvider>
-                <AuthProvider>
+      {/* 👇 Fondo iOS-style */}
+      <div
+        id="swipe-backdrop"
+        className="fixed inset-0 bg-neutral-200/80 backdrop-blur-sm transition-opacity duration-200 opacity-0 z-10"
+      />
 
-                    <Header />
-                    <Notificador userRole="cliente" />
+      {/* 👇 Contenido animable */}
+      <div
+        id="app-content"
+        className="relative z-20 min-h-screen bg-white transition-transform duration-200 will-change-transform"
+      >
+        <NextAuthSessionProvider>
+          <AuthProvider>
+            <Header />
+            <Notificador userRole="cliente" />
 
-                    <main
-                        className={`min-h-screen ${esChat
-                                ? "bg-black text-white p-0"
-                                : "bg-white text-black px-4 pb-6 container mx-auto"
-                            }`}
-                        style={{
-                            paddingTop: "calc(env(safe-area-inset-top) + 140px)",
-                        }}
-                    >
-                        {children}
-                    </main>
+            <main
+              className={`min-h-screen ${
+                esChat
+                  ? "bg-black text-white p-0"
+                  : "bg-white text-black px-4 pb-6 container mx-auto"
+              }`}
+              style={{
+                paddingTop: "calc(env(safe-area-inset-top) + 140px)",
+              }}
+            >
+              {children}
+            </main>
 
-                    <ReviewModal
-                        open={showReview}
-                        onClose={() => setShowReview(false)}
-                        onSubmit={async ({ rating, comment }) => {
-                            if (!pendingTxId) return;
+            <ReviewModal
+              open={showReview}
+              onClose={() => setShowReview(false)}
+              onSubmit={async ({ rating, comment }) => {
+                if (!pendingTxId) return;
 
-                            const res = await fetch("/api/reviews/create", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({
-                                    rating,
-                                    comentario: comment,
-                                    transactionId: pendingTxId,
-                                }),
-                            });
+                const res = await fetch("/api/reviews/create", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    rating,
+                    comentario: comment,
+                    transactionId: pendingTxId,
+                  }),
+                });
 
-                            if (res.ok) {
-                                setShowReview(false);
-                                setPendingTxId(null);
-                            }
-                        }}
-                    />
-
-                </AuthProvider>
-            </NextAuthSessionProvider>
-        </>
-    );
+                if (res.ok) {
+                  setShowReview(false);
+                  setPendingTxId(null);
+                }
+              }}
+            />
+          </AuthProvider>
+        </NextAuthSessionProvider>
+      </div>
+    </>
+  );
 }

@@ -1,75 +1,81 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export function useSwipeBack() {
-    const router = useRouter();
-    const startX = useRef(0);
-    const currentX = useRef(0);
-    const active = useRef(false);
-    const threshold = 80; // px necesarios para back
-    const edgeZone = 30; // borde izquierdo donde comienza el gesto
+  const router = useRouter();
+  const pathname = usePathname();
 
-    useEffect(() => {
-        function onTouchStart(e: TouchEvent) {
-            const x = e.touches[0].clientX;
+  useEffect(() => {
+    // ⛔️ No permitir swipe en home
+    if (pathname === "/") return;
 
-            if (x < edgeZone) {
-                active.current = true;
-                startX.current = x;
-            }
-        }
+    // 📱 Solo mobile
+    if (typeof window !== "undefined" && window.innerWidth > 768) return;
 
-        function onTouchMove(e: TouchEvent) {
-            if (!active.current) return;
+    let startX = 0;
+    let currentX = 0;
+    let swiping = false;
 
-            currentX.current = e.touches[0].clientX;
-            const delta = currentX.current - startX.current;
+    const threshold = 90;
 
-            if (delta > 0) {
-                document.body.style.transform = `translateX(${delta}px)`;
-            }
-        }
+    const content = document.getElementById("app-content");
+    const backdrop = document.getElementById("swipe-backdrop");
 
-        function onTouchEnd() {
-            if (!active.current) return;
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches[0].clientX < 24) {
+        swiping = true;
+        startX = e.touches[0].clientX;
 
-            const delta = currentX.current - startX.current;
+        if (backdrop) backdrop.style.opacity = "1";
+      }
+    };
 
-            // Reinicio del estado
-            active.current = false;
-            startX.current = 0;
-            currentX.current = 0;
+    const onTouchMove = (e: TouchEvent) => {
+      if (!swiping || !content) return;
 
-            if (delta > threshold) {
-                // Swipe válido → ir atrás
-                document.body.style.transition = "transform 0.25s ease-out";
-                document.body.style.transform = "translateX(100vw)";
+      currentX = e.touches[0].clientX - startX;
+      if (currentX < 0) currentX = 0;
 
-                setTimeout(() => {
-                    router.back();
-                    document.body.style.transition = "";
-                    document.body.style.transform = "";
-                }, 200);
-            } else {
-                // Vuelve hacia atrás sin navegar
-                document.body.style.transition = "transform 0.25s ease-out";
-                document.body.style.transform = "translateX(0)";
-                setTimeout(() => {
-                    document.body.style.transition = "";
-                }, 200);
-            }
-        }
+      content.style.transition = "none";
+      content.style.transform = `translateX(${currentX}px)`;
+      content.style.boxShadow = `-14px 0 35px rgba(0,0,0,0.18)`;
+    };
 
-        window.addEventListener("touchstart", onTouchStart, { passive: true });
-        window.addEventListener("touchmove", onTouchMove, { passive: true });
-        window.addEventListener("touchend", onTouchEnd);
+    const onTouchEnd = () => {
+      if (!swiping || !content) return;
 
-        return () => {
-            window.removeEventListener("touchstart", onTouchStart);
-            window.removeEventListener("touchmove", onTouchMove);
-            window.removeEventListener("touchend", onTouchEnd);
-        };
-    }, [router]);
+      content.style.transition = "transform 0.25s cubic-bezier(.2,.8,.2,1)";
+
+      if (currentX > threshold) {
+        content.style.transform = "translateX(100%)";
+
+        // 📳 Vibración sutil
+        if (navigator.vibrate) navigator.vibrate(10);
+
+        setTimeout(() => router.back(), 180);
+      } else {
+        // 🔁 Rebote elástico
+        content.style.transform = "translateX(0)";
+        content.style.boxShadow = "none";
+      }
+
+      if (backdrop) backdrop.style.opacity = "0";
+
+      swiping = false;
+      startX = 0;
+      currentX = 0;
+    };
+
+    document.addEventListener("touchstart", onTouchStart);
+    document.addEventListener("touchmove", onTouchMove);
+    document.addEventListener("touchend", onTouchEnd);
+
+    return () => {
+      document.removeEventListener("touchstart", onTouchStart);
+      document.removeEventListener("touchmove", onTouchMove);
+      document.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [router, pathname]);
 }
