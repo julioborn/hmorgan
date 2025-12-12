@@ -1,5 +1,6 @@
 "use client";
-import { usePathname, useRouter } from "next/navigation";
+
+import { usePathname } from "next/navigation";
 import { AuthProvider } from "@/context/auth-context";
 import NextAuthSessionProvider from "@/providers/session-provider";
 import Header from "@/components/Header";
@@ -9,35 +10,19 @@ import { useEffect, useState } from "react";
 import { initPush } from "@/lib/pushNotifications";
 import ReviewModal from "@/components/ReviewModal";
 
+// 👈 Nuevo hook de swipe-back
+import { useSwipeBack } from "@/hooks/useSwipeBack";
+// 👈 Zona invisible para mejorar el gesto
+import SwipeBackZone from "@/components/SwipeBackZone";
+
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
-    const router = useRouter();
 
     const [showReview, setShowReview] = useState(false);
     const [pendingTxId, setPendingTxId] = useState<string | null>(null);
 
-    // 👉 SWIPE BACK ACTIVATION
-    useEffect(() => {
-        const handler = () => {
-            console.log("⬅️ Swipe detectado: navegando atrás");
-            router.back();
-        };
-
-        // Escuchar evento proveniente del plugin nativo (Swift)
-        window.addEventListener("swipeBack", handler);
-
-        // Activar plugin nativo cuando existe Capacitor
-        if (typeof window !== "undefined" && (window as any).Capacitor) {
-            try {
-                (window as any).Capacitor.Plugins.SwipeBackPlugin.enableSwipeBack();
-                console.log("✨ SwipeBackPlugin habilitado");
-            } catch (err) {
-                console.error("❌ Error activando SwipeBackPlugin:", err);
-            }
-        }
-
-        return () => window.removeEventListener("swipeBack", handler);
-    }, []);
+    // 👈 Activa el SWIPE BACK universal
+    useSwipeBack();
 
     // 👉 Inicialización de push + review pendiente
     useEffect(() => {
@@ -66,6 +51,9 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
 
     return (
         <>
+            {/* 👈 Zona de swipe: 24px invisibles al borde izquierdo */}
+            <SwipeBackZone />
+
             <RegisterSW />
 
             <NextAuthSessionProvider>
@@ -76,8 +64,8 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
 
                     <main
                         className={`min-h-screen ${esChat
-                            ? "bg-black text-white p-0"
-                            : "bg-white text-black px-4 pb-6 container mx-auto"
+                                ? "bg-black text-white p-0"
+                                : "bg-white text-black px-4 pb-6 container mx-auto"
                             }`}
                         style={{
                             paddingTop: "calc(env(safe-area-inset-top) + 140px)",
