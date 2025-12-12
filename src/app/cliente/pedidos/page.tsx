@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import Loader from "@/components/Loader";
 import { swalBase } from "@/lib/swalConfig";
+import Portal from "@/components/Portal";
 
 type MenuItem = {
     _id: string;
@@ -143,6 +144,8 @@ export default function PedidosClientePage() {
             });
 
             if (res.ok) {
+                setDrawerOpen(false); // 👈 cerrar primero
+
                 await swalBase.fire({
                     icon: "success",
                     title: "Pedido enviado correctamente",
@@ -187,19 +190,6 @@ export default function PedidosClientePage() {
     };
 
     const totalItems = Object.values(items).reduce((a, b) => a + b, 0);
-
-    // /// 💬 Mostrar la burbuja cuando aparece el carrito por primera vez
-    // useEffect(() => {
-    //     if (totalItems > 0) {
-    //         // Solo mostrar si nunca se mostró antes
-    //         if (!localStorage.getItem("burbujaMostrada")) {
-    //             setMostrarBurbuja(true);
-    //             localStorage.setItem("burbujaMostrada", "true");
-    //             const hideTimer = setTimeout(() => setMostrarBurbuja(false), 5000);
-    //             return () => clearTimeout(hideTimer);
-    //         }
-    //     }
-    // }, [totalItems]);
 
     if (cargandoConfig) {
         return (
@@ -356,344 +346,228 @@ export default function PedidosClientePage() {
                 );
             })}
 
-            {/* 🛒 Carrito flotante rojo sólido (con burbuja de ayuda) */}
-            {totalItems > 0 && (
-                <div className="fixed bottom-32 right-5 z-50 flex flex-col items-end gap-2">
-                    {/* 💬 Burbuja flotante animada */}
-                    <AnimatePresence>
-                        {mostrarBurbuja && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, y: 10, scale: 0.9 }}
-                                transition={{ duration: 0.5 }}
-                                className="relative bg-white text-black text-sm font-medium shadow-lg border border-gray-200 px-4 py-2 rounded-xl"
-                            >
-                                Aquí podés ver tu pedido 🛒
-                                <div className="absolute bottom-[-6px] right-6 w-3 h-3 bg-white rotate-45 border-r border-b border-gray-200"></div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+            <Portal>
+                {/* 🛒 Carrito flotante */}
+                <AnimatePresence>
+                    {totalItems > 0 && (
+                        <div className="fixed bottom-32 right-5 z-[9999] flex flex-col items-end gap-2 overflow-visible">
 
-                    {/* 🔴 Botón del carrito (entrada rápida con estela luminosa) */}
-                    <div className="fixed bottom-32 right-5 z-50 flex flex-col items-end gap-2 overflow-visible">
-                        <AnimatePresence>
-                            {totalItems > 0 && (
-                                <>
-                                    {/* 🌟 Estela luminosa detrás del botón */}
+                            {/* 💬 Burbuja de ayuda */}
+                            <AnimatePresence>
+                                {mostrarBurbuja && (
                                     <motion.div
-                                        initial={{ opacity: 0, x: -300, scaleX: 0.2 }}
-                                        animate={{
-                                            opacity: [0.3, 0.6, 0],
-                                            x: [-200, -80, 0],
-                                            scaleX: [0.3, 1, 1.2],
-                                        }}
-                                        transition={{
-                                            duration: 0.5,
-                                            ease: "easeOut",
-                                        }}
-                                        className="absolute bottom-0 right-0 w-[180px] h-[60px] 
-                               bg-gradient-to-r from-red-500/60 to-transparent 
-                               blur-xl rounded-full pointer-events-none"
-                                    />
-
-                                    {/* 🛒 Botón del carrito (crece desde su posición final) */}
-                                    <motion.button
-                                        layout
-                                        initial={{ opacity: 0, scale: 1.5 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.8 }}
-                                        transition={{
-                                            type: "spring",
-                                            stiffness: 300,
-                                            damping: 20,
-                                            duration: 0.5,
-                                            ease: [0.16, 1, 0.3, 1], // back-out suave
-                                        }}
-                                        onClick={() => setDrawerOpen(true)}
-                                        className="relative px-6 py-3 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-full
-    shadow-[0_0_25px_rgba(239,68,68,0.6)] flex items-center gap-3 font-bold text-lg
-    active:scale-95 hover:from-red-500 hover:to-rose-500 hover:shadow-[0_0_40px_rgba(239,68,68,0.8)]
-    border border-white/10 backdrop-blur-sm transition-all duration-300 origin-bottom-right"
+                                        initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                                        transition={{ duration: 0.4 }}
+                                        className="relative bg-white text-black text-sm font-medium shadow-lg
+                         border border-gray-200 px-4 py-2 rounded-xl"
                                     >
-                                        <motion.div
-                                            key={totalItems}
-                                            animate={{ scale: [1, 1.2, 1] }}
-                                            transition={{ duration: 0.6 }}
-                                            className="relative flex items-center justify-center"
-                                        >
-                                            <ShoppingCart
-                                                size={28}
-                                                strokeWidth={2.4}
-                                                color="white"
-                                                className="pointer-events-none"
-                                            />
-                                            <motion.span
-                                                key={`badge-${totalItems}`}
-                                                initial={{ scale: 0 }}
-                                                animate={{ scale: 1 }}
-                                                className="absolute -top-2 -right-2 bg-white text-red-600 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow"
-                                            >
-                                                {totalItems}
-                                            </motion.span>
-                                        </motion.div>
+                                        Aquí podés ver tu pedido 🛒
+                                        <div className="absolute bottom-[-6px] right-6 w-3 h-3 bg-white rotate-45
+                              border-r border-b border-gray-200" />
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
 
-                                        <motion.span
-                                            animate={{ scale: [1, 1.1, 1] }}
-                                            transition={{ repeat: Infinity, duration: 1.8 }}
-                                            className="font-extrabold text-white"
-                                        >
-                                            ${formatPrice(total)}
-                                        </motion.span>
-                                    </motion.button>
+                            {/* 🌟 Estela luminosa */}
+                            <motion.div
+                                initial={{ opacity: 0, x: -200, scaleX: 0.3 }}
+                                animate={{
+                                    opacity: [0.4, 0.7, 0],
+                                    x: [-120, -40, 0],
+                                    scaleX: [0.6, 1, 1.2],
+                                }}
+                                transition={{ duration: 0.5, ease: "easeOut" }}
+                                className="absolute bottom-0 right-0 w-[180px] h-[60px]
+                     bg-gradient-to-r from-red-500/60 to-transparent
+                     blur-xl rounded-full pointer-events-none"
+                            />
 
-                                </>
-                            )}
-                        </AnimatePresence>
-                    </div>
-                </div>
-            )}
+                            {/* 🛒 Botón carrito */}
+                            <motion.button
+                                layout
+                                initial={{ opacity: 0, scale: 1.4 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.8 }}
+                                transition={{
+                                    type: "spring",
+                                    stiffness: 300,
+                                    damping: 22,
+                                }}
+                                onClick={() => setDrawerOpen(true)}
+                                className="relative px-6 py-3 bg-gradient-to-r from-red-600 to-rose-600
+                     text-white rounded-full shadow-[0_0_25px_rgba(239,68,68,0.6)]
+                     flex items-center gap-3 font-bold text-lg
+                     active:scale-95 hover:shadow-[0_0_40px_rgba(239,68,68,0.8)]
+                     border border-white/10 backdrop-blur-sm"
+                            >
+                                <div className="relative flex items-center justify-center">
+                                    <ShoppingCart size={28} strokeWidth={2.4} />
+                                    <motion.span
+                                        key={totalItems}
+                                        initial={{ scale: 0 }}
+                                        animate={{ scale: 1 }}
+                                        className="absolute -top-2 -right-2 bg-white text-red-600
+                         text-xs font-bold rounded-full w-5 h-5
+                         flex items-center justify-center shadow"
+                                    >
+                                        {totalItems}
+                                    </motion.span>
+                                </div>
 
-            {/* 🆙 Botón subir arriba */}
-            <AnimatePresence>
-                {showScroll && (
-                    <motion.button
-                        initial={{ opacity: 0, y: 80 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 80 }}
-                        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                        className="fixed bottom-16 right-5 p-4 rounded-full bg-black text-white 
-                        shadow-lg hover:bg-gray-800 transition"
-                    >
-                        <ArrowUp size={20} />
-                    </motion.button>
-                )}
-            </AnimatePresence>
-
-            {/* 🛍 Drawer del carrito mejorado */}
-            <AnimatePresence>
-                {drawerOpen && (
-                    <motion.div
-                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex flex-col justify-end"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={() => setDrawerOpen(false)}
-                    >
-                        <motion.div
-                            className="relative bg-white rounded-t-3xl shadow-[0_-5px_40px_rgba(0,0,0,0.15)]
-                            max-h-[80vh] overflow-y-auto border-t border-gray-100 p-6
-                            pb-[calc(env(safe-area-inset-bottom)+1.5rem)]" // ✅ margen dinámico inferior
-                            initial={{ y: "100%" }}
-                            animate={{ y: 0 }}
-                            exit={{ y: "100%" }}
-                            transition={{ type: "spring", damping: 25 }}
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            {/* 🔶 Brillo superior decorativo */}
-                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-1.5 bg-gradient-to-r from-red-500 to-rose-400 rounded-full" />
-
-                            {/* 🧾 Header */}
-                            <div className="flex justify-between items-center mb-5">
-                                <h2 className="text-xl font-extrabold text-gray-900 tracking-wide">
-                                    Tu pedido
-                                </h2>
-                                <button
-                                    onClick={vaciarCarrito}
-                                    className="flex items-center gap-1 text-red-500 hover:text-red-400 text-sm font-medium transition"
-                                >
-                                    <Trash2 size={18} /> Vaciar
-                                </button>
-                            </div>
-
-                            {/* 🧺 Lista de productos */}
-                            <div className="space-y-3">
-                                {Object.entries(items)
-                                    .filter(([_, cant]) => cant > 0)
-                                    .map(([id, cant]) => {
-                                        const item = menu.find((m) => m._id === id);
-                                        if (!item) return null;
-
-                                        return (
-                                            <motion.div
-                                                key={id}
-                                                layout
-                                                className="py-4 px-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md 
-                     bg-white/80 transition-all flex flex-col"
-                                            >
-                                                {/* 🧾 Detalle del producto */}
-                                                <div>
-                                                    <p className="font-semibold text-gray-900 leading-tight">{item.nombre}</p>
-                                                    {/* <p className="text-sm text-gray-500">${formatPrice(item.precio)} c/u</p> */}
-                                                </div>
-
-                                                {/* ➕➖ Controles de cantidad y subtotal */}
-                                                <div className="flex justify-between items-center mt-3">
-                                                    {/* Controles */}
-                                                    <div className="flex items-center border border-gray-300 rounded-xl overflow-hidden shadow-sm">
-                                                        <button
-                                                            onClick={() =>
-                                                                setItems((prev) => ({
-                                                                    ...prev,
-                                                                    [id]: Math.max((prev[id] || 0) - 1, 0),
-                                                                }))
-                                                            }
-                                                            className="w-8 h-8 flex items-center justify-center text-red-500 
-                           hover:bg-gray-100 transition text-lg"
-                                                        >
-                                                            −
-                                                        </button>
-
-                                                        <span className="w-8 text-center font-semibold text-gray-800">
-                                                            {cant}
-                                                        </span>
-
-                                                        <button
-                                                            onClick={() =>
-                                                                setItems((prev) => ({
-                                                                    ...prev,
-                                                                    [id]: (prev[id] || 0) + 1,
-                                                                }))
-                                                            }
-                                                            className="w-8 h-8 flex items-center justify-center text-red-500 
-                           hover:bg-gray-100 transition text-lg"
-                                                        >
-                                                            +
-                                                        </button>
-                                                    </div>
-
-                                                    {/* 💰 Subtotal + Eliminar */}
-                                                    <div className="flex items-center gap-3">
-                                                        <p className="font-bold text-red-600 text-lg">
-                                                            ${formatPrice(item.precio * cant)}
-                                                        </p>
-                                                        <button
-                                                            onClick={() => eliminarProducto(id)}
-                                                            className="text-gray-400 hover:text-red-500 transition"
-                                                        >
-                                                            <X size={18} />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </motion.div>
-                                        );
-                                    })}
-                            </div>
-
-                            {/* 💰 Total */}
-                            <div className="mt-6 flex flex-col justify-center items-center bg-gradient-to-r from-red-50 to-white
-                        border border-red-100 rounded-2xl py-4 px-6 shadow-inner">
-                                <span className="font-semibold text-gray-800 text-lg">Total</span>
-                                <span className="font-extrabold text-red-600 text-2xl">
+                                <span className="font-extrabold">
                                     ${formatPrice(total)}
                                 </span>
-                            </div>
+                            </motion.button>
+                        </div>
+                    )}
+                </AnimatePresence>
 
-                            {/* 🚚 Tipo de entrega */}
-                            <div className="mt-8 text-center">
-                                <p className="mb-2 font-semibold text-gray-800">Tipo de entrega</p>
-                                <select
-                                    value={tipoEntrega}
-                                    onChange={(e) => setTipoEntrega(e.target.value)}
-                                    className="px-4 py-3 rounded-xl border border-gray-300 w-full text-center bg-white 
-                       text-gray-900 font-medium focus:ring-2 focus:ring-red-400 focus:border-red-300 transition"
-                                >
-                                    <option value="retira">Retira en el bar</option>
-                                    <option value="envio">Envío a domicilio</option>
-                                </select>
+                {/* 🆙 Botón subir */}
+                <AnimatePresence>
+                    {showScroll && (
+                        <motion.button
+                            initial={{ opacity: 0, y: 80 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 80 }}
+                            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                            className="fixed bottom-16 right-5 z-[9999]
+                   p-4 rounded-full bg-black text-white
+                   shadow-lg hover:bg-gray-800"
+                        >
+                            <ArrowUp size={20} />
+                        </motion.button>
+                    )}
+                </AnimatePresence>
 
+                {/* 🛍 Drawer del carrito */}
+                <AnimatePresence>
+                    {drawerOpen && (
+                        <motion.div
+                            className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm
+                   flex flex-col justify-end"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setDrawerOpen(false)}
+                        >
+                            <motion.div
+                                initial={{ y: "100%" }}
+                                animate={{ y: 0 }}
+                                exit={{ y: "100%" }}
+                                transition={{ type: "spring", damping: 25 }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="relative bg-white rounded-t-3xl
+                     max-h-[80vh] overflow-y-auto p-6
+                     pb-[calc(env(safe-area-inset-bottom)+1.5rem)]"
+                            >
+                                <h3 className="text-2xl font-extrabold mb-4 text-black">Tu pedido</h3>
+
+                                {/* 🛒 Lista de productos */}
+                                <div className="space-y-4">
+                                    {Object.entries(items).map(([id, cant]) => {
+                                        const producto = menu.find((m) => m._id === id);
+                                        if (!producto || cant === 0) return null;
+
+                                        return (
+                                            <div
+                                                key={id}
+                                                className="flex justify-between items-center border-b pb-3"
+                                            >
+                                                <div>
+                                                    <p className="font-semibold text-black">{producto.nombre}</p>
+                                                    <p className="text-sm text-gray-500">
+                                                        {cant} × ${formatPrice(producto.precio)}
+                                                    </p>
+                                                </div>
+
+                                                <div className="flex items-center gap-3">
+                                                    <span className="font-bold text-black">
+                                                        ${formatPrice(producto.precio * cant)}
+                                                    </span>
+
+                                                    <button
+                                                        onClick={() => eliminarProducto(id)}
+                                                        className="text-red-600 hover:text-red-800"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* 🧾 Total */}
+                                <div className="flex justify-between items-center mt-6 text-lg font-bold">
+                                    <span>Total</span>
+                                    <span>${formatPrice(total)}</span>
+                                </div>
+
+                                {/* 🚚 Tipo de entrega */}
+                                <div className="mt-6">
+                                    <h4 className="font-semibold mb-2 text-black">Tipo de entrega</h4>
+
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={() => setTipoEntrega("retira")}
+                                            className={`flex-1 py-2 rounded-xl border font-semibold ${tipoEntrega === "retira"
+                                                ? "bg-red-600 text-white border-red-600"
+                                                : "bg-white text-black border-gray-300"
+                                                }`}
+                                        >
+                                            Retira
+                                        </button>
+
+                                        <button
+                                            onClick={() => setTipoEntrega("envio")}
+                                            className={`flex-1 py-2 rounded-xl border font-semibold ${tipoEntrega === "envio"
+                                                ? "bg-red-600 text-white border-red-600"
+                                                : "bg-white text-black border-gray-300"
+                                                }`}
+                                        >
+                                            Envío
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* 📍 Dirección */}
                                 {tipoEntrega === "envio" && (
-                                    <div className="mt-4 text-left">
-                                        {direccionPrincipal ? (
-                                            <>
-                                                <p className="text-sm text-gray-700 mb-2">
-                                                    Dirección principal:{" "}
-                                                    <span className="font-semibold">{direccionPrincipal}</span>
-                                                </p>
-                                                <label className="flex items-center gap-2 text-sm mb-2 text-gray-600">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={usarOtraDireccion}
-                                                        onChange={(e) => setUsarOtraDireccion(e.target.checked)}
-                                                        className="accent-red-500"
-                                                    />
-                                                    <span>Enviar a otra dirección</span>
-                                                </label>
-                                                {usarOtraDireccion && (
-                                                    <input
-                                                        value={direccionEnvio}
-                                                        onChange={(e) => setDireccionEnvio(e.target.value)}
-                                                        placeholder="Escribí la dirección de envío"
-                                                        className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:ring-2 
-                                 focus:ring-red-400 text-gray-900"
-                                                    />
-                                                )}
-                                            </>
-                                        ) : (
-                                            <>
-                                                <p className="text-sm text-gray-700 mb-2">
-                                                    No tenés una dirección guardada.
-                                                </p>
-                                                <input
-                                                    value={direccionEnvio}
-                                                    onChange={(e) => setDireccionEnvio(e.target.value)}
-                                                    placeholder="Ingresá tu dirección"
-                                                    className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:ring-2 
-                               focus:ring-red-400 text-gray-900"
-                                                />
-                                            </>
-                                        )}
+                                    <div className="mt-4">
+                                        <input
+                                            type="text"
+                                            placeholder="Dirección de envío"
+                                            value={direccionEnvio}
+                                            onChange={(e) => setDireccionEnvio(e.target.value)}
+                                            className="w-full border rounded-xl px-4 py-2"
+                                        />
                                     </div>
                                 )}
-                            </div>
 
-                            {/* 🧠 Botón Finalizar Pedido */}
-                            <motion.button
-                                whileHover={!enviando ? { scale: 1.03 } : {}}
-                                whileTap={!enviando ? { scale: 0.97 } : {}}
-                                onClick={!enviando ? enviarPedido : undefined}
-                                disabled={enviando}
-                                className={`w-full mt-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 flex justify-center items-center gap-3
-    ${enviando
-                                        ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                                        : "bg-gradient-to-r from-red-600 via-rose-600 to-red-500 text-white shadow-[0_0_25px_rgba(239,68,68,0.4)] hover:shadow-[0_0_35px_rgba(239,68,68,0.6)]"
-                                    }`}
-                            >
-                                {enviando ? (
-                                    <>
-                                        <svg
-                                            className="animate-spin h-5 w-5 text-white"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <circle
-                                                className="opacity-25"
-                                                cx="12"
-                                                cy="12"
-                                                r="10"
-                                                stroke="currentColor"
-                                                strokeWidth="4"
-                                            ></circle>
-                                            <path
-                                                className="opacity-75"
-                                                fill="currentColor"
-                                                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                                            ></path>
-                                        </svg>
-                                        <span className="ml-2 font-medium">Enviando pedido...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <ShoppingCart size={22} />
-                                        <span>Finalizar pedido</span>
-                                    </>
-                                )}
-                            </motion.button>
+                                {/* 🧹 Vaciar carrito */}
+                                <button
+                                    onClick={vaciarCarrito}
+                                    className="mt-6 w-full py-2 rounded-xl border border-red-600 text-red-600 font-semibold"
+                                >
+                                    Vaciar carrito
+                                </button>
+
+                                {/* ✅ Confirmar pedido */}
+                                <button
+                                    onClick={enviarPedido}
+                                    disabled={enviando}
+                                    className="mt-4 w-full py-3 rounded-xl bg-red-600 text-white font-bold
+  disabled:opacity-50"
+                                >
+                                    {enviando ? "Enviando..." : "Confirmar pedido"}
+                                </button>
+
+                            </motion.div>
                         </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                    )}
+                </AnimatePresence>
+            </Portal>
 
         </div>
     );
