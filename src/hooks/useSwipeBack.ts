@@ -27,7 +27,6 @@ export function useSwipeBack() {
       if (e.touches[0].clientX < 24) {
         swiping = true;
         startX = e.touches[0].clientX;
-
         if (backdrop) backdrop.style.opacity = "1";
       }
     };
@@ -40,23 +39,26 @@ export function useSwipeBack() {
 
       content.style.transition = "none";
       content.style.transform = `translateX(${currentX}px)`;
-      content.style.boxShadow = `-14px 0 35px rgba(0,0,0,0.18)`;
+      content.style.boxShadow = `-12px 0 30px rgba(0,0,0,0.15)`;
     };
 
     const onTouchEnd = () => {
       if (!swiping || !content) return;
 
-      content.style.transition = "transform 0.25s cubic-bezier(.2,.8,.2,1)";
+      content.style.transition = "transform 0.2s ease-out";
 
       if (currentX > threshold) {
-        content.style.transform = "translateX(100%)";
+        // ✅ IMPORTANTE: volver a 0 ANTES de navegar
+        content.style.transform = "translateX(0)";
+        content.style.boxShadow = "none";
 
-        // 📳 Vibración sutil
         if (navigator.vibrate) navigator.vibrate(10);
 
-        setTimeout(() => router.back(), 180);
+        setTimeout(() => {
+          router.back();
+        }, 60);
       } else {
-        // 🔁 Rebote elástico
+        // 🔁 Cancelado → vuelve normal
         content.style.transform = "translateX(0)";
         content.style.boxShadow = "none";
       }
