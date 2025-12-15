@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useRef, useState } from "react";
 import { pusherClient } from "@/lib/pusherClient";
 import { motion, AnimatePresence } from "framer-motion";
@@ -36,10 +37,12 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
     const [pedido, setPedido] = useState<Pedido | null>(null);
     const [mostrarPedido, setMostrarPedido] = useState(false);
     const [mostrarBotonScroll, setMostrarBotonScroll] = useState(false);
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    // 🧾 Cargar pedido y mensajes
+    const scrollRef = useRef<HTMLDivElement>(null);
+
+    /* =========================
+       Cargar pedido y mensajes
+    ========================= */
     useEffect(() => {
         fetch(`/api/pedidos?id=${pedidoId}`)
             .then((r) => r.json())
@@ -55,46 +58,42 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
             .catch(console.error);
     }, [pedidoId]);
 
-    // 🕒 Bloquear envío si pasó 1 hora desde que se marcó entregado
+    /* =========================
+       Bloquear envío 1h después
+    ========================= */
     useEffect(() => {
         if (pedido?.estado?.toLowerCase() === "entregado" && pedido.updatedAt) {
             const fechaEntrega = new Date(pedido.updatedAt).getTime();
-            const ahora = Date.now();
-            const horasDesdeEntrega = (ahora - fechaEntrega) / (1000 * 60 * 60);
 
-            // 🔒 Bloquea si pasó más de 1 hora
-            if (horasDesdeEntrega > 1) {
-                setBloquearEnvio(true);
-            }
+            const check = () => {
+                const horas = (Date.now() - fechaEntrega) / (1000 * 60 * 60);
+                if (horas > 1) setBloquearEnvio(true);
+            };
 
-            // 🕐 También revisa cada minuto por si cambia mientras el usuario tiene el chat abierto
-            const intervalo = setInterval(() => {
-                const horasActualizadas = (Date.now() - fechaEntrega) / (1000 * 60 * 60);
-                if (horasActualizadas > 1) {
-                    setBloquearEnvio(true);
-                    clearInterval(intervalo);
-                }
-            }, 60000);
-
-            return () => clearInterval(intervalo);
+            check();
+            const interval = setInterval(check, 60000);
+            return () => clearInterval(interval);
         }
     }, [pedido]);
 
-    // 📡 Pusher
+    /* =========================
+       Pusher
+    ========================= */
     useEffect(() => {
         const canal = pusherClient.subscribe(`pedido-${pedidoId}`);
 
         canal.bind("mensaje-creado", (msg: Mensaje) => {
             setMensajes((prev) => {
-                // Evita duplicados comparando texto, remitente y fecha
-                const yaExiste = prev.some(
+                const existe = prev.some(
                     (m) =>
                         m.texto === msg.texto &&
                         m.remitente === msg.remitente &&
-                        Math.abs(new Date(m.createdAt || "").getTime() - new Date(msg.createdAt || "").getTime()) < 2000
+                        Math.abs(
+                            new Date(m.createdAt || "").getTime() -
+                            new Date(msg.createdAt || "").getTime()
+                        ) < 2000
                 );
-                if (yaExiste) return prev;
-                return [...prev, msg];
+                return existe ? prev : [...prev, msg];
             });
         });
 
@@ -104,7 +103,9 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
         };
     }, [pedidoId]);
 
-    // 📜 Scroll automático al final
+    /* =========================
+       Scroll helpers
+    ========================= */
     const scrollToBottom = (smooth = true) => {
         const el = scrollRef.current;
         if (!el) return;
@@ -114,12 +115,10 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
         });
     };
 
-    // Cuando llegan mensajes nuevos → bajar
     useEffect(() => {
         scrollToBottom();
     }, [mensajes]);
 
-    // Mostrar / ocultar botón de bajar
     const handleScroll = () => {
         const el = scrollRef.current;
         if (!el) return;
@@ -127,22 +126,22 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
         setMostrarBotonScroll(!isBottom);
     };
 
-    // 📨 Enviar mensaje
+    /* =========================
+       Enviar mensaje
+    ========================= */
     async function enviarMensaje() {
         if (!nuevo.trim() || bloquearEnvio) return;
 
         const texto = nuevo.trim();
-
-        // ⛔️ Evitar spam rápido
         setBloquearEnvio(true);
 
-        // 💨 Feedback inmediato en la interfaz (optimistic UI)
         const tempMsg: Mensaje = {
             pedidoId,
             remitente,
             texto,
             createdAt: new Date().toISOString(),
         };
+
         setMensajes((prev) => [...prev, tempMsg]);
         setNuevo("");
         scrollToBottom(false);
@@ -155,121 +154,115 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
             });
 
             if (!res.ok) throw new Error("Error al enviar");
-
-            // No hace falta setMensajes de nuevo, Pusher lo actualiza
         } catch (err) {
-            console.error("❌ Error enviando mensaje:", err);
-            // 🔁 Si falla, eliminar el temporal
             setMensajes((prev) => prev.filter((m) => m !== tempMsg));
             alert("Error al enviar el mensaje");
         } finally {
-            // 🔓 Desbloquea el botón después de un pequeño retraso para evitar spam
             setTimeout(() => setBloquearEnvio(false), 600);
         }
     }
 
+    /* =========================
+       Render
+    ========================= */
     return (
-        <div className="fixed inset-0 flex flex-col bg-white text-black w-full h-[100dvh] overflow-hidden">
-            {/* 🔝 Encabezado fijo */}
-            <div className="flex-shrink-0 z-30 relative">
-                <div className="bg-white border-b border-gray-300 px-4 py-3 flex items-center justify-center">
-                    <h1 className="text-lg font-semibold tracking-wide">Chat del Pedido</h1>
+        <div className="grid grid-rows-[auto_1fr_auto] h-screen bg-white text-black overflow-hidden">
+            {/* ================= HEADER ================= */}
+            <div className="flex-shrink-0 z-30 bg-white border-b border-gray-300">
+                <div className="px-4 py-3 text-center">
+                    <h1 className="text-lg font-semibold">Chat del Pedido</h1>
                 </div>
 
-                {/* 📦 Card del pedido */}
                 {pedido && (
-                    <div className="relative border-b border-gray-300 bg-gray-100 px-4 py-3 mt-7">
+                    <>
+                        {/* CABECERA DEL PEDIDO (SIEMPRE VISIBLE, ALTURA JUSTA) */}
                         <div
-                            className="flex justify-between items-center cursor-pointer"
+                            className="border-t border-gray-200 bg-gray-100 px-4 py-3 cursor-pointer"
                             onClick={() => setMostrarPedido(!mostrarPedido)}
                         >
-                            <div>
-                                <h2 className="font-medium text-sm text-gray-700">
-                                    Pedido #{pedido._id.slice(-6)}
-                                </h2>
-                                <p className="text-xs text-gray-500 capitalize">
-                                    {pedido.estado} • {pedido.tipoEntrega}
-                                </p>
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <p className="text-sm font-medium">
+                                        Pedido #{pedido._id.slice(-6)}
+                                    </p>
+                                    <p className="text-xs text-gray-500 capitalize">
+                                        {pedido.estado} • {pedido.tipoEntrega}
+                                    </p>
+                                </div>
+                                {mostrarPedido ? <ChevronUp /> : <ChevronDown />}
                             </div>
-                            {mostrarPedido ? (
-                                <ChevronUp className="w-5 h-5 text-gray-500" />
-                            ) : (
-                                <ChevronDown className="w-5 h-5 text-gray-500" />
-                            )}
                         </div>
 
+                        {/* DESPLEGABLE (SOLO EXISTE CUANDO ESTÁ ABIERTO) */}
                         <AnimatePresence>
                             {mostrarPedido && (
                                 <motion.div
                                     initial={{ height: 0, opacity: 0 }}
                                     animate={{ height: "auto", opacity: 1 }}
                                     exit={{ height: 0, opacity: 0 }}
-                                    transition={{ duration: 0.3 }}
-                                    className="absolute left-0 right-0 top-full bg-white border-t border-gray-200 z-40 p-4 max-h-[40vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300"
+                                    transition={{ duration: 0.25 }}
+                                    className="bg-gray-100 px-4 pb-3 space-y-1 overflow-hidden"
                                 >
                                     {pedido.items.map((it) => (
                                         <div
                                             key={it._id}
-                                            className="flex justify-between text-xs bg-gray-100 rounded-lg px-3 py-1 mb-1"
+                                            className="flex justify-between text-xs bg-white rounded-lg px-3 py-1"
                                         >
                                             <span>{it.menuItemId?.nombre}</span>
-                                            <span className="text-red-600 font-semibold">×{it.cantidad}</span>
+                                            <span className="text-red-600 font-semibold">
+                                                ×{it.cantidad}
+                                            </span>
                                         </div>
                                     ))}
                                 </motion.div>
                             )}
                         </AnimatePresence>
-                    </div>
+                    </>
                 )}
+
             </div>
 
-            {/* 💬 Lista de mensajes */}
+            {/* ================= MENSAJES ================= */}
             <div
                 ref={scrollRef}
                 onScroll={handleScroll}
-                className="flex-1 overflow-y-auto px-3 pt-4 pb-[90px] space-y-3 scrollbar-thin scrollbar-thumb-gray-300 relative z-10"
+                className="flex-1 overflow-y-auto px-3 py-4 space-y-3"
             >
                 {mensajes.map((m, i) => {
                     const esPropio = m.remitente === remitente;
                     const hora = m.createdAt
                         ? format(new Date(m.createdAt), "HH:mm", { locale: es })
                         : "";
+
                     return (
                         <motion.div
                             key={m._id || i}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className={`flex flex-col ${esPropio ? "items-end" : "items-start"}`}
+                            className={`flex flex-col ${esPropio ? "items-end" : "items-start"
+                                }`}
                         >
                             <div
-                                className={`max-w-[85%] px-4 py-2 rounded-2xl text-sm shadow-sm ${esPropio
-                                    ? "bg-red-500 text-white rounded-br-none"
-                                    : "bg-gray-200 text-gray-800 rounded-bl-none"
+                                className={`max-w-[85%] px-4 py-2 rounded-2xl text-sm break-words whitespace-pre-wrap ${esPropio
+                                        ? "bg-red-500 text-white rounded-br-none"
+                                        : "bg-gray-200 text-gray-800 rounded-bl-none"
                                     }`}
-                                style={{ wordBreak: "break-word" }}
                             >
                                 {m.texto}
                             </div>
-                            <span
-                                className={`text-[11px] mt-1 text-gray-500 ${esPropio ? "text-right pr-1" : "text-left pl-1"
-                                    }`}
-                            >
-                                {hora}
-                            </span>
+                            <span className="text-[11px] text-gray-500 mt-1">{hora}</span>
                         </motion.div>
                     );
                 })}
 
-                {/* 📍Botón para bajar */}
                 <AnimatePresence>
                     {mostrarBotonScroll && (
                         <motion.button
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}
-                            transition={{ duration: 0.2 }}
                             onClick={() => scrollToBottom()}
-                            className="fixed bottom-20 right-4 bg-black text-white p-2 rounded-full shadow-lg"
+                            className="fixed bottom-24 right-4 bg-black text-white p-2 rounded-full shadow-lg"
                         >
                             <ArrowDown className="w-5 h-5" />
                         </motion.button>
@@ -277,11 +270,8 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
                 </AnimatePresence>
             </div>
 
-            {/* 📨 Input fijo */}
-            <div
-                id="chat-input-container"
-                className="flex-shrink-0 bg-white border-t border-gray-300 px-3 py-2 z-30 fixed bottom-0 left-0 right-0"
-            >
+            {/* ================= INPUT ================= */}
+            <div className="flex-shrink-0 border-t border-gray-300 bg-white px-3 py-2">
                 <div className="flex items-center gap-2">
                     <input
                         value={nuevo}
@@ -289,16 +279,14 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
                         onKeyDown={(e) => e.key === "Enter" && enviarMensaje()}
                         placeholder="Escribí un mensaje..."
                         disabled={bloquearEnvio}
-                        className="flex-1 bg-gray-100 rounded-full px-4 py-2 text-base text-gray-800 outline-none border border-gray-300 focus:ring-1 focus:ring-red-400"
+                        className="flex-1 bg-gray-100 rounded-full px-4 py-2 border outline-none"
                     />
                     <button
                         onClick={enviarMensaje}
                         disabled={!nuevo.trim() || bloquearEnvio}
-                        className={`p-2 rounded-full transition ${bloquearEnvio
-                            ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                            : nuevo.trim()
-                                ? "bg-red-500 text-white hover:bg-red-400"
-                                : "bg-gray-200 text-gray-500"
+                        className={`p-2 rounded-full ${nuevo.trim() && !bloquearEnvio
+                            ? "bg-red-500 text-white"
+                            : "bg-gray-200 text-gray-400"
                             }`}
                     >
                         <Send className="w-4 h-4" />
