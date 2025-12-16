@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Send, ChevronDown, ChevronUp, ArrowDown } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 
 type Mensaje = {
     _id?: string;
@@ -37,7 +39,7 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
     const [pedido, setPedido] = useState<Pedido | null>(null);
     const [mostrarPedido, setMostrarPedido] = useState(false);
     const [mostrarBotonScroll, setMostrarBotonScroll] = useState(false);
-
+    const router = useRouter();
     const scrollRef = useRef<HTMLDivElement>(null);
 
     /* =========================
@@ -168,8 +170,19 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
     return (
         <div className="grid grid-rows-[auto_1fr_auto] h-screen bg-white text-black overflow-hidden">
             {/* ================= HEADER ================= */}
-            <div className="flex-shrink-0 z-30 bg-white border-b border-gray-300">
-                <div className="px-4 py-3 text-center">
+            <div
+                className="flex-shrink-0 z-30 bg-white border-b border-gray-300"
+                style={{ paddingTop: "env(safe-area-inset-top)" }}
+            >
+                <div className="px-4 py-3 flex items-center justify-center relative">
+                    {/* Botón volver */}
+                    <button
+                        onClick={() => router.push("/")}
+                        className="absolute left-4 flex items-center justify-center w-9 h-9 rounded-full bg-red-500 text-white"
+                    >
+                        <ArrowLeft className="w-5 h-5" />
+                    </button>
+
                     <h1 className="text-lg font-semibold">Chat del Pedido</h1>
                 </div>
 
@@ -244,8 +257,8 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
                         >
                             <div
                                 className={`max-w-[85%] px-4 py-2 rounded-2xl text-sm break-words whitespace-pre-wrap ${esPropio
-                                        ? "bg-red-500 text-white rounded-br-none"
-                                        : "bg-gray-200 text-gray-800 rounded-bl-none"
+                                    ? "bg-red-500 text-white rounded-br-none"
+                                    : "bg-gray-200 text-gray-800 rounded-bl-none"
                                     }`}
                             >
                                 {m.texto}
@@ -271,7 +284,10 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
             </div>
 
             {/* ================= INPUT ================= */}
-            <div className="flex-shrink-0 border-t border-gray-300 bg-white px-3 py-2">
+            <div
+                className="flex-shrink-0 border-t border-gray-300 bg-white px-3 py-2"
+                style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 8px)" }}
+            >
                 <div className="flex items-center gap-2">
                     <input
                         value={nuevo}
