@@ -1,43 +1,39 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
 
-// 👇 secret igual que en tu [...nextauth].ts
-const secret = process.env.NEXTAUTH_SECRET;
-
-export async function middleware(req: NextRequest) {
+export function middleware(req: NextRequest) {
     const { pathname } = req.nextUrl;
+
+    // 🍪 solo verificamos existencia de cookie
+    const hasSession = !!req.cookies.get("session")?.value;
+
+    // 🔁 si está logueado y entra a /login → /
+    if (pathname.startsWith("/login") && hasSession) {
+        return NextResponse.redirect(new URL("/", req.url));
+    }
 
     // 🔓 rutas públicas
     if (
         pathname.startsWith("/login") ||
         pathname.startsWith("/register") ||
-        pathname.startsWith("/staff") ||
-        pathname === "/"
+        pathname.startsWith("/staff")
     ) {
         return NextResponse.next();
     }
 
-    // 🔑 recuperamos token desde cookie
-    const token = await getToken({ req, secret });
-
-    if (!token) {
+    // 🔒 rutas privadas
+    if (!hasSession) {
         return NextResponse.redirect(new URL("/login", req.url));
-    }
-
-    // 🚨 chequeamos rol para admin
-    if (pathname.startsWith("/admin") && token.role !== "admin") {
-        return NextResponse.redirect(new URL("/", req.url));
-    }
-
-    // 🚨 chequeamos rol para cliente
-    if (pathname.startsWith("/cliente") && token.role !== "cliente") {
-        return NextResponse.redirect(new URL("/", req.url));
     }
 
     return NextResponse.next();
 }
 
 export const config = {
-    matcher: ["/admin/:path*", "/cliente/:path*"],
+    matcher: [
+        "/",
+        "/login",
+        "/admin/:path*",
+        "/cliente/:path*",
+    ],
 };
