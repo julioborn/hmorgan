@@ -5,8 +5,9 @@ import { pusherClient } from "@/lib/pusherClient";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Send, ChevronDown, ChevronUp, ArrowDown, ArrowLeft } from "lucide-react";
+import { Send, ChevronDown, ChevronUp, ArrowDown } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 
 type Mensaje = {
     _id?: string;
@@ -38,8 +39,8 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
     const [pedido, setPedido] = useState<Pedido | null>(null);
     const [mostrarPedido, setMostrarPedido] = useState(false);
     const [mostrarBotonScroll, setMostrarBotonScroll] = useState(false);
-    const scrollRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
+    const scrollRef = useRef<HTMLDivElement>(null);
 
     /* =========================
        Cargar pedido y mensajes
@@ -169,17 +170,14 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
     return (
         <div className="grid grid-rows-[auto_1fr_auto] h-screen bg-white text-black overflow-hidden">
             {/* ================= HEADER ================= */}
-            <div className="flex-shrink-0 z-30 bg-white border-b border-gray-300">
-
-                {/* Safe area / Dynamic Island (IGUAL que el header principal) */}
-                <div style={{ height: "calc(env(safe-area-inset-top) + 12px)" }} />
-
-                {/* Header visible */}
+            <div
+                className="flex-shrink-0 z-30 bg-white border-b border-gray-300"
+                style={{ paddingTop: "env(safe-area-inset-top)" }}
+            >
                 <div className="px-4 py-3 flex items-center justify-center relative">
-
                     {/* Botón volver */}
                     <button
-                        onClick={() => router.back()}
+                        onClick={() => router.push("/")}
                         className="absolute left-4 flex items-center justify-center w-9 h-9 rounded-full bg-red-500 text-white"
                     >
                         <ArrowLeft className="w-5 h-5" />
@@ -190,6 +188,7 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
 
                 {pedido && (
                     <>
+                        {/* CABECERA DEL PEDIDO (SIEMPRE VISIBLE, ALTURA JUSTA) */}
                         <div
                             className="border-t border-gray-200 bg-gray-100 px-4 py-3 cursor-pointer"
                             onClick={() => setMostrarPedido(!mostrarPedido)}
@@ -207,6 +206,7 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
                             </div>
                         </div>
 
+                        {/* DESPLEGABLE (SOLO EXISTE CUANDO ESTÁ ABIERTO) */}
                         <AnimatePresence>
                             {mostrarPedido && (
                                 <motion.div
@@ -232,6 +232,7 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
                         </AnimatePresence>
                     </>
                 )}
+
             </div>
 
             {/* ================= MENSAJES ================= */}
@@ -283,7 +284,10 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
             </div>
 
             {/* ================= INPUT ================= */}
-            <div className="flex-shrink-0 border-t border-gray-300 bg-white px-3 py-2">
+            <div
+                className="flex-shrink-0 border-t border-gray-300 bg-white px-3 py-2"
+                style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 8px)" }}
+            >
                 <div className="flex items-center gap-2">
                     <input
                         value={nuevo}
