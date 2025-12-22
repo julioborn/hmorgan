@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import Swal from "sweetalert2";
+import { swalBase } from "@/lib/swalConfig";
 
 export default function ConfiguracionPage() {
     const [valor, setValor] = useState<number | null>(null);
@@ -10,7 +10,13 @@ export default function ConfiguracionPage() {
         fetch("/api/configuracion")
             .then((res) => res.json())
             .then((data) => setValor(data.valor))
-            .catch(() => Swal.fire("Error", "No se pudo cargar la configuración", "error"))
+            .catch(() =>
+                swalBase.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: "No se pudo cargar la configuración",
+                })
+            )
             .finally(() => setLoading(false));
     }, []);
 
@@ -24,9 +30,17 @@ export default function ConfiguracionPage() {
         });
 
         if (res.ok) {
-            Swal.fire("✅ Guardado", "El valor fue actualizado correctamente", "success");
+            swalBase.fire({
+                icon: "success",
+                title: "Guardado",
+                text: "El valor fue actualizado correctamente",
+            });
         } else {
-            Swal.fire("❌ Error", "No se pudo actualizar el valor", "error");
+            swalBase.fire({
+                icon: "error",
+                title: "Error",
+                text: "No se pudo actualizar el valor",
+            });
         }
     };
 
@@ -34,9 +48,14 @@ export default function ConfiguracionPage() {
 
     return (
         <div className="max-w-md mx-auto bg-white text-black p-6 rounded-xl shadow-lg">
-            <h1 className="text-2xl font-bold mb-4 text-center">Configuración General</h1>
+            <h1 className="text-2xl font-bold mb-4 text-center">
+                Configuración General
+            </h1>
 
-            <label className="block mb-2 font-semibold">Puntos por ARS ($1)</label>
+            <label className="block mb-2 font-semibold">
+                Puntos por ARS ($1)
+            </label>
+
             <input
                 type="number"
                 step="0.0001"

@@ -15,12 +15,27 @@ export default function AdminPedidosPage() {
     const [direccionPrincipal, setDireccionPrincipal] = useState<string>("");
     const [direccionEnvio, setDireccionEnvio] = useState<string>("");
     const [usarOtraDireccion, setUsarOtraDireccion] = useState(false);
+    const ITEMS_POR_PAGINA = 6;
+    const [pagina, setPagina] = useState(1);
+    const [busqueda, setBusqueda] = useState("");
+    const [pedidosActivos, setPedidosActivos] = useState(true);
 
     useEffect(() => {
         const loadPedidos = async () => await fetchPedidos();
         loadPedidos();
         const interval = setInterval(loadPedidos, 4000);
         return () => clearInterval(interval);
+    }, []);
+
+    useEffect(() => {
+        setPagina(1);
+        setBusqueda("");
+    }, [vista]);
+
+    useEffect(() => {
+        fetch("/api/config/pedidos")
+            .then(res => res.json())
+            .then(data => setPedidosActivos(data.activo));
     }, []);
 
     async function fetchPedidos() {
@@ -55,12 +70,15 @@ export default function AdminPedidosPage() {
                 return;
             }
 
-            swalBase.fire({
-                title: "Actualizado",
-                icon: "success",
-                timer: 1000,
-                showConfirmButton: false,
-            });
+            // swalBase.fire({
+            //     title: "Estado actualizado",
+            //     icon: "success",
+            //     timer: 900,
+            //     showConfirmButton: false,
+            // });
+
+            // 🔥 CAMBIO DE BURBUJA AUTOMÁTICO
+            setVista(estadoAVista[estado]);
 
             fetchPedidos();
         } catch {
@@ -99,6 +117,55 @@ export default function AdminPedidosPage() {
         }
     }
 
+    async function eliminarPedidoDobleConfirmacion(id: string) {
+        const primerConfirm = await swalBase.fire({
+            title: "⚠️ Eliminar pedido",
+            text: "Esta acción eliminará el pedido definitivamente.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Continuar",
+            cancelButtonText: "Cancelar",
+            confirmButtonColor: "#f97316",
+        });
+
+        if (!primerConfirm.isConfirmed) return;
+
+        const segundoConfirm = await swalBase.fire({
+            title: "❗ Confirmación final",
+            text: "¿Estás SEGURO? Esta acción NO se puede deshacer.",
+            icon: "error",
+            showCancelButton: true,
+            confirmButtonText: "Sí, eliminar definitivamente",
+            cancelButtonText: "Cancelar",
+            confirmButtonColor: "#ef4444",
+        });
+
+        if (!segundoConfirm.isConfirmed) return;
+
+        try {
+            const res = await fetch(`/api/pedidos?id=${id}`, {
+                method: "DELETE",
+                credentials: "include",
+            });
+
+            if (!res.ok) {
+                swalBase.fire("❌", "Error al eliminar el pedido", "error");
+                return;
+            }
+
+            swalBase.fire({
+                title: "Pedido eliminado",
+                icon: "success",
+                timer: 1200,
+                showConfirmButton: false,
+            });
+
+            fetchPedidos();
+        } catch {
+            swalBase.fire("❌", "Error de conexión", "error");
+        }
+    }
+
     if (loading) return <Loader />;
 
     const estados = [
@@ -107,6 +174,13 @@ export default function AdminPedidosPage() {
         { key: "listo", label: "Listo", icon: CheckCircle, color: "blue" },
         { key: "entregado", label: "Entregado", icon: Truck, color: "emerald" },
     ];
+
+    const estadoAVista: Record<string, typeof vista> = {
+        pendiente: "pendientes",
+        preparando: "preparando",
+        listo: "listos",
+        entregado: "entregados",
+    };
 
     const colorClasses: Record<string, string> = {
         yellow: "border-yellow-500 bg-yellow-400/30 text-yellow-900 font-semibold",
@@ -136,7 +210,42 @@ export default function AdminPedidosPage() {
     const notificacionListos = listos.length;
     const notificacionEntregados = entregados.length;
 
-    const lista = vista === "pendientes" ? pendientes : vista === "preparando" ? preparando : vista === "listos" ? listos : entregados;
+
+    let lista = vista === "pendientes"
+        ? pendientes
+        : vista === "preparando"
+            ? preparando
+            : vista === "listos"
+                ? listos
+                : entregados;
+
+    // 🔍 BÚSQUEDA SOLO EN ENTREGADOS
+    if (vista === "entregados" && busqueda.trim()) {
+        const q = busqueda.toLowerCase();
+
+        lista = lista.filter((p) =>
+            `${p.userId?.nombre} ${p.userId?.apellido}`
+                .toLowerCase()
+                .includes(q) ||
+            p.items.some((i: any) =>
+                i.menuItemId?.nombre?.toLowerCase().includes(q)
+            ) ||
+            p.direccion?.toLowerCase().includes(q)
+        );
+    }
+
+    const totalPaginas =
+        vista === "entregados"
+            ? Math.ceil(lista.length / ITEMS_POR_PAGINA)
+            : 1;
+
+    const listaPaginada =
+        vista === "entregados"
+            ? lista.slice(
+                (pagina - 1) * ITEMS_POR_PAGINA,
+                pagina * ITEMS_POR_PAGINA
+            )
+            : lista;
 
     const renderBoton = (key: string, label: string, count: number) => (
         <button
@@ -158,9 +267,46 @@ export default function AdminPedidosPage() {
         </button>
     );
 
+    const puedeCambiarEstado = (estadoActual: string, estadoDestino: string) => {
+        const actual = getEstadoIndex(estadoActual);
+        const destino = getEstadoIndex(estadoDestino);
+
+        return destino > actual;
+    };
+
     return (
         <div className="p-6 min-h-screen text-white">
-            <h1 className="text-4xl font-extrabold mb-6 text-center text-black">Pedidos</h1>
+            <h1 className="text-4xl font-extrabold mb-3 text-center text-black">Pedidos</h1>
+
+            <div className="flex justify-center mb-6">
+                <button
+                    onClick={async () => {
+                        const nuevoEstado = !pedidosActivos;
+
+                        await fetch("/api/config/pedidos", {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ activos: nuevoEstado }),
+                        });
+
+                        setPedidosActivos(nuevoEstado);
+
+                        swalBase.fire({
+                            icon: "success",
+                            title: nuevoEstado ? "Pedidos ACTIVADOS" : "Pedidos DESACTIVADOS",
+                            timer: 1200,
+                            showConfirmButton: false,
+                        });
+                    }}
+                    className={`px-2 py-1 rounded-xl font-semibold text-white transition
+      ${pedidosActivos
+                            ? "bg-red-600 hover:bg-red-700"
+                            : "bg-black hover:bg-gray-900"
+                        }`}
+                >
+                    {pedidosActivos ? "Desactivar pedidos" : "Activar pedidos"}
+                </button>
+            </div>
 
             {/* 🔘 Selector de vista */}
             <div className="flex justify-center flex-wrap gap-1 mb-8">
@@ -170,6 +316,20 @@ export default function AdminPedidosPage() {
                 {renderBoton("entregados", "Entregados", notificacionEntregados)}
             </div>
 
+            {vista === "entregados" && (
+                <div className="max-w-2xl mx-auto mb-4">
+                    <input
+                        type="text"
+                        placeholder="Buscar por cliente, producto o dirección..."
+                        value={busqueda}
+                        onChange={(e) => setBusqueda(e.target.value)}
+                        className="w-full px-4 py-2 rounded-xl border border-red-600
+                       bg-black text-white placeholder-gray-400
+                       focus:outline-none focus:ring-2 focus:ring-red-600"
+                    />
+                </div>
+            )}
+
             {/* 📋 Listado */}
             <div className="grid grid-cols-1 gap-6 max-w-2xl mx-auto">
                 <AnimatePresence>
@@ -178,7 +338,7 @@ export default function AdminPedidosPage() {
                             No hay pedidos.
                         </p>
                     ) : (
-                        lista.map((p) => {
+                        listaPaginada.map((p) => {
                             const estadoIndex = getEstadoIndex(p.estado);
                             const color = estados[estadoIndex]?.color || "gray";
                             const fechaHora = p.createdAt
@@ -271,18 +431,22 @@ export default function AdminPedidosPage() {
                                                 const isActive = index <= estadoIndex;
                                                 const activeColor = colorClasses[estado.color] || "";
 
+                                                const habilitado = puedeCambiarEstado(p.estado, estado.key);
+
                                                 return (
                                                     <div
                                                         key={estado.key}
                                                         className="flex flex-col items-center text-xs w-full relative z-10"
                                                     >
+
                                                         <motion.button
-                                                            onClick={() => actualizarEstado(p._id, estado.key)}
-                                                            whileTap={{ scale: 0.9 }}
-                                                            className={`flex items-center justify-center w-9 h-9 rounded-full border-2 transition-all ${isActive
-                                                                ? activeColor
-                                                                : "border-gray-300 bg-white text-gray-400"
-                                                                }`}
+                                                            disabled={!habilitado}
+                                                            onClick={() => habilitado && actualizarEstado(p._id, estado.key)}
+                                                            whileTap={habilitado ? { scale: 0.9 } : undefined}
+                                                            className={`flex items-center justify-center w-9 h-9 rounded-full border-2 transition-all
+        ${isActive ? activeColor : "border-gray-300 bg-white text-gray-400"}
+        ${!habilitado ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}
+    `}
                                                         >
                                                             <Icon className="w-4 h-4" />
                                                         </motion.button>
@@ -300,9 +464,16 @@ export default function AdminPedidosPage() {
 
                                     <button
                                         onClick={() => window.location.href = `/admin/pedidos/${p._id}/chat`}
-                                        className="mt-3 w-full bg-zinc-800 hover:bg-zinc-700 text-white py-2 rounded-lg transition"
+                                        className="mt-3 w-full bg-black text-white py-2 rounded-lg transition"
                                     >
                                         💬 Ver chat
+                                    </button>
+
+                                    <button
+                                        onClick={() => eliminarPedidoDobleConfirmacion(p._id)}
+                                        className="mt-2 w-full bg-red-600 hover:bg-red-700 py-2 rounded-lg transition font-semibold"
+                                    >
+                                        Eliminar pedido
                                     </button>
 
                                 </motion.div>
@@ -311,6 +482,45 @@ export default function AdminPedidosPage() {
                     )}
                 </AnimatePresence>
             </div>
+
+            {vista === "entregados" && totalPaginas > 1 && (
+                <div className="flex justify-center items-center gap-2 mt-8">
+                    <button
+                        disabled={pagina === 1}
+                        onClick={() => setPagina((p) => p - 1)}
+                        className="px-4 py-2 rounded-lg bg-black text-white
+                       disabled:opacity-40"
+                    >
+                        ←
+                    </button>
+
+                    {Array.from({ length: totalPaginas }).map((_, i) => {
+                        const num = i + 1;
+                        return (
+                            <button
+                                key={num}
+                                onClick={() => setPagina(num)}
+                                className={`px-4 py-2 rounded-lg font-semibold
+                        ${pagina === num
+                                        ? "bg-red-600 text-white"
+                                        : "bg-black text-gray-300 hover:bg-red-700"}
+                    `}
+                            >
+                                {num}
+                            </button>
+                        );
+                    })}
+
+                    <button
+                        disabled={pagina === totalPaginas}
+                        onClick={() => setPagina((p) => p + 1)}
+                        className="px-4 py-2 rounded-lg bg-black text-white
+                       disabled:opacity-40"
+                    >
+                        →
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

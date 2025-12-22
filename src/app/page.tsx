@@ -97,7 +97,8 @@ function ClientHome({ nombre }: { nombre?: string }) {
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [loadingRewards, setLoadingRewards] = useState(true);
   const [pedidosActivosCount, setPedidosActivosCount] = useState(0);
-  const [chatsActivosCount, setChatsActivosCount] = useState(0); // 👈 subirlo arriba
+  const [chatsActivosCount, setChatsActivosCount] = useState(0);
+  const [pedidosActivos, setPedidosActivos] = useState(true);
 
   useEffect(() => {
     const fetchRewards = async () => {
@@ -135,6 +136,15 @@ function ClientHome({ nombre }: { nombre?: string }) {
     const interval = setInterval(fetchChatsActivos, 10000);
     return () => clearInterval(interval);
   }, []); // 👈 mantener en la raíz también
+
+  useEffect(() => {
+    fetch("/api/config/pedidos", { cache: "no-store" })
+      .then(res => res.json())
+      .then(data => {
+        console.log("CONFIG PEDIDOS 👉", data);
+        setPedidosActivos(data.activo);
+      });
+  }, []);
 
   if (loadingRewards) {
     return (
@@ -267,6 +277,7 @@ function ClientHome({ nombre }: { nombre?: string }) {
           title="Pedir"
           Icon={PackagePlus}
           accent="from-red-600 to-red-800"
+          disabled={!pedidosActivos}
         />
         <ActionCard
           href="/cliente/mis-pedidos"

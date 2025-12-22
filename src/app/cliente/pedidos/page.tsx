@@ -26,6 +26,7 @@ import {
 import Loader from "@/components/Loader";
 import { swalBase } from "@/lib/swalConfig";
 import Portal from "@/components/Portal";
+import { useRouter } from "next/navigation";
 
 type MenuItem = {
     _id: string;
@@ -75,6 +76,7 @@ export default function PedidosClientePage() {
     const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null);
     const [mostrarBurbuja, setMostrarBurbuja] = useState(false);
     const [enviando, setEnviando] = useState(false);
+    const router = useRouter();
 
     // Cargar dirección del perfil
     useEffect(() => {
@@ -95,7 +97,10 @@ export default function PedidosClientePage() {
     useEffect(() => {
         (async () => {
             try {
-                const cfg = await fetch("/api/admin/config-pedidos").then((r) => r.json());
+                const cfg = await fetch("/api/config/pedidos", {
+                    cache: "no-store",
+                }).then((r) => r.json());
+
                 setActivo(cfg.activo);
 
                 if (cfg.activo) {
@@ -103,6 +108,7 @@ export default function PedidosClientePage() {
                     const data = await menuRes.json();
                     setMenu(data);
                 }
+
             } catch (error) {
                 console.error("Error cargando configuración de pedidos:", error);
             } finally {
@@ -114,6 +120,12 @@ export default function PedidosClientePage() {
         window.addEventListener("scroll", handleScroll);
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
+
+    useEffect(() => {
+        if (!cargandoConfig && !activo) {
+            router.replace("/"); // o "/cliente"
+        }
+    }, [activo, cargandoConfig, router]);
 
     async function enviarPedido() {
         const seleccion = Object.entries(items)
@@ -205,7 +217,7 @@ export default function PedidosClientePage() {
                 <UtensilsCrossed size={50} className="mb-4 text-red-600" />
                 <h2 className="text-xl font-semibold mb-2 text-black">Pedidos no disponibles</h2>
                 <p className="text-gray-500">
-                    En este momento no se están tomando pedidos. 🍽️
+                    En este momento no se están tomando pedidos.
                 </p>
             </div>
         );

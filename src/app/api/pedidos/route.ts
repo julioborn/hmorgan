@@ -6,6 +6,7 @@ import { User } from "@/models/User";
 import jwt from "jsonwebtoken";
 import { sendPushToSubscriptions } from "@/lib/push-server";
 import { enviarNotificacionFCM } from "@/lib/firebase-admin";
+import Config from "@/models/Config";
 
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET!;
 
@@ -50,6 +51,20 @@ export async function POST(req: NextRequest) {
 
         const payload = jwt.verify(token, NEXTAUTH_SECRET) as any;
         await connectMongoDB();
+        // 🔧 Asegurar que exista configuración global
+        const config = await Config.findOneAndUpdate(
+            { _id: "global" },
+            {},
+            { upsert: true, new: true }
+        );
+
+        // 🚫 Si pedidos están desactivados, no permitir crear pedido
+        if (!config.pedidosActivos) {
+            return NextResponse.json(
+                { message: "Los pedidos están desactivados temporalmente" },
+                { status: 403 }
+            );
+        }
 
         const { items, tipoEntrega, direccion } = await req.json();
         if (!items?.length)
