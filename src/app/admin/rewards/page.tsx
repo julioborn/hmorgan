@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { Gift, QrCode, ChevronDown, ChevronUp } from "lucide-react";
 import Loader from "@/components/Loader";
+import { Trash2 } from "lucide-react";
+import Swal from "sweetalert2";
 
 type Reward = {
     _id: string;
@@ -58,11 +60,37 @@ export default function AdminRewardsPage() {
         );
     }
 
+    async function handleDelete(id: string) {
+        const result = await Swal.fire({
+            title: "Eliminar canje",
+            text: "¿Seguro que querés eliminar este canje? Esta acción no se puede deshacer.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#dc2626",
+            cancelButtonColor: "#6b7280",
+            confirmButtonText: "Eliminar",
+            cancelButtonText: "Cancelar",
+        });
+
+        if (!result.isConfirmed) return;
+
+        const res = await fetch(`/api/rewards/${id}`, {
+            method: "DELETE",
+        });
+
+        if (!res.ok) {
+            Swal.fire("Error", "No se pudo eliminar el canje", "error");
+            return;
+        }
+
+        await mutate(); // 🔥 refresca la lista
+    }
+
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-6">
             {/* 🏷️ Título */}
             <h1 className="text-3xl font-extrabold mb-8 text-black text-center md:text-left flex justify-center items-center gap-2">
-                Canjes (Administración)
+                Canjes
             </h1>
 
             {/* ➕ Formulario toggleable */}
@@ -141,6 +169,16 @@ export default function AdminRewardsPage() {
                         <div className="absolute inset-y-0 -right-3 flex items-center">
                             <span className="w-6 h-6 bg-gray-100 rounded-full border border-gray-200" />
                         </div>
+
+                        <button
+                            onClick={() => handleDelete(r._id)}
+                            className="absolute top-3 right-3 p-2 rounded-lg 
+             bg-red-50 text-red-600 
+             hover:bg-red-100 transition"
+                            title="Eliminar canje"
+                        >
+                            <Trash2 size={16} />
+                        </button>
 
                         {/* Contenido */}
                         <div className="flex-1">
