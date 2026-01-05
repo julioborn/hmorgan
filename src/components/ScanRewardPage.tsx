@@ -216,7 +216,12 @@ export default function ScanRewardPage() {
     }[camState];
 
     return (
-        <div className="mx-auto max-w-5xl p-4 md:p-6 space-y-6">
+        <div
+            className="mx-auto max-w-6xl p-4 md:p-6 space-y-6"
+            style={{
+                paddingBottom: "calc(1rem + env(safe-area-inset-bottom))",
+            }}
+        >
 
             {/* Selector de recompensa */}
             <div className="rounded-2xl border border-red-200 bg-gray-50 p-4">
