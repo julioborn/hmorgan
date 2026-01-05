@@ -222,7 +222,6 @@ export default function ScanRewardPage() {
             <div className="rounded-2xl border border-red-200 bg-gray-50 p-4">
                 {rewards ? (
                     <div className="flex flex-col gap-2">
-                        <label className="text-sm font-medium text-gray-700">Seleccionar recompensa</label>
                         <div className="relative">
                             <select
                                 className="w-full appearance-none rounded-xl border-2 border-red-300 bg-white text-gray-800 text-lg font-medium
