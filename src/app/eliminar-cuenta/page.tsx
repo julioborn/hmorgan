@@ -1,53 +1,67 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import Swal from "sweetalert2";
+
 export default function EliminarCuenta() {
+    const router = useRouter();
+
+    const eliminarCuenta = async () => {
+        const result = await Swal.fire({
+            title: "¿Eliminar cuenta?",
+            text: "Esta acción es permanente y no se puede deshacer.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Sí, eliminar",
+            cancelButtonText: "Cancelar",
+            confirmButtonColor: "#dc2626",
+        });
+
+        if (!result.isConfirmed) return;
+
+        const res = await fetch("/api/account", {
+            method: "DELETE",
+        });
+
+        if (res.ok) {
+            await Swal.fire({
+                title: "Cuenta eliminada",
+                text: "Tu cuenta fue eliminada correctamente.",
+                icon: "success",
+            });
+
+            router.push("/login");
+        } else {
+            Swal.fire({
+                title: "Error",
+                text: "No se pudo eliminar la cuenta.",
+                icon: "error",
+            });
+        }
+    };
+
     return (
-        <main className="max-w-xl mx-auto px-6 py-16 text-gray-900 leading-relaxed">
-            <h1 className="text-3xl font-semibold mb-4">
+        <main className="max-w-xl mx-auto px-6 py-16 text-gray-900">
+            <h1 className="text-3xl font-semibold mb-6">
                 Eliminación de cuenta – HMorgan
             </h1>
 
             <p className="mb-6">
-                En <strong>HMorgan</strong> respetamos tu privacidad. Podés solicitar la
-                eliminación de tu cuenta y de los datos asociados en cualquier momento.
+                Podés eliminar tu cuenta y todos los datos asociados en cualquier
+                momento. Esta acción es <strong>irreversible</strong>.
             </p>
 
-            <h2 className="text-xl font-medium mb-2">
-                ¿Cómo solicitar la eliminación?
-            </h2>
+            <button
+                onClick={eliminarCuenta}
+                className="w-full bg-red-600 text-white py-3 rounded-lg font-medium hover:bg-red-700 transition"
+            >
+                Eliminar mi cuenta definitivamente
+            </button>
 
-            <p>
-                Enviá un correo electrónico desde la dirección asociada a tu cuenta a:
-            </p>
-
-            <div className="bg-gray-100 rounded-lg px-4 py-3 my-3 font-medium">
-                📧 julio@estudioborn.com.ar
-            </div>
-
-            <p className="mb-8">
-                Asunto del correo: <strong>Eliminar cuenta HMorgan</strong>
-            </p>
-
-            <h2 className="text-xl font-medium mb-2">
-                Datos que se eliminan
-            </h2>
-
-            <ul className="list-disc list-inside mb-8">
-                <li>Cuenta de usuario</li>
-                <li>Credenciales de acceso</li>
-                <li>Pedidos y datos asociados al usuario</li>
-            </ul>
-
-            <h2 className="text-xl font-medium mb-2">
-                Retención de datos
-            </h2>
-
-            <p>
-                No conservamos datos personales una vez procesada la solicitud,
-                salvo obligaciones legales.
-            </p>
-
-            <p className="mt-2">
-                El proceso se completa dentro de un plazo máximo de{" "}
-                <strong>30 días</strong>.
+            <p className="mt-6 text-sm text-gray-500">
+                Si necesitás ayuda adicional, podés contactarnos en
+                <br />
+                <strong>julio@estudioborn.com.ar</strong>
             </p>
         </main>
     );
