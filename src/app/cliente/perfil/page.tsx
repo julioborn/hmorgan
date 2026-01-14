@@ -228,7 +228,7 @@ export default function PerfilPage() {
                     {/* Email */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Email (opcional)
+                            Email
                         </label>
                         <input
                             type="email"

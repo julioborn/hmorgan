@@ -27,8 +27,11 @@ export default function RegisterPage() {
     if (!f.dni) e.dni = "Ingresá DNI";
     else if (onlyDigits(f.dni).length < 7 || onlyDigits(f.dni).length > 9)
       e.dni = "DNI inválido";
-    if (!f.telefono) e.telefono = "Ingresá teléfono";
-    else if (f.telefono.length < 6 || f.telefono.length > 15) e.telefono = "Teléfono inválido";
+    if (f.telefono) {
+      if (f.telefono.length < 6 || f.telefono.length > 15) {
+        e.telefono = "Teléfono inválido";
+      }
+    }
     return e;
   };
 
@@ -37,7 +40,7 @@ export default function RegisterPage() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setTouched({ nombre: true, apellido: true, dni: true, telefono: true });
+    setTouched({ nombre: true, apellido: true, dni: true });
     if (hasErrors) return;
 
     setLoading(true);
@@ -119,12 +122,16 @@ export default function RegisterPage() {
               <input
                 type="text"
                 inputMode={field === "dni" || field === "telefono" ? "numeric" : "text"}
-                placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
+                placeholder={
+                  field === "telefono"
+                    ? "Teléfono (opcional)"
+                    : field.charAt(0).toUpperCase() + field.slice(1)
+                }
                 autoComplete={field === "dni" ? "username" : undefined}
                 enterKeyHint="next"
                 className={`w-full h-12 px-3 rounded-xl border text-gray-800 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 transition ${touched[field] && currentErrors[field]
-                    ? "border-red-400 focus:ring-red-400"
-                    : "border-gray-300"
+                  ? "border-red-400 focus:ring-red-400"
+                  : "border-gray-300"
                   }`}
                 value={form[field]}
                 onChange={(e) => {

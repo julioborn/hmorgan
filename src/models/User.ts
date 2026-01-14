@@ -31,7 +31,7 @@ const UserSchema = new Schema<IUser>(
     nombre: { type: String, required: true },
     apellido: { type: String, required: true },
     dni: { type: String, required: true, unique: true },
-    telefono: { type: String, required: true },
+    telefono: { type: String, required: false },
     passwordHash: { type: String, required: true },
     role: { type: String, enum: ["cliente", "admin"], required: true },
     qrToken: { type: String, required: true },

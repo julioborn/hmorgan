@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     const { nombre, apellido, dni, telefono } = await req.json();
 
     // Validaciones mínimas
-    if (!nombre || !apellido || !dni || !telefono) {
+    if (!nombre || !apellido || !dni) {
       return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
     }
     const dniStr = String(dni).replace(/\D/g, "");
@@ -27,8 +27,10 @@ export async function POST(req: NextRequest) {
     if (dniStr.length < 7 || dniStr.length > 9) {
       return NextResponse.json({ error: "DNI inválido" }, { status: 400 });
     }
-    if (telStr.length < 6 || telStr.length > 15) {
-      return NextResponse.json({ error: "Teléfono inválido" }, { status: 400 });
+    if (telefono) {
+      if (telStr.length < 6 || telStr.length > 15) {
+        return NextResponse.json({ error: "Teléfono inválido" }, { status: 400 });
+      }
     }
 
     await connectMongoDB();
@@ -57,7 +59,7 @@ export async function POST(req: NextRequest) {
       nombre: String(nombre).trim(),
       apellido: String(apellido).trim(),
       dni: dniStr,
-      telefono: telStr,
+      telefono: telStr || undefined,
       passwordHash,
       role: "cliente",
       qrToken,
