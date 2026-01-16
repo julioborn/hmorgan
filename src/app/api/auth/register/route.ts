@@ -74,17 +74,16 @@ export async function POST(req: NextRequest) {
     );
 
     // Setear cookie persistente (1 año)
-    const isProd = process.env.NODE_ENV === "production";
-    const res = NextResponse.json({
-      ok: true,
-      provisionalPassword, // por si querés mostrarla en el front (opcional)
-    });
+    const isSecure =
+      process.env.NODE_ENV === "production" &&
+      req.headers.get("x-forwarded-proto") === "https";
+    const res = NextResponse.json({ ok: true });
     res.cookies.set("session", token, {
       httpOnly: true,
       sameSite: "lax",
-      secure: isProd,
+      secure: isSecure,
       path: "/",
-      maxAge: 60 * 60 * 24 * 365, // 1 año
+      maxAge: 60 * 60 * 24 * 365,
     });
 
     return res;

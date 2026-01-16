@@ -1,6 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import { ensurePushAfterLogin } from "@/lib/push-auto";
+import { useRouter } from "next/navigation";
 
 type RegisterForm = { nombre: string; apellido: string; dni: string; telefono: string };
 type Errors = Partial<Record<keyof RegisterForm | "general", string>>;
@@ -15,6 +16,7 @@ export default function RegisterPage() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Errors>({});
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const setField = (k: keyof RegisterForm, v: string) =>
     setForm((prev) => ({ ...prev, [k]: v }));
@@ -46,10 +48,12 @@ export default function RegisterPage() {
     setLoading(true);
     setErrors((p) => ({ ...p, general: undefined }));
 
+    // 1️⃣ Registrar usuario (esto YA crea la cookie)
     const res = await fetch("/api/auth/register", {
       method: "POST",
       body: JSON.stringify({ ...form, dni: onlyDigits(form.dni) }),
       headers: { "Content-Type": "application/json" },
+      credentials: "same-origin", // 🔥 CLAVE
     });
 
     const data = await res.json().catch(() => ({}));
@@ -60,38 +64,15 @@ export default function RegisterPage() {
       return;
     }
 
-    let me = await fetch("/api/auth/me", { cache: "no-store" })
-      .then((r) => r.json())
-      .catch(() => null);
+    // 2️⃣ Intentar activar push (no es crítico)
+    // 🔔 fire-and-forget (NO bloquear auth)
+    ensurePushAfterLogin().catch((err) =>
+      console.warn("No se pudo activar push automáticamente:", err)
+    );
 
-    if (!me?.user && data?.provisionalPassword) {
-      const loginRes = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dni: onlyDigits(form.dni), password: data.provisionalPassword }),
-      });
+    // 🚀 redirect inmediato
+    window.location.href = "/";
 
-      if (!loginRes.ok) {
-        setErrors((p) => ({
-          ...p,
-          general: `Registrado. Tu contraseña provisional es: ${data.provisionalPassword}`,
-        }));
-        return;
-      }
-
-      me = await fetch("/api/auth/me", { cache: "no-store" })
-        .then((r) => r.json())
-        .catch(() => null);
-    }
-
-    try {
-      await ensurePushAfterLogin(me?.user?.id || me?.user?._id);
-    } catch (err) {
-      console.warn("No se pudo activar push automáticamente:", err);
-    }
-
-    if (me?.user?.role === "admin") window.location.href = "/admin/scan";
-    else window.location.href = "/cliente/qr";
   }
 
   // 👉 Formatea el DNI como "12.345.678"

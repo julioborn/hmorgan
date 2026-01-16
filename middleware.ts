@@ -4,6 +4,11 @@ import type { NextRequest } from "next/server";
 export function middleware(req: NextRequest) {
     const { pathname } = req.nextUrl;
 
+    // 🚫 APIs NUNCA pasan por auth
+    if (pathname.startsWith("/api")) {
+        return NextResponse.next();
+    }
+
     // 🍪 solo verificamos existencia de cookie
     const hasSession = !!req.cookies.get("session")?.value;
 
@@ -28,12 +33,3 @@ export function middleware(req: NextRequest) {
 
     return NextResponse.next();
 }
-
-export const config = {
-    matcher: [
-        "/",
-        "/login",
-        "/admin/:path*",
-        "/cliente/:path*",
-    ],
-};
