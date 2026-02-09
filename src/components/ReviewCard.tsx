@@ -1,7 +1,7 @@
 import { Star } from "lucide-react";
 
 export default function ReviewCard({ review }: any) {
-    const { stars, comment, createdAt, userId } = review;
+    const { rating, comment, createdAt, userId } = review; // ✅ rating
 
     const date = new Date(createdAt).toLocaleString("es-AR", {
         day: "2-digit",
@@ -21,20 +21,26 @@ export default function ReviewCard({ review }: any) {
                 <span className="text-sm text-gray-500">{date}</span>
             </div>
 
-            {/* Estrellas */}
+            {/* ⭐ Estrellas */}
             <div className="flex gap-1 mb-3">
                 {[1, 2, 3, 4, 5].map((n) => (
                     <Star
                         key={n}
                         size={20}
-                        className={n <= stars ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}
+                        className={
+                            n <= rating
+                                ? "text-yellow-400 fill-yellow-400"
+                                : "text-gray-300"
+                        }
                     />
                 ))}
             </div>
 
             {/* Comentario */}
             {comment && (
-                <p className="text-gray-700 text-sm whitespace-pre-line">{comment}</p>
+                <p className="text-gray-700 text-sm whitespace-pre-line">
+                    {comment}
+                </p>
             )}
         </div>
     );

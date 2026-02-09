@@ -7,9 +7,9 @@ import Loader from "@/components/Loader";
 
 type Client = {
     id: string;
+    username: string;
     nombre: string;
     apellido: string;
-    dni: string;
     telefono?: string;
     puntos?: number;
     qrToken?: string;
@@ -26,9 +26,7 @@ export default function AdminClientsPage() {
 
     const [q, setQ] = useState("");
     const [page, setPage] = useState(1);
-    const [sort, setSort] = useState<"nombre" | "apellido" | "dni" | "puntos">(
-        "apellido"
-    );
+    const [sort, setSort] = useState<"nombre" | "apellido" | "username" | "puntos">("apellido");
     const [dir, setDir] = useState<"asc" | "desc">("asc");
 
     const [items, setItems] = useState<Client[]>([]);
@@ -126,7 +124,7 @@ export default function AdminClientsPage() {
                         <input
                             className="w-full h-11 rounded-xl border border-gray-300 bg-white px-3 text-black placeholder-gray-500
                          focus:outline-none focus:ring-2 focus:ring-red-500"
-                            placeholder="Buscar por nombre o DNI…"
+                            placeholder="Buscar por nombre o usuario…"
                             value={q}
                             onChange={(e) => {
                                 setPage(1);
@@ -151,8 +149,8 @@ export default function AdminClientsPage() {
                             <option value="apellido:desc">Apellido ↓</option>
                             <option value="nombre:asc">Nombre ↑</option>
                             <option value="nombre:desc">Nombre ↓</option>
-                            <option value="dni:asc">DNI ↑</option>
-                            <option value="dni:desc">DNI ↓</option>
+                            <option value="username:asc">Usuario ↑</option>
+                            <option value="username:desc">Usuario ↓</option>
                             <option value="puntos:desc">Puntos ↓</option>
                             <option value="puntos:asc">Puntos ↑</option>
                         </select>
@@ -166,8 +164,8 @@ export default function AdminClientsPage() {
                         <button onClick={() => toggleSort("apellido")} className="text-left hover:text-red-600">
                             Cliente
                         </button>
-                        <button onClick={() => toggleSort("dni")} className="text-left hover:text-red-600">
-                            DNI
+                        <button onClick={() => toggleSort("username")} className="text-left hover:text-red-600">
+                            Usuario
                         </button>
                         <div>Teléfono</div>
                         <button onClick={() => toggleSort("puntos")} className="text-left hover:text-red-600">
@@ -204,8 +202,8 @@ export default function AdminClientsPage() {
                                         </div>
                                     </div>
 
-                                    {/* Col 2: DNI */}
-                                    <div className="tabular-nums text-black">{c.dni}</div>
+                                    {/* Col 2: Usuario */}
+                                    <div className="tabular-nums text-black">@{c.username}</div>
 
                                     {/* Col 3: Teléfono */}
                                     <div className="truncate text-black">
@@ -327,7 +325,6 @@ function EditClientModal({
                 body: JSON.stringify({
                     nombre: form.nombre,
                     apellido: form.apellido,
-                    dni: form.dni,
                     telefono: form.telefono,
                     puntos: Number(form.puntos ?? 0),
                 }),
@@ -362,7 +359,7 @@ function EditClientModal({
                         <Field label="Nombre">
                             <input
                                 className="w-full h-11 rounded-xl border border-gray-300 bg-white px-3 text-black
-                           focus:outline-none focus:ring-2 focus:ring-red-500"
+                            focus:outline-none focus:ring-2 focus:ring-red-500"
                                 value={form.nombre}
                                 onChange={(e) => setForm({ ...form, nombre: e.target.value })}
                             />
@@ -370,26 +367,22 @@ function EditClientModal({
                         <Field label="Apellido">
                             <input
                                 className="w-full h-11 rounded-xl border border-gray-300 bg-white px-3 text-black
-                           focus:outline-none focus:ring-2 focus:ring-red-500"
+                            focus:outline-none focus:ring-2 focus:ring-red-500"
                                 value={form.apellido}
                                 onChange={(e) => setForm({ ...form, apellido: e.target.value })}
                             />
                         </Field>
-                        <Field label="DNI">
+                        <Field label="Usuario">
                             <input
-                                className="w-full h-11 rounded-xl border border-gray-300 bg-white px-3 text-black tabular-nums
-                           focus:outline-none focus:ring-2 focus:ring-red-500"
-                                value={form.dni}
-                                inputMode="numeric"
-                                onChange={(e) =>
-                                    setForm({ ...form, dni: e.target.value.replace(/[^\d]/g, "") })
-                                }
+                                className="w-full h-11 rounded-xl border border-gray-300 bg-gray-100 px-3 text-black"
+                                value={`@${form.username}`}
+                                disabled
                             />
                         </Field>
                         <Field label="Teléfono">
                             <input
                                 className="w-full h-11 rounded-xl border border-gray-300 bg-white px-3 text-black
-                           focus:outline-none focus:ring-2 focus:ring-red-500"
+                            focus:outline-none focus:ring-2 focus:ring-red-500"
                                 value={form.telefono || ""}
                                 onChange={(e) => setForm({ ...form, telefono: e.target.value })}
                             />
@@ -397,7 +390,7 @@ function EditClientModal({
                         <Field label="Puntos">
                             <input
                                 className="w-full h-11 rounded-xl border border-gray-300 bg-white px-3 text-black tabular-nums
-                           focus:outline-none focus:ring-2 focus:ring-red-500"
+                            focus:outline-none focus:ring-2 focus:ring-red-500"
                                 value={String(form.puntos ?? 0)}
                                 inputMode="numeric"
                                 onChange={(e) =>
@@ -471,7 +464,7 @@ function ConfirmDelete({
                 </div>
                 <div className="p-6 space-y-4 text-black">
                     <p>
-                        ¿Eliminar a <b>{client.apellido}, {client.nombre}</b> (DNI {client.dni})?
+                        ¿Eliminar a <b>{client.apellido}, {client.nombre}</b> (@{client.username})?
                     </p>
                     {err && <div className="text-sm text-red-600">{err}</div>}
                     <div className="flex items-center justify-end gap-2">
@@ -485,7 +478,7 @@ function ConfirmDelete({
                             onClick={handle}
                             disabled={busy}
                             className="px-4 h-11 rounded-lg bg-red-600 hover:bg-red-500 text-white 
-                         disabled:opacity-60 transition"
+                            disabled:opacity-60 transition"
                         >
                             Eliminar
                         </button>

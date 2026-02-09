@@ -4,6 +4,7 @@ import { User } from "@/models/User";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { randomBytes } from "crypto";
+const USERNAME_REGEX = /^[a-z0-9._]{3,20}$/;
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,36 +17,42 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { nombre, apellido, dni, telefono } = await req.json();
+    const { username, password, nombre, apellido, email, telefono, dni } = await req.json();
 
-    // Validaciones mínimas
-    if (!nombre || !apellido || !dni) {
+    const normalizedUsername = String(username).toLowerCase().trim();
+
+    if (!normalizedUsername || normalizedUsername.length < 3) {
+      return NextResponse.json({ error: "Usuario inválido" }, { status: 400 });
+    }
+
+    if (!USERNAME_REGEX.test(normalizedUsername)) {
+      return NextResponse.json(
+        { error: "Usuario inválido (solo letras, números, . y _)" },
+        { status: 400 }
+      );
+    }
+
+    if (!password || password.length < 6) {
+      return NextResponse.json({ error: "Contraseña inválida" }, { status: 400 });
+    }
+
+    if (!nombre || !apellido) {
       return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
-    }
-    const dniStr = String(dni).replace(/\D/g, "");
-    const telStr = String(telefono).replace(/\D/g, "");
-    if (dniStr.length < 7 || dniStr.length > 9) {
-      return NextResponse.json({ error: "DNI inválido" }, { status: 400 });
-    }
-    if (telefono) {
-      if (telStr.length < 6 || telStr.length > 15) {
-        return NextResponse.json({ error: "Teléfono inválido" }, { status: 400 });
-      }
     }
 
     await connectMongoDB();
 
-    // Unicidad por DNI
-    const exists = await User.findOne({ dni: dniStr }).select("_id").lean();
+    const exists = await User.findOne({ username: normalizedUsername })
+      .select("_id")
+      .lean();
     if (exists) {
-      return NextResponse.json({ error: "El DNI ya está registrado" }, { status: 409 });
+      return NextResponse.json({ error: "El usuario ya existe" }, { status: 409 });
     }
 
-    // Contraseña provisional (nombre + dni), tal como definiste
-    const baseName = String(nombre).trim().split(/\s+/)[0].toLowerCase();
-    const provisionalPassword = `${baseName}${dniStr}`;
-
-    const passwordHash = await bcrypt.hash(provisionalPassword, 10);
+    let dniStr: string | undefined;
+    if (dni) {
+      dniStr = String(dni).replace(/\D/g, "");
+    }
 
     // qrToken único
     let qrToken = randomBytes(16).toString("hex");
@@ -54,16 +61,20 @@ export async function POST(req: NextRequest) {
       qrToken = randomBytes(16).toString("hex");
     }
 
-    // Crear usuario
     const user = await User.create({
-      nombre: String(nombre).trim(),
-      apellido: String(apellido).trim(),
+      username: normalizedUsername,
+      nombre: nombre.trim(),
+      apellido: apellido.trim(),
+      passwordHash: await bcrypt.hash(password, 10),
+
       dni: dniStr,
-      telefono: telStr || undefined,
-      passwordHash,
+      telefono,
+      email: email ? String(email).toLowerCase().trim() : undefined,
+
       role: "cliente",
       qrToken,
       puntos: 0,
+
     });
 
     // JWT largo (1 año)

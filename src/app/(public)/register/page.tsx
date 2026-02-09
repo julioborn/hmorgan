@@ -1,13 +1,23 @@
 "use client";
 import { useMemo, useState } from "react";
 import { ensurePushAfterLogin } from "@/lib/push-auto";
-import { useRouter } from "next/navigation";
 
-type RegisterForm = { nombre: string; apellido: string; dni: string; telefono: string };
+type RegisterForm = {
+  username: string;
+  password: string;
+  confirmPassword: string;
+  nombre: string;
+  apellido: string;
+  dni?: string; // ⬅️ opcional
+  telefono?: string;
+};
 type Errors = Partial<Record<keyof RegisterForm | "general", string>>;
 
 export default function RegisterPage() {
   const [form, setForm] = useState<RegisterForm>({
+    username: "",
+    password: "",
+    confirmPassword: "",
     nombre: "",
     apellido: "",
     dni: "",
@@ -16,19 +26,29 @@ export default function RegisterPage() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Errors>({});
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
+  const [showPassword, setShowPassword] = useState(false);
 
   const setField = (k: keyof RegisterForm, v: string) =>
     setForm((prev) => ({ ...prev, [k]: v }));
+
   const onlyDigits = (s: string) => s.replace(/\D/g, "");
 
   const validate = (f: RegisterForm): Errors => {
     const e: Errors = {};
+    if (!f.username || f.username.length < 3)
+      e.username = "Usuario mínimo 3 caracteres";
+    if (!f.password || f.password.length < 6)
+      e.password = "Mínimo 6 caracteres";
+    if (f.password !== f.confirmPassword)
+      e.confirmPassword = "Las contraseñas no coinciden";
     if (!f.nombre || f.nombre.trim().length < 2) e.nombre = "Nombre demasiado corto";
     if (!f.apellido || f.apellido.trim().length < 2) e.apellido = "Apellido demasiado corto";
-    if (!f.dni) e.dni = "Ingresá DNI";
-    else if (onlyDigits(f.dni).length < 7 || onlyDigits(f.dni).length > 9)
-      e.dni = "DNI inválido";
+    if (f.dni) {
+      const d = onlyDigits(f.dni);
+      if (d.length < 7 || d.length > 9) {
+        e.dni = "DNI inválido";
+      }
+    }
     if (f.telefono) {
       if (f.telefono.length < 6 || f.telefono.length > 15) {
         e.telefono = "Teléfono inválido";
@@ -38,20 +58,40 @@ export default function RegisterPage() {
   };
 
   const currentErrors = useMemo(() => validate(form), [form]);
-  const hasErrors = Object.keys(currentErrors).length > 0;
+  const hasErrors =
+    Object.keys(currentErrors).length > 0 &&
+    Object.keys(touched).length > 0;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setTouched({ nombre: true, apellido: true, dni: true });
+    setTouched({
+      username: true,
+      password: true,
+      confirmPassword: true,
+      nombre: true,
+      apellido: true,
+      dni: true,
+      telefono: true,
+    });
     if (hasErrors) return;
 
     setLoading(true);
     setErrors((p) => ({ ...p, general: undefined }));
 
+    const payload: any = {
+      username: form.username,
+      password: form.password,
+      nombre: form.nombre,
+      apellido: form.apellido,
+    };
+
+    if (form.telefono) payload.telefono = form.telefono;
+    if (form.dni) payload.dni = onlyDigits(form.dni);
+
     // 1️⃣ Registrar usuario (esto YA crea la cookie)
     const res = await fetch("/api/auth/register", {
       method: "POST",
-      body: JSON.stringify({ ...form, dni: onlyDigits(form.dni) }),
+      body: JSON.stringify(payload),
       headers: { "Content-Type": "application/json" },
       credentials: "same-origin", // 🔥 CLAVE
     });
@@ -81,6 +121,12 @@ export default function RegisterPage() {
     return clean.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   }
 
+  const inputClass = (field: keyof RegisterForm) =>
+    `w-full h-12 px-3 rounded-xl border text-gray-800 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 transition ${touched[field] && currentErrors[field]
+      ? "border-red-400 focus:ring-red-400"
+      : "border-gray-300"
+    }`;
+
   return (
     <div className="min-h-screen flex items-start mt-6 justify-center bg-gradient-to-b from-gray-50 to-gray-100 px-4 py-[env(safe-area-inset-bottom)]">
       <form
@@ -98,22 +144,105 @@ export default function RegisterPage() {
         )}
 
         <div className="space-y-4">
+          {/* Usuario */}
+          <div>
+            <label className="block mb-1 text-sm font-semibold text-gray-700">
+              Nombre de usuario
+            </label>
+            <input
+              type="text"
+              placeholder="Usuario"
+              autoComplete="username"
+              enterKeyHint="next"
+              className={inputClass("username")}
+              value={form.username}
+              onChange={(e) => setField("username", e.target.value.toLowerCase().trim())}
+              onBlur={() => setTouched((t) => ({ ...t, username: true }))}
+            />
+            {touched.username && currentErrors.username && (
+              <p className="mt-1 text-xs text-red-600">{currentErrors.username}</p>
+            )}
+          </div>
+
+          {/* Contraseña */}
+          <div>
+            <label className="block mb-1 text-sm font-semibold text-gray-700">
+              Contraseña
+            </label>
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Contraseña"
+              autoComplete="new-password"
+              enterKeyHint="next"
+              className={inputClass("password")}
+              value={form.password}
+              onChange={(e) => setField("password", e.target.value)}
+              onBlur={() => setTouched((t) => ({ ...t, password: true }))}
+            />
+            {touched.password && currentErrors.password && (
+              <p className="mt-1 text-xs text-red-600">{currentErrors.password}</p>
+            )}
+          </div>
+
+          {/* Confirmar contraseña */}
+          <div>
+            <label className="block mb-1 text-sm font-semibold text-gray-700">
+              Confirmar contraseña
+            </label>
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Confirmar contraseña"
+              autoComplete="new-password"
+              enterKeyHint="next"
+              className={inputClass("confirmPassword")}
+              value={form.confirmPassword}
+              onChange={(e) => setField("confirmPassword", e.target.value)}
+              onBlur={() => setTouched((t) => ({ ...t, confirmPassword: true }))}
+            />
+            {touched.confirmPassword && currentErrors.confirmPassword && (
+              <p className="mt-1 text-xs text-red-600">{currentErrors.confirmPassword}</p>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 mt-2">
+            <input
+              id="show-password"
+              type="checkbox"
+              checked={showPassword}
+              onChange={(e) => setShowPassword(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+            />
+            <label
+              htmlFor="show-password"
+              className="text-sm text-gray-600 select-none cursor-pointer"
+            >
+              Mostrar contraseñas
+            </label>
+          </div>
+
           {(["nombre", "apellido", "dni", "telefono"] as (keyof RegisterForm)[]).map((field) => (
             <div key={field}>
+              <label className="block mb-1 text-sm font-semibold text-gray-700">
+                {field === "dni"
+                  ? "DNI (opcional)"
+                  : field === "telefono"
+                    ? "Teléfono (opcional)"
+                    : field === "nombre"
+                      ? "Nombre"
+                      : "Apellido"}
+              </label>
               <input
                 type="text"
                 inputMode={field === "dni" || field === "telefono" ? "numeric" : "text"}
                 placeholder={
-                  field === "telefono"
-                    ? "Teléfono (opcional)"
-                    : field.charAt(0).toUpperCase() + field.slice(1)
+                  field === "dni"
+                    ? "DNI (opcional)"
+                    : field === "telefono"
+                      ? "Teléfono (opcional)"
+                      : field.charAt(0).toUpperCase() + field.slice(1)
                 }
-                autoComplete={field === "dni" ? "username" : undefined}
                 enterKeyHint="next"
-                className={`w-full h-12 px-3 rounded-xl border text-gray-800 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 transition ${touched[field] && currentErrors[field]
-                  ? "border-red-400 focus:ring-red-400"
-                  : "border-gray-300"
-                  }`}
+                className={inputClass(field)}
                 value={form[field]}
                 onChange={(e) => {
                   let value = e.target.value;
@@ -147,6 +276,17 @@ export default function RegisterPage() {
           >
             {loading ? "Registrando..." : "Registrarme"}
           </button>
+          <div className="pt-3 text-center">
+            <p className="text-sm text-gray-600">
+              ¿Ya tenés cuenta?{" "}
+              <a
+                href="/login"
+                className="font-semibold text-red-600 hover:text-red-500 transition"
+              >
+                Iniciar sesión
+              </a>
+            </p>
+          </div>
         </div>
       </form>
     </div>

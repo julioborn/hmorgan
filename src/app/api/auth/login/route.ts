@@ -15,14 +15,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { dni, password } = await req.json();
-    if (!dni || !password) {
+    const { username, password } = await req.json();
+
+    if (!username || !password) {
       return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
     }
 
+    const normalizedUsername = String(username).toLowerCase().trim();
+
     await connectMongoDB();
 
-    const user = await User.findOne({ dni }).select("+passwordHash");
+    const user = await User.findOne({ username: normalizedUsername })
+      .select("+passwordHash");
+
     if (!user) {
       return NextResponse.json({ error: "Credenciales inválidas" }, { status: 401 });
     }
@@ -46,9 +51,9 @@ export async function POST(req: NextRequest) {
     res.cookies.set("session", token, {
       httpOnly: true,
       sameSite: "lax",
-      secure: isProd, // en Vercel true
+      secure: isProd,
       path: "/",
-      maxAge: 60 * 60 * 24 * 365, // 1 año (segundos)
+      maxAge: 60 * 60 * 24 * 365,
     });
 
     return res;

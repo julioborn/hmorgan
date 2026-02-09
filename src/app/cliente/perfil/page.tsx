@@ -2,17 +2,17 @@
 
 import { useEffect, useState } from "react";
 import Loader from "@/components/Loader";
-import Swal from "sweetalert2";
 import { swalBase } from "@/lib/swalConfig";
 
 type Perfil = {
+    username: string;           // 👈 IDENTIDAD (readonly)
     nombre: string;
     apellido: string;
-    dni: string;
-    telefono: string;
+    dni?: string;               // 👈 EDITABLE
+    telefono?: string;
     email?: string;
     fechaNacimiento?: string;
-    direccion?: string; // 👈 NUEVO
+    direccion?: string;
 };
 
 export default function PerfilPage() {
@@ -20,35 +20,25 @@ export default function PerfilPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [resetting, setResetting] = useState(false);
-    const [showUpdateBtn, setShowUpdateBtn] = useState(false);
 
     useEffect(() => {
         (async () => {
             try {
                 const res = await fetch("/api/cliente/perfil", { cache: "no-store" });
                 const data = await res.json();
-                if (res.ok) setPerfil(data);
-                else throw new Error(data.error || "Error al cargar perfil");
+                if (!res.ok) throw new Error(data.error || "Error al cargar perfil");
+                setPerfil(data);
             } catch (err: any) {
                 swalBase.fire({
                     icon: "error",
-                    title: "❌ Error",
-                    text: err.message || "Error de red",
+                    title: "Error",
+                    text: err.message,
                     confirmButtonColor: "#dc2626",
                 });
             } finally {
                 setLoading(false);
             }
         })();
-
-        if ("serviceWorker" in navigator) {
-            navigator.serviceWorker.getRegistration().then((reg) => {
-                if (!reg) return;
-                reg.addEventListener("updatefound", () => {
-                    setShowUpdateBtn(true);
-                });
-            });
-        }
     }, []);
 
     async function handleSave(e: React.FormEvent) {
@@ -60,21 +50,38 @@ export default function PerfilPage() {
             const res = await fetch("/api/cliente/perfil", {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(perfil),
+                body: JSON.stringify({
+                    nombre: perfil.nombre,
+                    apellido: perfil.apellido,
+                    dni: perfil.dni,
+                    telefono: perfil.telefono,
+                    email: perfil.email,
+                    fechaNacimiento: perfil.fechaNacimiento,
+                    direccion: perfil.direccion,
+                }),
             });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || "Error al guardar");
+
+            const raw = await res.text();
+            const data = raw ? JSON.parse(raw) : {};
+
+            if (!res.ok) {
+                // si el backend manda status 409, lo mostramos claro
+                if (res.status === 409) {
+                    throw new Error(data.error || "Ese email ya está en uso");
+                }
+                throw new Error(data.error || "Error al guardar");
+            }
 
             swalBase.fire({
                 icon: "success",
-                title: "✅ Perfil actualizado",
+                title: "Perfil actualizado",
                 text: "Tus datos se guardaron correctamente.",
                 confirmButtonColor: "#dc2626",
             });
         } catch (err: any) {
             swalBase.fire({
                 icon: "error",
-                title: "❌ Error",
+                title: "Error",
                 text: err.message,
                 confirmButtonColor: "#dc2626",
             });
@@ -87,8 +94,8 @@ export default function PerfilPage() {
         if (!perfil?.email) {
             swalBase.fire({
                 icon: "warning",
-                title: "⚠️ Email requerido",
-                text: "Debes ingresar tu email en el perfil para cambiar la contraseña.",
+                title: "Email requerido",
+                text: "Agregá tu email para poder cambiar la contraseña.",
                 confirmButtonColor: "#f59e0b",
             });
             return;
@@ -101,19 +108,21 @@ export default function PerfilPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email: perfil.email }),
             });
-            const data = await res.json();
+
+            const raw = await res.text();
+            const data = raw ? JSON.parse(raw) : {};
             if (!res.ok) throw new Error(data.error || "Error al solicitar cambio");
 
             swalBase.fire({
                 icon: "success",
-                title: "📧 Correo enviado",
-                text: `Revisa ${perfil.email} para cambiar tu contraseña.`,
+                title: "Correo enviado",
+                text: `Revisá ${perfil.email} para cambiar tu contraseña.`,
                 confirmButtonColor: "#dc2626",
             });
         } catch (err: any) {
             swalBase.fire({
                 icon: "error",
-                title: "❌ Error",
+                title: "Error",
                 text: err.message,
                 confirmButtonColor: "#dc2626",
             });
@@ -121,22 +130,6 @@ export default function PerfilPage() {
             setResetting(false);
         }
     }
-
-    const handleUpdateApp = async () => {
-        try {
-            if ("serviceWorker" in navigator) {
-                const regs = await navigator.serviceWorker.getRegistrations();
-                for (const reg of regs) await reg.unregister();
-                await caches
-                    .keys()
-                    .then((keys) => Promise.all(keys.map((k) => caches.delete(k))));
-            }
-            window.location.reload();
-        } catch (err) {
-            console.error("Error al actualizar:", err);
-            window.location.reload();
-        }
-    };
 
     if (loading) {
         return (
@@ -162,15 +155,38 @@ export default function PerfilPage() {
                 </h1>
 
                 <form onSubmit={handleSave} className="space-y-5">
-                    {/* DNI */}
+
+                    {/* Username (readonly) */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            DNI
+                            Usuario
                         </label>
                         <input
-                            value={perfil.dni}
+                            value={`@${perfil.username}`}
                             disabled
-                            className="w-full h-12 px-3 rounded-xl bg-gray-100 text-gray-500 cursor-not-allowed border border-gray-200"
+                            className="w-full h-12 px-3 rounded-xl bg-gray-100 text-gray-600 cursor-not-allowed border border-gray-200"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                            Este es tu identificador único y no se puede cambiar.
+                        </p>
+                    </div>
+
+                    {/* DNI (editable) */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            DNI (opcional)
+                        </label>
+                        <input
+                            value={perfil.dni || ""}
+                            inputMode="numeric"
+                            onChange={(e) =>
+                                setPerfil({
+                                    ...perfil,
+                                    dni: e.target.value.replace(/\D/g, ""),
+                                })
+                            }
+                            className="w-full h-12 px-3 rounded-xl bg-gray-50 border border-gray-300 focus:ring-2 focus:ring-red-500 focus:outline-none"
+                            placeholder="Solo números"
                         />
                     </div>
 
@@ -181,7 +197,9 @@ export default function PerfilPage() {
                         </label>
                         <input
                             value={perfil.nombre}
-                            onChange={(e) => setPerfil({ ...perfil, nombre: e.target.value })}
+                            onChange={(e) =>
+                                setPerfil({ ...perfil, nombre: e.target.value })
+                            }
                             className="w-full h-12 px-3 rounded-xl bg-gray-50 border border-gray-300 focus:ring-2 focus:ring-red-500 focus:outline-none"
                         />
                     </div>
@@ -193,7 +211,9 @@ export default function PerfilPage() {
                         </label>
                         <input
                             value={perfil.apellido}
-                            onChange={(e) => setPerfil({ ...perfil, apellido: e.target.value })}
+                            onChange={(e) =>
+                                setPerfil({ ...perfil, apellido: e.target.value })
+                            }
                             className="w-full h-12 px-3 rounded-xl bg-gray-50 border border-gray-300 focus:ring-2 focus:ring-red-500 focus:outline-none"
                         />
                     </div>
@@ -204,7 +224,7 @@ export default function PerfilPage() {
                             Teléfono
                         </label>
                         <input
-                            value={perfil.telefono}
+                            value={perfil.telefono || ""}
                             onChange={(e) =>
                                 setPerfil({ ...perfil, telefono: e.target.value })
                             }
@@ -212,47 +232,16 @@ export default function PerfilPage() {
                         />
                     </div>
 
-                    {/* Dirección */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Dirección
-                        </label>
-                        <input
-                            value={perfil.direccion || ""}
-                            onChange={(e) => setPerfil({ ...perfil, direccion: e.target.value })}
-                            className="w-full h-12 px-3 rounded-xl bg-gray-50 border border-gray-300 focus:ring-2 focus:ring-red-500 focus:outline-none"
-                            placeholder=""
-                        />
-                    </div>
-
                     {/* Email */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Email
+                            Email (para recuperar contraseña)
                         </label>
                         <input
                             type="email"
                             value={perfil.email || ""}
-                            onChange={(e) => setPerfil({ ...perfil, email: e.target.value })}
-                            className="w-full h-12 px-3 rounded-xl bg-gray-50 border border-gray-300 focus:ring-2 focus:ring-red-500 focus:outline-none"
-                            placeholder="ejemplo@correo.com"
-                        />
-                    </div>
-
-                    {/* Fecha de nacimiento */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Fecha de Nacimiento (opcional)
-                        </label>
-                        <input
-                            type="date"
-                            value={
-                                perfil.fechaNacimiento
-                                    ? perfil.fechaNacimiento.slice(0, 10)
-                                    : ""
-                            }
                             onChange={(e) =>
-                                setPerfil({ ...perfil, fechaNacimiento: e.target.value })
+                                setPerfil({ ...perfil, email: e.target.value })
                             }
                             className="w-full h-12 px-3 rounded-xl bg-gray-50 border border-gray-300 focus:ring-2 focus:ring-red-500 focus:outline-none"
                         />
@@ -272,20 +261,10 @@ export default function PerfilPage() {
                             type="button"
                             onClick={handleRequestReset}
                             disabled={resetting}
-                            className="w-full h-12 rounded-xl bg-white border border-gray-300 font-bold text-gray-700 hover:bg-gray-50 shadow-sm transition disabled:opacity-60"
+                            className="w-full h-12 rounded-xl bg-white border border-gray-300 font-bold text-gray-700 hover:bg-gray-50 transition disabled:opacity-60"
                         >
                             {resetting ? "Enviando..." : "Cambiar contraseña"}
                         </button>
-
-                        {showUpdateBtn && (
-                            <button
-                                type="button"
-                                onClick={handleUpdateApp}
-                                className="w-full h-12 rounded-xl bg-red-100 hover:bg-red-200 text-red-700 font-bold shadow-sm transition"
-                            >
-                                🔄 Actualizar aplicación
-                            </button>
-                        )}
                     </div>
                 </form>
             </div>

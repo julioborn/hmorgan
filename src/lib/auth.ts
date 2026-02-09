@@ -9,28 +9,23 @@ export const authOptions: NextAuthOptions = {
         CredentialsProvider({
             name: "Credentials",
             credentials: {
-                dni: { label: "DNI", type: "text" },
+                username: { label: "Usuario", type: "text" },
                 password: { label: "Password", type: "password" },
             },
             async authorize(credentials) {
                 await connectMongoDB();
-
-                // 🔹 buscamos sin .lean() para tener un documento Mongoose
-                const user = await User.findOne({ dni: credentials!.dni });
+                const username = credentials?.username?.toLowerCase().trim();
+                if (!username || !credentials?.password) return null;
+                const user = await User.findOne({ username });
                 if (!user) return null;
-
-                // 🔹 validamos contraseña
-                const isValid = await bcrypt.compare(credentials!.password, user.passwordHash);
+                const isValid = await bcrypt.compare(credentials.password, user.passwordHash);
                 if (!isValid) return null;
-
-                // 🔹 devolvemos datos seguros para la sesión
                 return {
                     id: user._id.toString(),
-                    name: user.nombre,
-                    email: user.telefono, // ⚡ usamos teléfono como "email"
+                    name: user.username, // 👈 identidad real
                     role: user.role,
                 };
-            },
+            }
         }),
     ],
 

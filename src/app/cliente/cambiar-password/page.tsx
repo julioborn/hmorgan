@@ -77,8 +77,7 @@ export default function CambiarPasswordPage() {
                 <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold disabled:opacity-60"
-                >
+                    className="w-full h-12 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold shadow-sm transition disabled:opacity-60"                >
                     {loading ? <Loader size={20} /> : "Guardar contraseña"}
                 </button>
             </form>

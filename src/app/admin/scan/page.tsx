@@ -4,7 +4,13 @@ import { useEffect, useRef, useState } from "react";
 
 // Tipos
 type CamState = "idle" | "starting" | "on" | "error";
-type Person = { id: string; nombre: string; apellido: string; dni: string; puntos: number };
+type Person = {
+  id: string;
+  username: string;
+  nombre: string;
+  apellido: string;
+  puntos: number;
+};
 
 export default function ScanPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -225,20 +231,20 @@ export default function ScanPage() {
       if (!seenIdsRef.current.has(user.id)) {
         seenIdsRef.current.add(user.id);
         setPeople((prev) => [...prev, user]);
-        setStatus(`Agregado: ${user.nombre} ${user.apellido} (${user.dni})`);
+        setStatus(`Agregado: ${user.nombre} ${user.apellido} (@${user.username})`);
 
         swalBase.fire({
           icon: "success",
           title: "Cliente escaneado ✅",
           html: `
-    <div class="text-black">
-      <div style="font-size: 1.1rem; margin-top: 0.5rem;">
-        <b>${user.nombre} ${user.apellido}</b><br/>
-        DNI: ${user.dni}<br/>
-        Puntos actuales: ${user.puntos}
-      </div>
+  <div class="text-black">
+    <div style="font-size: 1.1rem; margin-top: 0.5rem;">
+      <b>${user.nombre} ${user.apellido}</b><br/>
+      Usuario: @${user.username}<br/>
+      Puntos actuales: ${user.puntos}
     </div>
-  `,
+  </div>
+`,
 
           background: "#ffffff",
 
@@ -516,7 +522,7 @@ export default function ScanPage() {
                           {p.nombre} {p.apellido}
                         </div>
                         <div className="text-xs text-gray-500 truncate">
-                          DNI: {p.dni}
+                          @{p.username}
                         </div>
                         <div className="text-xs text-gray-500 truncate">
                           Puntos actuales: {p.puntos}

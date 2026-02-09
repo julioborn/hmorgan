@@ -9,9 +9,9 @@ const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET!;
 
 type LeanUser = {
     _id: Types.ObjectId;
+    username: string;
     nombre: string;
     apellido: string;
-    dni: string;
     puntos?: number;
 };
 
@@ -30,8 +30,8 @@ export async function GET(req: NextRequest) {
         await connectMongoDB();
 
         const user = await User.findOne({ qrToken })
-            .select("_id nombre apellido dni puntos")
-            .lean<LeanUser>(); // 👈 tipado explícito
+            .select("_id username nombre apellido puntos")
+            .lean<LeanUser>();
 
         if (!user) return NextResponse.json({ error: "QR inválido" }, { status: 404 });
 
@@ -39,9 +39,9 @@ export async function GET(req: NextRequest) {
             ok: true,
             user: {
                 id: user._id.toString(),
+                username: user.username,
                 nombre: user.nombre,
                 apellido: user.apellido,
-                dni: user.dni,
                 puntos: user.puntos ?? 0,
             },
         });

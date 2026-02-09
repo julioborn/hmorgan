@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { swalBase } from "@/lib/swalConfig";
+import Loader from "@/components/Loader";
 
 export default function ConfiguracionPage() {
     const [valor, setValor] = useState<number | null>(null);
@@ -44,7 +45,13 @@ export default function ConfiguracionPage() {
         }
     };
 
-    if (loading) return <p className="text-center py-10">Cargando...</p>;
+    if (loading) {
+        return (
+            <div className="py-20 flex justify-center">
+                <Loader size={40} />
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-md mx-auto bg-white text-black p-6 rounded-xl shadow-lg">
