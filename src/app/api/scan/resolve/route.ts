@@ -17,7 +17,7 @@ type LeanUser = {
 
 export async function GET(req: NextRequest) {
     try {
-        // auth admin
+        // authadmin
         const token = req.cookies.get("session")?.value;
         if (!token) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
         const payload = jwt.verify(token, NEXTAUTH_SECRET) as any;
