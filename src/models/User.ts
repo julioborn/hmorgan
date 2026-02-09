@@ -1,11 +1,21 @@
 // models/User.ts
 import mongoose, { Schema, Document } from "mongoose";
 
+const PushSubscriptionSchema = new Schema(
+  {
+    endpoint: { type: String, required: true },
+    keys: {
+      p256dh: { type: String, required: true },
+      auth: { type: String, required: true },
+    },
+  },
+  { _id: false }
+);
+
 export interface IUser extends Document {
   _id: mongoose.Types.ObjectId;
 
   username: string;
-
   nombre: string;
   apellido: string;
 
@@ -13,6 +23,7 @@ export interface IUser extends Document {
   telefono?: string;
   email?: string;
 
+  // ✅ ESTO FALTABA (está en el Schema)
   fechaNacimiento?: Date;
   direccion?: string;
 
@@ -22,9 +33,17 @@ export interface IUser extends Document {
   qrToken: string;
   puntos: number;
 
-  // ✅ NUEVO (para reset password)
   resetToken?: string;
   resetTokenExp?: Date;
+
+  // 🔔 PUSH
+  pushSubscriptions?: {
+    endpoint: string;
+    keys: {
+      p256dh: string;
+      auth: string;
+    };
+  }[];
 
   needsReview?: boolean;
 }
@@ -56,6 +75,11 @@ const UserSchema = new Schema<IUser>({
 
   qrToken: { type: String, required: true },
   puntos: { type: Number, default: 0 },
+
+  pushSubscriptions: {
+    type: [PushSubscriptionSchema],
+    default: [],
+  },
 
   needsReview: { type: Boolean, default: false },
 });
