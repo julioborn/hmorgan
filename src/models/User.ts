@@ -1,4 +1,4 @@
-// models/User.ts
+// models/User.ts 
 import mongoose, { Schema, Document } from "mongoose";
 
 const PushSubscriptionSchema = new Schema(
