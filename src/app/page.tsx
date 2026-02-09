@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
-import { QrCode, Scan, Users, Bell, ChefHat, PackagePlus, Package, Utensils, Ticket, Coins, History, ScanQrCode, ScanText, MessageSquare } from "lucide-react";
+import { QrCode, Scan, Users, Bell, ChefHat, PackagePlus, Package, Utensils, Ticket, Coins, History, ScanQrCode, ScanText, MessageSquare, Settings, Star } from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 import "swiper/css";
@@ -432,6 +432,18 @@ function AdminHome() {
           Icon={Package}
           accent="from-red-600 to-red-800"
           notificationCount={pedidosActivosCount}
+        />
+        <ActionCard
+          href="/admin/reviews"
+          title="Reseñas"
+          Icon={Star}
+          accent="from-red-600 to-red-800"
+        />
+        <ActionCard
+          href="/admin/configuracion"
+          title="Ajustes"
+          Icon={Settings}
+          accent="from-red-600 to-red-800"
         />
 
         {/* ✅ Notificaciones - ocupa todo el ancho y fondo negro */}

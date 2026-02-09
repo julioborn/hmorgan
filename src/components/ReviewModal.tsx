@@ -18,7 +18,7 @@ export default function ModalReview({ open, onClose, onSubmit }: ModalReviewProp
     if (!open) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-36">
             {/* Fondo oscuro */}
             <div
                 className="absolute inset-0 bg-black/50"

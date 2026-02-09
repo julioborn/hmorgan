@@ -93,7 +93,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
                                     headers: { "Content-Type": "application/json" },
                                     body: JSON.stringify({
                                         rating,
-                                        comentario: comment,
+                                        comment: comment,
                                         transactionId: pendingTxId,
                                     }),
                                 });

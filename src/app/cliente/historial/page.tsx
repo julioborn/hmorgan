@@ -1,6 +1,7 @@
 "use client";
+
 import { useEffect, useState } from "react";
-import { UtensilsCrossed, Settings, Gift } from "lucide-react";
+import { UtensilsCrossed, Settings, Gift, ChevronLeft, ChevronRight } from "lucide-react";
 import Loader from "@/components/Loader";
 
 type Tx = {
@@ -22,15 +23,20 @@ type Canje = {
 
 export default function HistorialPage() {
     const [tab, setTab] = useState<"puntos" | "canjes">("puntos");
+
     const [items, setItems] = useState<Tx[]>([]);
     const [canjes, setCanjes] = useState<Canje[]>([]);
     const [loadingPuntos, setLoadingPuntos] = useState(true);
     const [loadingCanjes, setLoadingCanjes] = useState(true);
 
+    // paginación puntos
+    const [page, setPage] = useState(1);
+    const pageSize = 8;
+
     useEffect(() => {
         (async () => {
             try {
-                const res = await fetch("/api/puntos");
+                const res = await fetch("/api/puntos", { cache: "no-store" });
                 const data = await res.json();
                 setItems(data.items || []);
             } catch {
@@ -42,7 +48,7 @@ export default function HistorialPage() {
 
         (async () => {
             try {
-                const res = await fetch("/api/canjes");
+                const res = await fetch("/api/canjes", { cache: "no-store" });
                 if (!res.ok) throw new Error("No autorizado");
                 const data = await res.json();
                 setCanjes(data || []);
@@ -54,6 +60,13 @@ export default function HistorialPage() {
         })();
     }, []);
 
+    const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+    const pagedItems = items.slice((page - 1) * pageSize, page * pageSize);
+
+    useEffect(() => {
+        if (page > totalPages) setPage(totalPages);
+    }, [totalPages, page]);
+
     const formatDate = (d: string) =>
         new Date(d).toLocaleDateString("es-AR", {
             day: "2-digit",
@@ -63,15 +76,20 @@ export default function HistorialPage() {
 
     return (
         <div className="p-6 space-y-6 bg-white min-h-screen">
-            <h1 className="text-4xl font-extrabold mb-10 text-center text-black">Historial</h1>
+            <h1 className="text-4xl font-extrabold mb-10 text-center text-black">
+                Historial
+            </h1>
 
             {/* Tabs */}
             <div className="flex justify-center gap-4">
                 {["puntos", "canjes"].map((t) => (
                     <button
                         key={t}
-                        onClick={() => setTab(t as "puntos" | "canjes")}
-                        className={`px-5 py-2 rounded-lg font-semibold border transition-all duration-200 shadow-sm ${tab === t
+                        onClick={() => {
+                            setTab(t as any);
+                            setPage(1);
+                        }}
+                        className={`px-5 py-2 rounded-lg font-semibold border transition-all shadow-sm ${tab === t
                                 ? "bg-red-600 text-white border-red-600"
                                 : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
                             }`}
@@ -81,102 +99,132 @@ export default function HistorialPage() {
                 ))}
             </div>
 
-            {/* Contenido */}
+            {/* CONTENIDO */}
             {tab === "puntos" ? (
                 loadingPuntos ? (
-                    <div className="py-20 flex justify-center items-center">
+                    <div className="py-20 flex justify-center">
                         <Loader size={40} />
                     </div>
                 ) : items.length === 0 ? (
-                    <div className="p-6 text-center text-gray-500 bg-white border border-gray-200 rounded-xl shadow-sm">
+                    <div className="p-6 text-center text-gray-500 border rounded-xl">
                         Sin movimientos aún.
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        {items.map((tx) => {
-                            const Icon = tx.source === "consumo" ? UtensilsCrossed : Settings;
-                            return (
-                                <div
-                                    key={tx._id}
-                                    className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm hover:shadow-md hover:-translate-y-[2px] transition-all"
+                    <>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            {pagedItems.map((tx) => {
+                                const Icon = tx.source === "consumo" ? UtensilsCrossed : Settings;
+
+                                return (
+                                    <div
+                                        key={tx._id}
+                                        className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-all"
+                                    >
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <Icon className="w-7 h-7 text-red-600" />
+                                            <h2 className="text-lg font-bold text-black">
+                                                {tx.source === "consumo" ? "Consumo" : "Ajuste"}
+                                            </h2>
+                                        </div>
+
+                                        {tx.meta?.consumoARS !== undefined && (
+                                            <p className="text-sm text-gray-700 mb-4">
+                                                Consumo: ${tx.meta.consumoARS}
+                                            </p>
+                                        )}
+
+                                        <div className="flex items-end justify-between">
+                                            <p className="text-sm text-gray-500">
+                                                {formatDate(tx.createdAt)}
+                                            </p>
+                                            <span className="text-xl font-extrabold text-red-600">
+                                                {tx.amount >= 0 ? "+" : ""}
+                                                {tx.amount}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* PAGINACIÓN */}
+                        {totalPages > 1 && (
+                            <div className="mt-10 flex justify-center gap-2">
+                                <button
+                                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                    disabled={page === 1}
+                                    className="h-10 px-3 rounded-lg border bg-white disabled:opacity-50"
                                 >
-                                    {/* Cabecera */}
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <Icon className="w-7 h-7 text-red-600" />
-                                        <h2 className="text-lg font-bold text-black">
-                                            {tx.source === "consumo" ? "Consumo" : "Ajuste"}
-                                        </h2>
-                                    </div>
+                                    <ChevronLeft />
+                                </button>
 
-                                    {/* Descripción */}
-                                    {tx.meta?.consumoARS !== undefined && (
-                                        <p className="text-sm text-gray-700 mb-4">
-                                            Consumo: ${tx.meta.consumoARS}
-                                        </p>
-                                    )}
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                                    <button
+                                        key={p}
+                                        onClick={() => setPage(p)}
+                                        className={`h-10 min-w-10 px-3 rounded-lg border font-semibold ${p === page
+                                                ? "bg-red-600 text-white border-red-600"
+                                                : "bg-white text-black border-gray-300 hover:bg-gray-100"
+                                            }`}
+                                    >
+                                        {p}
+                                    </button>
+                                ))}
 
-                                    {/* Footer */}
-                                    <div className="flex items-end justify-between">
-                                        <p className="text-sm text-gray-500">{formatDate(tx.createdAt)}</p>
-                                        <span
-                                            className={`text-xl font-extrabold ${tx.amount >= 0 ? "text-red-600" : "text-red-600"
-                                                }`}
-                                        >
-                                            {tx.amount >= 0 ? "+" : ""}
-                                            {tx.amount}
-                                        </span>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
+                                <button
+                                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                                    disabled={page === totalPages}
+                                    className="h-10 px-3 rounded-lg border bg-white disabled:opacity-50"
+                                >
+                                    <ChevronRight />
+                                </button>
+                            </div>
+                        )}
+                    </>
                 )
             ) : loadingCanjes ? (
-                <div className="py-20 flex justify-center items-center">
+                <div className="py-20 flex justify-center">
                     <Loader size={40} />
                 </div>
             ) : canjes.length === 0 ? (
-                <p className="text-gray-500 text-center bg-white p-6 border border-gray-200 rounded-xl shadow-sm">
+                <div className="p-6 text-center text-gray-500 border rounded-xl">
                     Aún no realizaste canjes.
-                </p>
+                </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {canjes.map((c) => (
                         <div
                             key={c._id}
-                            className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm hover:shadow-md hover:-translate-y-[2px] transition-all"
+                            className="bg-white rounded-2xl border p-5 shadow-sm hover:shadow-md transition-all"
                         >
-                            {/* Cabecera */}
                             <div className="flex items-center gap-3 mb-2">
                                 <Gift className="w-7 h-7 text-red-600" />
-                                <h2 className="text-lg font-bold text-black">{c.rewardId?.titulo}</h2>
+                                <h2 className="text-lg font-bold text-black">
+                                    {c.rewardId?.titulo}
+                                </h2>
                             </div>
 
-                            {/* Descripción */}
                             {c.rewardId?.descripcion && (
-                                <p className="text-sm text-gray-700 mb-4">{c.rewardId.descripcion}</p>
+                                <p className="text-sm text-gray-700 mb-4">
+                                    {c.rewardId.descripcion}
+                                </p>
                             )}
 
-                            {/* Footer */}
                             <div className="flex items-end justify-between">
-                                <div>
-                                    <p className="text-sm text-gray-500">{formatDate(c.createdAt)}</p>
-                                </div>
-
+                                <p className="text-sm text-gray-500">
+                                    {formatDate(c.createdAt)}
+                                </p>
                                 <div className="text-right">
                                     <p className="text-xl font-extrabold text-red-600">
                                         -{c.puntosGastados} pts
                                     </p>
                                     <span
-                                        className={`inline-block text-xs px-3 py-1 rounded-full font-semibold tracking-wide border mt-1
-                      ${c.estado === "completado"
+                                        className={`inline-block mt-1 text-xs px-3 py-1 rounded-full border font-semibold ${c.estado === "completado"
                                                 ? "bg-green-50 text-green-600 border-green-300"
                                                 : "bg-amber-50 text-amber-700 border-amber-300"
                                             }`}
                                     >
-                                        {c.estado === "completado"
-                                            ? "CANJEADO"
-                                            : c.estado.toUpperCase()}
+                                        {c.estado.toUpperCase()}
                                     </span>
                                 </div>
                             </div>
