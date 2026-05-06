@@ -95,6 +95,11 @@ export default function ScanPage() {
       zxingReaderRef.current?.reset?.();
     } catch { }
     camStateRef.current = "idle";
+    setCamState("idle");
+  }
+
+  function isIPad() {
+    return /iPad|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document;
   }
 
   useEffect(() => {
@@ -106,6 +111,16 @@ export default function ScanPage() {
   }, []);
 
   async function startCamera() {
+    if (isIPad() || !navigator.mediaDevices?.getUserMedia) {
+      swalBase.fire({
+        icon: "info",
+        title: "Escaneo no disponible",
+        text: "El escaneo QR no está disponible en este dispositivo.",
+        confirmButtonColor: "#dc2626",
+      });
+      return;
+    }
+
     if (!canStart) {
       setStatus("Completá Nº de mesa y consumo antes de activar la cámara.");
       setErrMsg("Falta completar datos para iniciar.");
@@ -114,8 +129,8 @@ export default function ScanPage() {
 
     setErrMsg("");
     setStatus("Solicitando permisos de cámara…");
-    setCamState("starting");
     stopCamera();
+    setCamState("starting");
 
     try {
       const canNative = await supportsNativeQR();
@@ -262,6 +277,9 @@ export default function ScanPage() {
 
         setFlash(true);
         setTimeout(() => setFlash(false), 180);
+
+        // 👇 acá
+        if (navigator.vibrate) navigator.vibrate(50);
       } else {
         setStatus("Ya estaba escaneado.");
       }
@@ -269,9 +287,7 @@ export default function ScanPage() {
       setStatus(e?.message || "QR inválido");
     } finally {
       inFlightTokensRef.current.delete(token);
-      setTimeout(() => {
-        busyRef.current = false;
-      }, 700);
+      busyRef.current = false;
     }
   }
 

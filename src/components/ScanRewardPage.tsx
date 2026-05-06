@@ -24,8 +24,17 @@ export default function ScanRewardPage() {
     const camStateRef = useRef<CamState>("idle");
     const busyRef = useRef(false);
     const inFlightTokensRef = useRef<Set<string>>(new Set());
+    const lastScanRef = useRef<{ token: string; time: number } | null>(null);
 
-    useEffect(() => () => stopCamera(), []);
+    useEffect(() => {
+        camStateRef.current = camState;
+    }, [camState]);
+
+    useEffect(() => {
+        return () => {
+            stopCamera();
+        };
+    }, []);
 
     async function supportsNativeQR(): Promise<boolean> {
         // @ts-expect-error experimental
@@ -39,7 +48,21 @@ export default function ScanRewardPage() {
         }
     }
 
+    function isIPad() {
+        return /iPad|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document;
+    }
+
     async function startCamera() {
+        if (isIPad()) {
+            swalBase.fire({
+                icon: "info",
+                title: "Escaneo no disponible",
+                text: "El escaneo QR no está disponible en este dispositivo.",
+                confirmButtonColor: "#dc2626",
+            });
+            return;
+        }
+
         if (!selectedReward) {
             setErrMsg("Seleccioná un canje antes de activar la cámara.");
             return;
@@ -136,6 +159,19 @@ export default function ScanRewardPage() {
             const parsed = JSON.parse(raw);
             if (parsed?.qrToken) token = String(parsed.qrToken);
         } catch { }
+
+        const now = Date.now();
+
+        if (
+            lastScanRef.current &&
+            lastScanRef.current.token === token &&
+            now - lastScanRef.current.time < 1500
+        ) {
+            busyRef.current = false;
+            return;
+        }
+
+        lastScanRef.current = { token, time: now };
 
         try {
             const res = await fetch(`/api/usuarios/qr/${token}`);

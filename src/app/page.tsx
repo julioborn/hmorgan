@@ -84,6 +84,12 @@ function Landing() {
           >
             Ingresar
           </Link>
+          <Link
+            href="/menu"
+            className="px-5 py-3 rounded-xl cursor-pointer bg-gray-200 text-black font-semibold hover:bg-gray-300 transition shadow-lg hover:scale-105"
+          >
+            Menú
+          </Link>
         </div>
       </section>
     </div>

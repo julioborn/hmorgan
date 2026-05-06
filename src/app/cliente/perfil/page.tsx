@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Loader from "@/components/Loader";
 import { swalBase } from "@/lib/swalConfig";
+import { useRouter } from "next/navigation";
 
 type Perfil = {
     username: string;           // 👈 IDENTIDAD (readonly)
@@ -20,6 +21,7 @@ export default function PerfilPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [resetting, setResetting] = useState(false);
+    const router = useRouter();
 
     useEffect(() => {
         (async () => {
@@ -147,6 +149,47 @@ export default function PerfilPage() {
         );
     }
 
+    async function handleDeleteAccount() {
+        const result = await swalBase.fire({
+            title: "¿Eliminar cuenta?",
+            text: "Esta acción es permanente y no se puede deshacer.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#dc2626",
+            cancelButtonColor: "#6b7280",
+            confirmButtonText: "Sí, eliminar",
+            cancelButtonText: "Cancelar",
+        });
+
+        if (!result.isConfirmed) return;
+
+        try {
+            const res = await fetch(`${window.location.origin}/api/cliente/delete`, {
+                method: "DELETE",
+                credentials: "include",
+            });
+
+            if (!res.ok) throw new Error("Error al eliminar la cuenta");
+
+            await swalBase.fire({
+                icon: "success",
+                title: "Cuenta eliminada",
+                text: "Tu cuenta fue eliminada correctamente.",
+                confirmButtonColor: "#dc2626",
+            });
+
+            window.location.href = "/";
+
+        } catch (err: any) {
+            swalBase.fire({
+                icon: "error",
+                title: "Error",
+                text: err.message,
+                confirmButtonColor: "#dc2626",
+            });
+        }
+    }
+
     return (
         <div className="max-w-lg mx-auto py-10 px-6 bg-white min-h-screen">
             <div className="rounded-2xl border border-gray-200 bg-white shadow-md p-6">
@@ -265,6 +308,21 @@ export default function PerfilPage() {
                         >
                             {resetting ? "Enviando..." : "Cambiar contraseña"}
                         </button>
+
+                        {/* Zona peligrosa */}
+                        <div className="mt-10 border-t border-gray-200 pt-6">
+                            <button
+                                type="button"
+                                onClick={handleDeleteAccount}
+                                className="w-full h-12 rounded-xl bg-red-100 text-red-700 font-bold hover:bg-red-200 transition"
+                            >
+                                Eliminar cuenta
+                            </button>
+
+                            <p className="text-xs text-gray-500 mt-2 text-center">
+                                Esta acción es permanente y elimina todos tus datos.
+                            </p>
+                        </div>
                     </div>
                 </form>
             </div>
