@@ -152,19 +152,19 @@ export default function PerfilPage() {
     async function handleDeleteAccount() {
         const result = await swalBase.fire({
             title: "¿Eliminar cuenta?",
-            text: "Esta acción es permanente y no se puede deshacer.",
+            text: "Esta acción es permanente y eliminará todos tus datos. No se puede deshacer.",
             icon: "warning",
             showCancelButton: true,
             confirmButtonColor: "#dc2626",
             cancelButtonColor: "#6b7280",
-            confirmButtonText: "Sí, eliminar",
+            confirmButtonText: "Sí, eliminar definitivamente",
             cancelButtonText: "Cancelar",
         });
 
         if (!result.isConfirmed) return;
 
         try {
-            const res = await fetch(`${window.location.origin}/api/cliente/delete`, {
+            const res = await fetch("/api/cliente/delete", {
                 method: "DELETE",
                 credentials: "include",
             });
@@ -174,11 +174,11 @@ export default function PerfilPage() {
             await swalBase.fire({
                 icon: "success",
                 title: "Cuenta eliminada",
-                text: "Tu cuenta fue eliminada correctamente.",
+                text: "Tu cuenta y todos tus datos fueron eliminados correctamente.",
                 confirmButtonColor: "#dc2626",
             });
 
-            window.location.href = "/";
+            window.location.href = "/login";
 
         } catch (err: any) {
             swalBase.fire({
@@ -310,17 +310,20 @@ export default function PerfilPage() {
                         </button>
 
                         {/* Zona peligrosa */}
-                        <div className="mt-10 border-t border-gray-200 pt-6">
+                        <div className="mt-10 border-t border-red-200 pt-6">
+                            <p className="text-sm font-semibold text-red-700 mb-3 text-center uppercase tracking-wide">
+                                Zona peligrosa
+                            </p>
                             <button
                                 type="button"
                                 onClick={handleDeleteAccount}
-                                className="w-full h-12 rounded-xl bg-red-100 text-red-700 font-bold hover:bg-red-200 transition"
+                                className="w-full h-12 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition"
                             >
-                                Eliminar cuenta
+                                Eliminar cuenta definitivamente
                             </button>
 
                             <p className="text-xs text-gray-500 mt-2 text-center">
-                                Esta acción es permanente y elimina todos tus datos.
+                                Esta acción es permanente e irreversible. Se eliminarán todos tus datos.
                             </p>
                         </div>
                     </div>

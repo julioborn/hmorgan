@@ -33,10 +33,14 @@ export default function RegisterPage() {
 
   const onlyDigits = (s: string) => s.replace(/\D/g, "");
 
+  const USERNAME_REGEX = /^[a-z0-9._]{3,20}$/;
+
   const validate = (f: RegisterForm): Errors => {
     const e: Errors = {};
     if (!f.username || f.username.length < 3)
       e.username = "Usuario mínimo 3 caracteres";
+    else if (!USERNAME_REGEX.test(f.username))
+      e.username = "Solo letras minúsculas, números, . y _";
     if (!f.password || f.password.length < 6)
       e.password = "Mínimo 6 caracteres";
     if (f.password !== f.confirmPassword)
@@ -58,13 +62,11 @@ export default function RegisterPage() {
   };
 
   const currentErrors = useMemo(() => validate(form), [form]);
-  const hasErrors =
-    Object.keys(currentErrors).length > 0 &&
-    Object.keys(touched).length > 0;
+  const hasErrors = Object.keys(currentErrors).some((k) => touched[k]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setTouched({
+    const allTouched = {
       username: true,
       password: true,
       confirmPassword: true,
@@ -72,8 +74,10 @@ export default function RegisterPage() {
       apellido: true,
       dni: true,
       telefono: true,
-    });
-    if (hasErrors) return;
+    };
+    setTouched(allTouched);
+    const submitErrors = Object.keys(currentErrors).some((k) => allTouched[k as keyof typeof allTouched]);
+    if (submitErrors) return;
 
     setLoading(true);
     setErrors((p) => ({ ...p, general: undefined }));

@@ -23,6 +23,7 @@ import {
   Star,
   Home,
   LogOut,
+  Trash2,
 } from "lucide-react";
 
 export default function Header() {
@@ -162,6 +163,18 @@ export default function Header() {
                 <LogOut size={20} />
                 Cerrar sesión
               </button>
+
+              {/* Eliminar cuenta */}
+              {user?.role !== "admin" && (
+                <Link
+                  href="/cliente/perfil"
+                  onClick={() => setOpen(false)}
+                  className="mt-2 flex items-center gap-3 px-3 py-2 rounded-lg text-red-400 hover:bg-red-500/10 transition text-base"
+                >
+                  <Trash2 size={18} />
+                  Eliminar cuenta
+                </Link>
+              )}
             </motion.div>
           </>
         )}

@@ -61,21 +61,20 @@ export async function POST(req: NextRequest) {
       qrToken = randomBytes(16).toString("hex");
     }
 
-    const user = await User.create({
+    const userData: Record<string, unknown> = {
       username: normalizedUsername,
       nombre: nombre.trim(),
       apellido: apellido.trim(),
       passwordHash: await bcrypt.hash(password, 10),
-
-      dni: dniStr,
-      telefono,
-      email: email ? String(email).toLowerCase().trim() : undefined,
-
       role: "cliente",
       qrToken,
       puntos: 0,
+    };
+    if (dniStr) userData.dni = dniStr;
+    if (telefono) userData.telefono = telefono;
+    if (email) userData.email = String(email).toLowerCase().trim();
 
-    });
+    const user = await User.create(userData);
 
     // JWT largo (1 año)
     const token = jwt.sign(
@@ -98,8 +97,16 @@ export async function POST(req: NextRequest) {
     });
 
     return res;
-  } catch (e) {
+  } catch (e: any) {
     console.error("Register error:", e);
+    // Duplicate key de MongoDB
+    if (e?.code === 11000) {
+      const field = Object.keys(e?.keyValue ?? {})[0];
+      if (field === "username") return NextResponse.json({ error: "El usuario ya existe" }, { status: 409 });
+      if (field === "email") return NextResponse.json({ error: "El email ya está registrado" }, { status: 409 });
+      if (field === "dni") return NextResponse.json({ error: "El DNI ya está registrado" }, { status: 409 });
+      return NextResponse.json({ error: "Dato duplicado: " + field }, { status: 409 });
+    }
     return NextResponse.json({ error: "Error al registrar" }, { status: 500 });
   }
 }
