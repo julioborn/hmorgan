@@ -7,7 +7,9 @@
       "PowerShell(\\(Get-Content \"C:\\\\PROYECTOS\\\\hmorgan\\\\src\\\\app\\\\cliente\\\\pedidos\\\\page.tsx\" | Measure-Object -Line\\).Lines)",
       "Bash(Get-ChildItem -Path \"C:\\\\PROYECTOS\\\\hmorgan\\\\src\\\\app\\\\admin\" -Recurse -Directory)",
       "Bash(Select-Object FullName)",
-      "PowerShell(head *)"
+      "PowerShell(head *)",
+      "Bash(npx tsc *)",
+      "Bash(dir C:\\\\PROYECTOS\\\\hmorgan\\\\public *)"
     ]
   }
 }
