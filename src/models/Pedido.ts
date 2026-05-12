@@ -17,7 +17,10 @@ const PedidoSchema = new Schema(
             enum: ["pendiente", "preparando", "listo", "entregado", "cancelado"], // 👈 nuevo estado
             default: "pendiente",
         },
-        cancelableUntil: { type: Date }, // 👈 nuevo campo
+        cancelableUntil: { type: Date },
+        fuente: { type: String, enum: ["cliente", "empleado"], default: "cliente" },
+        mesa: { type: String },
+        notaEmpleado: { type: String },
     },
     { timestamps: true }
 );

@@ -237,16 +237,16 @@ export default function PedidosClientePage() {
             <h1 className="text-4xl font-extrabold mb-10 text-center text-black">Realizar Pedido</h1>
 
             {/* Categorías */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-8">
+            <div className="flex gap-2 overflow-x-auto pb-3 mb-8 -mx-5 px-5 scrollbar-hide">
                 {categorias.map((cat: string) => {
                     const Icon = categoryIcons[cat] || UtensilsCrossed;
 
                     const handleScroll = () => {
                         setCategoriaSeleccionada(cat);
+                        setShowScroll(true);
                         const section = document.getElementById(cat.replace(/\s+/g, "-"));
                         if (section) {
-                            const yOffset = -130; // ⬅️ aumentamos el espacio (ajustá si querés más o menos)
-                            const y = section.getBoundingClientRect().top + window.scrollY + yOffset;
+                            const y = section.getBoundingClientRect().top + window.scrollY - 130;
                             window.scrollTo({ top: y, behavior: "smooth" });
                         }
                     };
@@ -255,13 +255,14 @@ export default function PedidosClientePage() {
                         <button
                             key={cat}
                             onClick={handleScroll}
-                            className="flex flex-col items-center justify-center p-6 rounded-2xl shadow-sm border border-gray-200
-             bg-white hover:bg-red-50 hover:scale-[1.03] transition-all duration-200 text-center"
+                            className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap font-semibold text-sm flex-shrink-0 transition-all duration-200 border ${
+                                categoriaSeleccionada === cat
+                                    ? "bg-red-600 text-white border-red-600 shadow-md shadow-red-500/25"
+                                    : "bg-white text-gray-600 border-gray-200 hover:border-red-300 hover:text-red-600"
+                            }`}
                         >
-                            <Icon size={36} className="mb-2 text-red-600" />
-                            <span className="text-sm font-semibold tracking-wide text-black">
-                                {cat}
-                            </span>
+                            <Icon size={14} />
+                            {cat}
                         </button>
                     );
                 })}
@@ -296,9 +297,11 @@ export default function PedidosClientePage() {
                         }}
                         transition={{ duration: 0.5, ease: "easeOut" }}
                     >
-                        <h2 className="text-2xl font-bold mb-5 flex items-center gap-2 text-black">
-                            <Icon size={24} className="text-red-600" /> {cat}
-                        </h2>
+                        <div className="flex items-center gap-3 mb-5">
+                            <span className="block w-1 h-7 rounded-full bg-red-600 flex-shrink-0" />
+                            <Icon size={20} className="text-red-600 flex-shrink-0" />
+                            <h2 className="text-xl font-black text-black tracking-tight">{cat}</h2>
+                        </div>
 
                         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
                             {productos.map((item) => (
@@ -308,16 +311,16 @@ export default function PedidosClientePage() {
                                     whileInView={{ opacity: 1, y: 0 }}
                                     viewport={{ once: true }}
                                     transition={{ duration: 0.4 }}
-                                    className="p-5 bg-white rounded-2xl border border-gray-200 flex flex-col justify-between"
+                                    className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between overflow-hidden p-4"
                                 >
                                     <div>
                                         <p className="font-semibold text-lg mb-1 text-black">{item.nombre}</p>
                                         {item.descripcion && (
                                             <p className="text-sm text-gray-600 mb-2 leading-snug">{item.descripcion}</p>
                                         )}
-                                        <p className="text-red-600 font-bold text-lg">
+                                        <span className="inline-block bg-red-50 text-red-600 font-extrabold text-sm px-3 py-1 rounded-full mt-1">
                                             ${formatPrice(item.precio)}
-                                        </p>
+                                        </span>
                                     </div>
 
                                     <div className="flex justify-end mt-5">
@@ -440,13 +443,11 @@ export default function PedidosClientePage() {
                 <AnimatePresence>
                     {showScroll && (
                         <motion.button
-                            initial={{ opacity: 0, y: 80 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 80 }}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.8 }}
                             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                            className="fixed bottom-16 right-5 z-[9999]
-                   p-4 rounded-full bg-black text-white
-                   shadow-lg hover:bg-gray-800"
+                            className="fixed bottom-20 right-5 z-[9999] p-3.5 rounded-full bg-red-600 text-white shadow-lg shadow-red-500/30 hover:bg-red-500 transition"
                         >
                             <ArrowUp size={20} />
                         </motion.button>

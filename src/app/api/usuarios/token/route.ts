@@ -17,13 +17,14 @@ export async function POST(req: NextRequest) {
 
         await connectMongoDB();
 
-        const user = await User.findById(payload.sub);
+        const user = await User.findByIdAndUpdate(
+            payload.sub,
+            { $addToSet: { fcmTokens: token } },
+            { new: true }
+        );
         if (!user) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
 
-        user.tokenFCM = token;
-        await user.save();
-
-        console.log(`✅ Token FCM guardado para ${user.nombre} (${user.role})`);
+        console.log(`✅ Token FCM registrado para ${user.nombre} — total tokens: ${user.fcmTokens?.length ?? 1}`);
 
         return NextResponse.json({ ok: true });
     } catch (error) {

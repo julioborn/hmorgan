@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
-import { QrCode, Scan, Users, Bell, ChefHat, PackagePlus, Package, Utensils, Ticket, Coins, History, ScanQrCode, ScanText, MessageSquare, Settings, Star } from "lucide-react";
+import { QrCode, Scan, Users, Bell, ChefHat, PackagePlus, Package, Utensils, Ticket, Coins, History, ScanQrCode, ScanText, MessageSquare, Settings, Star, BarChart2, ClipboardList, LayoutGrid } from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 import "swiper/css";
@@ -32,11 +32,9 @@ export default function Home() {
 
   if (!user) return <Landing />;
 
-  return user.role === "admin" ? (
-    <AdminHome />
-  ) : (
-    <ClientHome nombre={user.nombre} />
-  );
+  if (user.role === "admin") return <AdminHome />;
+  if (user.role === "empleado") return <EmployeeHome />;
+  return <ClientHome nombre={user.nombre} />;
 }
 
 /* =========================
@@ -70,23 +68,22 @@ function Landing() {
 
       {/* Card de acceso */}
       <section className="flex justify-center">
-        <div className="relative w-full max-w-lg overflow-hidden rounded-2xl p-6 text-center space-x-2">
-          {/* Glow solo arriba, chiquito */}
+        <div className="w-full max-w-xs flex flex-col gap-3 px-2">
           <Link
             href="/register"
-            className="px-5 py-3 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-500 transition shadow-lg hover:scale-105"
+            className="w-full text-center px-5 py-3.5 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-500 transition shadow-lg hover:scale-105"
           >
             Crear cuenta
           </Link>
           <Link
             href="/login"
-            className="px-5 py-3 rounded-xl bg-black text-white font-semibold hover:bg-gray-900 transition shadow-lg hover:scale-105"
+            className="w-full text-center px-5 py-3.5 rounded-xl bg-black text-white font-semibold hover:bg-gray-900 transition shadow-lg hover:scale-105"
           >
             Ingresar
           </Link>
           <Link
             href="/menu"
-            className="px-5 py-3 rounded-xl cursor-pointer bg-gray-200 text-black font-semibold hover:bg-gray-300 transition shadow-lg hover:scale-105"
+            className="w-full text-center px-5 py-3.5 rounded-xl bg-gray-200 text-black font-semibold hover:bg-gray-300 transition shadow-lg hover:scale-105"
           >
             Menú
           </Link>
@@ -451,8 +448,18 @@ function AdminHome() {
           Icon={Settings}
           accent="from-red-600 to-red-800"
         />
-
-        {/* ✅ Notificaciones - ocupa todo el ancho y fondo negro */}
+        <ActionCard
+          href="/admin/estadisticas"
+          title="Estadísticas"
+          Icon={BarChart2}
+          accent="from-red-600 to-red-800"
+        />
+        <ActionCard
+          href="/admin/mesas"
+          title="Mesas"
+          Icon={LayoutGrid}
+          accent="from-red-600 to-red-800"
+        />
         <div className="col-span-2">
           <ActionCard
             href="/admin/notificaciones"
@@ -463,6 +470,59 @@ function AdminHome() {
         </div>
       </div>
 
+    </div>
+  );
+}
+
+/* =========================
+  HOME EMPLEADO
+   ========================= */
+function EmployeeHome() {
+  return (
+    <div
+      className={`${container} py-8 space-y-8`}
+      style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+    >
+      <header>
+        <h1 className="text-4xl font-extrabold mb-10 text-center text-black">
+          Panel de Empleado
+        </h1>
+      </header>
+
+      <div className="grid grid-cols-2 gap-4">
+        <ActionCard
+          href="/admin/scan"
+          title="Escanear Puntos"
+          Icon={ScanQrCode}
+          accent="from-red-600 to-red-800"
+        />
+        <ActionCard
+          href="/admin/rewards/scan"
+          title="Escanear Canjes"
+          Icon={ScanText}
+          accent="from-red-600 to-red-800"
+        />
+        <ActionCard
+          href="/admin/rewards"
+          title="Canjes"
+          Icon={Ticket}
+          accent="from-red-600 to-red-800"
+        />
+        <ActionCard
+          href="/menu"
+          title="Menú"
+          Icon={Utensils}
+          accent="from-red-600 to-red-800"
+        />
+        <div className="col-span-2">
+          <ActionCard
+            href="/empleado/anotador"
+            title="Anotador de Pedidos"
+            Icon={ClipboardList}
+            accent="from-black to-gray-900"
+          />
+        </div>
+      </div>
     </div>
   );
 }

@@ -219,6 +219,13 @@ export default function AdminPedidosPage() {
                 ? listos
                 : entregados;
 
+    // Pedidos de mozos siempre primero
+    lista = [...lista].sort((a, b) => {
+        if (a.userId?.role === "empleado" && b.userId?.role !== "empleado") return -1;
+        if (a.userId?.role !== "empleado" && b.userId?.role === "empleado") return 1;
+        return 0;
+    });
+
     // 🔍 BÚSQUEDA SOLO EN ENTREGADOS
     if (vista === "entregados" && busqueda.trim()) {
         const q = busqueda.toLowerCase();
@@ -352,17 +359,41 @@ export default function AdminPedidosPage() {
                                     animate={{ opacity: 1, scale: 1, y: 0 }}
                                     exit={{ opacity: 0 }}
                                     transition={{ duration: 0.25 }}
-                                    className="p-5 rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-all flex flex-col"
+                                    className={`rounded-2xl border shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden ${
+                                        p.userId?.role === "empleado"
+                                            ? "border-blue-400"
+                                            : "border-gray-200"
+                                    }`}
                                 >
+                                    {/* Banner mozo */}
+                                    {p.userId?.role === "empleado" && (
+                                        <div className="bg-blue-600 text-white px-4 py-2 flex items-center gap-2">
+                                            <span className="text-base">🍽️</span>
+                                            <span className="font-bold text-sm">
+                                                Pedido de Mozo{p.mesa ? ` — Mesa ${p.mesa}` : ""}
+                                            </span>
+                                            {p.notaEmpleado && (
+                                                <span className="ml-auto text-xs opacity-80 italic truncate max-w-[140px]">
+                                                    {p.notaEmpleado}
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Contenido */}
+                                    <div className={`p-5 flex flex-col flex-1 ${p.userId?.role === "empleado" ? "bg-blue-50" : "bg-white"}`}>
+
                                     {/* 🔹 Encabezado */}
                                     <div className="flex justify-between items-start mb-2">
                                         <div>
                                             <h2 className="text-lg font-bold text-gray-900">
                                                 {p.userId?.nombre} {p.userId?.apellido}
                                             </h2>
-                                            <p className="text-sm text-gray-600 capitalize">
-                                                Entrega: {p.tipoEntrega}
-                                            </p>
+                                            {p.userId?.role !== "empleado" && (
+                                                <p className="text-sm text-gray-600 capitalize">
+                                                    Entrega: {p.tipoEntrega}
+                                                </p>
+                                            )}
                                             {p.tipoEntrega === "envio" && p.direccion && (
                                                 <p className="text-sm text-gray-700 mt-1 flex items-center gap-1">
                                                     📍 <span className="font-medium">{p.direccion}</span>
@@ -462,12 +493,14 @@ export default function AdminPedidosPage() {
                                         </div>
                                     )}
 
-                                    <button
-                                        onClick={() => window.location.href = `/admin/pedidos/${p._id}/chat`}
-                                        className="mt-3 w-full bg-black text-white py-2 rounded-lg transition"
-                                    >
-                                        💬 Ver chat
-                                    </button>
+                                    {p.userId?.role !== "empleado" && (
+                                        <button
+                                            onClick={() => window.location.href = `/admin/pedidos/${p._id}/chat`}
+                                            className="mt-3 w-full bg-black text-white py-2 rounded-lg transition"
+                                        >
+                                            💬 Ver chat
+                                        </button>
+                                    )}
 
                                     <button
                                         onClick={() => eliminarPedidoDobleConfirmacion(p._id)}
@@ -476,6 +509,7 @@ export default function AdminPedidosPage() {
                                         Eliminar pedido
                                     </button>
 
+                                    </div>{/* fin contenido */}
                                 </motion.div>
                             );
                         })

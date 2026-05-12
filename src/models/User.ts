@@ -28,9 +28,10 @@ export interface IUser extends Document {
   direccion?: string;
 
   passwordHash: string;
-  role: "cliente" | "admin";
+  role: "cliente" | "admin" | "empleado";
 
   tokenFCM?: string;
+  fcmTokens?: string[];
 
   qrToken: string;
   puntos: number;
@@ -71,11 +72,12 @@ const UserSchema = new Schema<IUser>({
   passwordHash: { type: String, required: true },
 
   tokenFCM: { type: String, default: undefined },
+  fcmTokens: { type: [String], default: [] },
 
   resetToken: { type: String, default: undefined },
   resetTokenExp: { type: Date, default: undefined },
 
-  role: { type: String, enum: ["cliente", "admin"], required: true },
+  role: { type: String, enum: ["cliente", "admin", "empleado"], required: true },
 
   qrToken: { type: String, required: true },
   puntos: { type: Number, default: 0 },

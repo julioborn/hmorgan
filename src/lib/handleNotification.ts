@@ -1,13 +1,10 @@
 export function handleNotification(data: any) {
-    console.log("📩 Notificación recibida:", data);
+    console.log("📩 Notificación recibida (foreground):", data);
 
-    // Si viene de Firebase (Android nativo)
-    if (data?.notification?.title) {
-        alert(`🔥 ${data.notification.title}\n${data.notification.body}`);
-    }
+    const title = data?.notification?.title ?? data?.title ?? "";
+    const body = data?.notification?.body ?? data?.body ?? "";
 
-    // Si viene del service worker (PWA)
-    if (data?.title && data?.body) {
-        alert(`🕊️ ${data.title}\n${data.body}`);
+    if (title || body) {
+        window.dispatchEvent(new CustomEvent("push-notification", { detail: { title, body } }));
     }
 }

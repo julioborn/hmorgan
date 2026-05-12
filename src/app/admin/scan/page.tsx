@@ -26,13 +26,14 @@ export default function ScanPage() {
   const [mesa, setMesa] = useState<string>("");
   const [people, setPeople] = useState<Person[]>([]);
   const [ratio, setRatio] = useState<number>(0.001); // 👈 ahora dinámico
+  const [mesasRegistradas, setMesasRegistradas] = useState<{ _id: string; nombre: string }[]>([]);
 
   const camStateRef = useRef<CamState>("idle");
   useEffect(() => {
     camStateRef.current = camState;
   }, [camState]);
 
-  // 🔄 Obtener ratio desde API al cargar
+  // 🔄 Obtener ratio y mesas registradas al cargar
   useEffect(() => {
     fetch("/api/configuracion")
       .then((res) => res.json())
@@ -40,6 +41,11 @@ export default function ScanPage() {
         if (data?.valor) setRatio(Number(data.valor));
       })
       .catch(() => setRatio(0.001));
+
+    fetch("/api/admin/mesas")
+      .then(res => res.json())
+      .then(data => { if (Array.isArray(data)) setMesasRegistradas(data); })
+      .catch(() => {});
   }, []);
 
   async function supportsNativeQR(): Promise<boolean> {
@@ -451,17 +457,31 @@ export default function ScanPage() {
               {/* Nº de mesa */}
               <div className="flex flex-col gap-2 col-span-1">
                 <label className="text-sm font-semibold text-gray-700">Mesa</label>
-                <input
-                  className="w-full rounded-xl border border-gray-300 bg-white text-red-600 text-2xl font-mono 
-                     px-3 py-5 text-center tracking-wider shadow-sm
-                     outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200 transition"
-                  value={mesa}
-                  onChange={(e) => setMesa(sanitizeMesa(e.target.value))}
-                  inputMode="numeric"
-                  type="text"
-                  maxLength={2}
-                  pattern="[0-9]*"
-                />
+                {mesasRegistradas.length > 0 ? (
+                  <select
+                    value={mesa}
+                    onChange={(e) => setMesa(e.target.value)}
+                    className="w-full rounded-xl border border-gray-300 bg-white text-red-600 text-xl font-bold
+                       px-2 py-5 text-center shadow-sm
+                       outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200 transition"
+                  >
+                    <option value="">—</option>
+                    {mesasRegistradas.map(m => (
+                      <option key={m._id} value={m.nombre}>{m.nombre}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    className="w-full rounded-xl border border-gray-300 bg-white text-red-600 text-2xl font-mono
+                       px-3 py-5 text-center tracking-wider shadow-sm
+                       outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200 transition"
+                    value={mesa}
+                    onChange={(e) => setMesa(e.target.value)}
+                    inputMode="text"
+                    type="text"
+                    placeholder="—"
+                  />
+                )}
               </div>
 
               {/* Total $ */}

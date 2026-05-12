@@ -10,7 +10,7 @@ type User =
         apellido: string;
         dni: string;
         telefono: string;
-        role: "cliente" | "admin";
+        role: "cliente" | "admin" | "empleado";
         qrToken?: string;
         puntos?: number;
     }

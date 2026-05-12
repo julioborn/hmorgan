@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ensurePushAfterLogin } from "@/lib/push-auto";
 
 type RegisterForm = {
@@ -27,6 +27,7 @@ export default function RegisterPage() {
   const [errors, setErrors] = useState<Errors>({});
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
 
   const setField = (k: keyof RegisterForm, v: string) =>
     setForm((prev) => ({ ...prev, [k]: v }));
@@ -64,6 +65,25 @@ export default function RegisterPage() {
   const currentErrors = useMemo(() => validate(form), [form]);
   const hasErrors = Object.keys(currentErrors).some((k) => touched[k]);
 
+  useEffect(() => {
+    const username = form.username;
+    if (!username || username.length < 3 || !USERNAME_REGEX.test(username)) {
+      setUsernameStatus("idle");
+      return;
+    }
+    setUsernameStatus("checking");
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/auth/check-username?username=${encodeURIComponent(username)}`);
+        const data = await res.json();
+        setUsernameStatus(data.available ? "available" : "taken");
+      } catch {
+        setUsernameStatus("idle");
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [form.username]);
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     const allTouched = {
@@ -78,6 +98,8 @@ export default function RegisterPage() {
     setTouched(allTouched);
     const submitErrors = Object.keys(currentErrors).some((k) => allTouched[k as keyof typeof allTouched]);
     if (submitErrors) return;
+    if (usernameStatus === "taken") return;
+    if (usernameStatus === "checking") return;
 
     setLoading(true);
     setErrors((p) => ({ ...p, general: undefined }));
@@ -152,19 +174,31 @@ export default function RegisterPage() {
           <div>
             <label className="block mb-1 text-sm font-semibold text-gray-700">
               Nombre de usuario
+              <span className="ml-1 text-xs font-normal text-gray-400">— debe ser único</span>
             </label>
-            <input
-              type="text"
-              placeholder="Usuario"
-              autoComplete="username"
-              enterKeyHint="next"
-              className={inputClass("username")}
-              value={form.username}
-              onChange={(e) => setField("username", e.target.value.toLowerCase().trim())}
-              onBlur={() => setTouched((t) => ({ ...t, username: true }))}
-            />
+            <div className="relative flex items-center">
+              <span className="absolute left-3 text-gray-500 font-semibold text-sm pointer-events-none select-none">@</span>
+              <input
+                type="text"
+                placeholder="usuario"
+                autoComplete="username"
+                enterKeyHint="next"
+                className={`${inputClass("username")} pl-8 pr-28`}
+                value={form.username}
+                onChange={(e) => setField("username", e.target.value.toLowerCase().trim())}
+                onBlur={() => setTouched((t) => ({ ...t, username: true }))}
+              />
+              <span className="absolute right-3 text-xs font-medium pointer-events-none">
+                {usernameStatus === "checking" && <span className="text-gray-400">verificando...</span>}
+                {usernameStatus === "available" && <span className="text-green-600">✓ disponible</span>}
+                {usernameStatus === "taken" && <span className="text-red-500">✗ en uso</span>}
+              </span>
+            </div>
             {touched.username && currentErrors.username && (
               <p className="mt-1 text-xs text-red-600">{currentErrors.username}</p>
+            )}
+            {usernameStatus === "taken" && !(touched.username && currentErrors.username) && (
+              <p className="mt-1 text-xs text-red-600">Este usuario ya está registrado</p>
             )}
           </div>
 
@@ -275,7 +309,7 @@ export default function RegisterPage() {
             </div>
           ))}
           <button
-            disabled={loading || hasErrors}
+            disabled={loading || hasErrors || usernameStatus === "taken" || usernameStatus === "checking"}
             className="w-full h-12 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold shadow-sm transition disabled:opacity-60"
           >
             {loading ? "Registrando..." : "Registrarme"}

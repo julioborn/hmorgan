@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
                 : { userId: payload.sub }; // cliente: solo los suyos
 
         const pedidos = await Pedido.find(query)
-            .populate("userId", "nombre apellido")
+            .populate("userId", "nombre apellido role")
             .populate("items.menuItemId", "nombre precio categoria")
             .sort({ createdAt: -1 })
             .lean();
@@ -58,15 +58,15 @@ export async function POST(req: NextRequest) {
             { upsert: true, new: true }
         );
 
-        // 🚫 Si pedidos están desactivados, no permitir crear pedido
-        if (!config.pedidosActivos) {
+        // 🚫 Si pedidos están desactivados, bloquear solo a clientes
+        if (!config.pedidosActivos && payload.role === "cliente") {
             return NextResponse.json(
                 { message: "Los pedidos están desactivados temporalmente" },
                 { status: 403 }
             );
         }
 
-        const { items, tipoEntrega, direccion } = await req.json();
+        const { items, tipoEntrega, direccion, fuente, mesa, notaEmpleado } = await req.json();
         if (!items?.length)
             return NextResponse.json({ message: "Sin items" }, { status: 400 });
 
@@ -104,30 +104,34 @@ export async function POST(req: NextRequest) {
             total,
             direccion: tipoEntrega === "envio" ? direccion : undefined,
             estado: "pendiente",
-            cancelableUntil, // 👈 nuevo
+            cancelableUntil,
+            fuente: fuente === "empleado" ? "empleado" : "cliente",
+            mesa: mesa || undefined,
+            notaEmpleado: notaEmpleado || undefined,
         });
 
-        // 🔔 Notificación push
-        const admin = await User.findOne({ role: "admin" });
-        if (admin?.pushSubscriptions?.length) {
-            await sendPushToSubscriptions(admin.pushSubscriptions, {
-                title: "¡Nuevo pedido recibido!",
-                body: `Nuevo pedido de ${user.nombre ?? "un cliente"}. Revisalo en la barra 👇`,
-                url: "/admin/pedidos",
-                icon: "/icon-192.png",
-                badge: "/icon-badge-96x96.png",
-                image: "/morganwhite.png",
-            });
-        }
+        // Pedidos de mozo no generan notificación al admin (ya está en el local)
+        if (fuente !== "empleado") {
+            const admin = await User.findOne({ role: "admin" });
+            if (admin?.pushSubscriptions?.length) {
+                await sendPushToSubscriptions(admin.pushSubscriptions, {
+                    title: "¡Nuevo pedido recibido!",
+                    body: `Nuevo pedido de ${user.nombre ?? "un cliente"}. Revisalo en la barra 👇`,
+                    url: "/admin/pedidos",
+                    icon: "/icon-192.png",
+                    badge: "/icon-badge-96x96.png",
+                    image: "/morganwhite.png",
+                });
+            }
 
-        // 🔥 Notificación FCM al admin
-        if (admin?.tokenFCM) {
-            await enviarNotificacionFCM(
-                admin.tokenFCM,
-                "¡Nuevo pedido recibido!",
-                `Nuevo pedido de ${user.nombre ?? "un cliente"}. Revisalo en la barra 👇`,
-                "/admin/pedidos"
-            );
+            if (admin?.tokenFCM) {
+                await enviarNotificacionFCM(
+                    admin.tokenFCM,
+                    "¡Nuevo pedido recibido!",
+                    `Nuevo pedido de ${user.nombre ?? "un cliente"}. Revisalo en la barra 👇`,
+                    "/admin/pedidos"
+                );
+            }
         }
 
         return NextResponse.json({ ok: true, pedido }, { status: 201 });

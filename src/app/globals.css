@@ -81,3 +81,12 @@ select {
   box-sizing: border-box;
   max-width: 100vw;
 }
+
+/* Ocultar scrollbar horizontal en pills de categorías */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

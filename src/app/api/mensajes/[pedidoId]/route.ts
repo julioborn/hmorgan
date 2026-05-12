@@ -35,10 +35,10 @@ export async function POST(req: NextRequest, { params }: { params: { pedidoId: s
 
     // 📦 Obtener pedido y usuarios
     const pedido = await Pedido.findById(params.pedidoId)
-        .populate("userId", "nombre pushSubscriptions tokenFCM");
+        .populate("userId", "nombre pushSubscriptions tokenFCM fcmTokens");
     if (!pedido) return NextResponse.json({ message: "Pedido no encontrado" }, { status: 404 });
 
-    const admin = await User.findOne({ role: "admin" }).select("pushSubscriptions tokenFCM nombre");
+    const admin = await User.findOne({ role: "admin" }).select("pushSubscriptions tokenFCM fcmTokens nombre");
 
     // 👤 Determinar destinatario
     const destinatario = remitente === "admin" ? pedido.userId : admin;
@@ -63,18 +63,23 @@ export async function POST(req: NextRequest, { params }: { params: { pedidoId: s
         }
     }
 
-    // 🔥 Notificación FCM si el destinatario tiene tokenFCM
-    if (destinatario?.tokenFCM) {
-        console.log("📩 Enviando notificación FCM a token:", destinatario.tokenFCM); // 👈 AGREGA ESTO
+    // 🔥 Notificación FCM a todos los dispositivos del destinatario
+    const fcmTokens = new Set<string>(destinatario?.fcmTokens ?? []);
+    if (destinatario?.tokenFCM) fcmTokens.add(destinatario.tokenFCM);
 
-        await enviarNotificacionFCM(
-            destinatario.tokenFCM,
-            remitente === "admin" ? "Nuevo mensaje del bar 💬" : "Nuevo mensaje del cliente 💬",
-            texto.length > 80 ? texto.slice(0, 80) + "..." : texto,
-            remitente === "admin"
-                ? `/cliente/mis-pedidos/${params.pedidoId}/chat`
-                : `/admin/pedidos/${params.pedidoId}/chat`
-        );
+    for (const token of fcmTokens) {
+        try {
+            await enviarNotificacionFCM(
+                token,
+                remitente === "admin" ? "Nuevo mensaje del bar 💬" : "Nuevo mensaje del cliente 💬",
+                texto.length > 80 ? texto.slice(0, 80) + "..." : texto,
+                remitente === "admin"
+                    ? `/cliente/mis-pedidos/${params.pedidoId}/chat`
+                    : `/admin/pedidos/${params.pedidoId}/chat`
+            );
+        } catch (err) {
+            console.error("❌ FCM error para token:", token, err);
+        }
     }
 
     return NextResponse.json(nuevo);

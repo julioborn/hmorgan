@@ -64,7 +64,7 @@ export default function ClienteMenuPage() {
 
     useEffect(() => {
         const handleScroll = () => setShowScroll(window.scrollY > 300);
-        window.addEventListener("scroll", handleScroll);
+        window.addEventListener("scroll", handleScroll, { passive: true });
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
@@ -80,134 +80,135 @@ export default function ClienteMenuPage() {
         items.some((i) => i.categoria === cat)
     );
 
+    const scrollToCategory = (cat: string) => {
+        setCategoriaSeleccionada(cat);
+        setShowScroll(true);
+        const section = document.getElementById(cat.replace(/\s+/g, "-"));
+        if (section) {
+            const y = section.getBoundingClientRect().top + window.scrollY - 140;
+            window.scrollTo({ top: y, behavior: "smooth" });
+        }
+    };
+
     return (
-        <div className="p-5 bg-white min-h-screen">
-            {/* Título principal */}
-            <h1 className="text-4xl font-extrabold mb-10 text-center text-black">
-                Menú
-            </h1>
+        <div className="bg-white min-h-screen">
+            {/* Título */}
+            <div className="px-5 pt-6 pb-2">
+                <h1 className="text-3xl font-black text-black tracking-tight mb-1">Menú</h1>
+                <p className="text-sm text-gray-400">Explorá nuestra carta completa</p>
+            </div>
 
-            {/* Categorías */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-10">
-                {categorias.map((cat: string) => {
+            {/* Categorías — pills horizontales scrollables */}
+            <div className="flex gap-2 overflow-x-auto px-5 py-4 scrollbar-hide">
+                {categorias.map((cat) => {
                     const Icon = categoryIcons[cat] || UtensilsCrossed;
-
-                    const handleScroll = () => {
-                        setCategoriaSeleccionada(cat);
-                        const section = document.getElementById(cat.replace(/\s+/g, "-"));
-                        if (section) {
-                            const yOffset = -140; // ajusta según tu navbar
-                            const y = section.getBoundingClientRect().top + window.scrollY + yOffset;
-                            window.scrollTo({ top: y, behavior: "smooth" });
-                        }
-                    };
-
+                    const activo = categoriaSeleccionada === cat;
                     return (
                         <button
                             key={cat}
-                            onClick={handleScroll}
-                            className="flex flex-col items-center justify-center p-6 rounded-2xl shadow-sm border border-gray-200
-              bg-white hover:bg-red-50 hover:scale-[1.03] transition-all duration-200 text-center"
+                            onClick={() => scrollToCategory(cat)}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap font-semibold text-sm flex-shrink-0 transition-all duration-200 border ${
+                                activo
+                                    ? "bg-red-600 text-white border-red-600 shadow-md shadow-red-500/25"
+                                    : "bg-white text-gray-600 border-gray-200 hover:border-red-300 hover:text-red-600"
+                            }`}
                         >
-                            <Icon size={36} className="mb-2 text-red-600" />
-                            <span className="text-sm font-semibold tracking-wide text-black">
-                                {cat}
-                            </span>
+                            <Icon size={14} />
+                            {cat}
                         </button>
                     );
                 })}
             </div>
 
+            <div className="h-px bg-gray-100 mx-5 mb-6" />
+
             {/* Productos por categoría */}
-            {categorias.map((cat: string) => {
-                const Icon = categoryIcons[cat] || UtensilsCrossed;
-                const productos = items.filter((i) => i.categoria === cat);
-                if (!productos.length) return null;
+            <div className="px-5 pb-16">
+                {categorias.map((cat) => {
+                    const Icon = categoryIcons[cat] || UtensilsCrossed;
+                    const productos = items
+                        .filter((i) => i.categoria === cat)
+                        .sort((a, b) => {
+                            if (a.categoria === "PIZZAS" && b.categoria === "PIZZAS") {
+                                const aEsMedia =
+                                    a.nombre.toLowerCase().includes("1/2") ||
+                                    a.nombre.toLowerCase().includes("media");
+                                const bEsMedia =
+                                    b.nombre.toLowerCase().includes("1/2") ||
+                                    b.nombre.toLowerCase().includes("media");
+                                if (aEsMedia && !bEsMedia) return 1;
+                                if (!aEsMedia && bEsMedia) return -1;
+                            }
+                            return 0;
+                        });
 
-                return (
-                    <motion.div
-                        key={cat}
-                        id={cat.replace(/\s+/g, "-")}
-                        className="mb-16 pt-10 scroll-mt-24"
-                        initial={{ opacity: 0, y: 40 }}
-                        animate={{
-                            opacity: categoriaSeleccionada === cat ? 1 : 0.9,
-                            y: categoriaSeleccionada === cat ? 0 : 40,
-                        }}
-                        transition={{ duration: 0.5, ease: "easeOut" }}
-                    >
-                        <h2 className="text-2xl font-bold mb-5 flex items-center gap-2 text-black">
-                            <Icon size={26} className="text-red-600" />
-                            {cat}
-                        </h2>
+                    if (!productos.length) return null;
 
-                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {productos
-                                .sort((a, b) => {
-                                    // si ambos son pizzas, reordenamos
-                                    if (a.categoria === "PIZZAS" && b.categoria === "PIZZAS") {
-                                        const aEsMedia = a.nombre.toLowerCase().includes("1/2") || a.nombre.toLowerCase().includes("media");
-                                        const bEsMedia = b.nombre.toLowerCase().includes("1/2") || b.nombre.toLowerCase().includes("media");
+                    return (
+                        <div
+                            key={cat}
+                            id={cat.replace(/\s+/g, "-")}
+                            className="mb-12 scroll-mt-32"
+                        >
+                            {/* Header de categoría */}
+                            <div className="flex items-center gap-3 mb-5">
+                                <span className="block w-1 h-7 rounded-full bg-red-600 flex-shrink-0" />
+                                <Icon size={20} className="text-red-600 flex-shrink-0" />
+                                <h2 className="text-xl font-black text-black tracking-tight">{cat}</h2>
+                            </div>
 
-                                        // 🍕 Las enteras primero, las medias después
-                                        if (aEsMedia && !bEsMedia) return 1;
-                                        if (!aEsMedia && bEsMedia) return -1;
-                                    }
-
-                                    // Si no son pizzas o ambos del mismo tipo, se mantiene el orden original
-                                    return 0;
-                                })
-                                .map((i) => (
+                            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {productos.map((i) => (
                                     <motion.div
                                         key={i._id}
-                                        initial={{ opacity: 0, y: 20 }}
+                                        initial={{ opacity: 0, y: 16 }}
                                         whileInView={{ opacity: 1, y: 0 }}
                                         viewport={{ once: true }}
-                                        transition={{ duration: 0.4 }}
-                                        className="bg-white rounded-2xl overflow-hidden border border-gray-200"
+                                        transition={{ duration: 0.35 }}
+                                        className="group bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300"
                                     >
                                         {i.imagen && (
-                                            <div className="relative h-40 w-full overflow-hidden">
+                                            <div className="relative h-44 w-full overflow-hidden">
                                                 <img
                                                     src={i.imagen}
                                                     alt={i.nombre}
-                                                    className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                    className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
                                                 />
-                                                <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
                                             </div>
                                         )}
                                         <div className="p-4">
-                                            <h3 className="text-lg font-bold mb-1 text-black">
+                                            <h3 className="font-bold text-base text-black leading-tight mb-1">
                                                 {i.nombre}
                                             </h3>
                                             {i.descripcion && (
-                                                <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                                                <p className="text-xs text-gray-500 line-clamp-2 mb-3">
                                                     {i.descripcion}
                                                 </p>
                                             )}
-                                            <p className="text-red-600 font-extrabold text-lg">
+                                            <span className="inline-block bg-red-50 text-red-600 font-extrabold text-sm px-3 py-1 rounded-full">
                                                 ${formatPrice(i.precio)}
-                                            </p>
+                                            </span>
                                         </div>
                                     </motion.div>
                                 ))}
+                            </div>
                         </div>
-                    </motion.div>
-                );
-            })}
+                    );
+                })}
+            </div>
 
             {/* Botón flotante scroll top */}
             <AnimatePresence>
                 {showScroll && (
                     <motion.button
-                        initial={{ opacity: 0, y: 80 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 80 }}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
                         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                        className="fixed bottom-16 right-6 p-4 rounded-full bg-red-600 text-white
-              shadow-lg shadow-red-500/30 hover:bg-red-500 transition"
+                        className="fixed bottom-20 right-5 z-[9999] p-3.5 rounded-full bg-red-600 text-white shadow-lg shadow-red-500/30 hover:bg-red-500 transition"
                     >
-                        <ArrowUp size={24} />
+                        <ArrowUp size={22} />
                     </motion.button>
                 )}
             </AnimatePresence>

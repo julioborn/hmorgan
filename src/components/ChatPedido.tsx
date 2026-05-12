@@ -168,7 +168,7 @@ export default function ChatPedido({ pedidoId, remitente }: Props) {
        Render
     ========================= */
     return (
-        <div className="grid grid-rows-[auto_1fr_auto] h-screen bg-white text-black overflow-hidden">
+        <div className="grid grid-rows-[auto_1fr_auto] h-[100dvh] bg-white text-black overflow-hidden">
             {/* ================= HEADER ================= */}
             <div
                 className="flex-shrink-0 z-30 bg-white border-b border-gray-300"

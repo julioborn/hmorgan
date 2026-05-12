@@ -144,17 +144,17 @@ export default function AdminMenuPage() {
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-6 relative">
             {/* 🔝 Barra fija de navegación por categorías */}
-            <div className="bg-white border-b border-gray-200 shadow-sm py-3 px-4 flex overflow-x-auto gap-4 rounded-xl mb-6">
+            <div className="flex gap-2 overflow-x-auto pb-3 mb-6 scrollbar-hide">
                 {categorias.map((cat) => {
                     const Icon = categoryIcons[cat] || UtensilsCrossed;
                     return (
                         <button
                             key={cat}
                             onClick={() => scrollToCategory(cat)}
-                            className="flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 bg-white hover:bg-red-50 hover:text-red-600 transition whitespace-nowrap"
+                            className="flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap font-semibold text-sm flex-shrink-0 border border-gray-200 bg-white text-gray-600 hover:border-red-300 hover:text-red-600 transition-all duration-200"
                         >
-                            <Icon size={18} className="text-red-600" />
-                            <span className="font-medium">{cat}</span>
+                            <Icon size={14} className="text-red-600" />
+                            {cat}
                         </button>
                     );
                 })}
@@ -231,9 +231,11 @@ export default function AdminMenuPage() {
                         refs.current[cat] = el;
                     }}
                         className="mb-10 scroll-mt-24">
-                        <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-black border-b border-gray-200 pb-1">
-                            <Icon size={22} className="text-red-600" /> {cat}
-                        </h2>
+                        <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
+                            <span className="block w-1 h-7 rounded-full bg-red-600 flex-shrink-0" />
+                            <Icon size={18} className="text-red-600 flex-shrink-0" />
+                            <h2 className="text-lg font-black text-black tracking-tight">{cat}</h2>
+                        </div>
 
                         <div className="space-y-2">
                             {items
@@ -241,7 +243,7 @@ export default function AdminMenuPage() {
                                 .map((i) => (
                                     <div
                                         key={i._id}
-                                        className="p-4 bg-white border border-gray-200 rounded-xl flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                                        className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                                         {editando?._id === i._id ? (
                                             <div className="flex-1 flex flex-col md:flex-row gap-3">
                                                 <input
@@ -365,7 +367,7 @@ export default function AdminMenuPage() {
             {showScrollTop && (
                 <button
                     onClick={scrollToTop}
-                    className="fixed bottom-16 right-6 p-3 bg-red-600 text-white rounded-full shadow-lg hover:bg-red-500 transition"
+                    className="fixed bottom-20 right-5 z-[9999] p-3.5 bg-red-600 text-white rounded-full shadow-lg shadow-red-500/30 hover:bg-red-500 transition"
                     aria-label="Volver arriba"
                 >
                     <ArrowUp size={22} />
