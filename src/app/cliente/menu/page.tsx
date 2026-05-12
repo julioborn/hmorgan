@@ -106,7 +106,7 @@ export default function ClienteMenuPage() {
                     <h1 className="text-3xl font-black text-black tracking-tight mb-1">Menú</h1>
                     <p className="text-sm text-gray-400">Elegí una categoría</p>
                 </div>
-                <div className="px-5 pb-10 space-y-3">
+                <div className="px-5 pb-10 grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {categoriasNavegacion.map((cat, idx) => (
                         <CategoryCard key={cat} cat={cat} idx={idx} onClick={() => setCategoriaActiva(cat)} />
                     ))}
@@ -127,7 +127,7 @@ export default function ClienteMenuPage() {
                     <Beer size={18} className="text-red-600 shrink-0" />
                     <h1 className="font-black text-xl text-black tracking-tight">Bebidas</h1>
                 </div>
-                <div className="px-5 py-5 pb-10 space-y-3">
+                <div className="px-5 py-5 pb-10 grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {subCats.map((cat, idx) => (
                         <CategoryCard key={cat} cat={cat} idx={idx} onClick={() => setCategoriaActiva(cat)} />
                     ))}

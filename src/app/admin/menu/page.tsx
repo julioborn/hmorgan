@@ -56,6 +56,7 @@ export default function AdminMenuPage() {
     const [editando, setEditando] = useState<MenuItem | null>(null);
     const [showForm, setShowForm] = useState(false);
     const [categoriaActiva, setCategoriaActiva] = useState<string | null>(null);
+    const [selectCat, setSelectCat] = useState("");
 
     async function agregarItem() {
         await fetch("/api/menu", {
@@ -65,6 +66,7 @@ export default function AdminMenuPage() {
         });
         mutate();
         setNuevo({ nombre: "", descripcion: "", precio: 0, categoria: "" });
+        setSelectCat("");
     }
 
     async function eliminarItem(id: string) {
@@ -167,10 +169,33 @@ export default function AdminMenuPage() {
                                     placeholder="Precio" type="text"
                                     value={nuevo.precio ? new Intl.NumberFormat("es-AR").format(nuevo.precio) : ""}
                                     onChange={(e) => { const raw = e.target.value.replace(/\./g, ""); setNuevo({ ...nuevo, precio: parseFloat(raw) || 0 }); }} />
-                                <input className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500"
-                                    placeholder="Categoría" value={nuevo.categoria || ""}
-                                    onChange={(e) => setNuevo({ ...nuevo, categoria: e.target.value })} />
+                                <select
+                                    className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-black focus:outline-none focus:ring-2 focus:ring-red-500"
+                                    value={selectCat}
+                                    onChange={(e) => {
+                                        setSelectCat(e.target.value);
+                                        if (e.target.value !== "__nueva__") {
+                                            setNuevo({ ...nuevo, categoria: e.target.value });
+                                        } else {
+                                            setNuevo({ ...nuevo, categoria: "" });
+                                        }
+                                    }}
+                                >
+                                    <option value="">Seleccioná una categoría</option>
+                                    {[...new Set(items.map(i => i.categoria))].sort().map(cat => (
+                                        <option key={cat} value={cat}>{cat}</option>
+                                    ))}
+                                    <option value="__nueva__">+ Nueva categoría...</option>
+                                </select>
                             </div>
+                            {selectCat === "__nueva__" && (
+                                <input
+                                    className="rounded-xl border border-red-300 bg-white px-3 py-2 text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                    placeholder="Nombre de la nueva categoría (ej: PASTAS)"
+                                    value={nuevo.categoria || ""}
+                                    onChange={(e) => setNuevo({ ...nuevo, categoria: e.target.value.toUpperCase() })}
+                                />
+                            )}
                             <textarea className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-black placeholder-gray-400 min-h-[80px] focus:outline-none focus:ring-2 focus:ring-red-500"
                                 placeholder="Descripción" value={nuevo.descripcion || ""}
                                 onChange={(e) => setNuevo({ ...nuevo, descripcion: e.target.value })} />
@@ -183,7 +208,7 @@ export default function AdminMenuPage() {
                     )}
                 </div>
 
-                <div className="px-5 pb-10 space-y-3">
+                <div className="px-5 pb-10 grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {categoriasNavegacion.map((cat, idx) => (
                         <CategoryCard key={cat} cat={cat} idx={idx} onClick={() => setCategoriaActiva(cat)} />
                     ))}
@@ -204,7 +229,7 @@ export default function AdminMenuPage() {
                     <Beer size={18} className="text-red-600 shrink-0" />
                     <h1 className="font-black text-xl text-black tracking-tight">Bebidas</h1>
                 </div>
-                <div className="px-5 py-5 pb-10 space-y-3">
+                <div className="px-5 py-5 pb-10 grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {subCats.map((cat, idx) => (
                         <CategoryCard key={cat} cat={cat} idx={idx} onClick={() => setCategoriaActiva(cat)} />
                     ))}

@@ -260,7 +260,7 @@ export default function AnotadorPage() {
                 <div className="px-5 pt-5 pb-3">
                     <p className="text-sm text-gray-400">Elegí una categoría</p>
                 </div>
-                <div className="px-5 space-y-3">
+                <div className="px-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {categoriasNavegacion.map((cat, idx) => (
                         <CategoryCard key={cat} cat={cat} idx={idx} onClick={() => setCategoriaActiva(cat)} />
                     ))}
@@ -281,7 +281,7 @@ export default function AnotadorPage() {
         return (
             <div className="bg-white min-h-screen" style={{ paddingBottom: cart.length > 0 ? "200px" : "1.5rem" }}>
                 <StickyHeader title="Bebidas" onBack={() => setCategoriaActiva(null)} icon={Beer} />
-                <div className="px-5 py-5 space-y-3">
+                <div className="px-5 py-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {subCats.map((cat, idx) => (
                         <CategoryCard key={cat} cat={cat} idx={idx} onClick={() => setCategoriaActiva(cat)} />
                     ))}
