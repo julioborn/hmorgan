@@ -1,13 +1,15 @@
 "use client";
-import { useState } from "react";
-import useSWR from "swr";
+import { useState, useRef, useEffect } from "react";
+import useSWR, { mutate } from "swr";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     UtensilsCrossed, Pizza, Beef, Sandwich, Salad, Beer,
     BottleWine, Milk, CupSoda, Martini, GlassWater, Beaker,
     CakeSlice, Hamburger, ChevronDown, ChevronUp, ChevronLeft,
+    Settings, X,
 } from "lucide-react";
 import Loader from "@/components/Loader";
+import { useCategoryConfigs } from "@/hooks/useCategoryConfigs";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -26,7 +28,6 @@ const formatPrice = (value: number) =>
     new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(value);
 
 const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
-
 const MAIN_ORDER = ["PARRILLA", "PIZZAS", "HAMBURGUESAS", "SANDWICHES", "PICADAS", "ENSALADAS", "FRITURAS", "BEBIDAS", "POSTRE Y CAFE"];
 
 const categoryImages: Record<string, string> = {
@@ -50,21 +51,160 @@ const categoryIcons: Record<string, React.ElementType> = {
     "POSTRE Y CAFE": CakeSlice,
 };
 
+
 export default function AdminMenuPage() {
-    const { data: items, mutate } = useSWR<MenuItem[]>("/api/menu", fetcher);
+    const { data: items, mutate: mutateItems } = useSWR<MenuItem[]>("/api/menu", fetcher);
+    const categoryConfigMap = useCategoryConfigs();
+
     const [nuevo, setNuevo] = useState<Partial<MenuItem>>({ nombre: "", descripcion: "", precio: 0, categoria: "" });
     const [editando, setEditando] = useState<MenuItem | null>(null);
     const [showForm, setShowForm] = useState(false);
     const [categoriaActiva, setCategoriaActiva] = useState<string | null>(null);
     const [selectCat, setSelectCat] = useState("");
 
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+    }, [categoriaActiva]);
+
+    /* ── Config de imagen por categoría ── */
+    const [configurandoCat, setConfigurandoCat] = useState<string | null>(null);
+    const [editingConfig, setEditingConfig] = useState({ imageUrl: "", imagePosition: "50% 50%" });
+    const [isDragging, setIsDragging] = useState(false);
+    const dragRef = useRef<{ x: number; y: number; posX: number; posY: number } | null>(null);
+
+    function parsePosition(pos: string): [number, number] {
+        const parts = pos.split(" ");
+        return [parseFloat(parts[0]) || 50, parseFloat(parts[1]) || 50];
+    }
+
+    function onPreviewPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+        e.preventDefault();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        const [posX, posY] = parsePosition(editingConfig.imagePosition);
+        dragRef.current = { x: e.clientX, y: e.clientY, posX, posY };
+        setIsDragging(true);
+    }
+
+    function onPreviewPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+        if (!dragRef.current) return;
+        const { x, y, posX, posY } = dragRef.current;
+        const dx = e.clientX - x;
+        const dy = e.clientY - y;
+        const newX = Math.max(0, Math.min(100, posX - dx * 0.25));
+        const newY = Math.max(0, Math.min(100, posY - dy * 0.25));
+        setEditingConfig(prev => ({ ...prev, imagePosition: `${newX.toFixed(1)}% ${newY.toFixed(1)}%` }));
+    }
+
+    function onPreviewPointerUp() {
+        dragRef.current = null;
+        setIsDragging(false);
+    }
+
+    function abrirConfig(cat: string) {
+        const cfg = categoryConfigMap[cat];
+        setEditingConfig({
+            imageUrl: cfg?.imageUrl || "",
+            imagePosition: cfg?.imagePosition || "50% 50%",
+        });
+        setConfigurandoCat(cat);
+    }
+
+    async function saveConfig() {
+        if (!configurandoCat) return;
+        await fetch("/api/categories/config", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ categoria: configurandoCat, ...editingConfig }),
+        });
+        mutate("/api/categories/config");
+        setConfigurandoCat(null);
+    }
+
+    /* ── Config bottom sheet ── */
+    const configSheet = configurandoCat ? (
+        <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl bg-white shadow-2xl border-t border-gray-200 max-w-screen-sm mx-auto">
+            <div className="p-5 pb-8" style={{ paddingBottom: "max(2rem, env(safe-area-inset-bottom))" }}>
+                {/* Cabecera */}
+                <div className="flex items-center justify-between mb-5">
+                    <div>
+                        <p className="text-xs text-gray-400 uppercase tracking-widest font-semibold">Imagen</p>
+                        <h3 className="font-black text-xl text-black">{configurandoCat}</h3>
+                    </div>
+                    <button
+                        onClick={() => setConfigurandoCat(null)}
+                        className="p-2 rounded-full hover:bg-gray-100 transition"
+                    >
+                        <X size={20} className="text-gray-600" />
+                    </button>
+                </div>
+
+                {/* Preview arrastrable */}
+                <div className="mb-1">
+                    <label className="text-xs font-bold text-gray-600 uppercase tracking-widest mb-1.5 block">
+                        Encuadrá la imagen arrastrando
+                    </label>
+                    <div
+                        className={`h-36 rounded-2xl overflow-hidden relative border border-gray-200 shadow-sm select-none touch-none ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+                        onPointerDown={onPreviewPointerDown}
+                        onPointerMove={onPreviewPointerMove}
+                        onPointerUp={onPreviewPointerUp}
+                        onPointerCancel={onPreviewPointerUp}
+                    >
+                        {(editingConfig.imageUrl || categoryImages[configurandoCat]) ? (
+                            <img
+                                src={editingConfig.imageUrl || categoryImages[configurandoCat]}
+                                alt={configurandoCat}
+                                className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                                style={{ objectPosition: editingConfig.imagePosition }}
+                                draggable={false}
+                            />
+                        ) : (
+                            <div className="absolute inset-0 bg-gradient-to-r from-gray-800 to-gray-600" />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-black/10 pointer-events-none" />
+                        <p className="absolute bottom-3 left-4 text-white font-black text-sm pointer-events-none">{configurandoCat}</p>
+                        {!isDragging && (
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <span className="text-white/90 text-xs font-semibold bg-black/40 px-3 py-1 rounded-full backdrop-blur-sm">
+                                    Mantené presionado y arrastrá
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* URL de imagen */}
+                <div className="mb-4 mt-4">
+                    <label className="text-xs font-bold text-gray-600 uppercase tracking-widest mb-1.5 block">
+                        URL de imagen (opcional)
+                    </label>
+                    <input
+                        value={editingConfig.imageUrl}
+                        onChange={(e) => setEditingConfig({ ...editingConfig, imageUrl: e.target.value })}
+                        placeholder="Dejar vacío para usar imagen por defecto"
+                        className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500"
+                    />
+                </div>
+
+                {/* Guardar */}
+                <button
+                    onClick={saveConfig}
+                    className="w-full bg-red-600 text-white font-bold py-3.5 rounded-xl hover:bg-red-500 transition shadow-lg shadow-red-600/20"
+                >
+                    Guardar cambios
+                </button>
+            </div>
+        </div>
+    ) : null;
+
+    /* ── CRUD helpers ── */
     async function agregarItem() {
         await fetch("/api/menu", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(nuevo),
         });
-        mutate();
+        mutateItems();
         setNuevo({ nombre: "", descripcion: "", precio: 0, categoria: "" });
         setSelectCat("");
     }
@@ -72,7 +212,7 @@ export default function AdminMenuPage() {
     async function eliminarItem(id: string) {
         if (!confirm("¿Seguro que deseas eliminar este producto?")) return;
         await fetch(`/api/menu/${id}`, { method: "DELETE" });
-        mutate();
+        mutateItems();
     }
 
     async function guardarEdicion() {
@@ -83,7 +223,7 @@ export default function AdminMenuPage() {
             body: JSON.stringify(editando),
         });
         setEditando(null);
-        mutate();
+        mutateItems();
     }
 
     async function toggleActivo(item: MenuItem) {
@@ -92,7 +232,7 @@ export default function AdminMenuPage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ ...item, activo: !item.activo }),
         });
-        mutate();
+        mutateItems();
     }
 
     if (!items) return <div className="p-12 flex justify-center"><Loader size={40} /></div>;
@@ -103,46 +243,66 @@ export default function AdminMenuPage() {
     };
 
     const catDbImage = (cat: string) => items.find((i) => i.categoria === cat && i.imagen)?.imagen ?? null;
-    const getImage = (cat: string) => categoryImages[cat] || catDbImage(cat);
+    const getImage = (cat: string) => {
+        const cfg = categoryConfigMap[cat];
+        return cfg?.imageUrl || categoryImages[cat] || catDbImage(cat);
+    };
+    const getPosition = (cat: string) => categoryConfigMap[cat]?.imagePosition || "50% 50%";
 
-    const categoriasNavegacion = MAIN_ORDER.filter(cat => {
-        if (cat === "BEBIDAS") return BEBIDAS_CATS.some(bc => items.some(i => i.categoria === bc));
-        return items.some(i => i.categoria === cat);
+    const categoriasNavegacion = MAIN_ORDER.filter((cat) => {
+        if (cat === "BEBIDAS") return BEBIDAS_CATS.some((bc) => items.some((i) => i.categoria === bc));
+        return items.some((i) => i.categoria === cat);
     });
 
     function CategoryCard({ cat, idx, onClick }: { cat: string; idx: number; onClick: () => void }) {
         const Icon = categoryIcons[cat] || UtensilsCrossed;
         const bg = getImage(cat);
+        const imagePosition = getPosition(cat);
         const allItems = items ?? [];
         const count = cat === "BEBIDAS"
-            ? allItems.filter(i => BEBIDAS_CATS.includes(i.categoria)).length
-            : allItems.filter(i => i.categoria === cat).length;
+            ? allItems.filter((i) => BEBIDAS_CATS.includes(i.categoria)).length
+            : allItems.filter((i) => i.categoria === cat).length;
         return (
             <motion.button
                 onClick={onClick}
                 initial={{ opacity: 0, y: 18 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.04 }}
-                className="relative w-full h-32 rounded-2xl overflow-hidden shadow-md active:scale-[0.98] transition-transform text-left"
+                className="relative w-full h-40 rounded-2xl overflow-hidden shadow-md active:scale-[0.98] transition-transform text-left"
             >
                 {bg ? (
-                    <img src={bg} alt={cat} className="absolute inset-0 w-full h-full object-cover" />
+                    <img
+                        src={bg}
+                        alt={cat}
+                        className="absolute inset-0 w-full h-full object-cover"
+                        style={{ objectPosition: imagePosition }}
+                    />
                 ) : (
                     <div className="absolute inset-0 bg-gradient-to-r from-gray-800 to-gray-600" />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-black/10" />
                 <div className="absolute left-5 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg">
-                    <Icon size={26} className="text-gray-800" />
+                    <Icon size={26} className="text-red-700" />
                 </div>
-                <div className="absolute left-[88px] bottom-5 right-5">
+                <div className="absolute left-[88px] bottom-5 right-10">
                     <p className="text-white font-black text-lg tracking-tight leading-tight">{cat}</p>
-                    <p className="text-white/60 text-xs font-medium mt-0.5">{count} {count === 1 ? "producto" : "productos"}</p>
+                    <p className="text-white/60 text-xs font-medium mt-0.5">
+                        {count} {count === 1 ? "producto" : "productos"}
+                    </p>
                 </div>
+                {/* Botón de configuración */}
+                <button
+                    onClick={(e) => { e.stopPropagation(); abrirConfig(cat); }}
+                    className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center hover:bg-black/80 transition z-10"
+                    title="Configurar imagen"
+                >
+                    <Settings size={13} className="text-white" />
+                </button>
             </motion.button>
         );
     }
 
-    /* ── Main categories view ── */
+    /* ── Vista principal: categorías ── */
     if (!categoriaActiva) {
         return (
             <div className="bg-white min-h-screen">
@@ -162,13 +322,22 @@ export default function AdminMenuPage() {
                     {showForm && (
                         <div className="mt-6 space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <input className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500"
-                                    placeholder="Nombre" value={nuevo.nombre || ""}
-                                    onChange={(e) => setNuevo({ ...nuevo, nombre: e.target.value })} />
-                                <input className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500"
-                                    placeholder="Precio" type="text"
+                                <input
+                                    className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                    placeholder="Nombre"
+                                    value={nuevo.nombre || ""}
+                                    onChange={(e) => setNuevo({ ...nuevo, nombre: e.target.value })}
+                                />
+                                <input
+                                    className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                    placeholder="Precio"
+                                    type="text"
                                     value={nuevo.precio ? new Intl.NumberFormat("es-AR").format(nuevo.precio) : ""}
-                                    onChange={(e) => { const raw = e.target.value.replace(/\./g, ""); setNuevo({ ...nuevo, precio: parseFloat(raw) || 0 }); }} />
+                                    onChange={(e) => {
+                                        const raw = e.target.value.replace(/\./g, "");
+                                        setNuevo({ ...nuevo, precio: parseFloat(raw) || 0 });
+                                    }}
+                                />
                                 <select
                                     className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-black focus:outline-none focus:ring-2 focus:ring-red-500"
                                     value={selectCat}
@@ -182,7 +351,7 @@ export default function AdminMenuPage() {
                                     }}
                                 >
                                     <option value="">Seleccioná una categoría</option>
-                                    {[...new Set(items.map(i => i.categoria))].sort().map(cat => (
+                                    {[...new Set(items.map((i) => i.categoria))].sort().map((cat) => (
                                         <option key={cat} value={cat}>{cat}</option>
                                     ))}
                                     <option value="__nueva__">+ Nueva categoría...</option>
@@ -196,11 +365,17 @@ export default function AdminMenuPage() {
                                     onChange={(e) => setNuevo({ ...nuevo, categoria: e.target.value.toUpperCase() })}
                                 />
                             )}
-                            <textarea className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-black placeholder-gray-400 min-h-[80px] focus:outline-none focus:ring-2 focus:ring-red-500"
-                                placeholder="Descripción" value={nuevo.descripcion || ""}
-                                onChange={(e) => setNuevo({ ...nuevo, descripcion: e.target.value })} />
+                            <textarea
+                                className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-black placeholder-gray-400 min-h-[80px] focus:outline-none focus:ring-2 focus:ring-red-500"
+                                placeholder="Descripción"
+                                value={nuevo.descripcion || ""}
+                                onChange={(e) => setNuevo({ ...nuevo, descripcion: e.target.value })}
+                            />
                             <div className="flex justify-end">
-                                <button onClick={agregarItem} className="px-6 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-500 transition">
+                                <button
+                                    onClick={agregarItem}
+                                    className="px-6 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-500 transition"
+                                >
                                     Agregar
                                 </button>
                             </div>
@@ -213,13 +388,15 @@ export default function AdminMenuPage() {
                         <CategoryCard key={cat} cat={cat} idx={idx} onClick={() => setCategoriaActiva(cat)} />
                     ))}
                 </div>
+
+                {configSheet}
             </div>
         );
     }
 
-    /* ── BEBIDAS subcategories view ── */
+    /* ── Vista BEBIDAS: subcategorías ── */
     if (categoriaActiva === "BEBIDAS") {
-        const subCats = BEBIDAS_CATS.filter(bc => items.some(i => i.categoria === bc));
+        const subCats = BEBIDAS_CATS.filter((bc) => items.some((i) => i.categoria === bc));
         return (
             <div className="bg-white min-h-screen">
                 <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
@@ -234,11 +411,12 @@ export default function AdminMenuPage() {
                         <CategoryCard key={cat} cat={cat} idx={idx} onClick={() => setCategoriaActiva(cat)} />
                     ))}
                 </div>
+                {configSheet}
             </div>
         );
     }
 
-    /* ── Items view ── */
+    /* ── Vista items ── */
     const esBebida = BEBIDAS_CATS.includes(categoriaActiva);
     const CatIcon = categoryIcons[categoriaActiva] || UtensilsCrossed;
     const itemsCat = items.filter((i) => i.categoria === categoriaActiva);
@@ -266,19 +444,37 @@ export default function AdminMenuPage() {
                     className="px-5 py-5 pb-16 space-y-2"
                 >
                     {itemsCat.map((i) => (
-                        <div key={i._id} className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div
+                            key={i._id}
+                            className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+                        >
                             {editando?._id === i._id ? (
                                 <div className="flex-1 flex flex-col md:flex-row gap-3">
-                                    <input className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-black flex-1 focus:outline-none focus:ring-2 focus:ring-red-500"
-                                        value={editando.nombre} onChange={(e) => setEditando({ ...editando, nombre: e.target.value })} />
-                                    <textarea className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-black flex-1 resize-y min-h-[60px] focus:outline-none focus:ring-2 focus:ring-red-500"
-                                        value={editando.descripcion || ""} onChange={(e) => setEditando({ ...editando, descripcion: e.target.value })} />
-                                    <input className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-right text-black w-full md:w-24 focus:outline-none focus:ring-2 focus:ring-red-500"
-                                        type="text" value={formatNumber(editando.precio)}
-                                        onChange={(e) => setEditando({ ...editando, precio: parseFloat(e.target.value.replace(/\./g, "")) || 0 })} />
+                                    <input
+                                        className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-black flex-1 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                        value={editando.nombre}
+                                        onChange={(e) => setEditando({ ...editando, nombre: e.target.value })}
+                                    />
+                                    <textarea
+                                        className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-black flex-1 resize-y min-h-[60px] focus:outline-none focus:ring-2 focus:ring-red-500"
+                                        value={editando.descripcion || ""}
+                                        onChange={(e) => setEditando({ ...editando, descripcion: e.target.value })}
+                                    />
+                                    <input
+                                        className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-right text-black w-full md:w-24 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                        type="text"
+                                        value={formatNumber(editando.precio)}
+                                        onChange={(e) =>
+                                            setEditando({ ...editando, precio: parseFloat(e.target.value.replace(/\./g, "")) || 0 })
+                                        }
+                                    />
                                     <div className="flex gap-2 justify-end">
-                                        <button onClick={guardarEdicion} className="px-3 py-2 rounded-lg bg-red-600 text-white hover:bg-red-500 transition">Guardar</button>
-                                        <button onClick={() => setEditando(null)} className="px-3 py-2 rounded-lg border border-gray-300 text-black bg-white hover:bg-gray-100 transition">Cancelar</button>
+                                        <button onClick={guardarEdicion} className="px-3 py-2 rounded-lg bg-red-600 text-white hover:bg-red-500 transition">
+                                            Guardar
+                                        </button>
+                                        <button onClick={() => setEditando(null)} className="px-3 py-2 rounded-lg border border-gray-300 text-black bg-white hover:bg-gray-100 transition">
+                                            Cancelar
+                                        </button>
                                     </div>
                                 </div>
                             ) : (
@@ -290,17 +486,31 @@ export default function AdminMenuPage() {
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <label className="text-sm text-gray-700">
-                                            <input type="checkbox" checked={i.activo} onChange={() => toggleActivo(i)} className="accent-red-600 w-4 h-4 cursor-pointer" />{" "}Pedidos
+                                            <input
+                                                type="checkbox"
+                                                checked={i.activo}
+                                                onChange={() => toggleActivo(i)}
+                                                className="accent-red-600 w-4 h-4 cursor-pointer"
+                                            />{" "}
+                                            Pedidos
                                         </label>
                                     </div>
                                     {i.categoria === "COCKTAILS" && (
                                         <div className="flex-shrink-0">
                                             <label className="flex items-center gap-2 text-sm text-gray-700">
-                                                <input type="checkbox" checked={i.ruleta ?? false}
+                                                <input
+                                                    type="checkbox"
+                                                    checked={i.ruleta ?? false}
                                                     onChange={async (e) => {
-                                                        await fetch(`/api/menu/${i._id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...i, ruleta: e.target.checked }) });
-                                                        mutate();
-                                                    }} className="accent-red-600 w-4 h-4" />
+                                                        await fetch(`/api/menu/${i._id}`, {
+                                                            method: "PUT",
+                                                            headers: { "Content-Type": "application/json" },
+                                                            body: JSON.stringify({ ...i, ruleta: e.target.checked }),
+                                                        });
+                                                        mutateItems();
+                                                    }}
+                                                    className="accent-red-600 w-4 h-4"
+                                                />
                                                 Ruleta
                                             </label>
                                         </div>
@@ -324,6 +534,8 @@ export default function AdminMenuPage() {
                     ))}
                 </motion.div>
             </AnimatePresence>
+
+            {configSheet}
         </div>
     );
 }

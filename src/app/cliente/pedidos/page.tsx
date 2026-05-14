@@ -10,6 +10,7 @@ import Loader from "@/components/Loader";
 import { swalBase } from "@/lib/swalConfig";
 import Portal from "@/components/Portal";
 import { useRouter } from "next/navigation";
+import { useCategoryConfigs } from "@/hooks/useCategoryConfigs";
 
 type MenuItem = {
     _id: string;
@@ -50,6 +51,7 @@ const categoryIcons: Record<string, React.ElementType> = {
 };
 
 export default function PedidosClientePage() {
+    const categoryConfigMap = useCategoryConfigs();
     const [menu, setMenu] = useState<MenuItem[]>([]);
     const [activo, setActivo] = useState(false);
     const [items, setItems] = useState<Record<string, number>>({});
@@ -62,6 +64,10 @@ export default function PedidosClientePage() {
     const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null);
     const [enviando, setEnviando] = useState(false);
     const router = useRouter();
+
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+    }, [categoriaSeleccionada]);
 
     useEffect(() => {
         (async () => {
@@ -167,7 +173,11 @@ export default function PedidosClientePage() {
     const total = menu.reduce((acc, item) => acc + item.precio * (items[item._id] || 0), 0);
 
     const catDbImage = (cat: string) => menu.find((i) => i.categoria === cat && i.imagen)?.imagen ?? null;
-    const getImage = (cat: string) => categoryImages[cat] || catDbImage(cat);
+    const getImage = (cat: string) => {
+        const cfg = categoryConfigMap[cat];
+        return cfg?.imageUrl || categoryImages[cat] || catDbImage(cat);
+    };
+    const getPosition = (cat: string) => categoryConfigMap[cat]?.imagePosition || "50% 50%";
 
     const categoriasNavegacion = MAIN_ORDER.filter(cat => {
         if (cat === "BEBIDAS") return BEBIDAS_CATS.some(bc => menu.some(i => i.categoria === bc));
@@ -277,6 +287,7 @@ export default function PedidosClientePage() {
     function CategoryCard({ cat, idx, onClick }: { cat: string; idx: number; onClick: () => void }) {
         const Icon = categoryIcons[cat] || UtensilsCrossed;
         const bg = getImage(cat);
+        const imagePosition = getPosition(cat);
         const count = cat === "BEBIDAS"
             ? menu.filter(i => BEBIDAS_CATS.includes(i.categoria)).length
             : menu.filter(i => i.categoria === cat).length;
@@ -286,16 +297,16 @@ export default function PedidosClientePage() {
                 initial={{ opacity: 0, y: 18 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.04 }}
-                className="relative w-full h-32 rounded-2xl overflow-hidden shadow-md active:scale-[0.98] transition-transform text-left"
+                className="relative w-full h-40 rounded-2xl overflow-hidden shadow-md active:scale-[0.98] transition-transform text-left"
             >
                 {bg ? (
-                    <img src={bg} alt={cat} className="absolute inset-0 w-full h-full object-cover" />
+                    <img src={bg} alt={cat} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: imagePosition }} />
                 ) : (
                     <div className="absolute inset-0 bg-gradient-to-r from-gray-800 to-gray-600" />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-black/10" />
                 <div className="absolute left-5 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg">
-                    <Icon size={26} className="text-gray-800" />
+                    <Icon size={26} className="text-red-700" />
                 </div>
                 <div className="absolute left-[88px] bottom-5 right-5">
                     <p className="text-white font-black text-lg tracking-tight leading-tight">{cat}</p>

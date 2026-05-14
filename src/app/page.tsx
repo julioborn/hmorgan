@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
-import { QrCode, Scan, Users, Bell, ChefHat, PackagePlus, Package, Utensils, Ticket, Coins, History, ScanQrCode, ScanText, MessageSquare, Settings, Star, BarChart2, ClipboardList, LayoutGrid } from "lucide-react";
+import { QrCode, Users, Bell, PackagePlus, Package, Utensils, Ticket, History, ScanQrCode, ScanText, Settings, Star, BarChart2, ClipboardList, LayoutGrid } from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 import "swiper/css";
@@ -55,15 +55,10 @@ function Landing() {
       <section className="text-center space-y-3">
         <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight">
           Bienvenido
-          {/* <span className="bg-gradient-to-r from-red-600 to-red-400 bg-clip-text text-transparent drop-shadow-lg">
-            H Morgan Bar
-          </span> */}
-
         </h1>
         <p className="text-red-600 font-semibold text-base sm:text-lg">
           ¡Mejorá tu experiencia en el bar!
         </p>
-
       </section>
 
       {/* Card de acceso */}
@@ -100,7 +95,6 @@ function ClientHome({ nombre }: { nombre?: string }) {
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [loadingRewards, setLoadingRewards] = useState(true);
   const [pedidosActivosCount, setPedidosActivosCount] = useState(0);
-  const [chatsActivosCount, setChatsActivosCount] = useState(0);
   const [pedidosActivos, setPedidosActivos] = useState(true);
 
   useEffect(() => {
@@ -121,30 +115,9 @@ function ClientHome({ nombre }: { nombre?: string }) {
   }, []);
 
   useEffect(() => {
-    const fetchChatsActivos = async () => {
-      try {
-        const res = await fetch("/api/pedidos", { cache: "no-store" });
-        if (!res.ok) return;
-        const data = await res.json();
-        const activos = data.filter(
-          (p: any) => p.chatActivo || ["pendiente", "preparando", "listo"].includes(p.estado)
-        );
-        setChatsActivosCount(activos.length || 0);
-      } catch (e) {
-        console.error("Error cargando chats activos:", e);
-      }
-    };
-
-    fetchChatsActivos();
-    const interval = setInterval(fetchChatsActivos, 10000);
-    return () => clearInterval(interval);
-  }, []); // 👈 mantener en la raíz también
-
-  useEffect(() => {
     fetch("/api/config/pedidos", { cache: "no-store" })
       .then(res => res.json())
       .then(data => {
-        console.log("CONFIG PEDIDOS 👉", data);
         setPedidosActivos(data.activo);
       });
   }, []);
@@ -238,28 +211,6 @@ function ClientHome({ nombre }: { nombre?: string }) {
         </div>
       </section>
 
-      {/* 🗨️ Chats activos (botón negro largo con burbuja) */}
-      <div className="relative">
-        <Link
-          href="/cliente/chats"
-          className="flex items-center justify-between w-full bg-black text-white rounded-2xl px-5 py-4 shadow-lg hover:scale-[1.02] transition-all duration-300"
-        >
-          <div className="flex items-center gap-3">
-            <MessageSquare className="w-6 h-6" />
-            <div className="flex flex-col leading-tight">
-              <span className="text-lg font-bold">Chats Activos</span>
-              <span className="text-xs opacity-80">Habla con el bar sobre tu pedido</span>
-            </div>
-          </div>
-
-          {chatsActivosCount > 0 && (
-            <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded-full ring-2 ring-white shadow-md animate-pulse">
-              {chatsActivosCount}
-            </span>
-          )}
-        </Link>
-      </div>
-
       {/* Botonera */}
       <div className="grid grid-cols-2 gap-4">
         <ActionCard
@@ -274,7 +225,6 @@ function ClientHome({ nombre }: { nombre?: string }) {
           Icon={Utensils}
           accent="from-red-600 to-red-800"
         />
-        {/* 🆕 Pedido y Mis Pedidos */}
         <ActionCard
           href="/cliente/pedidos"
           title="Pedir"
@@ -344,26 +294,6 @@ function AdminHome() {
     return () => clearInterval(interval);
   }, []);
 
-  const [chatsActivosCount, setChatsActivosCount] = useState(0);
-
-  useEffect(() => {
-    const fetchChatsActivos = async () => {
-      try {
-        const res = await fetch("/api/pedidos", { cache: "no-store" });
-        if (!res.ok) return;
-        const data = await res.json();
-        const activos = data.filter((p: any) => p.chatActivo || ["pendiente", "preparando", "listo"].includes(p.estado));
-        setChatsActivosCount(activos.length || 0);
-      } catch (e) {
-        console.error("Error cargando chats activos:", e);
-      }
-    };
-
-    fetchChatsActivos();
-    const interval = setInterval(fetchChatsActivos, 10000);
-    return () => clearInterval(interval);
-  }, []);
-
   return (
     <div
       className={`${container} py-8 space-y-8`}
@@ -375,101 +305,21 @@ function AdminHome() {
         </h1>
       </header>
 
-      {/* 🗨️ Chats activos (botón negro largo con burbuja) */}
-      <div className="relative">
-        <Link
-          href="/admin/chats"
-          className="flex items-center justify-between w-full bg-black text-white rounded-2xl px-5 py-4 shadow-lg hover:scale-[1.02] transition-all duration-300"
-        >
-          <div className="flex items-center gap-3">
-            <MessageSquare className="w-6 h-6" />
-            <div className="flex flex-col leading-tight">
-              <span className="text-lg font-bold">Chats Activos</span>
-              <span className="text-xs opacity-80">Ver todos los pedidos con chat</span>
-            </div>
-          </div>
-
-          {chatsActivosCount > 0 && (
-            <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded-full ring-2 ring-white shadow-md animate-pulse">
-              {chatsActivosCount}
-            </span>
-          )}
-        </Link>
-      </div>
-
-
       <div className="grid grid-cols-2 gap-4">
-        <ActionCard
-          href="/admin/scan"
-          title="Escanear Puntos"
-          Icon={ScanQrCode}
-          accent="from-red-600 to-red-800"
-        />
-        <ActionCard
-          href="/admin/rewards/scan"
-          title="Escanear Canjes"
-          Icon={ScanText}
-          accent="from-red-600 to-red-800"
-        />
-        <ActionCard
-          href="/admin/clientes"
-          title="Clientes"
-          Icon={Users}
-          accent="from-red-600 to-red-800"
-        />
-        <ActionCard
-          href="/admin/menu"
-          title="Menú"
-          Icon={Utensils}
-          accent="from-red-600 to-red-800"
-        />
-        <ActionCard
-          href="/admin/rewards"
-          title="Canjes"
-          Icon={Ticket}
-          accent="from-red-600 to-red-800"
-        />
-        <ActionCard
-          href="/admin/pedidos"
-          title="Pedidos"
-          Icon={Package}
-          accent="from-red-600 to-red-800"
-          notificationCount={pedidosActivosCount}
-        />
-        <ActionCard
-          href="/admin/reviews"
-          title="Reseñas"
-          Icon={Star}
-          accent="from-red-600 to-red-800"
-        />
-        <ActionCard
-          href="/admin/configuracion"
-          title="Ajustes"
-          Icon={Settings}
-          accent="from-red-600 to-red-800"
-        />
-        <ActionCard
-          href="/admin/estadisticas"
-          title="Estadísticas"
-          Icon={BarChart2}
-          accent="from-red-600 to-red-800"
-        />
-        <ActionCard
-          href="/admin/mesas"
-          title="Mesas"
-          Icon={LayoutGrid}
-          accent="from-red-600 to-red-800"
-        />
+        <ActionCard href="/admin/scan" title="Escanear Puntos" Icon={ScanQrCode} accent="from-red-600 to-red-800" />
+        <ActionCard href="/admin/rewards/scan" title="Escanear Canjes" Icon={ScanText} accent="from-red-600 to-red-800" />
+        <ActionCard href="/admin/clientes" title="Clientes" Icon={Users} accent="from-red-600 to-red-800" />
+        <ActionCard href="/admin/menu" title="Menú" Icon={Utensils} accent="from-red-600 to-red-800" />
+        <ActionCard href="/admin/rewards" title="Canjes" Icon={Ticket} accent="from-red-600 to-red-800" />
+        <ActionCard href="/admin/pedidos" title="Pedidos" Icon={Package} accent="from-red-600 to-red-800" notificationCount={pedidosActivosCount} />
+        <ActionCard href="/admin/reviews" title="Reseñas" Icon={Star} accent="from-red-600 to-red-800" />
+        <ActionCard href="/admin/configuracion" title="Ajustes" Icon={Settings} accent="from-red-600 to-red-800" />
+        <ActionCard href="/admin/estadisticas" title="Estadísticas" Icon={BarChart2} accent="from-red-600 to-red-800" />
+        <ActionCard href="/admin/mesas" title="Mesas" Icon={LayoutGrid} accent="from-red-600 to-red-800" />
         <div className="col-span-2">
-          <ActionCard
-            href="/admin/notificaciones"
-            title="Notificaciones"
-            Icon={Bell}
-            accent="from-black to-gray-900"
-          />
+          <ActionCard href="/admin/notificaciones" title="Notificaciones" Icon={Bell} accent="from-black to-gray-900" />
         </div>
       </div>
-
     </div>
   );
 }
@@ -490,37 +340,12 @@ function EmployeeHome() {
       </header>
 
       <div className="grid grid-cols-2 gap-4">
-        <ActionCard
-          href="/admin/scan"
-          title="Escanear Puntos"
-          Icon={ScanQrCode}
-          accent="from-red-600 to-red-800"
-        />
-        <ActionCard
-          href="/admin/rewards/scan"
-          title="Escanear Canjes"
-          Icon={ScanText}
-          accent="from-red-600 to-red-800"
-        />
-        <ActionCard
-          href="/admin/rewards"
-          title="Canjes"
-          Icon={Ticket}
-          accent="from-red-600 to-red-800"
-        />
-        <ActionCard
-          href="/menu"
-          title="Menú"
-          Icon={Utensils}
-          accent="from-red-600 to-red-800"
-        />
+        <ActionCard href="/admin/scan" title="Escanear Puntos" Icon={ScanQrCode} accent="from-red-600 to-red-800" />
+        <ActionCard href="/admin/rewards/scan" title="Escanear Canjes" Icon={ScanText} accent="from-red-600 to-red-800" />
+        <ActionCard href="/admin/rewards" title="Canjes" Icon={Ticket} accent="from-red-600 to-red-800" />
+        <ActionCard href="/menu" title="Menú" Icon={Utensils} accent="from-red-600 to-red-800" />
         <div className="col-span-2">
-          <ActionCard
-            href="/empleado/anotador"
-            title="Anotador de Pedidos"
-            Icon={ClipboardList}
-            accent="from-black to-gray-900"
-          />
+          <ActionCard href="/empleado/anotador" title="Anotador de Pedidos" Icon={ClipboardList} accent="from-black to-gray-900" />
         </div>
       </div>
     </div>

@@ -26,49 +26,51 @@ if (!admin.apps.length) {
 /**
  * Enviar notificación a un token FCM
  */
+const FCM_INVALID_TOKEN_CODES = new Set([
+    "messaging/registration-token-not-registered",
+    "messaging/invalid-registration-token",
+    "messaging/invalid-argument",
+]);
+
+export function isFCMTokenInvalid(err: any): boolean {
+    return FCM_INVALID_TOKEN_CODES.has(err?.errorInfo?.code) || FCM_INVALID_TOKEN_CODES.has(err?.code);
+}
+
 export async function enviarNotificacionFCM(
     token: string,
     title: string,
     body: string,
     url?: string
 ) {
-    try {
-        const payload: admin.messaging.Message = {
-            token,
+    const payload: admin.messaging.Message = {
+        token,
+        notification: { title, body },
+        data: {
+            url: url || "/",
+            imageUrl: "https://hmorgan.vercel.app/morganwhite.png",
+            icon: "https://hmorgan.vercel.app/morganwhite.png",
+        },
+        android: {
             notification: {
-                title,
-                body,
-            },
-            data: {
-                url: url || "/",
+                icon: "morganwhite",
+                color: "#B91C1C",
+                channelId: "default",
+                sound: "default",
                 imageUrl: "https://hmorgan.vercel.app/morganwhite.png",
+            },
+        },
+        webpush: {
+            fcmOptions: { link: url || "/" },
+            notification: {
                 icon: "https://hmorgan.vercel.app/morganwhite.png",
+                badge: "https://hmorgan.vercel.app/icon-badge-96x96.png",
+                image: "https://hmorgan.vercel.app/morganwhite.png",
             },
-            android: {
-                notification: {
-                    icon: "morganwhite", // 👈 este es el ícono local en /res/mipmap/
-                    color: "#B91C1C", // rojo institucional
-                    channelId: "default", // para Android 8+
-                    sound: "default",
-                    imageUrl: "https://hmorgan.vercel.app/morganwhite.png",
-                },
-            },
-            webpush: {
-                fcmOptions: { link: url || "/" },
-                notification: {
-                    icon: "https://hmorgan.vercel.app/morganwhite.png",
-                    badge: "https://hmorgan.vercel.app/icon-badge-96x96.png",
-                    image: "https://hmorgan.vercel.app/morganwhite.png",
-                },
-            },
-        };
+        },
+    };
 
-        await admin.messaging().send(payload);
-
-        console.log(`✅ Notificación FCM enviada con logo a ${token.slice(0, 10)}...`);
-    } catch (err) {
-        console.error("❌ Error al enviar FCM:", err);
-    }
+    await admin.messaging().send(payload);
+    console.log(`✅ Notificación FCM enviada a ${token.slice(0, 10)}...`);
 }
 
 export { admin };

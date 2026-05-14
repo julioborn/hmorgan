@@ -24,11 +24,13 @@ import {
   Home,
   LogOut,
   Trash2,
+  MessageSquare,
 } from "lucide-react";
 
 export default function Header() {
   const { user, loading, logout } = useAuth();
   const [open, setOpen] = useState(false);
+  const [chatsCount, setChatsCount] = useState(0);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -38,8 +40,27 @@ export default function Header() {
     };
   }, [open]);
 
+  useEffect(() => {
+    if (!user || (user.role !== "admin" && user.role !== "cliente")) return;
+    const fetchChats = async () => {
+      try {
+        const res = await fetch("/api/pedidos", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        const activos = data.filter(
+          (p: any) => p.chatActivo || ["pendiente", "preparando", "listo"].includes(p.estado)
+        );
+        setChatsCount(activos.length || 0);
+      } catch {}
+    };
+    fetchChats();
+    const interval = setInterval(fetchChats, 10000);
+    return () => clearInterval(interval);
+  }, [user]);
+
   const linksCliente = [
     { href: "/", label: "Inicio", icon: Home },
+    { href: "/cliente/chats", label: "Chats", icon: MessageSquare },
     { href: "/cliente/qr", label: "Mi QR", icon: QrCode },
     { href: "/cliente/perfil", label: "Mi Perfil", icon: UserRoundPen },
     { href: "/cliente/menu", label: "Menú", icon: Utensils },
@@ -52,6 +73,7 @@ export default function Header() {
 
   const linksAdmin = [
     { href: "/", label: "Inicio", icon: Home },
+    { href: "/admin/chats", label: "Chats", icon: MessageSquare },
     { href: "/admin/scan", label: "Escanear Puntos", icon: ScanQrCode },
     { href: "/admin/rewards/scan", label: "Escanear Canjes", icon: ScanText },
     { href: "/admin/clientes", label: "Clientes", icon: Users },
@@ -99,8 +121,22 @@ export default function Header() {
           </Link>
         </div>
 
-        {/* DERECHA (vacía para balance visual) */}
-        <div className="flex-1" />
+        {/* DERECHA — inbox de chats */}
+        <div className="flex-1 flex justify-end pr-1">
+          {user && (user.role === "admin" || user.role === "cliente") && (
+            <Link
+              href={user.role === "admin" ? "/admin/chats" : "/cliente/chats"}
+              className="relative p-2 rounded-md hover:bg-white/10 transition"
+            >
+              <MessageSquare size={24} className="text-white" />
+              {chatsCount > 0 && (
+                <span className="absolute top-1 right-1 bg-red-600 text-white text-[10px] font-bold min-w-[16px] h-4 rounded-full flex items-center justify-center px-0.5 ring-1 ring-black animate-pulse">
+                  {chatsCount > 9 ? "9+" : chatsCount}
+                </span>
+              )}
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* MENÚ */}

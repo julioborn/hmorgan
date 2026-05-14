@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import webpush from "web-push";
 import { User, IUser } from "@/models/User";
-import { enviarNotificacionFCM } from "@/lib/firebase-admin";
+import { enviarNotificacionFCM, isFCMTokenInvalid } from "@/lib/firebase-admin";
 
 webpush.setVapidDetails(
     process.env.VAPID_MAIL || "mailto:admin@morgan.com",
@@ -36,29 +36,64 @@ export async function POST(req: NextRequest) {
         console.log(`📱 Usuarios con token FCM: ${fcmUsers.length}`);
         for (const u of fcmUsers) {
             const tokens = getAllFcmTokens(u);
+            const expiredTokens: string[] = [];
+
             for (const token of tokens) {
                 try {
                     await enviarNotificacionFCM(token, msgTitle, msgBody, msgUrl);
                     totalEnviados++;
                 } catch (err) {
-                    console.error("❌ FCM error para", u.nombre, err);
+                    if (isFCMTokenInvalid(err)) {
+                        expiredTokens.push(token);
+                    } else {
+                        console.error("❌ FCM error para", u.nombre, err);
+                    }
                 }
+            }
+
+            if (expiredTokens.length > 0) {
+                await User.updateOne(
+                    { _id: u._id },
+                    {
+                        $pull: { fcmTokens: { $in: expiredTokens } },
+                        ...(expiredTokens.includes(u.tokenFCM ?? "") ? { $unset: { tokenFCM: "" } } : {}),
+                    }
+                );
+                console.log(`🗑️ Eliminados ${expiredTokens.length} tokens FCM expirados de ${u.nombre}`);
             }
         }
 
         // 🌐 WebPush — usuarios con suscripción de navegador/PWA
         const webPushUsers: IUser[] = await User.find({ "pushSubscriptions.0": { $exists: true } });
-        const subs = webPushUsers.flatMap((u) => u.pushSubscriptions ?? []);
-        console.log(`📡 Suscripciones WebPush: ${subs.length}`);
+        console.log(`📡 Suscripciones WebPush: ${webPushUsers.flatMap((u) => u.pushSubscriptions ?? []).length}`);
 
         const payload = JSON.stringify({ title: msgTitle, body: msgBody, url: msgUrl });
         await Promise.all(
-            subs.map(async (sub: any) => {
-                try {
-                    await webpush.sendNotification(sub, payload);
-                    totalEnviados++;
-                } catch (err: any) {
-                    console.error("❌ WebPush error:", sub.endpoint, err.statusCode);
+            webPushUsers.map(async (user) => {
+                const subs: any[] = user.pushSubscriptions ?? [];
+                const expiredEndpoints: string[] = [];
+
+                await Promise.all(
+                    subs.map(async (sub: any) => {
+                        try {
+                            await webpush.sendNotification(sub, payload);
+                            totalEnviados++;
+                        } catch (err: any) {
+                            if (err.statusCode === 410 || err.statusCode === 404) {
+                                expiredEndpoints.push(sub.endpoint);
+                            } else {
+                                console.error("❌ WebPush error:", sub.endpoint, err.statusCode);
+                            }
+                        }
+                    })
+                );
+
+                if (expiredEndpoints.length > 0) {
+                    await User.updateOne(
+                        { _id: user._id },
+                        { $pull: { pushSubscriptions: { endpoint: { $in: expiredEndpoints } } } }
+                    );
+                    console.log(`🗑️ Eliminadas ${expiredEndpoints.length} suscripciones expiradas de ${user.nombre}`);
                 }
             })
         );

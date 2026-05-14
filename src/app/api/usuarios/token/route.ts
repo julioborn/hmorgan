@@ -17,6 +17,12 @@ export async function POST(req: NextRequest) {
 
         await connectMongoDB();
 
+        // Quitar el token de cualquier otro usuario que lo tenga (cambio de cuenta)
+        await User.updateMany(
+            { _id: { $ne: payload.sub }, $or: [{ fcmTokens: token }, { tokenFCM: token }] },
+            { $pull: { fcmTokens: token }, $unset: { tokenFCM: "" } }
+        );
+
         const user = await User.findByIdAndUpdate(
             payload.sub,
             { $addToSet: { fcmTokens: token } },
