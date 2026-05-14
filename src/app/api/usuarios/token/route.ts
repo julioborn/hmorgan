@@ -38,3 +38,31 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Error interno" }, { status: 500 });
     }
 }
+
+export async function DELETE(req: NextRequest) {
+    try {
+        const { token } = await req.json();
+        if (!token) return NextResponse.json({ error: "Falta el token" }, { status: 400 });
+
+        const sessionToken = req.cookies.get("session")?.value;
+        if (!sessionToken) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+        const payload = jwt.verify(sessionToken, NEXTAUTH_SECRET) as any;
+
+        await connectMongoDB();
+
+        const user = await User.findByIdAndUpdate(
+            payload.sub,
+            { $pull: { fcmTokens: token }, $unset: { tokenFCM: "" } },
+            { new: true }
+        );
+        if (!user) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+
+        console.log(`🗑️ Token FCM eliminado para ${user.nombre}`);
+
+        return NextResponse.json({ ok: true });
+    } catch (error) {
+        console.error("❌ Error eliminando token FCM:", error);
+        return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
+}

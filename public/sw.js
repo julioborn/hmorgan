@@ -56,6 +56,40 @@ self.addEventListener("fetch", (event) => {
     );
 });
 
+// 🔔 WebPush: mostrar notificación
+self.addEventListener("push", (event) => {
+    let data = {};
+    try { data = event.data?.json() ?? {}; } catch {}
+
+    event.waitUntil(
+        self.registration.showNotification(data.title || "Morgan", {
+            body: data.body || "",
+            icon: "/morganwhite.png",
+            badge: "/icon-badge-96x96.png",
+            data: { url: data.url || "/" },
+        })
+    );
+});
+
+// 👆 WebPush: navegar al tap
+self.addEventListener("notificationclick", (event) => {
+    event.notification.close();
+    const url = event.notification.data?.url || "/";
+    const fullUrl = "https://hmorgan.vercel.app" + url;
+
+    event.waitUntil(
+        self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+            for (const client of clientList) {
+                if ("focus" in client) {
+                    client.navigate(fullUrl);
+                    return client.focus();
+                }
+            }
+            return self.clients.openWindow(fullUrl);
+        })
+    );
+});
+
 // 📨 Mensajes entrantes
 self.addEventListener("message", (event) => {
     if (event.data?.type === "SKIP_WAITING") self.skipWaiting();

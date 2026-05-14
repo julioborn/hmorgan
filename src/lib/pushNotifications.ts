@@ -34,6 +34,24 @@ async function registrarToken(token: string) {
     }
 }
 
+export async function removePushToken() {
+    try {
+        if (!Capacitor.isNativePlatform()) return;
+        const fcmToken = await FirebaseMessaging.getToken();
+        if (!fcmToken?.token) return;
+
+        await fetch(getBackendUrl("/api/usuarios/token"), {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: fcmToken.token }),
+            credentials: "include",
+        });
+        console.log("✅ Token FCM eliminado del backend");
+    } catch (err) {
+        console.error("❌ Error eliminando token FCM:", err);
+    }
+}
+
 export async function initPush() {
     try {
         const permStatus = await PushNotifications.checkPermissions();
@@ -60,6 +78,14 @@ export async function initPush() {
         });
 
         PushNotifications.addListener("pushNotificationReceived", handleNotification);
+
+        // Navegar a la ruta cuando el usuario toca la notificación (app en background/cerrada)
+        PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
+            const url = action.notification?.data?.url;
+            if (url) {
+                window.location.href = url;
+            }
+        });
 
     } catch (err) {
         console.error("💥 Error en initPush:", err);

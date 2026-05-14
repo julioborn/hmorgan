@@ -1,6 +1,7 @@
 // src/context/auth-context.tsx
 "use client";
-import { silentPushRecovery } from "@/lib/push-auto-recover";
+import { silentPushRecovery } from "@/lib/push-auto-recover"
+import { removePushToken } from "@/lib/pushNotifications";
 import { createContext, useContext, useEffect, useState } from "react";
 
 type User =
@@ -86,11 +87,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 🔓 Cerrar sesión
     const logout = async () => {
         try {
-            const res = await fetch("/api/auth/logout", {
-                method: "POST",
-                credentials: "include",
-            });
-
+            await removePushToken();
+            await unsubscribePushSafe();
+            await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
             setUser(null);
             window.location.href = "/login";
         } catch (err) {
