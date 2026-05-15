@@ -1,5 +1,4 @@
 import { registerSW, subscribeUser, forceResubscribe } from "@/lib/push-client";
-import Swal from "sweetalert2";
 import { swalBase } from "./swalConfig";
 
 /**

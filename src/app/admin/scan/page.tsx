@@ -122,7 +122,6 @@ export default function ScanPage() {
         icon: "info",
         title: "Escaneo no disponible",
         text: "El escaneo QR no está disponible en este dispositivo.",
-        confirmButtonColor: "#dc2626",
       });
       return;
     }
@@ -258,27 +257,13 @@ export default function ScanPage() {
           icon: "success",
           title: "Cliente escaneado ✅",
           html: `
-  <div class="text-black">
-    <div style="font-size: 1.1rem; margin-top: 0.5rem;">
-      <b>${user.nombre} ${user.apellido}</b><br/>
-      Usuario: @${user.username}<br/>
-      Puntos actuales: ${user.puntos}
-    </div>
+  <div style="font-size:1.1rem;margin-top:0.5rem;text-align:left;color:#111;">
+    <b>${user.nombre} ${user.apellido}</b><br/>
+    Usuario: @${user.username}<br/>
+    Puntos actuales: ${user.puntos}
   </div>
 `,
-
-          background: "#ffffff",
-
-          showConfirmButton: true,
-          confirmButtonColor: "#dc2626",
           confirmButtonText: "OK",
-
-          customClass: {
-            popup: "rounded-2xl shadow-xl border border-red-600/20",
-            title: "text-black font-semibold",        // 🔥 OVERRIDE
-            htmlContainer: "text-black",              // 🔥 OVERRIDE
-            confirmButton: "bg-red-600 text-white rounded-lg px-5 py-2 font-semibold hover:bg-red-500",
-          },
         });
 
         setFlash(true);

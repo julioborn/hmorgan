@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
 import { Clock, Flame, CheckCircle, Truck } from "lucide-react";
 import { format } from "date-fns";
@@ -95,7 +94,6 @@ export default function AdminPedidosPage() {
                 showCancelButton: true,
                 confirmButtonText: "Sí, eliminar",
                 cancelButtonText: "Cancelar",
-                confirmButtonColor: "#ef4444",
             });
 
             if (!confirm.isConfirmed) return;
@@ -125,7 +123,6 @@ export default function AdminPedidosPage() {
             showCancelButton: true,
             confirmButtonText: "Continuar",
             cancelButtonText: "Cancelar",
-            confirmButtonColor: "#f97316",
         });
 
         if (!primerConfirm.isConfirmed) return;
@@ -137,7 +134,6 @@ export default function AdminPedidosPage() {
             showCancelButton: true,
             confirmButtonText: "Sí, eliminar definitivamente",
             cancelButtonText: "Cancelar",
-            confirmButtonColor: "#ef4444",
         });
 
         if (!segundoConfirm.isConfirmed) return;

@@ -2,8 +2,11 @@ import { NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { Pedido } from "@/models/Pedido";
 import { User } from "@/models/User";
+import Mensaje from "@/models/Mensaje";
 import { sendPushToSubscriptions } from "@/lib/push-server";
-import { enviarNotificacionFCM } from "@/lib/firebase-admin";
+import { enviarNotificacionFCM, isFCMTokenInvalid } from "@/lib/firebase-admin";
+
+const TRES_DIAS_MS = 3 * 24 * 60 * 60 * 1000;
 
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
     await connectMongoDB();
@@ -24,6 +27,11 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     pedido.estado = "cancelado";
     await pedido.save();
 
+    await Mensaje.updateMany(
+        { pedidoId: params.id, deleteAt: null },
+        { deleteAt: new Date(Date.now() + TRES_DIAS_MS) }
+    );
+
     // 🔔 Notificación push opcional al admin
     const admin = await User.findOne({ role: "admin" });
     if (admin?.pushSubscriptions?.length) {
@@ -35,14 +43,17 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         });
     }
 
-    // 🔥 Notificación FCM al admin
-    if (admin?.tokenFCM) {
-        await enviarNotificacionFCM(
-            admin.tokenFCM,
-            "Pedido cancelado ❌",
-            `El cliente canceló el pedido #${pedido._id.toString().slice(-4)}`,
-            "/admin/pedidos"
-        );
+    // 🔥 FCM — todos los tokens del admin
+    if (admin) {
+        const fcmTokens = new Set<string>(admin.fcmTokens ?? []);
+        if (admin.tokenFCM) fcmTokens.add(admin.tokenFCM);
+        for (const token of fcmTokens) {
+            try {
+                await enviarNotificacionFCM(token, "Pedido cancelado ❌", `El cliente canceló el pedido #${pedido._id.toString().slice(-4)}`, "/admin/pedidos");
+            } catch (err) {
+                if (isFCMTokenInvalid(err)) await User.updateOne({ _id: admin._id }, { $pull: { fcmTokens: token } });
+            }
+        }
     }
 
     return NextResponse.json({ ok: true, message: "Pedido cancelado correctamente" });

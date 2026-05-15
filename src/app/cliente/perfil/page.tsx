@@ -35,7 +35,6 @@ export default function PerfilPage() {
                     icon: "error",
                     title: "Error",
                     text: err.message,
-                    confirmButtonColor: "#dc2626",
                 });
             } finally {
                 setLoading(false);
@@ -78,14 +77,12 @@ export default function PerfilPage() {
                 icon: "success",
                 title: "Perfil actualizado",
                 text: "Tus datos se guardaron correctamente.",
-                confirmButtonColor: "#dc2626",
             });
         } catch (err: any) {
             swalBase.fire({
                 icon: "error",
                 title: "Error",
                 text: err.message,
-                confirmButtonColor: "#dc2626",
             });
         } finally {
             setSaving(false);
@@ -98,7 +95,6 @@ export default function PerfilPage() {
                 icon: "warning",
                 title: "Email requerido",
                 text: "Agregá tu email para poder cambiar la contraseña.",
-                confirmButtonColor: "#f59e0b",
             });
             return;
         }
@@ -119,14 +115,12 @@ export default function PerfilPage() {
                 icon: "success",
                 title: "Correo enviado",
                 text: `Revisá ${perfil.email} para cambiar tu contraseña.`,
-                confirmButtonColor: "#dc2626",
             });
         } catch (err: any) {
             swalBase.fire({
                 icon: "error",
                 title: "Error",
                 text: err.message,
-                confirmButtonColor: "#dc2626",
             });
         } finally {
             setResetting(false);
@@ -155,8 +149,6 @@ export default function PerfilPage() {
             text: "Esta acción es permanente y eliminará todos tus datos. No se puede deshacer.",
             icon: "warning",
             showCancelButton: true,
-            confirmButtonColor: "#dc2626",
-            cancelButtonColor: "#6b7280",
             confirmButtonText: "Sí, eliminar definitivamente",
             cancelButtonText: "Cancelar",
         });
@@ -175,7 +167,6 @@ export default function PerfilPage() {
                 icon: "success",
                 title: "Cuenta eliminada",
                 text: "Tu cuenta y todos tus datos fueron eliminados correctamente.",
-                confirmButtonColor: "#dc2626",
             });
 
             window.location.href = "/login";
@@ -185,7 +176,6 @@ export default function PerfilPage() {
                 icon: "error",
                 title: "Error",
                 text: err.message,
-                confirmButtonColor: "#dc2626",
             });
         }
     }

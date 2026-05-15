@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
-import Swal from "sweetalert2";
 import Loader from "./Loader";
 import { swalBase } from "@/lib/swalConfig";
 
@@ -58,7 +57,6 @@ export default function ScanRewardPage() {
                 icon: "info",
                 title: "Escaneo no disponible",
                 text: "El escaneo QR no está disponible en este dispositivo.",
-                confirmButtonColor: "#dc2626",
             });
             return;
         }
@@ -180,22 +178,16 @@ export default function ScanRewardPage() {
             const reward = rewards?.find((r) => r._id === selectedReward);
 
             const result = await swalBase.fire({
-                title: "",
+                title: "Confirmar canje",
                 html: `
-        <div style="background: linear-gradient(145deg,#0f172a,#111827);border-radius:1rem;padding:1.5rem;text-align:left;
-          box-shadow:0 0 25px rgba(239,68,68,0.15);color:#f1f5f9;font-family:'Inter',sans-serif;">
-          <h2 style="font-size:1.4rem;font-weight:700;margin-bottom:.8rem;color:#fca5a5;">Confirmar canje</h2>
-          <p>${user.nombre} ${user.apellido || ""} — <b>${user.puntos ?? 0} pts</b></p>
-          <hr style="margin:1rem 0;border:none;border-top:1px solid rgba(255,255,255,0.1);" />
-          <p><b>${reward?.titulo}</b> — <span style="color:#f87171;">-${reward?.puntos ?? 0} pts</span></p>
+        <div style="text-align:left;">
+          <p style="color:#111;">${user.nombre} ${user.apellido || ""} — <b>${user.puntos ?? 0} pts</b></p>
+          <hr style="margin:1rem 0;border:none;border-top:1px solid #e5e7eb;" />
+          <p style="color:#111;"><b>${reward?.titulo}</b> — <span style="color:#dc2626;">-${reward?.puntos ?? 0} pts</span></p>
         </div>`,
                 showCancelButton: true,
                 confirmButtonText: "Confirmar",
                 cancelButtonText: "Cancelar",
-                confirmButtonColor: "#ef4444",
-                cancelButtonColor: "#374151",
-                background: "#0f172a",
-                color: "#f1f5f9",
             });
 
             if (!result.isConfirmed) {
@@ -213,10 +205,7 @@ export default function ScanRewardPage() {
                 await swalBase.fire({
                     icon: "success",
                     title: "Canje realizado",
-                    html: `<b>${reward?.titulo}</b><br/><span style="color:#f87171;">-${reward?.puntos} pts</span>`,
-                    confirmButtonColor: "#ef4444",
-                    background: "#0f172a",
-                    color: "#f1f5f9",
+                    html: `<b>${reward?.titulo}</b><br/><span style="color:#dc2626;">-${reward?.puntos} pts</span>`,
                     timer: 2000,
                     showConfirmButton: false,
                 });
@@ -228,9 +217,6 @@ export default function ScanRewardPage() {
                     icon: "error",
                     title: "Error",
                     text: "No se pudo completar el canje.",
-                    confirmButtonColor: "#ef4444",
-                    background: "#0f172a",
-                    color: "#f1f5f9",
                 });
             }
         } catch (e: any) {

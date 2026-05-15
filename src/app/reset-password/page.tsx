@@ -2,7 +2,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Swal from "sweetalert2";
 import Loader from "@/components/Loader";
 import { swalBase } from "@/lib/swalConfig";
 
@@ -67,7 +66,6 @@ export default function ResetPasswordPage({
             swalBase.fire({
                 icon: "error",
                 title: "Las contraseñas no coinciden",
-                confirmButtonColor: "#ef4444",
             });
             return;
         }
@@ -87,7 +85,6 @@ export default function ResetPasswordPage({
                 icon: "success",
                 title: "✅ Contraseña actualizada",
                 text: "Ya puedes iniciar sesión con tu nueva contraseña.",
-                confirmButtonColor: "#10b981",
             }).then(() => {
                 window.location.href = "/login";
             });
@@ -96,7 +93,6 @@ export default function ResetPasswordPage({
                 icon: "error",
                 title: "❌ Error",
                 text: err.message,
-                confirmButtonColor: "#ef4444",
             });
         } finally {
             setLoading(false);

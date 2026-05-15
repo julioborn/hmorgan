@@ -4,7 +4,6 @@ import QRCode from "qrcode";
 import { useAuth } from "@/context/auth-context";
 import { registerSW, subscribeUser } from "@/lib/push-client";
 import Loader from "@/components/Loader";
-import Swal from "sweetalert2";
 import { swalBase } from "@/lib/swalConfig";
 
 export default function MiQRPage() {

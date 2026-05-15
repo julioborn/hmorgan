@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Gift, QrCode, ChevronDown, ChevronUp } from "lucide-react";
 import Loader from "@/components/Loader";
 import { Trash2 } from "lucide-react";
-import Swal from "sweetalert2";
+import { swalBase } from "@/lib/swalConfig";
 
 type Reward = {
     _id: string;
@@ -61,13 +61,11 @@ export default function AdminRewardsPage() {
     }
 
     async function handleDelete(id: string) {
-        const result = await Swal.fire({
+        const result = await swalBase.fire({
             title: "Eliminar canje",
             text: "¿Seguro que querés eliminar este canje? Esta acción no se puede deshacer.",
             icon: "warning",
             showCancelButton: true,
-            confirmButtonColor: "#dc2626",
-            cancelButtonColor: "#6b7280",
             confirmButtonText: "Eliminar",
             cancelButtonText: "Cancelar",
         });
@@ -79,7 +77,7 @@ export default function AdminRewardsPage() {
         });
 
         if (!res.ok) {
-            Swal.fire("Error", "No se pudo eliminar el canje", "error");
+            swalBase.fire("Error", "No se pudo eliminar el canje", "error");
             return;
         }
 

@@ -3,10 +3,18 @@ import { connectMongoDB } from "@/lib/mongodb";
 import { Pedido } from "@/models/Pedido";
 import { MenuItem } from "@/models/MenuItem";
 import { User } from "@/models/User";
+import Mensaje from "@/models/Mensaje";
 import jwt from "jsonwebtoken";
 import { sendPushToSubscriptions } from "@/lib/push-server";
-import { enviarNotificacionFCM } from "@/lib/firebase-admin";
+import { enviarNotificacionFCM, isFCMTokenInvalid } from "@/lib/firebase-admin";
 import Config from "@/models/Config";
+
+const TRES_DIAS_MS = 3 * 24 * 60 * 60 * 1000;
+
+async function programarBorradoMensajes(pedidoId: string) {
+    const deleteAt = new Date(Date.now() + TRES_DIAS_MS);
+    await Mensaje.updateMany({ pedidoId, deleteAt: null }, { deleteAt });
+}
 
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET!;
 
@@ -165,6 +173,10 @@ export async function PUT(req: NextRequest) {
             return NextResponse.json({ message: "Pedido no encontrado" }, { status: 404 });
         }
 
+        if (estado === "entregado" || estado === "cancelado") {
+            await programarBorradoMensajes(id);
+        }
+
         // 🧠 Mensajes personalizados según el estado
         const mensajes: Record<
             string,
@@ -206,25 +218,43 @@ export async function PUT(req: NextRequest) {
 
         // 🔔 Notificar al cliente
         const user = await User.findById(pedido.userId);
+        const notifUrl = `/cliente/mis-pedidos`;
+
         if (user?.pushSubscriptions?.length) {
             await sendPushToSubscriptions(user.pushSubscriptions, {
                 title: msg.title,
                 body: msg.body,
-                url: "/cliente/mis-pedidos",
+                url: notifUrl,
                 icon: "/icon-192.png",
                 badge: "/icon-badge-96x96.png",
                 image: "/morganwhite.png",
             });
         }
 
-        // 🔥 Notificación FCM al cliente
-        if (user?.tokenFCM) {
-            await enviarNotificacionFCM(
-                user.tokenFCM,
-                msg.title,
-                msg.body,
-                "/cliente/mis-pedidos"
-            );
+        // 🔥 FCM — todos los tokens del cliente (array + campo legacy)
+        if (user) {
+            const fcmTokens = new Set<string>(user.fcmTokens ?? []);
+            if (user.tokenFCM) fcmTokens.add(user.tokenFCM);
+
+            const expiredTokens: string[] = [];
+            for (const token of fcmTokens) {
+                try {
+                    await enviarNotificacionFCM(token, msg.title, msg.body, notifUrl);
+                } catch (err) {
+                    if (isFCMTokenInvalid(err)) expiredTokens.push(token);
+                    else console.error("❌ FCM error estado pedido:", err);
+                }
+            }
+
+            if (expiredTokens.length > 0) {
+                await User.updateOne(
+                    { _id: user._id },
+                    {
+                        $pull: { fcmTokens: { $in: expiredTokens } },
+                        ...(expiredTokens.includes(user.tokenFCM ?? "") ? { $unset: { tokenFCM: "" } } : {}),
+                    }
+                );
+            }
         }
 
         return NextResponse.json({ ok: true, pedido });
@@ -261,6 +291,8 @@ export async function DELETE(req: NextRequest) {
         if (!pedido)
             return NextResponse.json({ message: "Pedido no encontrado" }, { status: 404 });
 
+        await programarBorradoMensajes(id);
+
         // 🔔 Notificar al cliente que su pedido fue rechazado
         const user = await User.findById(pedido.userId);
         if (user?.pushSubscriptions?.length) {
@@ -274,14 +306,17 @@ export async function DELETE(req: NextRequest) {
             });
         }
 
-        // 🔥 Notificación FCM al cliente
-        if (user?.tokenFCM) {
-            await enviarNotificacionFCM(
-                user.tokenFCM,
-                "Pedido rechazado ❌",
-                "Tu pedido fue rechazado. Si creés que es un error, consultá en el bar.",
-                "/cliente/mis-pedidos"
-            );
+        // 🔥 FCM — todos los tokens del cliente
+        if (user) {
+            const fcmTokens = new Set<string>(user.fcmTokens ?? []);
+            if (user.tokenFCM) fcmTokens.add(user.tokenFCM);
+            for (const token of fcmTokens) {
+                try {
+                    await enviarNotificacionFCM(token, "Pedido rechazado ❌", "Tu pedido fue rechazado. Si creés que es un error, consultá en el bar.", "/cliente/mis-pedidos");
+                } catch (err) {
+                    if (isFCMTokenInvalid(err)) await User.updateOne({ _id: user._id }, { $pull: { fcmTokens: token } });
+                }
+            }
         }
 
         return NextResponse.json({ ok: true, message: "Pedido eliminado correctamente" });

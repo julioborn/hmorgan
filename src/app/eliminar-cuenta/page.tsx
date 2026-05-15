@@ -1,20 +1,19 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import Swal from "sweetalert2";
+import { swalBase } from "@/lib/swalConfig";
 
 export default function EliminarCuenta() {
     const router = useRouter();
 
     const eliminarCuenta = async () => {
-        const result = await Swal.fire({
+        const result = await swalBase.fire({
             title: "¿Eliminar cuenta?",
             text: "Esta acción es permanente y no se puede deshacer.",
             icon: "warning",
             showCancelButton: true,
             confirmButtonText: "Sí, eliminar",
             cancelButtonText: "Cancelar",
-            confirmButtonColor: "#dc2626",
         });
 
         if (!result.isConfirmed) return;
@@ -24,7 +23,7 @@ export default function EliminarCuenta() {
         });
 
         if (res.ok) {
-            await Swal.fire({
+            await swalBase.fire({
                 title: "Cuenta eliminada",
                 text: "Tu cuenta fue eliminada correctamente.",
                 icon: "success",
@@ -32,7 +31,7 @@ export default function EliminarCuenta() {
 
             router.push("/login");
         } else {
-            Swal.fire({
+            swalBase.fire({
                 title: "Error",
                 text: "No se pudo eliminar la cuenta.",
                 icon: "error",

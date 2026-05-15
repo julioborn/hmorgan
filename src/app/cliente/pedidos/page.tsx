@@ -148,7 +148,6 @@ export default function PedidosClientePage() {
             showCancelButton: true,
             confirmButtonText: "Sí, vaciar",
             cancelButtonText: "Cancelar",
-            confirmButtonColor: "#dc2626",
         }).then((r) => { if (r.isConfirmed) { setItems({}); setDrawerOpen(false); } });
     };
 
