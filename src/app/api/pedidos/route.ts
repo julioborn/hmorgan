@@ -132,13 +132,16 @@ export async function POST(req: NextRequest) {
                 });
             }
 
-            if (admin?.tokenFCM) {
-                await enviarNotificacionFCM(
-                    admin.tokenFCM,
-                    "¡Nuevo pedido recibido!",
-                    `Nuevo pedido de ${user.nombre ?? "un cliente"}. Revisalo en la barra 👇`,
-                    "/admin/pedidos"
-                );
+            if (admin) {
+                const fcmTokens = new Set<string>(admin.fcmTokens ?? []);
+                if (admin.tokenFCM) fcmTokens.add(admin.tokenFCM);
+                for (const token of fcmTokens) {
+                    try {
+                        await enviarNotificacionFCM(token, "¡Nuevo pedido recibido!", `Nuevo pedido de ${user.nombre ?? "un cliente"}. Revisalo en la barra 👇`, "/admin/pedidos");
+                    } catch (err) {
+                        if (isFCMTokenInvalid(err)) await User.updateOne({ _id: admin._id }, { $pull: { fcmTokens: token } });
+                    }
+                }
             }
         }
 
