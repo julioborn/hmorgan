@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Clock, Flame, CheckCircle, Truck } from "lucide-react";
+import { Clock, Flame, CheckCircle, Truck, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import Loader from "@/components/Loader";
@@ -13,6 +13,8 @@ export default function MisPedidosPage() {
     const [pedidos, setPedidos] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [vista, setVista] = useState<"activos" | "completados">("activos");
+    const [page, setPage] = useState(1);
+    const PAGE_SIZE = 5;
 
     useEffect(() => {
         let interval: any;
@@ -58,6 +60,8 @@ export default function MisPedidosPage() {
     );
     const completados = pedidos.filter((p) => p.estado === "entregado");
     const pedidosActuales = vista === "activos" ? activos : completados;
+    const totalPages = Math.max(1, Math.ceil(pedidosActuales.length / PAGE_SIZE));
+    const pagedPedidos = pedidosActuales.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
     return (
         <div className="p-6 min-h-screen bg-white">
@@ -66,7 +70,7 @@ export default function MisPedidosPage() {
             {/* 🔘 Selector de vista */}
             <div className="flex justify-center gap-4 mb-8">
                 <button
-                    onClick={() => setVista("activos")}
+                    onClick={() => { setVista("activos"); setPage(1); }}
                     className={`px-6 py-2 rounded-full text-sm font-medium border transition-all ${vista === "activos"
                         ? "bg-red-600 text-white border-red-600"
                         : "bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:text-red-700"
@@ -75,7 +79,7 @@ export default function MisPedidosPage() {
                     Pendientes
                 </button>
                 <button
-                    onClick={() => setVista("completados")}
+                    onClick={() => { setVista("completados"); setPage(1); }}
                     className={`px-6 py-2 rounded-full text-sm font-medium border transition-all ${vista === "completados"
                         ? "bg-red-600 text-white border-red-600"
                         : "bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:text-red-700"
@@ -93,7 +97,42 @@ export default function MisPedidosPage() {
                         : "No tenés pedidos finalizados todavía."}
                 </p>
             ) : (
-                <PedidosLista pedidos={pedidosActuales} estados={estados} colorClasses={colorClasses} />
+                <>
+                    <PedidosLista pedidos={pagedPedidos} estados={estados} colorClasses={colorClasses} />
+
+                    {totalPages > 1 && (
+                        <div className="mt-8 flex justify-center gap-2">
+                            <button
+                                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                disabled={page === 1}
+                                className="h-10 px-3 rounded-lg border bg-white disabled:opacity-50"
+                            >
+                                <ChevronLeft />
+                            </button>
+
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                                <button
+                                    key={p}
+                                    onClick={() => setPage(p)}
+                                    className={`h-10 min-w-10 px-3 rounded-lg border font-semibold ${p === page
+                                        ? "bg-red-600 text-white border-red-600"
+                                        : "bg-white text-black border-gray-300 hover:bg-gray-100"
+                                        }`}
+                                >
+                                    {p}
+                                </button>
+                            ))}
+
+                            <button
+                                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                                disabled={page === totalPages}
+                                className="h-10 px-3 rounded-lg border bg-white disabled:opacity-50"
+                            >
+                                <ChevronRight />
+                            </button>
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );

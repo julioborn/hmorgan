@@ -33,15 +33,17 @@ const AuthCtx = createContext<Ctx>({
 
 async function unsubscribePushSafe() {
     try {
-        // Si el browser no soporta SW/Push, no hay nada que hacer
         if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
 
-        // Obtenemos la suscripción actual del navegador (si existe)
-        const reg = await navigator.serviceWorker.ready;
+        // Timeout de 2s: navigator.serviceWorker.ready puede colgarse indefinidamente
+        const reg = await Promise.race([
+            navigator.serviceWorker.ready,
+            new Promise<never>((_, reject) => setTimeout(() => reject(new Error("sw-timeout")), 2000)),
+        ]) as ServiceWorkerRegistration;
+
         const sub = await reg.pushManager.getSubscription();
         if (!sub) return;
 
-        // 1) Borrarla de la DB del usuario actual
         try {
             await fetch("/api/push/unsubscribe", {
                 method: "POST",
@@ -49,13 +51,10 @@ async function unsubscribePushSafe() {
                 credentials: "same-origin",
                 body: JSON.stringify({ endpoint: sub.endpoint }),
             });
-        } catch { /* no rompemos logout si falla */ }
+        } catch { }
 
-        // 2) Cancelar la suscripción en el navegador
         try { await sub.unsubscribe(); } catch { }
-    } catch {
-        // silencioso a propósito
-    }
+    } catch { }
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -91,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await unsubscribePushSafe();
             await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
             setUser(null);
-            window.location.href = "/login";
+            window.location.href = "/";
         } catch (err) {
             console.error("❌ Error durante logout:", err);
         }

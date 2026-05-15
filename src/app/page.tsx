@@ -34,7 +34,7 @@ export default function Home() {
 
   if (user.role === "admin") return <AdminHome />;
   if (user.role === "empleado") return <EmployeeHome />;
-  return <ClientHome nombre={user.nombre} />;
+  return <ClientHome nombre={user.nombre} puntos={user.puntos ?? 0} />;
 }
 
 /* =========================
@@ -91,7 +91,7 @@ function Landing() {
 /* =========================
   HOME CLIENTE
    ========================= */
-function ClientHome({ nombre }: { nombre?: string }) {
+function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [loadingRewards, setLoadingRewards] = useState(true);
   const [pedidosActivosCount, setPedidosActivosCount] = useState(0);
@@ -135,6 +135,16 @@ function ClientHome({ nombre }: { nombre?: string }) {
       className={`${container} py-8 space-y-8`}
       style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
     >
+
+      {/* Saludo + puntos */}
+      <div className="flex items-center justify-between px-1">
+        <p className="text-sm text-gray-500">
+          Hola, <span className="font-semibold text-black">{nombre}</span>
+        </p>
+        <span className="text-xs font-bold text-red-600 bg-red-50 border border-red-100 px-3 py-1.5 rounded-full">
+          ★ {puntos} pts
+        </span>
+      </div>
 
       {/* Carrusel de recompensas */}
       <section className="relative">
@@ -234,7 +244,7 @@ function ClientHome({ nombre }: { nombre?: string }) {
         />
         <ActionCard
           href="/cliente/mis-pedidos"
-          title="Mis Pedidos"
+          title="Pedidos"
           Icon={Package}
           accent="from-red-600 to-red-800"
           notificationCount={pedidosActivosCount}

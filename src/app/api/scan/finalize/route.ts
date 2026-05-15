@@ -6,7 +6,7 @@ import { PointTransaction } from "@/models/PointTransaction";
 import { sendPushAndCollectInvalid } from "@/lib/push-server";
 import jwt from "jsonwebtoken";
 import { getPointsRatio } from "@/lib/getPointsRatio";
-import { enviarNotificacionFCM } from "@/lib/firebase-admin";
+import { enviarNotificacionFCM, isFCMTokenInvalid } from "@/lib/firebase-admin";
 
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET!;
 
@@ -95,16 +95,21 @@ export async function POST(req: NextRequest) {
             }
 
             // ---------- 🔥 PUSH NATIVO (FCM) ----------
-            if (u.tokenFCM) {
-                try {
-                    await enviarNotificacionFCM(
-                        u.tokenFCM,
-                        "¡Puntos sumados!",
-                        `Se acreditaron ${puntos} puntos. ¡Gracias por venir!`,
-                        "/cliente/qr"
-                    );
-                } catch (err) {
-                    console.error("❌ Error al enviar FCM:", err);
+            {
+                const userFcmTokens = new Set<string>(u.fcmTokens ?? []);
+                if (u.tokenFCM) userFcmTokens.add(u.tokenFCM);
+                for (const fcmToken of userFcmTokens) {
+                    try {
+                        await enviarNotificacionFCM(
+                            fcmToken,
+                            "¡Puntos sumados!",
+                            `Se acreditaron ${puntos} puntos. ¡Gracias por venir!`,
+                            "/cliente/qr"
+                        );
+                    } catch (err) {
+                        if (isFCMTokenInvalid(err)) await User.updateOne({ _id: u._id }, { $pull: { fcmTokens: fcmToken } });
+                        else console.error("❌ Error al enviar FCM:", err);
+                    }
                 }
             }
         }

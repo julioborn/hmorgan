@@ -6,7 +6,7 @@ import { Canje } from "@/models/Canje";
 import { User } from "@/models/User";
 import { sendPushAndCollectInvalid } from "@/lib/push-server"; // 👈 importa helper
 import jwt from "jsonwebtoken";
-import { enviarNotificacionFCM } from "@/lib/firebase-admin";
+import { enviarNotificacionFCM, isFCMTokenInvalid } from "@/lib/firebase-admin";
 
 export const dynamic = "force-dynamic";
 
@@ -106,14 +106,23 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // 🔥 Notificación FCM si el usuario tiene tokenFCM
-        if (user.tokenFCM) {
-            await enviarNotificacionFCM(
-                user.tokenFCM,
-                "¡Canje realizado! 🎁",
-                `Usaste ${reward.puntos} puntos para obtener "${reward.titulo}".`,
-                "/cliente/canjes"
-            );
+        // 🔥 Notificación FCM — todos los tokens del usuario
+        {
+            const userFcmTokens = new Set<string>(user.fcmTokens ?? []);
+            if (user.tokenFCM) userFcmTokens.add(user.tokenFCM);
+            for (const fcmToken of userFcmTokens) {
+                try {
+                    await enviarNotificacionFCM(
+                        fcmToken,
+                        "¡Canje realizado! 🎁",
+                        `Usaste ${reward.puntos} puntos para obtener "${reward.titulo}".`,
+                        "/cliente/canjes"
+                    );
+                } catch (err) {
+                    if (isFCMTokenInvalid(err)) await User.updateOne({ _id: user._id }, { $pull: { fcmTokens: fcmToken } });
+                    else console.error("❌ Error FCM canje:", err);
+                }
+            }
         }
 
         return NextResponse.json({ ok: true, canje });

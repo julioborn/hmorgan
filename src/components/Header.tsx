@@ -23,7 +23,6 @@ import {
   Star,
   Home,
   LogOut,
-  Trash2,
   MessageSquare,
 } from "lucide-react";
 
@@ -155,62 +154,55 @@ export default function Header() {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ duration: 0.3 }}
-              className="fixed left-0 top-[calc(env(safe-area-inset-top)+60px)] h-[calc(100%-env(safe-area-inset-top)-60px)] w-72 bg-black z-50 p-6 rounded-tr-2xl"
+              className="fixed left-0 top-[calc(env(safe-area-inset-top)+60px)] h-[calc(100%-env(safe-area-inset-top)-60px)] w-72 bg-black z-50 flex flex-col rounded-tr-2xl"
             >
-              <button
-                onClick={() => setOpen(false)}
-                className="text-white mb-6"
-              >
-                <X size={28} />
-              </button>
-
-              <nav className="flex flex-col gap-3">
-                {links.map((link) => {
-                  const Icon = link.icon;
-                  const active = pathname === link.href;
-
-                  return (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      onClick={() => setOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-lg transition
-                        ${
-                          active
-                            ? "bg-red-600 text-white"
-                            : "text-white hover:bg-red-600/20"
-                        }`}
-                    >
-                      <Icon size={20} />
-                      {link.label}
-                    </Link>
-                  );
-                })}
-              </nav>
-
-              {/* Cerrar sesión */}
-              <button
-                onClick={() => {
-                  setOpen(false);
-                  logout();
-                }}
-                className="mt-8 flex items-center gap-3 px-3 py-2 rounded-lg text-red-500 hover:bg-red-500/10 transition text-lg"
-              >
-                <LogOut size={20} />
-                Cerrar sesión
-              </button>
-
-              {/* Eliminar cuenta */}
-              {user?.role !== "admin" && (
-                <Link
-                  href="/cliente/perfil"
+              <div className="p-6 pb-0">
+                <button
                   onClick={() => setOpen(false)}
-                  className="mt-2 flex items-center gap-3 px-3 py-2 rounded-lg text-red-400 hover:bg-red-500/10 transition text-base"
+                  className="text-white mb-6"
                 >
-                  <Trash2 size={18} />
-                  Eliminar cuenta
-                </Link>
-              )}
+                  <X size={28} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-6 pb-6">
+                <nav className="flex flex-col gap-3">
+                  {links.map((link) => {
+                    const Icon = link.icon;
+                    const active = pathname === link.href;
+
+                    return (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        onClick={() => setOpen(false)}
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg text-lg transition
+                          ${
+                            active
+                              ? "bg-red-600 text-white"
+                              : "text-white hover:bg-red-600/20"
+                          }`}
+                      >
+                        <Icon size={20} />
+                        {link.label}
+                      </Link>
+                    );
+                  })}
+                </nav>
+
+                {/* Cerrar sesión */}
+                <button
+                  onClick={() => {
+                    setOpen(false);
+                    logout();
+                  }}
+                  className="mt-8 flex items-center gap-3 px-3 py-2 rounded-lg text-red-500 hover:bg-red-500/10 transition text-lg w-full"
+                >
+                  <LogOut size={20} />
+                  Cerrar sesión
+                </button>
+
+              </div>
             </motion.div>
           </>
         )}
