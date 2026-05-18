@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { UtensilsCrossed, Settings, Gift, ChevronLeft, ChevronRight } from "lucide-react";
+import { UtensilsCrossed, Settings, Gift, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from "lucide-react";
 import Loader from "@/components/Loader";
 
 type Tx = {
     _id: string;
     source: "consumo" | "ajuste";
     amount: number;
-    meta?: { consumoARS?: number };
+    notes?: string;
+    meta?: { consumoARS?: number; mesa?: string; share?: number };
     createdAt: string;
 };
 
@@ -32,6 +33,7 @@ export default function HistorialPage() {
     // paginación puntos
     const [page, setPage] = useState(1);
     const pageSize = 8;
+    const [expandedId, setExpandedId] = useState<string | null>(null);
 
     // paginación canjes
     const [pageCanjes, setPageCanjes] = useState(1);
@@ -126,34 +128,70 @@ export default function HistorialPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             {pagedItems.map((tx) => {
                                 const Icon = tx.source === "consumo" ? UtensilsCrossed : Settings;
+                                const isOpen = expandedId === tx._id;
+                                const hasDetail = tx.source === "consumo"
+                                    ? (tx.meta?.consumoARS !== undefined || tx.meta?.mesa || tx.meta?.share !== undefined || tx.notes)
+                                    : !!tx.notes;
 
                                 return (
                                     <div
                                         key={tx._id}
-                                        className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-all"
+                                        className="bg-white rounded-2xl border border-gray-200 shadow-sm transition-all"
                                     >
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <Icon className="w-7 h-7 text-red-600" />
-                                            <h2 className="text-lg font-bold text-black">
-                                                {tx.source === "consumo" ? "Consumo" : "Ajuste"}
-                                            </h2>
+                                        {/* Cabecera siempre visible */}
+                                        <div className="p-5">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <Icon className="w-7 h-7 text-red-600" />
+                                                <h2 className="text-lg font-bold text-black flex-1">
+                                                    {tx.source === "consumo" ? "Consumo" : "Ajuste"}
+                                                </h2>
+                                                {hasDetail && (
+                                                    <button
+                                                        onClick={() => setExpandedId(isOpen ? null : tx._id)}
+                                                        className="text-gray-400 hover:text-red-600 transition"
+                                                        aria-label="Ver detalle"
+                                                    >
+                                                        {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            <div className="flex items-end justify-between">
+                                                <p className="text-sm text-gray-500">
+                                                    {formatDate(tx.createdAt)}
+                                                </p>
+                                                <span className="text-xl font-extrabold text-red-600">
+                                                    {tx.amount >= 0 ? "+" : ""}
+                                                    {tx.amount} pts
+                                                </span>
+                                            </div>
                                         </div>
 
-                                        {tx.meta?.consumoARS !== undefined && (
-                                            <p className="text-sm text-gray-700 mb-4">
-                                                Consumo: ${tx.meta.consumoARS}
-                                            </p>
+                                        {/* Detalle expandible */}
+                                        {isOpen && hasDetail && (
+                                            <div className="border-t border-gray-100 px-5 py-4 bg-gray-50 rounded-b-2xl space-y-1.5">
+                                                {tx.meta?.mesa && (
+                                                    <p className="text-sm text-gray-700">
+                                                        <span className="font-semibold">Mesa:</span> {tx.meta.mesa}
+                                                    </p>
+                                                )}
+                                                {tx.meta?.consumoARS !== undefined && (
+                                                    <p className="text-sm text-gray-700">
+                                                        <span className="font-semibold">Total consumo:</span> ${tx.meta.consumoARS.toLocaleString("es-AR")}
+                                                    </p>
+                                                )}
+                                                {tx.meta?.share !== undefined && (
+                                                    <p className="text-sm text-gray-700">
+                                                        <span className="font-semibold">Personas en la mesa:</span> {tx.meta.share}
+                                                    </p>
+                                                )}
+                                                {tx.notes && (
+                                                    <p className="text-sm text-gray-700">
+                                                        <span className="font-semibold">Nota:</span> {tx.notes}
+                                                    </p>
+                                                )}
+                                            </div>
                                         )}
-
-                                        <div className="flex items-end justify-between">
-                                            <p className="text-sm text-gray-500">
-                                                {formatDate(tx.createdAt)}
-                                            </p>
-                                            <span className="text-xl font-extrabold text-red-600">
-                                                {tx.amount >= 0 ? "+" : ""}
-                                                {tx.amount}
-                                            </span>
-                                        </div>
                                     </div>
                                 );
                             })}

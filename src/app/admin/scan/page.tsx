@@ -360,7 +360,7 @@ export default function ScanPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl p-4 md:p-6 space-y-6">
+    <div className="mx-auto max-w-6xl p-4 md:p-6 space-y-6" style={{ paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom))" }}>
 
       <div className="grid md:grid-cols-2 gap-6">
         {/* Panel Cámara */}

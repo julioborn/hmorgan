@@ -82,8 +82,7 @@ export default function NotifBell() {
                     });
 
                     if (res.isConfirmed && platform === "ios") {
-                        const { App } = await import("@capacitor/app");
-                        await App.openUrl({ url: "app-settings:" });
+                        window.open("app-settings:", "_system");
                     }
                     return;
                 }
