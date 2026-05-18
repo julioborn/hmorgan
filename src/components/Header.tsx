@@ -25,6 +25,7 @@ import {
   LogOut,
   MessageSquare,
 } from "lucide-react";
+import NotifBell from "@/components/NotifBell";
 
 export default function Header() {
   const { user, loading, logout } = useAuth();
@@ -120,20 +121,23 @@ export default function Header() {
           </Link>
         </div>
 
-        {/* DERECHA — inbox de chats */}
-        <div className="flex-1 flex justify-end pr-1">
+        {/* DERECHA — campanita + inbox de chats */}
+        <div className="flex-1 flex justify-end items-center gap-1 pr-1">
           {user && (user.role === "admin" || user.role === "cliente") && (
-            <Link
-              href={user.role === "admin" ? "/admin/chats" : "/cliente/chats"}
-              className="relative p-2 rounded-md hover:bg-white/10 transition"
-            >
-              <MessageSquare size={24} className="text-white" />
-              {chatsCount > 0 && (
-                <span className="absolute top-1 right-1 bg-red-600 text-white text-[10px] font-bold min-w-[16px] h-4 rounded-full flex items-center justify-center px-0.5 ring-1 ring-black animate-pulse">
-                  {chatsCount > 9 ? "9+" : chatsCount}
-                </span>
-              )}
-            </Link>
+            <>
+              <NotifBell />
+              <Link
+                href={user.role === "admin" ? "/admin/chats" : "/cliente/chats"}
+                className="relative p-2 rounded-md hover:bg-white/10 transition"
+              >
+                <MessageSquare size={24} className="text-white" />
+                {chatsCount > 0 && (
+                  <span className="absolute top-1 right-1 bg-red-600 text-white text-[10px] font-bold min-w-[16px] h-4 rounded-full flex items-center justify-center px-0.5 ring-1 ring-black animate-pulse">
+                    {chatsCount > 9 ? "9+" : chatsCount}
+                  </span>
+                )}
+              </Link>
+            </>
           )}
         </div>
       </div>
