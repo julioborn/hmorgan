@@ -343,11 +343,6 @@ function EmployeeHome() {
       className={`${container} py-8 space-y-8`}
       style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
     >
-      <header>
-        <h1 className="text-4xl font-extrabold mb-10 text-center text-black">
-          Panel de Empleado
-        </h1>
-      </header>
 
       <div className="grid grid-cols-2 gap-4">
         <ActionCard href="/admin/scan" title="Escanear Puntos" Icon={ScanQrCode} accent="from-red-600 to-red-800" />
