@@ -221,7 +221,7 @@ export default function PedidosClientePage() {
                     initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
                     transition={{ type: "spring", damping: 25 }}
                     onClick={(e) => e.stopPropagation()}
-                    className="relative bg-white rounded-t-3xl max-h-[80vh] overflow-y-auto p-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]"
+                    className="relative bg-white rounded-t-3xl max-h-[85dvh] overflow-y-auto p-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]"
                 >
                     <h3 className="text-2xl font-extrabold mb-4 text-black">Tu pedido</h3>
                     <div className="space-y-4">
@@ -263,8 +263,15 @@ export default function PedidosClientePage() {
                                     Otra dirección
                                 </label>
                                 {(usarOtraDireccion || !direccionPrincipal) && (
-                                    <input type="text" placeholder="Ingresá tu dirección" value={direccionEnvio} onChange={(e) => setDireccionEnvio(e.target.value)}
-                                        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
+                                    <input
+                                        type="text"
+                                        placeholder="Ingresá tu dirección"
+                                        value={direccionEnvio}
+                                        onChange={(e) => setDireccionEnvio(e.target.value)}
+                                        onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: "smooth", block: "center" }), 350)}
+                                        style={{ fontSize: "16px" }}
+                                        className="w-full border border-gray-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-400"
+                                    />
                                 )}
                             </div>
                         )}
