@@ -65,9 +65,9 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
                 id="pull-indicator"
                 style={{
                     position: "fixed",
-                    top: "calc(env(safe-area-inset-top) + 60px)",
+                    top: "calc(env(safe-area-inset-top) + 40px)",
                     left: "50%",
-                    transform: "translateX(-50%) translateY(-56px)",
+                    transform: "translateX(-50%) translateY(-48px)",
                     opacity: 0,
                     zIndex: 9999,
                     pointerEvents: "none",
@@ -101,7 +101,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
                             style={
                                 esChat
                                     ? undefined
-                                    : { paddingTop: "calc(env(safe-area-inset-top) + 140px)" }
+                                    : { paddingTop: "calc(env(safe-area-inset-top) + 90px)" }
                             }
                         >
                             {children}

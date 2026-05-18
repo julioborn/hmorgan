@@ -29,7 +29,7 @@ export function usePullToRefresh() {
             if (indicator) {
                 indicator.style.transition = "opacity 0.2s, transform 0.25s ease-out";
                 indicator.style.opacity    = "0";
-                indicator.style.transform  = "translateX(-50%) translateY(-56px)";
+                indicator.style.transform  = "translateX(-50%) translateY(-48px)";
             }
         }
 
@@ -64,7 +64,7 @@ export function usePullToRefresh() {
 
             if (indicator) {
                 indicator.style.opacity   = String(progress);
-                indicator.style.transform = `translateX(-50%) translateY(${dist.current - 52}px)`;
+                indicator.style.transform = `translateX(-50%) translateY(${dist.current - 44}px)`;
             }
 
             if (arrow) {

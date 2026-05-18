@@ -92,10 +92,10 @@ export default function Header() {
     <header className="fixed left-0 right-0 z-30 bg-black">
 
       {/* Safe area / Dynamic Island */}
-      <div style={{ height: "calc(env(safe-area-inset-top) + 40px)" }} />
+      <div style={{ height: "calc(env(safe-area-inset-top) + 16px)" }} />
 
       {/* Header visible */}
-      <div className="w-full px-6 py-4 flex items-center">
+      <div className="w-full px-4 py-2 flex items-center">
 
         {/* IZQUIERDA */}
         <div className="flex-1">
@@ -104,7 +104,7 @@ export default function Header() {
               onClick={() => setOpen(true)}
               className="p-2 rounded-md hover:bg-red-700/20 transition"
             >
-              <Menu size={26} className="text-red-600" />
+              <Menu size={22} className="text-red-600" />
             </button>
           )}
         </div>
@@ -114,8 +114,8 @@ export default function Header() {
           <Link href="/">
             <img
               src="/morganwhite.png"
-              width={58}
-              height={58}
+              width={40}
+              height={40}
               className="cursor-pointer"
             />
           </Link>
@@ -158,7 +158,7 @@ export default function Header() {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ duration: 0.3 }}
-              className="fixed left-0 top-[calc(env(safe-area-inset-top)+60px)] h-[calc(100%-env(safe-area-inset-top)-60px)] w-72 bg-black z-50 flex flex-col rounded-tr-2xl"
+              className="fixed left-0 top-[calc(env(safe-area-inset-top)+40px)] h-[calc(100%-env(safe-area-inset-top)-40px)] w-72 bg-black z-50 flex flex-col rounded-tr-2xl"
             >
               <div className="p-6 pb-0">
                 <button

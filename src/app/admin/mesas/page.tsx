@@ -86,7 +86,7 @@ export default function MesasPage() {
 
     return (
         <div
-            className="min-h-screen bg-gray-50 px-4 pb-10 max-w-2xl mx-auto"
+            className="min-h-screen px-4 pb-10 max-w-2xl mx-auto"
             style={{ paddingBottom: "max(2.5rem, env(safe-area-inset-bottom))" }}
         >
             <h1 className="text-3xl font-extrabold text-center py-8 text-black">Mesas</h1>
@@ -97,7 +97,7 @@ export default function MesasPage() {
                 <div className="flex gap-2">
                     <input
                         type="text"
-                        placeholder="Nombre o número (ej: 5, VIP, Terraza)"
+                        placeholder="Nombre o número"
                         value={nuevaMesa}
                         onChange={e => setNuevaMesa(e.target.value)}
                         onKeyDown={e => e.key === "Enter" && agregarMesa()}
