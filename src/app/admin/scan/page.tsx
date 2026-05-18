@@ -44,7 +44,10 @@ export default function ScanPage() {
 
     fetch("/api/admin/mesas")
       .then(res => res.json())
-      .then(data => { if (Array.isArray(data)) setMesasRegistradas(data); })
+      .then(data => {
+        if (Array.isArray(data))
+          setMesasRegistradas([...data].sort((a, b) => a.nombre.localeCompare(b.nombre, "es", { numeric: true })));
+      })
       .catch(() => {});
   }, []);
 

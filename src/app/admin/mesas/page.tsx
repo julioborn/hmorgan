@@ -25,7 +25,10 @@ export default function MesasPage() {
         try {
             const res = await fetch("/api/admin/mesas?all=true", { cache: "no-store" });
             const data = await res.json();
-            setMesas(Array.isArray(data) ? data : []);
+            const sorted = Array.isArray(data)
+                ? [...data].sort((a, b) => a.nombre.localeCompare(b.nombre, "es", { numeric: true }))
+                : [];
+            setMesas(sorted);
         } catch {
             setMesas([]);
         } finally {
@@ -72,7 +75,10 @@ export default function MesasPage() {
         });
         if (res.ok) {
             const updated = await res.json();
-            setMesas(prev => prev.map(m => m._id === id ? updated : m));
+            setMesas(prev =>
+                [...prev.map(m => m._id === id ? updated : m)]
+                    .sort((a, b) => a.nombre.localeCompare(b.nombre, "es", { numeric: true }))
+            );
         }
     }
 
@@ -94,19 +100,19 @@ export default function MesasPage() {
             {/* Agregar mesa */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6">
                 <h2 className="font-bold text-gray-800 mb-3">Agregar mesa</h2>
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2">
                     <input
                         type="text"
                         placeholder="Nombre o número"
                         value={nuevaMesa}
                         onChange={e => setNuevaMesa(e.target.value)}
                         onKeyDown={e => e.key === "Enter" && agregarMesa()}
-                        className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
                     />
                     <button
                         onClick={agregarMesa}
                         disabled={guardando || !nuevaMesa.trim()}
-                        className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white px-4 py-2.5 rounded-xl flex items-center gap-1.5 font-semibold transition"
+                        className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 font-semibold transition"
                     >
                         <Plus className="w-4 h-4" />
                         Agregar

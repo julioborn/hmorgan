@@ -37,7 +37,11 @@ export async function POST(req: NextRequest) {
     if (!nombre?.trim())
         return NextResponse.json({ message: "Nombre requerido" }, { status: 400 });
 
-    const mesa = await Mesa.create({ nombre: nombre.trim() });
+    const trimmed = nombre.trim();
+    const exists = await Mesa.findOne({ nombre: new RegExp(`^${trimmed.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") });
+    if (exists) return NextResponse.json({ message: `Ya existe una mesa con el nombre "${trimmed}"` }, { status: 409 });
+
+    const mesa = await Mesa.create({ nombre: trimmed });
     return NextResponse.json(mesa, { status: 201 });
 }
 
