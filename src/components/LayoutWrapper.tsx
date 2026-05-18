@@ -101,7 +101,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
                             style={
                                 esChat
                                     ? undefined
-                                    : { paddingTop: "calc(env(safe-area-inset-top) + 90px)" }
+                                    : { paddingTop: "calc(env(safe-area-inset-top) + 98px)" }
                             }
                         >
                             {children}

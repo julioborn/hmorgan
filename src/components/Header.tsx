@@ -114,8 +114,8 @@ export default function Header() {
           <Link href="/">
             <img
               src="/morganwhite.png"
-              width={40}
-              height={40}
+              width={48}
+              height={48}
               className="cursor-pointer"
             />
           </Link>
