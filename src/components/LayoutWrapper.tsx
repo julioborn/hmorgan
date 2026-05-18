@@ -84,7 +84,17 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
 
                         <ReviewModal
                             open={showReview}
-                            onClose={() => setShowReview(false)}
+                            onClose={async () => {
+                                setShowReview(false);
+                                if (pendingTxId) {
+                                    await fetch("/api/reviews/dismiss", {
+                                        method: "POST",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({ transactionId: pendingTxId }),
+                                    });
+                                    setPendingTxId(null);
+                                }
+                            }}
                             onSubmit={async ({ rating, comment }) => {
                                 if (!pendingTxId) return;
 

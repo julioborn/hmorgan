@@ -26,7 +26,6 @@ const formatPrice = (value: number) =>
     new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(value);
 
 const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
-
 const MAIN_ORDER = ["PARRILLA", "PIZZAS", "HAMBURGUESAS", "SANDWICHES", "PICADAS", "ENSALADAS", "FRITURAS", "BEBIDAS", "POSTRE Y CAFE"];
 
 const categoryImages: Record<string, string> = {
@@ -50,6 +49,120 @@ const categoryIcons: Record<string, React.ElementType> = {
     "POSTRE Y CAFE": CakeSlice,
 };
 
+/* ─── CartDrawer — componente de nivel superior para evitar remount al tipear ─── */
+interface CartDrawerProps {
+    items: Record<string, number>;
+    menu: MenuItem[];
+    tipoEntrega: string;
+    setTipoEntrega: (v: string) => void;
+    direccionPrincipal: string;
+    direccionEnvio: string;
+    setDireccionEnvio: (v: string) => void;
+    usarOtraDireccion: boolean;
+    setUsarOtraDireccion: (v: boolean) => void;
+    enviando: boolean;
+    total: number;
+    onClose: () => void;
+    onVaciar: () => void;
+    onEliminar: (id: string) => void;
+    onEnviar: () => void;
+}
+
+function CartDrawer({
+    items, menu, tipoEntrega, setTipoEntrega,
+    direccionPrincipal, direccionEnvio, setDireccionEnvio,
+    usarOtraDireccion, setUsarOtraDireccion,
+    enviando, total, onClose, onVaciar, onEliminar, onEnviar,
+}: CartDrawerProps) {
+    return (
+        <motion.div
+            className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm flex flex-col justify-end"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={onClose}
+        >
+            <motion.div
+                initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 25 }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative bg-white rounded-t-3xl max-h-[85dvh] overflow-y-auto p-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]"
+            >
+                <h3 className="text-2xl font-extrabold mb-4 text-black">Tu pedido</h3>
+                <div className="space-y-4">
+                    {Object.entries(items).map(([id, cant]) => {
+                        const producto = menu.find((m) => m._id === id);
+                        if (!producto || cant === 0) return null;
+                        return (
+                            <div key={id} className="flex justify-between items-center border-b pb-3">
+                                <div>
+                                    <p className="font-semibold text-black">{producto.nombre}</p>
+                                    <p className="text-sm text-gray-500">×{cant} — ${formatPrice(producto.precio * cant)}</p>
+                                </div>
+                                <button onClick={() => onEliminar(id)} className="text-red-500 hover:text-red-700 p-1">
+                                    <X size={18} />
+                                </button>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                <div className="mt-5 space-y-3">
+                    <div className="flex gap-3">
+                        {["retira", "envio"].map((tipo) => (
+                            <button key={tipo} onClick={() => setTipoEntrega(tipo)}
+                                className={`flex-1 py-2 rounded-xl font-semibold text-sm border transition ${tipoEntrega === tipo ? "bg-red-600 text-white border-red-600" : "bg-white text-gray-700 border-gray-300"}`}>
+                                {tipo === "retira" ? "Retira en el bar" : "Envío a domicilio"}
+                            </button>
+                        ))}
+                    </div>
+
+                    {tipoEntrega === "envio" && (
+                        <div className="space-y-2">
+                            {direccionPrincipal && (
+                                <label className="flex items-center gap-2 text-sm">
+                                    <input type="radio" checked={!usarOtraDireccion} onChange={() => { setUsarOtraDireccion(false); setDireccionEnvio(direccionPrincipal); }} />
+                                    {direccionPrincipal}
+                                </label>
+                            )}
+                            <label className="flex items-center gap-2 text-sm">
+                                <input type="radio" checked={usarOtraDireccion} onChange={() => setUsarOtraDireccion(true)} />
+                                Otra dirección
+                            </label>
+                            {(usarOtraDireccion || !direccionPrincipal) && (
+                                <input
+                                    type="text"
+                                    placeholder="Ingresá tu dirección"
+                                    value={direccionEnvio}
+                                    onChange={(e) => setDireccionEnvio(e.target.value)}
+                                    onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: "smooth", block: "center" }), 350)}
+                                    style={{ fontSize: "16px" }}
+                                    className="w-full border border-gray-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-400"
+                                />
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                <div className="flex gap-3 mt-5">
+                    <button
+                        onClick={onVaciar}
+                        className="flex items-center gap-1 px-4 py-2 rounded-xl border border-gray-300 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition"
+                    >
+                        <Trash2 size={16} />
+                    </button>
+                    <button
+                        onClick={onEnviar}
+                        disabled={enviando}
+                        className="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold text-base disabled:opacity-50 hover:bg-red-700 transition"
+                    >
+                        {enviando ? "Enviando..." : `Confirmar pedido · $${formatPrice(total)}`}
+                    </button>
+                </div>
+            </motion.div>
+        </motion.div>
+    );
+}
+
+/* ─── Página principal ─────────────────────────────────────────── */
 export default function PedidosClientePage() {
     const categoryConfigMap = useCategoryConfigs();
     const [menu, setMenu] = useState<MenuItem[]>([]);
@@ -141,14 +254,8 @@ export default function PedidosClientePage() {
     }
 
     const vaciarCarrito = () => {
-        swalBase.fire({
-            title: "¿Vaciar carrito?",
-            text: "Se eliminarán todos los productos seleccionados.",
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonText: "Sí, vaciar",
-            cancelButtonText: "Cancelar",
-        }).then((r) => { if (r.isConfirmed) { setItems({}); setDrawerOpen(false); } });
+        setItems({});
+        setDrawerOpen(false);
     };
 
     const eliminarProducto = (id: string) => {
@@ -156,6 +263,7 @@ export default function PedidosClientePage() {
     };
 
     const totalItems = Object.values(items).reduce((a, b) => a + b, 0);
+    const total = menu.reduce((acc, item) => acc + item.precio * (items[item._id] || 0), 0);
 
     if (cargandoConfig) return <div className="flex justify-center items-center py-12"><Loader size={40} /></div>;
 
@@ -169,8 +277,6 @@ export default function PedidosClientePage() {
         );
     }
 
-    const total = menu.reduce((acc, item) => acc + item.precio * (items[item._id] || 0), 0);
-
     const catDbImage = (cat: string) => menu.find((i) => i.categoria === cat && i.imagen)?.imagen ?? null;
     const getImage = (cat: string) => {
         const cfg = categoryConfigMap[cat];
@@ -182,6 +288,17 @@ export default function PedidosClientePage() {
         if (cat === "BEBIDAS") return BEBIDAS_CATS.some(bc => menu.some(i => i.categoria === bc));
         return menu.some(i => i.categoria === cat);
     });
+
+    const cartDrawerProps: CartDrawerProps = {
+        items, menu, tipoEntrega, setTipoEntrega,
+        direccionPrincipal, direccionEnvio, setDireccionEnvio,
+        usarOtraDireccion, setUsarOtraDireccion,
+        enviando, total,
+        onClose: () => setDrawerOpen(false),
+        onVaciar: vaciarCarrito,
+        onEliminar: eliminarProducto,
+        onEnviar: enviarPedido,
+    };
 
     function CartButton() {
         return (
@@ -207,86 +324,6 @@ export default function PedidosClientePage() {
                     </div>
                 )}
             </AnimatePresence>
-        );
-    }
-
-    function CartDrawer() {
-        return (
-            <motion.div
-                className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm flex flex-col justify-end"
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                onClick={() => setDrawerOpen(false)}
-            >
-                <motion.div
-                    initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-                    transition={{ type: "spring", damping: 25 }}
-                    onClick={(e) => e.stopPropagation()}
-                    className="relative bg-white rounded-t-3xl max-h-[85dvh] overflow-y-auto p-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]"
-                >
-                    <h3 className="text-2xl font-extrabold mb-4 text-black">Tu pedido</h3>
-                    <div className="space-y-4">
-                        {Object.entries(items).map(([id, cant]) => {
-                            const producto = menu.find((m) => m._id === id);
-                            if (!producto || cant === 0) return null;
-                            return (
-                                <div key={id} className="flex justify-between items-center border-b pb-3">
-                                    <div>
-                                        <p className="font-semibold text-black">{producto.nombre}</p>
-                                        <p className="text-sm text-gray-500">×{cant} — ${formatPrice(producto.precio * cant)}</p>
-                                    </div>
-                                    <button onClick={() => eliminarProducto(id)} className="text-red-500 hover:text-red-700 p-1">
-                                        <X size={18} />
-                                    </button>
-                                </div>
-                            );
-                        })}
-                    </div>
-                    <div className="mt-5 space-y-3">
-                        <div className="flex gap-3">
-                            {["retira", "envio"].map((tipo) => (
-                                <button key={tipo} onClick={() => setTipoEntrega(tipo)}
-                                    className={`flex-1 py-2 rounded-xl font-semibold text-sm border transition ${tipoEntrega === tipo ? "bg-red-600 text-white border-red-600" : "bg-white text-gray-700 border-gray-300"}`}>
-                                    {tipo === "retira" ? "Retira en el bar" : "Envío a domicilio"}
-                                </button>
-                            ))}
-                        </div>
-                        {tipoEntrega === "envio" && (
-                            <div className="space-y-2">
-                                {direccionPrincipal && (
-                                    <label className="flex items-center gap-2 text-sm">
-                                        <input type="radio" checked={!usarOtraDireccion} onChange={() => { setUsarOtraDireccion(false); setDireccionEnvio(direccionPrincipal); }} />
-                                        {direccionPrincipal}
-                                    </label>
-                                )}
-                                <label className="flex items-center gap-2 text-sm">
-                                    <input type="radio" checked={usarOtraDireccion} onChange={() => setUsarOtraDireccion(true)} />
-                                    Otra dirección
-                                </label>
-                                {(usarOtraDireccion || !direccionPrincipal) && (
-                                    <input
-                                        type="text"
-                                        placeholder="Ingresá tu dirección"
-                                        value={direccionEnvio}
-                                        onChange={(e) => setDireccionEnvio(e.target.value)}
-                                        onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: "smooth", block: "center" }), 350)}
-                                        style={{ fontSize: "16px" }}
-                                        className="w-full border border-gray-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-400"
-                                    />
-                                )}
-                            </div>
-                        )}
-                    </div>
-                    <div className="flex gap-3 mt-5">
-                        <button onClick={vaciarCarrito} className="flex items-center gap-1 px-4 py-2 rounded-xl border border-gray-300 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition">
-                            <Trash2 size={16} /> Vaciar
-                        </button>
-                        <button onClick={enviarPedido} disabled={enviando}
-                            className="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold text-base disabled:opacity-50 hover:bg-red-700 transition">
-                            {enviando ? "Enviando..." : `Confirmar pedido · $${formatPrice(total)}`}
-                        </button>
-                    </div>
-                </motion.div>
-            </motion.div>
         );
     }
 
@@ -322,7 +359,7 @@ export default function PedidosClientePage() {
         );
     }
 
-    /* ── Main categories view ── */
+    /* ── Vista de categorías principales ── */
     if (!categoriaSeleccionada) {
         return (
             <div className="bg-white min-h-screen pb-10">
@@ -337,13 +374,13 @@ export default function PedidosClientePage() {
                 </div>
                 <Portal>
                     <CartButton />
-                    <AnimatePresence>{drawerOpen && <CartDrawer />}</AnimatePresence>
+                    <AnimatePresence>{drawerOpen && <CartDrawer {...cartDrawerProps} />}</AnimatePresence>
                 </Portal>
             </div>
         );
     }
 
-    /* ── BEBIDAS subcategories view ── */
+    /* ── Vista de subcategorías de Bebidas ── */
     if (categoriaSeleccionada === "BEBIDAS") {
         const subCats = BEBIDAS_CATS.filter(bc => menu.some(i => i.categoria === bc));
         return (
@@ -368,13 +405,13 @@ export default function PedidosClientePage() {
                 </div>
                 <Portal>
                     <CartButton />
-                    <AnimatePresence>{drawerOpen && <CartDrawer />}</AnimatePresence>
+                    <AnimatePresence>{drawerOpen && <CartDrawer {...cartDrawerProps} />}</AnimatePresence>
                 </Portal>
             </div>
         );
     }
 
-    /* ── Items view ── */
+    /* ── Vista de ítems de categoría ── */
     const esBebida = BEBIDAS_CATS.includes(categoriaSeleccionada);
     const CatIcon = categoryIcons[categoriaSeleccionada] || UtensilsCrossed;
     let productos = menu.filter((i) => i.categoria === categoriaSeleccionada);
@@ -440,7 +477,7 @@ export default function PedidosClientePage() {
 
             <Portal>
                 <CartButton />
-                <AnimatePresence>{drawerOpen && <CartDrawer />}</AnimatePresence>
+                <AnimatePresence>{drawerOpen && <CartDrawer {...cartDrawerProps} />}</AnimatePresence>
             </Portal>
         </div>
     );
