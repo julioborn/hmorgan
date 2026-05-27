@@ -1,12 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
-import { QrCode, Users, Bell, PackagePlus, Package, Utensils, Ticket, History, ScanQrCode, ScanText, Settings, Star, BarChart2, ClipboardList, LayoutGrid } from "lucide-react";
+
+const BarMap = dynamic(() => import("@/components/BarMap"), { ssr: false });
+import { QrCode, Users, Bell, PackagePlus, Package, Utensils, Ticket, History, ScanQrCode, ScanText, Settings, Star, BarChart2, ClipboardList, LayoutGrid, Images } from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
-import "swiper/css";
-import "swiper/css/pagination";
 import Loader from "@/components/Loader";
 
 const container =
@@ -18,6 +19,8 @@ type Reward = {
   descripcion?: string;
   puntos: number;
 };
+
+type CarouselImg = { _id: string; url: string };
 
 export default function Home() {
   const { user, loading } = useAuth();
@@ -65,16 +68,16 @@ function Landing() {
       <section className="flex justify-center">
         <div className="w-full max-w-xs flex flex-col gap-3 px-2">
           <Link
-            href="/register"
-            className="w-full text-center px-5 py-3.5 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-500 transition shadow-lg hover:scale-105"
-          >
-            Crear cuenta
-          </Link>
-          <Link
             href="/login"
             className="w-full text-center px-5 py-3.5 rounded-xl bg-black text-white font-semibold hover:bg-gray-900 transition shadow-lg hover:scale-105"
           >
             Ingresar
+          </Link>
+          <Link
+            href="/register"
+            className="w-full text-center px-5 py-3.5 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-500 transition shadow-lg hover:scale-105"
+          >
+            Crear cuenta
           </Link>
           <Link
             href="/menu"
@@ -93,6 +96,7 @@ function Landing() {
    ========================= */
 function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
   const [rewards, setRewards] = useState<Reward[]>([]);
+  const [carouselImages, setCarouselImages] = useState<CarouselImg[]>([]);
   const [loadingRewards, setLoadingRewards] = useState(true);
   const [pedidosActivosCount, setPedidosActivosCount] = useState(0);
   const [pedidosActivos, setPedidosActivos] = useState(true);
@@ -111,7 +115,19 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
       }
     };
 
+    const fetchCarousel = async () => {
+      try {
+        const res = await fetch("/api/carousel", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        setCarouselImages(Array.isArray(data) ? data : []);
+      } catch {
+        // silencioso
+      }
+    };
+
     fetchRewards();
+    fetchCarousel();
   }, []);
 
   useEffect(() => {
@@ -275,6 +291,58 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
           Dejalo en manos de la suerte con nuestra <span className="font-bold">Ruleta de Tragos</span>
         </p>
       </Link>
+
+      {/* Carrusel de fotos del bar */}
+      {carouselImages.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-lg font-extrabold text-center tracking-tight">Nuestro bar</h2>
+          <Swiper
+            modules={[Autoplay, Pagination]}
+            autoplay={{ delay: 3500, disableOnInteraction: false }}
+            speed={900}
+            loop={carouselImages.length > 1}
+            spaceBetween={12}
+            slidesPerView={1.05}
+            centeredSlides={true}
+            pagination={{ clickable: true, dynamicBullets: true }}
+            breakpoints={{ 640: { slidesPerView: 1.4 }, 1024: { slidesPerView: 2 } }}
+            className="!pb-8"
+          >
+            {carouselImages.map((img) => (
+              <SwiperSlide key={img._id}>
+                <div className="rounded-2xl overflow-hidden aspect-[4/3] shadow-lg">
+                  <img
+                    src={img.url}
+                    alt="Foto del bar"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </SwiperSlide>
+            ))}
+          </Swiper>
+        </section>
+      )}
+
+      {/* Ubicación */}
+      <section className="space-y-3 pb-4">
+        <h2 className="text-lg font-extrabold text-center tracking-tight">¿Dónde estamos?</h2>
+        <div className="rounded-2xl overflow-hidden shadow-lg border border-gray-200 h-56 sm:h-72">
+          <BarMap />
+        </div>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-1">
+          <p className="text-sm text-gray-500 text-center sm:text-left">
+            San Martín y Blvd. Belgrano, Calchaquí, Santa Fe
+          </p>
+          <a
+            href="https://maps.google.com/?q=H.+MORGAN+Calchaqui+Santa+Fe+Argentina"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-shrink-0 px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition shadow"
+          >
+            Cómo llegar
+          </a>
+        </div>
+      </section>
     </div>
   );
 }
@@ -326,9 +394,8 @@ function AdminHome() {
         <ActionCard href="/admin/configuracion" title="Ajustes" Icon={Settings} accent="from-red-600 to-red-800" />
         <ActionCard href="/admin/estadisticas" title="Estadísticas" Icon={BarChart2} accent="from-red-600 to-red-800" />
         <ActionCard href="/admin/mesas" title="Mesas" Icon={LayoutGrid} accent="from-red-600 to-red-800" />
-        <div className="col-span-2">
-          <ActionCard href="/admin/notificaciones" title="Notificaciones" Icon={Bell} accent="from-black to-gray-900" />
-        </div>
+        <ActionCard href="/admin/carrousel" title="Fotos" Icon={Images} accent="from-red-600 to-red-800" />
+        <ActionCard href="/admin/notificaciones" title="Notificaciones" Icon={Bell} accent="from-black to-gray-900" />
       </div>
     </div>
   );

@@ -14,7 +14,11 @@
       "PowerShell(tree \"C:\\\\PROYECTOS\\\\hmorgan\\\\src\\\\app\" -L 3)",
       "Bash(dir C:\\\\PROYECTOS\\\\hmorgan\\\\src\\\\app\\\\api *)",
       "Bash(Get-ChildItem -Path \"C:\\\\PROYECTOS\\\\hmorgan\" -Force)",
-      "Bash(Select-Object Name, Mode)"
+      "Bash(Select-Object Name, Mode)",
+      "Bash(Select-Object -Property Name, PSIsContainer)",
+      "Bash(Format-Table -AutoSize)",
+      "Bash(Get-ChildItem -Path \"C:\\\\PROYECTOS\\\\hmorgan\\\\public\\\\imagenes-carrousel\")",
+      "Bash(Select-Object -Property Name)"
     ]
   }
 }

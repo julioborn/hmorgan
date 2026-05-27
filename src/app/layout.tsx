@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "swiper/css";
+import "swiper/css/pagination";
 import LayoutWrapper from "@/components/LayoutWrapper";
 
 export const metadata: Metadata = {
