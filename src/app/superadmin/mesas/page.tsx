@@ -106,20 +106,35 @@ export default function SuperAdminMesasPage() {
             }
         };
 
-        const onUp = async () => {
+        const onUp = () => {
             if (!dragState.current) return;
             const { type, id } = dragState.current;
             const moved = movedPx.current;
             dragState.current = null;
-            if (moved < 5) return; // not a real drag → click will handle it
             movedPx.current = 0;
-            if (type === "mesa") {
-                const m = mesasRef.current.find(x => x._id === id);
-                if (m) await fetch("/api/admin/mesas", { method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ id: m._id, x: m.x, y: m.y }) });
-            } else {
-                const el = elementsRef.current.find(x => x._id === id);
-                if (el) await fetch("/api/superadmin/salon", { method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ id: el._id, x: el.x, y: el.y }) });
+
+            if (moved < 5) {
+                // Tap: abrir config — todo en onUp antes de que dispare el click
+                if (type === "mesa") {
+                    const m = mesasRef.current.find(x => x._id === id);
+                    if (m) { setMesaModal(m); setMesaForm({ forma: m.forma ?? "rect", capacidad: m.capacidad ?? 4, activa: m.activa }); }
+                } else {
+                    const el = elementsRef.current.find(x => x._id === id);
+                    if (el) { setElModal(el); setElForm({ label: el.label, ancho: el.ancho, alto: el.alto, color: el.color }); }
+                }
+                return;
             }
+
+            // Drag: guardar posición
+            (async () => {
+                if (type === "mesa") {
+                    const m = mesasRef.current.find(x => x._id === id);
+                    if (m) await fetch("/api/admin/mesas", { method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ id: m._id, x: m.x, y: m.y }) });
+                } else {
+                    const el = elementsRef.current.find(x => x._id === id);
+                    if (el) await fetch("/api/superadmin/salon", { method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ id: el._id, x: el.x, y: el.y }) });
+                }
+            })();
         };
 
         window.addEventListener("mousemove", onMove);
@@ -144,11 +159,6 @@ export default function SuperAdminMesasPage() {
     }
 
     // ── Mesa config ───────────────────────────────────────────────
-    function clickMesa(m: Mesa) {
-        if (!editMode || movedPx.current >= 5) return;
-        setMesaModal(m);
-        setMesaForm({ forma: m.forma ?? "rect", capacidad: m.capacidad ?? 4, activa: m.activa });
-    }
     async function saveMesaConfig() {
         if (!mesaModal) return;
         const res = await fetch("/api/admin/mesas", { method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ id: mesaModal._id, ...mesaForm }) });
@@ -156,10 +166,6 @@ export default function SuperAdminMesasPage() {
     }
 
     // ── Element config ────────────────────────────────────────────
-    function clickEl(el: SalonEl) {
-        if (!editMode || movedPx.current >= 5) return;
-        setElModal(el); setElForm({ label: el.label, ancho: el.ancho, alto: el.alto, color: el.color });
-    }
     async function saveElConfig() {
         if (!elModal) return;
         const res = await fetch("/api/superadmin/salon", { method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ id: elModal._id, ...elForm }) });
@@ -319,7 +325,6 @@ export default function SuperAdminMesasPage() {
                                     <div key={el._id} style={style}
                                         onMouseDown={editMode ? (e) => startDrag(e, "element", el._id, el.x, el.y) : undefined}
                                         onTouchStart={editMode ? (e) => startDrag(e, "element", el._id, el.x, el.y) : undefined}
-                                        onClick={() => clickEl(el)}
                                     >
                                         {!isLine && (
                                             <span style={{
@@ -376,7 +381,6 @@ export default function SuperAdminMesasPage() {
                                             ${bg} ${editMode ? "hover:scale-110 active:scale-95" : ""}`}
                                         onMouseDown={editMode ? (e) => startDrag(e, "mesa", mesa._id, mesa.x ?? 10, mesa.y ?? 10) : undefined}
                                         onTouchStart={editMode ? (e) => startDrag(e, "mesa", mesa._id, mesa.x ?? 10, mesa.y ?? 10) : undefined}
-                                        onClick={() => clickMesa(mesa)}
                                     >
                                         <span style={{ fontSize: "clamp(7px, 1vw, 10px)", fontWeight: 900, lineHeight: 1 }}>{mesa.nombre}</span>
                                         {mesa.capacidad > 0 && !isRound && (
