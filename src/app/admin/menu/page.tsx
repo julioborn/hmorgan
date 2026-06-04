@@ -22,6 +22,7 @@ type MenuItem = {
     imagen?: string;
     activo: boolean;
     ruleta?: boolean;
+    order?: number;
 };
 
 const formatPrice = (value: number) =>
@@ -61,10 +62,32 @@ export default function AdminMenuPage() {
     const [showForm, setShowForm] = useState(false);
     const [categoriaActiva, setCategoriaActiva] = useState<string | null>(null);
     const [selectCat, setSelectCat] = useState("");
+    const [orderedItems, setOrderedItems] = useState<MenuItem[]>([]);
+    const [hasOrderChanges, setHasOrderChanges] = useState(false);
+    const [savingOrder, setSavingOrder] = useState(false);
 
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
     }, [categoriaActiva]);
+
+    useEffect(() => {
+        if (!items || !categoriaActiva) return;
+        setOrderedItems(
+            items
+                .filter(i => i.categoria === categoriaActiva)
+                .sort((a, b) => {
+                    const diff = (a.order ?? 0) - (b.order ?? 0);
+                    if (diff !== 0) return diff;
+                    if (categoriaActiva === "PIZZAS") {
+                        const aH = a.nombre.trim().startsWith("1/2");
+                        const bH = b.nombre.trim().startsWith("1/2");
+                        return aH === bH ? 0 : aH ? 1 : -1;
+                    }
+                    return 0;
+                })
+        );
+        setHasOrderChanges(false);
+    }, [categoriaActiva, items]);
 
     /* ── Config de imagen por categoría ── */
     const [configurandoCat, setConfigurandoCat] = useState<string | null>(null);
@@ -223,6 +246,29 @@ export default function AdminMenuPage() {
             body: JSON.stringify(editando),
         });
         setEditando(null);
+        mutateItems();
+    }
+
+    function moverItem(idx: number, dir: -1 | 1) {
+        const next = idx + dir;
+        if (next < 0 || next >= orderedItems.length) return;
+        const updated = [...orderedItems];
+        [updated[idx], updated[next]] = [updated[next], updated[idx]];
+        setOrderedItems(updated);
+        setHasOrderChanges(true);
+    }
+
+    async function saveOrder() {
+        setSavingOrder(true);
+        await fetch("/api/menu/reorder", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                items: orderedItems.map((item, idx) => ({ id: item._id, order: idx })),
+            }),
+        });
+        setSavingOrder(false);
+        setHasOrderChanges(false);
         mutateItems();
     }
 
@@ -419,14 +465,6 @@ export default function AdminMenuPage() {
     /* ── Vista items ── */
     const esBebida = BEBIDAS_CATS.includes(categoriaActiva);
     const CatIcon = categoryIcons[categoriaActiva] || UtensilsCrossed;
-    const itemsCat = items
-        .filter((i) => i.categoria === categoriaActiva)
-        .sort((a, b) => {
-            if (categoriaActiva !== "PIZZAS") return 0;
-            const aH = a.nombre.trim().startsWith("1/2");
-            const bH = b.nombre.trim().startsWith("1/2");
-            return aH === bH ? 0 : aH ? 1 : -1;
-        });
 
     return (
         <div className="bg-white min-h-screen">
@@ -439,6 +477,15 @@ export default function AdminMenuPage() {
                 </button>
                 <CatIcon size={18} className="text-red-600 shrink-0" />
                 <h1 className="font-black text-xl text-black tracking-tight">{categoriaActiva}</h1>
+                {hasOrderChanges && (
+                    <button
+                        onClick={saveOrder}
+                        disabled={savingOrder}
+                        className="ml-auto px-3 py-1.5 bg-red-600 text-white text-sm font-bold rounded-lg disabled:opacity-50 transition"
+                    >
+                        {savingOrder ? "Guardando..." : "Guardar orden"}
+                    </button>
+                )}
             </div>
 
             <AnimatePresence mode="wait">
@@ -450,10 +497,26 @@ export default function AdminMenuPage() {
                     transition={{ duration: 0.22 }}
                     className="px-5 py-5 pb-16 space-y-2"
                 >
-                    {itemsCat.map((i) => (
+                    {orderedItems.map((i, idx) => (
+                        <div key={i._id} className="flex items-center gap-1">
+                            <div className="flex flex-col shrink-0">
+                                <button
+                                    onClick={() => moverItem(idx, -1)}
+                                    disabled={idx === 0}
+                                    className="p-1 text-gray-300 hover:text-red-500 disabled:opacity-20 transition"
+                                >
+                                    <ChevronUp size={16} />
+                                </button>
+                                <button
+                                    onClick={() => moverItem(idx, 1)}
+                                    disabled={idx === orderedItems.length - 1}
+                                    className="p-1 text-gray-300 hover:text-red-500 disabled:opacity-20 transition"
+                                >
+                                    <ChevronDown size={16} />
+                                </button>
+                            </div>
                         <div
-                            key={i._id}
-                            className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+                            className="flex-1 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
                         >
                             {editando?._id === i._id ? (
                                 <div className="flex-1 flex flex-col md:flex-row gap-3">
@@ -537,6 +600,7 @@ export default function AdminMenuPage() {
                                     </div>
                                 </>
                             )}
+                        </div>
                         </div>
                     ))}
                 </motion.div>

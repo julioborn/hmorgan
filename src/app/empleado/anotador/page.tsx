@@ -306,10 +306,14 @@ export default function AnotadorPage() {
     const itemsCat = menuItems
         .filter(i => i.categoria === categoriaActiva)
         .sort((a, b) => {
-            if (categoriaActiva !== "PIZZAS") return 0;
-            const aH = a.nombre.trim().startsWith("1/2");
-            const bH = b.nombre.trim().startsWith("1/2");
-            return aH === bH ? 0 : aH ? 1 : -1;
+            const diff = ((a as any).order ?? 0) - ((b as any).order ?? 0);
+            if (diff !== 0) return diff;
+            if (categoriaActiva === "PIZZAS") {
+                const aH = a.nombre.trim().startsWith("1/2");
+                const bH = b.nombre.trim().startsWith("1/2");
+                return aH === bH ? 0 : aH ? 1 : -1;
+            }
+            return 0;
         });
 
     return (

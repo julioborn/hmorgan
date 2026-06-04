@@ -157,6 +157,8 @@ export default function ClienteMenuPage() {
     const productos = items
         .filter((i) => i.categoria === categoriaActiva && i.activo)
         .sort((a, b) => {
+            const diff = ((a as any).order ?? 0) - ((b as any).order ?? 0);
+            if (diff !== 0) return diff;
             if (categoriaActiva === "PIZZAS") {
                 const aH = a.nombre.toLowerCase().includes("1/2") || a.nombre.toLowerCase().includes("media");
                 const bH = b.nombre.toLowerCase().includes("1/2") || b.nombre.toLowerCase().includes("media");

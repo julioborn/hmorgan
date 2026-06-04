@@ -471,14 +471,18 @@ export default function PedidosClientePage() {
     /* ── Vista de ítems de categoría ── */
     const esBebida = BEBIDAS_CATS.includes(categoriaSeleccionada);
     const CatIcon = categoryIcons[categoriaSeleccionada] || UtensilsCrossed;
-    let productos = menu.filter((i) => i.categoria === categoriaSeleccionada);
-    if (categoriaSeleccionada === "PIZZAS") {
-        productos = productos.sort((a, b) => {
-            const aH = a.nombre.trim().startsWith("1/2");
-            const bH = b.nombre.trim().startsWith("1/2");
-            return aH === bH ? 0 : aH ? 1 : -1;
+    let productos = menu
+        .filter((i) => i.categoria === categoriaSeleccionada)
+        .sort((a, b) => {
+            const diff = ((a as any).order ?? 0) - ((b as any).order ?? 0);
+            if (diff !== 0) return diff;
+            if (categoriaSeleccionada === "PIZZAS") {
+                const aH = a.nombre.trim().startsWith("1/2");
+                const bH = b.nombre.trim().startsWith("1/2");
+                return aH === bH ? 0 : aH ? 1 : -1;
+            }
+            return 0;
         });
-    }
 
     return (
         <div className="bg-white min-h-screen">
