@@ -18,7 +18,9 @@
       "Bash(Select-Object -Property Name, PSIsContainer)",
       "Bash(Format-Table -AutoSize)",
       "Bash(Get-ChildItem -Path \"C:\\\\PROYECTOS\\\\hmorgan\\\\public\\\\imagenes-carrousel\")",
-      "Bash(Select-Object -Property Name)"
+      "Bash(Select-Object -Property Name)",
+      "WebFetch(domain:menu.maxirest.com)",
+      "Bash(node *)"
     ]
   }
 }
