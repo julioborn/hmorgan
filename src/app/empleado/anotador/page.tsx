@@ -243,10 +243,7 @@ export default function AnotadorPage() {
     function StickyHeader({ title, onBack, icon: Icon }: { title: string; onBack: () => void; icon?: React.ElementType }) {
         const I = Icon || UtensilsCrossed;
         return (
-            <div
-                className="bg-black text-white px-4 py-3 flex items-center gap-3"
-                style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
-            >
+            <div className="bg-black text-white px-4 py-3 flex items-center gap-3">
                 <button onClick={onBack} className="p-1 -ml-1"><ChevronLeft className="w-6 h-6" /></button>
                 <I size={18} className="text-white/80 shrink-0" />
                 <h1 className="text-xl font-bold flex-1">{title}</h1>
@@ -264,7 +261,7 @@ export default function AnotadorPage() {
     if (!categoriaActiva) {
         return (
             <div className="bg-white min-h-screen pb-6">
-                <div className="sticky top-0 z-10">
+                <div className="sticky z-20" style={{ top: "calc(env(safe-area-inset-top) + 98px)" }}>
                     <StickyHeader title="Anotador de Pedidos" onBack={() => router.back()} icon={UtensilsCrossed} />
                     <CartPanel />
                 </div>
@@ -290,7 +287,7 @@ export default function AnotadorPage() {
         const subCats = BEBIDAS_CATS.filter(bc => menuItems.some(i => i.categoria === bc));
         return (
             <div className="bg-white min-h-screen pb-6">
-                <div className="sticky top-0 z-10">
+                <div className="sticky z-20" style={{ top: "calc(env(safe-area-inset-top) + 98px)" }}>
                     <StickyHeader title="Bebidas" onBack={() => setCategoriaActiva(null)} icon={Beer} />
                     <CartPanel />
                 </div>
@@ -306,11 +303,18 @@ export default function AnotadorPage() {
     /* ── Items view ── */
     const esBebida = BEBIDAS_CATS.includes(categoriaActiva);
     const CatIcon = categoryIcons[categoriaActiva] || UtensilsCrossed;
-    const itemsCat = menuItems.filter(i => i.categoria === categoriaActiva);
+    const itemsCat = menuItems
+        .filter(i => i.categoria === categoriaActiva)
+        .sort((a, b) => {
+            if (categoriaActiva !== "PIZZAS") return 0;
+            const aH = a.nombre.trim().startsWith("1/2");
+            const bH = b.nombre.trim().startsWith("1/2");
+            return aH === bH ? 0 : aH ? 1 : -1;
+        });
 
     return (
         <div className="bg-white min-h-screen pb-6">
-            <div className="sticky top-0 z-10">
+            <div className="sticky z-20" style={{ top: "calc(env(safe-area-inset-top) + 98px)" }}>
                 <StickyHeader
                     title={categoriaActiva}
                     onBack={() => setCategoriaActiva(esBebida ? "BEBIDAS" : null)}

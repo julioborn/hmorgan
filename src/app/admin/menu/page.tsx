@@ -419,7 +419,14 @@ export default function AdminMenuPage() {
     /* ── Vista items ── */
     const esBebida = BEBIDAS_CATS.includes(categoriaActiva);
     const CatIcon = categoryIcons[categoriaActiva] || UtensilsCrossed;
-    const itemsCat = items.filter((i) => i.categoria === categoriaActiva);
+    const itemsCat = items
+        .filter((i) => i.categoria === categoriaActiva)
+        .sort((a, b) => {
+            if (categoriaActiva !== "PIZZAS") return 0;
+            const aH = a.nombre.trim().startsWith("1/2");
+            const bH = b.nombre.trim().startsWith("1/2");
+            return aH === bH ? 0 : aH ? 1 : -1;
+        });
 
     return (
         <div className="bg-white min-h-screen">
