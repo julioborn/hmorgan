@@ -19,9 +19,7 @@ export const swalBase = Swal.mixin({
     buttonsStyling: false,
 
     didOpen: () => {
-        const popup = document.querySelector(".swal2-popup") as HTMLElement | null;
-        const backdrop = document.querySelector(".swal2-backdrop") as HTMLElement | null;
-        if (popup) popup.style.zIndex = "100000";
-        if (backdrop) backdrop.style.zIndex = "99999";
+        const container = document.querySelector(".swal2-container") as HTMLElement | null;
+        if (container) container.style.zIndex = "999999";
     },
 });
