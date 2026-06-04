@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 
 const BarMap = dynamic(() => import("@/components/BarMap"), { ssr: false });
@@ -24,6 +25,11 @@ type CarouselImg = { _id: string; url: string };
 
 export default function Home() {
   const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && user?.role === "superadmin") router.replace("/superadmin");
+  }, [user, loading, router]);
 
   if (loading) {
     return (
@@ -35,6 +41,7 @@ export default function Home() {
 
   if (!user) return <Landing />;
 
+  if (user.role === "superadmin") return null;
   if (user.role === "admin") return <AdminHome />;
   if (user.role === "empleado") return <EmployeeHome nombre={user.nombre} />;
   return <ClientHome nombre={user.nombre} puntos={user.puntos ?? 0} />;
