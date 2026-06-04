@@ -36,7 +36,7 @@ export default function Home() {
   if (!user) return <Landing />;
 
   if (user.role === "admin") return <AdminHome />;
-  if (user.role === "empleado") return <EmployeeHome />;
+  if (user.role === "empleado") return <EmployeeHome nombre={user.nombre} />;
   return <ClientHome nombre={user.nombre} puntos={user.puntos ?? 0} />;
 }
 
@@ -519,22 +519,60 @@ function AdminCard({
 /* =========================
   HOME EMPLEADO
    ========================= */
-function EmployeeHome() {
+function EmployeeHome({ nombre }: { nombre?: string }) {
+  const [hora, setHora] = useState(() => new Date().getHours());
+
+  useEffect(() => {
+    const tick = setInterval(() => setHora(new Date().getHours()), 60000);
+    return () => clearInterval(tick);
+  }, []);
+
+  const saludo = hora < 12 ? "Buenos días" : hora < 20 ? "Buenas tardes" : "Buenas noches";
+  const fechaHoy = new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+
   return (
     <div
-      className={`${container} py-8 space-y-8`}
-      style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+      className={`${container} pb-10 space-y-6`}
+      style={{ paddingBottom: "max(2.5rem, env(safe-area-inset-bottom))" }}
     >
-
-      <div className="grid grid-cols-2 gap-4">
-        <ActionCard href="/admin/scan" title="Escanear Puntos" Icon={ScanQrCode} accent="from-red-600 to-red-800" />
-        <ActionCard href="/admin/rewards/scan" title="Escanear Canjes" Icon={ScanText} accent="from-red-600 to-red-800" />
-        <ActionCard href="/admin/rewards" title="Canjes" Icon={Ticket} accent="from-red-600 to-red-800" />
-        <ActionCard href="/menu" title="Menú" Icon={Utensils} accent="from-red-600 to-red-800" />
-        <div className="col-span-2">
-          <ActionCard href="/empleado/anotador" title="Anotador de Pedidos" Icon={ClipboardList} accent="from-black to-gray-900" />
+      {/* ── Header ── */}
+      <div className="rounded-2xl bg-black text-white px-5 py-6 flex items-center justify-between shadow-lg">
+        <div>
+          <p className="text-sm text-gray-400 capitalize">{fechaHoy}</p>
+          <h1 className="text-2xl font-extrabold mt-0.5">
+            {saludo}{nombre ? `, ${nombre}` : ""}
+          </h1>
+          <p className="text-sm text-gray-400 mt-1">Panel de Empleado</p>
         </div>
+        <img src="/morganwhite.png" alt="Logo" className="h-14 w-14 object-contain opacity-90" />
       </div>
+
+      {/* ── Acción principal ── */}
+      <Link
+        href="/empleado/anotador"
+        className="block rounded-2xl bg-red-600 text-white px-5 py-5 shadow-lg hover:bg-red-700 transition-all active:scale-[0.98]"
+      >
+        <div className="flex items-center gap-3">
+          <div className="bg-white/20 rounded-xl p-2.5">
+            <ClipboardList className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="font-extrabold text-lg leading-tight">Anotador de Pedidos</p>
+            <p className="text-red-100 text-sm">Tomá pedidos de las mesas</p>
+          </div>
+        </div>
+      </Link>
+
+      {/* ── Acciones ── */}
+      <section className="space-y-3">
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Acciones</p>
+        <div className="grid grid-cols-2 gap-3">
+          <AdminCard href="/admin/scan" title="Escanear Puntos" Icon={ScanQrCode} />
+          <AdminCard href="/admin/rewards/scan" title="Escanear Canjes" Icon={ScanText} />
+          <AdminCard href="/admin/rewards" title="Canjes" Icon={Ticket} />
+          <AdminCard href="/menu" title="Menú" Icon={Utensils} />
+        </div>
+      </section>
     </div>
   );
 }
