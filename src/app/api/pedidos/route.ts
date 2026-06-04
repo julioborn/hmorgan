@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
                 : { userId: payload.sub }; // cliente: solo los suyos
 
         const pedidos = await Pedido.find(query)
-            .populate("userId", "nombre apellido role")
+            .populate("userId", "nombre apellido role telefono")
             .populate("items.menuItemId", "nombre precio categoria")
             .sort({ createdAt: -1 })
             .lean();
@@ -91,6 +91,32 @@ export async function POST(req: NextRequest) {
         const user = await User.findById(payload.sub);
         if (!user)
             return NextResponse.json({ message: "Usuario no encontrado" }, { status: 404 });
+
+        // 📱 Validar teléfono para clientes
+        if (payload.role === "cliente") {
+            const tel = user.telefono?.replace(/\D/g, "") ?? "";
+            if (!tel || tel.length < 8 || tel.length > 10) {
+                // Notificar al usuario
+                const notifTokens = new Set<string>(user.fcmTokens ?? []);
+                if (user.tokenFCM) notifTokens.add(user.tokenFCM);
+                for (const t of notifTokens) {
+                    try {
+                        await enviarNotificacionFCM(t, "Número de teléfono inválido", "Tu pedido no pudo procesarse. Actualizá tu número en el perfil.", "/cliente/perfil");
+                    } catch { /* ignorar */ }
+                }
+                if (user.pushSubscriptions?.length) {
+                    await sendPushToSubscriptions(user.pushSubscriptions, {
+                        title: "Número de teléfono inválido",
+                        body: "Tu pedido no pudo procesarse. Actualizá tu número en el perfil.",
+                        url: "/cliente/perfil",
+                        icon: "/icon-192.png",
+                        badge: "/icon-badge-96x96.png",
+                        image: "/morganwhite.png",
+                    });
+                }
+                return NextResponse.json({ message: "Número de teléfono inválido", code: "INVALID_PHONE" }, { status: 400 });
+            }
+        }
 
         // 💾 Guardar o actualizar dirección
         if (tipoEntrega === "envio" && direccion) {

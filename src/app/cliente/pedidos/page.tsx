@@ -176,6 +176,7 @@ export default function PedidosClientePage() {
     const [usarOtraDireccion, setUsarOtraDireccion] = useState(false);
     const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null);
     const [enviando, setEnviando] = useState(false);
+    const [telefono, setTelefono] = useState<string>("");
     const router = useRouter();
 
     useEffect(() => {
@@ -187,12 +188,15 @@ export default function PedidosClientePage() {
             try {
                 const res = await fetch("/api/cliente/perfil", { cache: "no-store" });
                 const data = await res.json();
-                if (res.ok && data?.direccion) {
-                    setDireccionPrincipal(data.direccion);
-                    setDireccionEnvio(data.direccion);
+                if (res.ok) {
+                    if (data?.direccion) {
+                        setDireccionPrincipal(data.direccion);
+                        setDireccionEnvio(data.direccion);
+                    }
+                    if (data?.telefono) setTelefono(data.telefono);
                 }
             } catch (err) {
-                console.error("Error cargando dirección del usuario:", err);
+                console.error("Error cargando perfil del usuario:", err);
             }
         })();
     }, []);
@@ -218,6 +222,35 @@ export default function PedidosClientePage() {
         if (!cargandoConfig && !activo) router.replace("/");
     }, [activo, cargandoConfig, router]);
 
+    async function pedirTelefono(): Promise<boolean> {
+        const { value, isConfirmed } = await swalBase.fire({
+            title: "📱 Número de WhatsApp",
+            html: '<p class="text-sm text-gray-500 mb-1">Lo necesitamos para confirmarte el pedido.</p>',
+            input: "text",
+            inputPlaceholder: "Ej: 3492123456",
+            inputAttributes: { inputmode: "numeric", pattern: "[0-9]*", autocomplete: "tel" },
+            showCancelButton: true,
+            confirmButtonText: "Guardar y continuar",
+            cancelButtonText: "Cancelar",
+            inputValidator: (v) => {
+                if (!v) return "Ingresá tu número";
+                if (!/^\d+$/.test(v)) return "Solo se permiten números";
+                if (v.length < 8) return "El número es muy corto";
+                if (v.length > 10) return "El número no puede tener más de 10 dígitos";
+            },
+        });
+
+        if (!isConfirmed || !value) return false;
+
+        await fetch("/api/cliente/telefono", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ telefono: value }),
+        });
+        setTelefono(value);
+        return true;
+    }
+
     async function enviarPedido() {
         const seleccion = Object.entries(items)
             .filter(([_, cant]) => cant > 0)
@@ -227,6 +260,13 @@ export default function PedidosClientePage() {
             return swalBase.fire("⚠️", "Seleccioná al menos un ítem", "warning");
         if (tipoEntrega === "envio" && !(direccionEnvio || direccionPrincipal))
             return swalBase.fire("⚠️", "Ingresá una dirección de envío", "warning");
+
+        // Verificar teléfono
+        const telLimpio = telefono.replace(/\D/g, "");
+        if (!telLimpio || telLimpio.length < 8) {
+            const ok = await pedirTelefono();
+            if (!ok) return;
+        }
 
         try {
             setEnviando(true);
