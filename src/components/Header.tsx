@@ -23,6 +23,11 @@ import {
   Star,
   Home,
   LogOut,
+  BarChart2,
+  LayoutGrid,
+  Images,
+  Bell,
+  ClipboardList,
 } from "lucide-react";
 import NotifBell from "@/components/NotifBell";
 
@@ -52,17 +57,33 @@ export default function Header() {
 
   const linksAdmin = [
     { href: "/", label: "Inicio", icon: Home },
+    { href: "/admin/pedidos", label: "Pedidos", icon: Package },
     { href: "/admin/scan", label: "Escanear Puntos", icon: ScanQrCode },
     { href: "/admin/rewards/scan", label: "Escanear Canjes", icon: ScanText },
     { href: "/admin/clientes", label: "Clientes", icon: Users },
     { href: "/admin/menu", label: "Menú", icon: Utensils },
     { href: "/admin/rewards", label: "Canjes", icon: Ticket },
-    { href: "/admin/pedidos", label: "Pedidos", icon: Package },
-    { href: "/admin/configuracion", label: "Ajustes", icon: Settings },
+    { href: "/admin/mesas", label: "Mesas", icon: LayoutGrid },
     { href: "/admin/reviews", label: "Reseñas", icon: Star },
+    { href: "/admin/estadisticas", label: "Estadísticas", icon: BarChart2 },
+    { href: "/admin/carrousel", label: "Fotos", icon: Images },
+    { href: "/admin/notificaciones", label: "Notificaciones", icon: Bell },
+    { href: "/admin/configuracion", label: "Ajustes", icon: Settings },
   ];
 
-  const links = user?.role === "admin" ? linksAdmin : linksCliente;
+  const linksEmpleado = [
+    { href: "/", label: "Inicio", icon: Home },
+    { href: "/empleado/anotador", label: "Anotador de Pedidos", icon: ClipboardList },
+    { href: "/admin/scan", label: "Escanear Puntos", icon: ScanQrCode },
+    { href: "/admin/rewards/scan", label: "Escanear Canjes", icon: ScanText },
+    { href: "/admin/rewards", label: "Canjes", icon: Ticket },
+    { href: "/menu", label: "Menú", icon: Utensils },
+  ];
+
+  const links =
+    user?.role === "admin" ? linksAdmin :
+    user?.role === "empleado" ? linksEmpleado :
+    linksCliente;
 
   if (loading) return null;
 
