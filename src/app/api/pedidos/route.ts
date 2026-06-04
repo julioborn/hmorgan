@@ -220,7 +220,7 @@ export async function PUT(req: NextRequest) {
                 body: "Tu pedido está siendo preparado 👨🏻‍🍳",
             }),
             listo: (tipoEntrega) => {
-                if (tipoEntrega?.toLowerCase().includes("retiro")) {
+                if (tipoEntrega !== "envio") {
                     return {
                         title: "¡Tu pedido está listo para retirar!",
                         body: "Ya podés pasar por el bar a buscarlo 📦",
