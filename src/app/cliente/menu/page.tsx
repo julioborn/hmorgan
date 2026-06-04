@@ -35,7 +35,7 @@ const categoryImages: Record<string, string> = {
     SANDWICHES: "/sandwiches.jpg",
     PICADAS: "/picada.jpg",
     ENSALADAS: "/ensaladas.jpg",
-    FRITURAS: "/picada.jpg",
+    FRITURAS: "/frituras.jpeg",
     BEBIDAS: "/bebidas.jpeg",
     "POSTRE Y CAFE": "/postreycafe.jpeg",
 };

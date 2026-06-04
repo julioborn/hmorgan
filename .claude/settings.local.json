@@ -20,7 +20,9 @@
       "Bash(Get-ChildItem -Path \"C:\\\\PROYECTOS\\\\hmorgan\\\\public\\\\imagenes-carrousel\")",
       "Bash(Select-Object -Property Name)",
       "WebFetch(domain:menu.maxirest.com)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(Select-String -Path \"C:\\\\PROYECTOS\\\\hmorgan\\\\src\\\\app\\\\cliente\\\\menu\\\\page.tsx\" -Pattern \"categoria|imageUrl|categoryconfig|CategoryConfig\" -Context 2)",
+      "Bash(Select-Object -First 30)"
     ]
   }
 }
