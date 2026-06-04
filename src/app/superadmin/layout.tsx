@@ -3,12 +3,13 @@ import { useAuth } from "@/context/auth-context";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
 import Link from "next/link";
-import { LayoutGrid, Package, Wallet, ClipboardList, Users, Utensils, BarChart2, Settings } from "lucide-react";
+import { LayoutGrid, Package, Wallet, ClipboardList, Users, Utensils, BarChart2, Settings, MapPin } from "lucide-react";
 
 const NAV = [
     { href: "/superadmin", label: "Inicio", icon: LayoutGrid },
     { href: "/superadmin/stock", label: "Stock", icon: Package },
     { href: "/superadmin/caja", label: "Caja", icon: Wallet },
+    { href: "/superadmin/mesas", label: "Mesas", icon: MapPin },
     { href: "/admin/pedidos", label: "Pedidos", icon: ClipboardList },
     { href: "/admin/clientes", label: "Clientes", icon: Users },
     { href: "/admin/menu", label: "Menú", icon: Utensils },

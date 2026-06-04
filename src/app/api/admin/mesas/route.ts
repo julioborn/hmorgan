@@ -21,15 +21,16 @@ export async function GET(req: NextRequest) {
     if (!payload) return NextResponse.json({ message: "No autorizado" }, { status: 401 });
 
     await connectMongoDB();
-    const showAll = payload.role === "admin" && req.nextUrl.searchParams.get("all") === "true";
+    const isStaff = payload.role === "admin" || payload.role === "superadmin";
+    const showAll = isStaff && req.nextUrl.searchParams.get("all") === "true";
     const mesas = await Mesa.find(showAll ? {} : { activa: true }).sort({ nombre: 1 }).lean();
     return NextResponse.json(mesas);
 }
 
-// POST — crear mesa (solo admin)
+// POST — crear mesa (admin o superadmin)
 export async function POST(req: NextRequest) {
     const payload = getPayload(req);
-    if (!payload || payload.role !== "admin")
+    if (!payload || (payload.role !== "admin" && payload.role !== "superadmin"))
         return NextResponse.json({ message: "Acceso denegado" }, { status: 403 });
 
     await connectMongoDB();
@@ -45,10 +46,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(mesa, { status: 201 });
 }
 
-// DELETE — eliminar mesa (solo admin)
+// DELETE — eliminar mesa (admin o superadmin)
 export async function DELETE(req: NextRequest) {
     const payload = getPayload(req);
-    if (!payload || payload.role !== "admin")
+    if (!payload || (payload.role !== "admin" && payload.role !== "superadmin"))
         return NextResponse.json({ message: "Acceso denegado" }, { status: 403 });
 
     await connectMongoDB();
