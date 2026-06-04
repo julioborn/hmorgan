@@ -22,6 +22,7 @@ const PedidoSchema = new Schema(
         mesa: { type: String },
         notaEmpleado: { type: String },
         notaCliente: { type: String },
+        puntosAcreditados: { type: Boolean, default: false },
     },
     { timestamps: true }
 );

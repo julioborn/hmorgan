@@ -4,10 +4,12 @@ import { Pedido } from "@/models/Pedido";
 import { MenuItem } from "@/models/MenuItem";
 import { User } from "@/models/User";
 import Mensaje from "@/models/Mensaje";
+import { PointTransaction } from "@/models/PointTransaction";
 import jwt from "jsonwebtoken";
-import { sendPushToSubscriptions } from "@/lib/push-server";
+import { sendPushToSubscriptions, sendPushAndCollectInvalid } from "@/lib/push-server";
 import { enviarNotificacionFCM, isFCMTokenInvalid } from "@/lib/firebase-admin";
 import Config from "@/models/Config";
+import { getPointsRatio } from "@/lib/getPointsRatio";
 
 const TRES_DIAS_MS = 3 * 24 * 60 * 60 * 1000;
 
@@ -205,6 +207,52 @@ export async function PUT(req: NextRequest) {
 
         if (estado === "entregado" || estado === "cancelado") {
             await programarBorradoMensajes(id);
+        }
+
+        // 💰 Acreditar puntos al marcar como entregado (solo una vez)
+        if (estado === "entregado" && !pedido.puntosAcreditados && pedido.total > 0) {
+            const ratio = await getPointsRatio();
+            const puntos = Math.floor(pedido.total * ratio);
+            if (puntos > 0) {
+                const cliente = await User.findById(pedido.userId);
+                if (cliente) {
+                    await PointTransaction.create({
+                        userId: cliente._id,
+                        source: "consumo",
+                        amount: puntos,
+                        notes: `Pedido online (${pedido.tipoEntrega})`,
+                        meta: { pedidoId: pedido._id, consumoARS: pedido.total },
+                        pendingReview: true,
+                    });
+                    cliente.puntos = (cliente.puntos || 0) + puntos;
+                    cliente.needsReview = true;
+                    await cliente.save();
+
+                    await Pedido.findByIdAndUpdate(id, { puntosAcreditados: true });
+
+                    // Push web
+                    if (Array.isArray(cliente.pushSubscriptions) && cliente.pushSubscriptions.length) {
+                        const invalid = await sendPushAndCollectInvalid(cliente.pushSubscriptions, {
+                            title: "¡Puntos sumados!",
+                            body: `Se acreditaron ${puntos} puntos por tu pedido 🎉`,
+                            url: "/cliente/qr",
+                        });
+                        if (invalid.length) {
+                            await User.updateOne({ _id: cliente._id }, { $pull: { pushSubscriptions: { endpoint: { $in: invalid } } } });
+                        }
+                    }
+                    // Push FCM
+                    const fcmTokens = new Set<string>(cliente.fcmTokens ?? []);
+                    if (cliente.tokenFCM) fcmTokens.add(cliente.tokenFCM);
+                    for (const fcmToken of fcmTokens) {
+                        try {
+                            await enviarNotificacionFCM(fcmToken, "¡Puntos sumados!", `Se acreditaron ${puntos} puntos por tu pedido 🎉`, "/cliente/qr");
+                        } catch (err) {
+                            if (isFCMTokenInvalid(err)) await User.updateOne({ _id: cliente._id }, { $pull: { fcmTokens: fcmToken } });
+                        }
+                    }
+                }
+            }
         }
 
         // 🧠 Mensajes personalizados según el estado
