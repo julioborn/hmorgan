@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/auth-context";
-import { CalendarDays, Clock, Users, MapPin, CheckCircle, XCircle, Loader2, Plus } from "lucide-react";
+import { CalendarDays, Clock, Users, MapPin, CheckCircle, XCircle, Loader2, Plus, Home, Leaf, HelpCircle } from "lucide-react";
 
 type Reserva = {
     _id: string;
@@ -15,9 +15,9 @@ type Reserva = {
 };
 
 const ZONA_OPTIONS = [
-    { value: "adentro",     label: "Adentro",         emoji: "🏠" },
-    { value: "afuera",      label: "Afuera",           emoji: "🌿" },
-    { value: "indiferente", label: "Sin preferencia",  emoji: "🤷" },
+    { value: "adentro",     label: "Adentro",         icon: Home },
+    { value: "afuera",      label: "Afuera",           icon: Leaf },
+    { value: "indiferente", label: "Sin preferencia",  icon: HelpCircle },
 ] as const;
 
 const HORAS = ["19:00","19:30","20:00","20:30","21:00","21:30","22:00","22:30","23:00"];
@@ -100,7 +100,7 @@ export default function ClienteReservasPage() {
     const pasadas  = reservas.filter(r => r.estado === "cancelada" || new Date(r.fecha) < new Date(todayISO()));
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20" style={{ paddingBottom: "max(5rem, env(safe-area-inset-bottom))" }}>
+        <div className="min-h-screen bg-white pb-20" style={{ paddingBottom: "max(5rem, env(safe-area-inset-bottom))" }}>
             {/* Header */}
             <div className="bg-white border-b border-gray-100 px-4 pt-4 pb-3">
                 <div className="max-w-xl mx-auto flex items-center justify-between">
@@ -193,13 +193,16 @@ export default function ClienteReservasPage() {
                             <div>
                                 <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Preferencia de lugar</label>
                                 <div className="flex gap-2">
-                                    {ZONA_OPTIONS.map(z => (
+                                    {ZONA_OPTIONS.map(z => {
+                                        const Icon = z.icon;
+                                        return (
                                         <button type="button" key={z.value} onClick={() => setForm(p => ({ ...p, zona: z.value }))}
-                                            className={`flex-1 py-2.5 rounded-xl border text-xs font-bold flex flex-col items-center gap-0.5 transition ${form.zona === z.value ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
-                                            <span className="text-base">{z.emoji}</span>
+                                            className={`flex-1 py-2.5 rounded-xl border text-xs font-bold flex flex-col items-center gap-1 transition ${form.zona === z.value ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
+                                            <Icon size={18} />
                                             <span>{z.label}</span>
                                         </button>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
 
@@ -239,15 +242,12 @@ export default function ClienteReservasPage() {
                                                 <div className="flex items-center gap-2 mb-2">
                                                     <Icon size={15} className={st.text} />
                                                     <span className={`text-xs font-bold ${st.text}`}>{st.label}</span>
-                                                    {r.mesaId?.nombre && (
-                                                        <span className="text-xs bg-white/60 text-gray-700 font-semibold px-2 py-0.5 rounded-full">Mesa {r.mesaId.nombre}</span>
-                                                    )}
                                                 </div>
                                                 <p className="font-bold text-gray-900">{formatFecha(r.fecha)}</p>
                                                 <div className="flex items-center gap-3 mt-1 text-sm text-gray-600">
                                                     <span className="flex items-center gap-1"><Clock size={13} />{r.hora}hs</span>
                                                     <span className="flex items-center gap-1"><Users size={13} />{r.comensales}p</span>
-                                                    <span>{ZONA_OPTIONS.find(z => z.value === r.zona)?.emoji} {ZONA_OPTIONS.find(z => z.value === r.zona)?.label}</span>
+                                                    <span>{ZONA_OPTIONS.find(z => z.value === r.zona)?.label}</span>
                                                 </div>
                                                 {r.notas && <p className="text-xs text-gray-500 mt-1.5 italic">📝 {r.notas}</p>}
                                             </div>

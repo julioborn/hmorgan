@@ -119,11 +119,10 @@ export async function PATCH(req: NextRequest) {
             : reserva.mesaId as any;
 
         if (updates.estado === "confirmada") {
-            const mesaLabel = mesa?.nombre ? ` · Mesa ${mesa.nombre}` : "";
             await notificarUsuario(
                 reserva.userId.toString(),
-                "¡Reserva confirmada! 🎉",
-                `Mesa para ${reserva.comensales} personas el ${formatFecha(reserva.fecha)} a las ${reserva.hora}hs${mesaLabel}`
+                "Reserva confirmada",
+                `Tu reserva para ${reserva.comensales} personas el ${formatFecha(reserva.fecha)} a las ${reserva.hora}hs fue confirmada.`
             );
         } else if (updates.estado === "cancelada") {
             await notificarUsuario(

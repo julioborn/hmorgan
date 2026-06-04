@@ -388,7 +388,7 @@ export default function SuperAdminMesasPage() {
     if (loading) return <div className="flex justify-center py-20"><Loader size={48} /></div>;
 
     const mesasActivas  = mesas.filter(m => m.activa).length;
-    const ocupadasCount = mesas.filter(m => ocupadas.has(m.nombre)).length;
+    const ocupadasCount = mesas.filter(m => m.activa && (ocupadas.has(m.nombre) || reservadasHoy.has(m._id))).length;
     const selCount      = selected.size;
 
     const ModeBtn = ({ m, icon: Icon, label }: { m: Mode; icon: React.ElementType; label: string }) => (

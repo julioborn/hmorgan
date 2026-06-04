@@ -62,7 +62,7 @@ function FloorPlanPicker({
     onSelect: (mesa: Mesa) => void;
 }) {
     return (
-        <div className="relative w-full rounded-xl overflow-hidden border border-gray-200" style={{ paddingBottom: "66%" }}>
+        <div className="relative w-full rounded-xl overflow-hidden border border-gray-200" style={{ paddingBottom: "72%" }}>
             <div className="absolute inset-0" style={{
                 backgroundColor: "#f9f5ef",
                 backgroundImage: "linear-gradient(rgba(0,0,0,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.04) 1px,transparent 1px)",
@@ -211,7 +211,7 @@ export default function SuperAdminReservasPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-16">
+        <div className="min-h-screen bg-white pb-16">
             {/* Header */}
             <div className="bg-white border-b border-gray-200 px-4 py-3">
                 <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
@@ -339,14 +339,14 @@ export default function SuperAdminReservasPage() {
 
             {/* Floor plan picker modal */}
             {pickerReservaId && (
-                <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden">
+                <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-3">
+                    <div className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden" style={{ maxHeight: "92vh", display: "flex", flexDirection: "column" }}>
                         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
                             <h2 className="font-black text-gray-900 flex-1">Asignar mesa</h2>
                             <button onClick={() => { setPickerReservaId(null); setPickerSelected(null); }} className="p-1 text-gray-400 hover:text-gray-700"><X size={18} /></button>
                         </div>
 
-                        <div className="p-4">
+                        <div className="p-4 overflow-y-auto flex-1">
                             <FloorPlanPicker
                                 mesas={mesas}
                                 elements={elements}

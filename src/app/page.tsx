@@ -107,6 +107,7 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
   const [loadingRewards, setLoadingRewards] = useState(true);
   const [pedidosActivosCount, setPedidosActivosCount] = useState(0);
   const [pedidosActivos, setPedidosActivos] = useState(true);
+  const [reservasActivas, setReservasActivas] = useState(true);
 
   useEffect(() => {
     const fetchRewards = async () => {
@@ -140,9 +141,10 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
   useEffect(() => {
     fetch("/api/config/pedidos", { cache: "no-store" })
       .then(res => res.json())
-      .then(data => {
-        setPedidosActivos(data.activo);
-      });
+      .then(data => { setPedidosActivos(data.activo); });
+    fetch("/api/config/reservas", { cache: "no-store" })
+      .then(res => res.json())
+      .then(data => { setReservasActivas(data.activo ?? true); });
   }, []);
 
   if (loadingRewards) {
@@ -275,16 +277,11 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
           accent="from-red-600 to-red-800"
         />
         <ActionCard
-          href="/cliente/historial"
-          title="Historial"
-          Icon={History}
-          accent="from-red-600 to-red-800"
-        />
-        <ActionCard
           href="/cliente/reservas"
           title="Reservas"
           Icon={CalendarDays}
           accent="from-red-600 to-red-800"
+          disabled={!reservasActivas}
         />
       </div>
 
