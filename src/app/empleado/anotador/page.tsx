@@ -43,7 +43,7 @@ const categoryImages: Record<string, string> = {
     SANDWICHES: "/sandwiches.jpg",
     PICADAS: "/picada.jpg",
     ENSALADAS: "/ensaladas.jpg",
-    FRITURAS: "/picada.jpg",
+    FRITURAS: "/frituras.jpeg",
     BEBIDAS: "/bebidas.jpeg",
     "POSTRE Y CAFE": "/postreycafe.jpeg",
 };
@@ -174,10 +174,7 @@ export default function AnotadorPage() {
     function CartPanel() {
         if (cart.length === 0) return null;
         return (
-            <div
-                className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-xl px-4 pt-3"
-                style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
-            >
+            <div className="bg-white border-b border-gray-200 shadow-sm px-4 pt-3 pb-3">
                 <div className="max-w-2xl mx-auto">
                     <div className="flex flex-wrap gap-1 mb-3 max-h-14 overflow-y-auto">
                         {cart.map(c => (
@@ -247,7 +244,7 @@ export default function AnotadorPage() {
         const I = Icon || UtensilsCrossed;
         return (
             <div
-                className="bg-black text-white px-4 py-3 flex items-center gap-3 sticky top-0 z-10"
+                className="bg-black text-white px-4 py-3 flex items-center gap-3"
                 style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
             >
                 <button onClick={onBack} className="p-1 -ml-1"><ChevronLeft className="w-6 h-6" /></button>
@@ -266,8 +263,11 @@ export default function AnotadorPage() {
     /* ── Main categories view ── */
     if (!categoriaActiva) {
         return (
-            <div className="bg-white min-h-screen" style={{ paddingBottom: cart.length > 0 ? "200px" : "1.5rem" }}>
-                <StickyHeader title="Anotador de Pedidos" onBack={() => router.back()} icon={UtensilsCrossed} />
+            <div className="bg-white min-h-screen pb-6">
+                <div className="sticky top-0 z-10">
+                    <StickyHeader title="Anotador de Pedidos" onBack={() => router.back()} icon={UtensilsCrossed} />
+                    <CartPanel />
+                </div>
                 <div className="px-5 pt-5 pb-3">
                     <p className="text-sm text-gray-400">Elegí una categoría</p>
                 </div>
@@ -276,9 +276,8 @@ export default function AnotadorPage() {
                         <CategoryCard key={cat} cat={cat} idx={idx} onClick={() => setCategoriaActiva(cat)} />
                     ))}
                 </div>
-                <CartPanel />
                 {enviado && (
-                    <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-emerald-500 text-white px-5 py-3 rounded-full shadow-lg font-semibold flex items-center gap-2 z-50">
+                    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-emerald-500 text-white px-5 py-3 rounded-full shadow-lg font-semibold flex items-center gap-2 z-50">
                         <CheckCircle className="w-5 h-5" />¡Pedido enviado al bar!
                     </div>
                 )}
@@ -290,14 +289,16 @@ export default function AnotadorPage() {
     if (categoriaActiva === "BEBIDAS") {
         const subCats = BEBIDAS_CATS.filter(bc => menuItems.some(i => i.categoria === bc));
         return (
-            <div className="bg-white min-h-screen" style={{ paddingBottom: cart.length > 0 ? "200px" : "1.5rem" }}>
-                <StickyHeader title="Bebidas" onBack={() => setCategoriaActiva(null)} icon={Beer} />
+            <div className="bg-white min-h-screen pb-6">
+                <div className="sticky top-0 z-10">
+                    <StickyHeader title="Bebidas" onBack={() => setCategoriaActiva(null)} icon={Beer} />
+                    <CartPanel />
+                </div>
                 <div className="px-5 py-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {subCats.map((cat, idx) => (
                         <CategoryCard key={cat} cat={cat} idx={idx} onClick={() => setCategoriaActiva(cat)} />
                     ))}
                 </div>
-                <CartPanel />
             </div>
         );
     }
@@ -308,12 +309,15 @@ export default function AnotadorPage() {
     const itemsCat = menuItems.filter(i => i.categoria === categoriaActiva);
 
     return (
-        <div className="bg-white min-h-screen" style={{ paddingBottom: cart.length > 0 ? "200px" : "1.5rem" }}>
-            <StickyHeader
-                title={categoriaActiva}
-                onBack={() => setCategoriaActiva(esBebida ? "BEBIDAS" : null)}
-                icon={CatIcon}
-            />
+        <div className="bg-white min-h-screen pb-6">
+            <div className="sticky top-0 z-10">
+                <StickyHeader
+                    title={categoriaActiva}
+                    onBack={() => setCategoriaActiva(esBebida ? "BEBIDAS" : null)}
+                    icon={CatIcon}
+                />
+                <CartPanel />
+            </div>
 
             <AnimatePresence mode="wait">
                 <motion.div
@@ -361,10 +365,8 @@ export default function AnotadorPage() {
                 </motion.div>
             </AnimatePresence>
 
-            <CartPanel />
-
             {enviado && (
-                <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-emerald-500 text-white px-5 py-3 rounded-full shadow-lg font-semibold flex items-center gap-2 z-50">
+                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-emerald-500 text-white px-5 py-3 rounded-full shadow-lg font-semibold flex items-center gap-2 z-50">
                     <CheckCircle className="w-5 h-5" />¡Pedido enviado al bar!
                 </div>
             )}

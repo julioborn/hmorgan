@@ -35,7 +35,7 @@ const categoryImages: Record<string, string> = {
     SANDWICHES: "/sandwiches.jpg",
     PICADAS: "/picada.jpg",
     ENSALADAS: "/ensaladas.jpg",
-    FRITURAS: "/picada.jpg",
+    FRITURAS: "/frituras.jpeg",
     BEBIDAS: "/bebidas.jpeg",
     "POSTRE Y CAFE": "/postreycafe.jpeg",
 };
@@ -60,6 +60,8 @@ interface CartDrawerProps {
     setDireccionEnvio: (v: string) => void;
     usarOtraDireccion: boolean;
     setUsarOtraDireccion: (v: boolean) => void;
+    nota: string;
+    setNota: (v: string) => void;
     enviando: boolean;
     total: number;
     onClose: () => void;
@@ -72,6 +74,7 @@ function CartDrawer({
     items, menu, tipoEntrega, setTipoEntrega,
     direccionPrincipal, direccionEnvio, setDireccionEnvio,
     usarOtraDireccion, setUsarOtraDireccion,
+    nota, setNota,
     enviando, total, onClose, onVaciar, onEliminar, onEnviar,
 }: CartDrawerProps) {
     return (
@@ -142,7 +145,17 @@ function CartDrawer({
                     )}
                 </div>
 
-                <div className="flex gap-3 mt-5">
+                <textarea
+                    placeholder="Observaciones (ej: sin lechuga, sin tomate...)"
+                    value={nota}
+                    onChange={(e) => setNota(e.target.value)}
+                    onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: "smooth", block: "center" }), 350)}
+                    style={{ fontSize: "16px" }}
+                    rows={2}
+                    className="w-full mt-4 border border-gray-300 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-400"
+                />
+
+                <div className="flex gap-3 mt-4">
                     <button
                         onClick={onVaciar}
                         className="flex items-center gap-1 px-4 py-2 rounded-xl border border-gray-300 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition"
@@ -176,6 +189,7 @@ export default function PedidosClientePage() {
     const [usarOtraDireccion, setUsarOtraDireccion] = useState(false);
     const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null);
     const [enviando, setEnviando] = useState(false);
+    const [nota, setNota] = useState("");
     const [telefono, setTelefono] = useState<string>("");
     const router = useRouter();
 
@@ -277,12 +291,14 @@ export default function PedidosClientePage() {
                     items: seleccion,
                     tipoEntrega,
                     direccion: tipoEntrega === "envio" ? direccionEnvio || direccionPrincipal || "" : undefined,
+                    notaCliente: nota.trim() || undefined,
                 }),
             });
             if (res.ok) {
                 setDrawerOpen(false);
                 await swalBase.fire({ icon: "success", title: "Pedido enviado correctamente", timer: 2000, showConfirmButton: false });
                 setItems({});
+                setNota("");
             } else {
                 swalBase.fire("❌", "Error al enviar el pedido", "error");
             }
@@ -333,6 +349,7 @@ export default function PedidosClientePage() {
         items, menu, tipoEntrega, setTipoEntrega,
         direccionPrincipal, direccionEnvio, setDireccionEnvio,
         usarOtraDireccion, setUsarOtraDireccion,
+        nota, setNota,
         enviando, total,
         onClose: () => setDrawerOpen(false),
         onVaciar: vaciarCarrito,

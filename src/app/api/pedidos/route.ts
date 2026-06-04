@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const { items, tipoEntrega, direccion, fuente, mesa, notaEmpleado } = await req.json();
+        const { items, tipoEntrega, direccion, fuente, mesa, notaEmpleado, notaCliente } = await req.json();
         if (!items?.length)
             return NextResponse.json({ message: "Sin items" }, { status: 400 });
 
@@ -142,6 +142,7 @@ export async function POST(req: NextRequest) {
             fuente: fuente === "empleado" ? "empleado" : "cliente",
             mesa: mesa || undefined,
             notaEmpleado: notaEmpleado || undefined,
+            notaCliente: notaCliente || undefined,
         });
 
         // Pedidos de mozo no generan notificación al admin (ya está en el local)
