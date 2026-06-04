@@ -11,15 +11,20 @@ export async function GET() {
 }
 
 export async function PUT(req: NextRequest) {
-    await connectMongoDB();
-    const { mensaje } = await req.json();
-    if (!mensaje?.trim()) {
-        return NextResponse.json({ error: "El mensaje no puede estar vacío" }, { status: 400 });
+    try {
+        await connectMongoDB();
+        const { mensaje } = await req.json();
+        if (!mensaje?.trim()) {
+            return NextResponse.json({ error: "El mensaje no puede estar vacío" }, { status: 400 });
+        }
+        const doc = await MensajeWhatsApp.findOneAndUpdate(
+            {},
+            { $set: { mensaje: mensaje.trim() } },
+            { upsert: true, new: true }
+        );
+        return NextResponse.json(doc);
+    } catch (err: any) {
+        console.error("Error guardando mensaje WhatsApp:", err);
+        return NextResponse.json({ error: err.message }, { status: 500 });
     }
-    const doc = await MensajeWhatsApp.findOneAndUpdate(
-        {},
-        { mensaje: mensaje.trim() },
-        { upsert: true, new: true }
-    );
-    return NextResponse.json(doc);
 }
