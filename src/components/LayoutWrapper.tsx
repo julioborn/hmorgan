@@ -1,10 +1,8 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { AuthProvider } from "@/context/auth-context";
 import NextAuthSessionProvider from "@/providers/session-provider";
 import Header from "@/components/Header";
-import Notificador from "@/components/Notificador";
 import RegisterSW from "@/components/RegisterSW";
 import { useEffect, useState } from "react";
 import { initPush } from "@/lib/pushNotifications";
@@ -16,7 +14,6 @@ import SwipeBackZone from "@/components/SwipeBackZone";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
-    const pathname = usePathname();
 
     const [showReview, setShowReview] = useState(false);
     const [pendingTxId, setPendingTxId] = useState<string | null>(null);
@@ -42,10 +39,6 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
 
         checkReview();
     }, []);
-
-    const esChat =
-        pathname.match(/^\/admin\/pedidos\/[^/]+\/chat$/) ||
-        pathname.match(/^\/cliente\/mis-pedidos\/[^/]+\/chat$/);
 
     return (
         <NextAuthSessionProvider>
@@ -84,10 +77,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
                     </div>
                 </div>
 
-                {/* Header y notificador fuera de #app-content para que position:fixed
-                    sea relativo al viewport y no al contenedor con will-change:transform */}
-                {!esChat && <Header />}
-                {!esChat && <Notificador userRole="cliente" />}
+                <Header />
 
                 {/* Contenido animable (swipe-back / pull-to-refresh) */}
                 <div
@@ -95,16 +85,8 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
                     className="relative z-20 min-h-screen bg-white transition-transform duration-200 will-change-transform"
                 >
                     <main
-                        className={
-                            esChat
-                                ? "h-[100dvh] overflow-hidden bg-transparent p-0"
-                                : "min-h-screen bg-white text-black px-4 pb-6 container mx-auto"
-                        }
-                        style={
-                            esChat
-                                ? undefined
-                                : { paddingTop: "calc(env(safe-area-inset-top) + 98px)" }
-                        }
+                        className="min-h-screen bg-white text-black px-4 pb-6 container mx-auto"
+                        style={{ paddingTop: "calc(env(safe-area-inset-top) + 98px)" }}
                     >
                         {children}
                     </main>

@@ -361,15 +361,30 @@ function StatsContent({ stats }: { stats: Stats }) {
                             Hora pico: <strong className="text-black ml-1">{stats.horaPico}:00 – {stats.horaPico + 1}:00</strong>
                         </p>
                     )}
-                    <div className="flex items-end gap-0.5 h-20">
+
+                    {/* Barras */}
+                    <div className="flex items-end gap-[3px]" style={{ height: "72px" }}>
                         {stats.horasPorHora.map((h) => (
-                            <div key={h.hora} className="flex-1 flex flex-col items-center">
-                                <div
-                                    className={`w-full rounded-t ${h.hora === stats.horaPico ? "bg-red-500" : "bg-gray-300"}`}
-                                    style={{ height: `${(h.cantidad / maxHora) * 64}px`, minHeight: h.cantidad > 0 ? "3px" : "0" }}
-                                />
+                            <div
+                                key={h.hora}
+                                className="flex-1"
+                                style={{
+                                    height: h.cantidad > 0
+                                        ? `${Math.max(4, Math.round((h.cantidad / maxHora) * 68))}px`
+                                        : "2px",
+                                    borderRadius: "3px 3px 0 0",
+                                    backgroundColor: h.hora === stats.horaPico ? "#ef4444" : h.cantidad > 0 ? "#d1d5db" : "#f3f4f6",
+                                }}
+                            />
+                        ))}
+                    </div>
+
+                    {/* Etiquetas de hora separadas */}
+                    <div className="flex gap-[3px] mt-1">
+                        {stats.horasPorHora.map((h) => (
+                            <div key={h.hora} className="flex-1 text-center">
                                 {h.hora % 6 === 0 && (
-                                    <span className="text-[9px] text-gray-400 mt-1">{h.hora}h</span>
+                                    <span className="text-[9px] text-gray-400">{h.hora}h</span>
                                 )}
                             </div>
                         ))}
@@ -413,25 +428,62 @@ function BarChart({ title, data, valueKey, maxVal, color, formatValue }: {
     formatValue: (v: number) => string;
 }) {
     if (!data.length) return null;
+
+    const step = Math.ceil(data.length / 6);
+    const barMin = 14;
+
     return (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <h2 className="font-bold text-lg text-gray-900 mb-4">{title}</h2>
-            <div className="flex items-end gap-1 h-32">
-                {data.map((d, i) => {
-                    const val = d[valueKey] as number;
-                    return (
-                        <div key={i} className="flex-1 min-w-[18px] flex flex-col items-center gap-1">
-                            <span className="text-[9px] font-bold text-gray-600 text-center leading-tight">
-                                {val > 0 ? formatValue(val) : ""}
-                            </span>
+            <h2 className="font-bold text-lg text-gray-900 mb-1">{title}</h2>
+
+            {/* Valor máximo como referencia */}
+            <p className="text-xs text-gray-400 mb-3">
+                Máx: <span className="font-semibold text-gray-600">{formatValue(maxVal)}</span>
+            </p>
+
+            <div className="overflow-x-auto -mx-1 px-1">
+                <div
+                    className="flex items-end gap-[3px]"
+                    style={{ minWidth: `${data.length * (barMin + 3)}px`, height: "96px" }}
+                >
+                    {data.map((d, i) => {
+                        const val = d[valueKey] as number;
+                        const barH = val > 0 ? Math.max(4, Math.round((val / maxVal) * 80)) : 0;
+                        return (
                             <div
-                                className={`w-full ${color} rounded-t-lg`}
-                                style={{ height: `${(val / maxVal) * 88}px`, minHeight: val > 0 ? "4px" : "0" }}
-                            />
-                            <span className="text-[9px] text-gray-400 text-center leading-tight">{d.fecha}</span>
-                        </div>
-                    );
-                })}
+                                key={i}
+                                className="flex flex-col items-center justify-end h-full"
+                                style={{ flex: "1 1 0", minWidth: `${barMin}px` }}
+                            >
+                                <div
+                                    className={`w-full ${color} rounded-t`}
+                                    style={{ height: `${barH}px` }}
+                                />
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* Etiquetas de fecha */}
+                <div
+                    className="flex gap-[3px] mt-1"
+                    style={{ minWidth: `${data.length * (barMin + 3)}px` }}
+                >
+                    {data.map((d, i) => {
+                        const show = i === 0 || i === data.length - 1 || i % step === 0;
+                        return (
+                            <div
+                                key={i}
+                                className="text-center overflow-hidden"
+                                style={{ flex: "1 1 0", minWidth: `${barMin}px` }}
+                            >
+                                {show && (
+                                    <span className="text-[9px] text-gray-400 leading-none">{d.fecha}</span>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
         </div>
     );
