@@ -347,53 +347,172 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
   HOME ADMIN
    ========================= */
 function AdminHome() {
-  const [pedidosActivosCount, setPedidosActivosCount] = useState(0);
+  const [pedidosActivos, setPedidosActivos] = useState<any[]>([]);
+  const [clientes, setClientes] = useState<number | null>(null);
+  const [statsHoy, setStatsHoy] = useState<{ pedidos: number; ingresos: number } | null>(null);
+  const [hora, setHora] = useState(() => new Date().getHours());
 
   useEffect(() => {
-    const fetchPedidosActivos = async () => {
+    const tick = setInterval(() => setHora(new Date().getHours()), 60000);
+    return () => clearInterval(tick);
+  }, []);
+
+  useEffect(() => {
+    const fetchPedidos = async () => {
       try {
         const res = await fetch("/api/pedidos", { cache: "no-store" });
         if (!res.ok) return;
         const data = await res.json();
-        const activos = data?.filter((p: any) =>
-          ["pendiente", "preparando", "listo"].includes(p.estado)
+        setPedidosActivos(
+          data?.filter((p: any) => ["pendiente", "preparando", "listo"].includes(p.estado)) ?? []
         );
-        setPedidosActivosCount(activos?.length || 0);
-      } catch (e) {
-        console.error("Error cargando pedidos activos:", e);
-      }
+      } catch {}
     };
-    fetchPedidosActivos();
-    const interval = setInterval(fetchPedidosActivos, 5000);
+    fetchPedidos();
+    const interval = setInterval(fetchPedidos, 5000);
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const hoy = new Date();
+    const yyyy = hoy.getFullYear();
+    const mm = String(hoy.getMonth() + 1).padStart(2, "0");
+    const dd = String(hoy.getDate()).padStart(2, "0");
+    const hoyStr = `${yyyy}-${mm}-${dd}`;
+
+    const fetchStatsHoy = async () => {
+      try {
+        const res = await fetch(`/api/admin/estadisticas?desde=${hoyStr}&hasta=${hoyStr}`, { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        setStatsHoy({ pedidos: data.totalPedidos ?? 0, ingresos: data.totalIngresos ?? 0 });
+        setClientes(data.totalUsuarios ?? null);
+      } catch {}
+    };
+
+    fetchStatsHoy();
+  }, []);
+
+  const saludo = hora < 12 ? "Buenos días" : hora < 20 ? "Buenas tardes" : "Buenas noches";
+  const fechaHoy = new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+  const pedidosActivosCount = pedidosActivos.length;
+  const pendientes = pedidosActivos.filter(p => p.estado === "pendiente").length;
+
   return (
     <div
-      className={`${container} py-8 space-y-8`}
-      style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+      className={`${container} pb-10 space-y-6`}
+      style={{ paddingBottom: "max(2.5rem, env(safe-area-inset-bottom))" }}
     >
-      <header>
-        <h1 className="text-4xl font-extrabold mb-10 text-center text-black">
-          Administración
-        </h1>
-      </header>
-
-      <div className="grid grid-cols-2 gap-4">
-        <ActionCard href="/admin/scan" title="Escanear Puntos" Icon={ScanQrCode} accent="from-red-600 to-red-800" />
-        <ActionCard href="/admin/rewards/scan" title="Escanear Canjes" Icon={ScanText} accent="from-red-600 to-red-800" />
-        <ActionCard href="/admin/clientes" title="Clientes" Icon={Users} accent="from-red-600 to-red-800" />
-        <ActionCard href="/admin/menu" title="Menú" Icon={Utensils} accent="from-red-600 to-red-800" />
-        <ActionCard href="/admin/rewards" title="Canjes" Icon={Ticket} accent="from-red-600 to-red-800" />
-        <ActionCard href="/admin/pedidos" title="Pedidos" Icon={Package} accent="from-red-600 to-red-800" notificationCount={pedidosActivosCount} />
-        <ActionCard href="/admin/reviews" title="Reseñas" Icon={Star} accent="from-red-600 to-red-800" />
-        <ActionCard href="/admin/configuracion" title="Ajustes" Icon={Settings} accent="from-red-600 to-red-800" />
-        <ActionCard href="/admin/estadisticas" title="Estadísticas" Icon={BarChart2} accent="from-red-600 to-red-800" />
-        <ActionCard href="/admin/mesas" title="Mesas" Icon={LayoutGrid} accent="from-red-600 to-red-800" />
-        <ActionCard href="/admin/carrousel" title="Fotos" Icon={Images} accent="from-red-600 to-red-800" />
-        <ActionCard href="/admin/notificaciones" title="Notificaciones" Icon={Bell} accent="from-black to-gray-900" />
+      {/* ── Header ── */}
+      <div className="rounded-2xl bg-black text-white px-5 py-6 flex items-center justify-between shadow-lg">
+        <div>
+          <p className="text-sm text-gray-400 capitalize">{fechaHoy}</p>
+          <h1 className="text-2xl font-extrabold mt-0.5">{saludo}</h1>
+          <p className="text-sm text-gray-400 mt-1">Panel de Administración</p>
+        </div>
+        <img src="/morganwhite.png" alt="Logo" className="h-14 w-14 object-contain opacity-90" />
       </div>
+
+      {/* ── Stats rápidas ── */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">
+          <p className={`text-3xl font-extrabold ${pedidosActivosCount > 0 ? "text-red-600" : "text-gray-800"}`}>
+            {pedidosActivosCount}
+          </p>
+          <p className="text-[11px] text-gray-500 font-medium mt-1 leading-tight">Pedidos activos</p>
+        </div>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">
+          <p className="text-3xl font-extrabold text-gray-800">{clientes ?? "—"}</p>
+          <p className="text-[11px] text-gray-500 font-medium mt-1 leading-tight">Clientes</p>
+        </div>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">
+          <p className="text-2xl font-extrabold text-gray-800 leading-tight">
+            {statsHoy ? `$${statsHoy.ingresos.toLocaleString("es-AR")}` : "—"}
+          </p>
+          <p className="text-[11px] text-gray-500 font-medium mt-1 leading-tight">Ingresos hoy</p>
+        </div>
+      </div>
+
+      {/* ── Pedidos destacado ── */}
+      <Link
+        href="/admin/pedidos"
+        className="block rounded-2xl bg-red-600 text-white px-5 py-5 shadow-lg hover:bg-red-700 transition-all active:scale-[0.98]"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="bg-white/20 rounded-xl p-2.5">
+              <Package className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="font-extrabold text-lg leading-tight">Pedidos</p>
+              <p className="text-red-100 text-sm">
+                {pedidosActivosCount === 0
+                  ? "Sin pedidos activos"
+                  : `${pedidosActivosCount} activo${pedidosActivosCount > 1 ? "s" : ""}${pendientes > 0 ? ` · ${pendientes} pendiente${pendientes > 1 ? "s" : ""}` : ""}`}
+              </p>
+            </div>
+          </div>
+          {pedidosActivosCount > 0 && (
+            <span className="bg-white text-red-600 font-extrabold text-lg rounded-full h-10 w-10 flex items-center justify-center shadow animate-pulse">
+              {pedidosActivosCount}
+            </span>
+          )}
+        </div>
+      </Link>
+
+      {/* ── Operaciones ── */}
+      <section className="space-y-3">
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Operaciones</p>
+        <div className="grid grid-cols-2 gap-3">
+          <AdminCard href="/admin/scan" title="Escanear Puntos" Icon={ScanQrCode} />
+          <AdminCard href="/admin/rewards/scan" title="Escanear Canjes" Icon={ScanText} />
+          <AdminCard href="/admin/mesas" title="Mesas" Icon={LayoutGrid} />
+          <AdminCard href="/admin/clientes" title="Clientes" Icon={Users} />
+        </div>
+      </section>
+
+      {/* ── Gestión ── */}
+      <section className="space-y-3">
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Gestión</p>
+        <div className="grid grid-cols-2 gap-3">
+          <AdminCard href="/admin/menu" title="Menú" Icon={Utensils} />
+          <AdminCard href="/admin/rewards" title="Canjes" Icon={Ticket} />
+          <AdminCard href="/admin/reviews" title="Reseñas" Icon={Star} />
+          <AdminCard href="/admin/carrousel" title="Fotos" Icon={Images} />
+        </div>
+      </section>
+
+      {/* ── Herramientas ── */}
+      <section className="space-y-3">
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Herramientas</p>
+        <div className="grid grid-cols-2 gap-3">
+          <AdminCard href="/admin/estadisticas" title="Estadísticas" Icon={BarChart2} />
+          <AdminCard href="/admin/configuracion" title="Ajustes" Icon={Settings} />
+        </div>
+        <AdminCard href="/admin/notificaciones" title="Notificaciones" Icon={Bell} full />
+      </section>
     </div>
+  );
+}
+
+function AdminCard({
+  href, title, Icon, full,
+}: {
+  href: string;
+  title: string;
+  Icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  full?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`${full ? "col-span-2" : ""} flex items-center gap-3 bg-white border border-gray-100 rounded-2xl px-4 py-4 shadow-sm hover:shadow-md hover:border-red-200 hover:bg-red-50 transition-all active:scale-[0.97] group`}
+    >
+      <div className="bg-gray-100 group-hover:bg-red-100 rounded-xl p-2.5 transition-colors">
+        <Icon className="h-5 w-5 text-gray-600 group-hover:text-red-600 transition-colors" />
+      </div>
+      <span className="font-semibold text-gray-800 group-hover:text-red-700 text-sm transition-colors">{title}</span>
+    </Link>
   );
 }
 
