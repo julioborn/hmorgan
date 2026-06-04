@@ -165,6 +165,24 @@ export default function AdminPedidosPage() {
 
     if (loading) return <Loader />;
 
+    function buildWAMessage(p: any): string {
+        const nombre = p.userId?.nombre ?? "";
+        const lineasItems = p.items
+            .map((it: any) => `• ${it.menuItemId?.nombre ?? "Producto"} x${it.cantidad}`)
+            .join("\n");
+        const total = new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0 }).format(p.total ?? 0);
+        const entrega = p.tipoEntrega === "envio" ? "Envío a domicilio" : "Retira en el bar";
+
+        let msg = mensajeWA.replace("{nombre}", nombre);
+        msg += `\n\n📋 *Tu pedido:*\n${lineasItems}`;
+        msg += `\n\n💰 *Total:* $${total}`;
+        msg += `\n📦 *Entrega:* ${entrega}`;
+        if (p.tipoEntrega === "envio" && p.direccion) {
+            msg += `\n📍 *Dirección:* ${p.direccion}`;
+        }
+        return msg;
+    }
+
     const estados = [
         { key: "pendiente", label: "Pendiente", icon: Clock, color: "yellow" },
         { key: "preparando", label: "Preparando", icon: Flame, color: "orange" },
@@ -499,7 +517,7 @@ export default function AdminPedidosPage() {
 
                                     {p.userId?.role !== "empleado" && p.userId?.telefono && (
                                         <a
-                                            href={`https://wa.me/549${p.userId.telefono.replace(/\D/g, "").replace(/^0/, "")}?text=${encodeURIComponent(mensajeWA.replace("{nombre}", p.userId?.nombre ?? ""))}`}
+                                            href={`https://wa.me/549${p.userId.telefono.replace(/\D/g, "").replace(/^0/, "")}?text=${encodeURIComponent(buildWAMessage(p))}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="mt-3 w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg transition font-semibold flex items-center justify-center gap-2"
