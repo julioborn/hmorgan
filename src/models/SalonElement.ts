@@ -1,7 +1,7 @@
 import { Schema, model, models } from "mongoose";
 
 const SalonElementSchema = new Schema({
-    tipo: { type: String, enum: ["puerta", "linea_h", "linea_v", "zona"], required: true },
+    tipo: { type: String, enum: ["puerta", "linea_h", "linea_v", "zona", "barra"], required: true },
     label: { type: String, default: "" },
     x: { type: Number, default: 50 },
     y: { type: Number, default: 50 },

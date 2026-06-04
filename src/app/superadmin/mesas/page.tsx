@@ -2,8 +2,8 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import {
     Plus, Trash2, ToggleLeft, ToggleRight, Move, X,
-    Circle, Square, Users, MapPin, Minus, DoorOpen,
-    MoveHorizontal, MoveVertical, LayoutTemplate,
+    Circle, Square, Users, MapPin, Minus,
+    DoorOpen, MoveHorizontal, MoveVertical, LayoutTemplate, UtensilsCrossed,
 } from "lucide-react";
 import Loader from "@/components/Loader";
 
@@ -11,24 +11,25 @@ type Mesa = {
     _id: string; nombre: string; activa: boolean;
     x: number; y: number; forma: "rect" | "round" | "oval"; capacidad: number;
 };
-
 type SalonEl = {
-    _id: string; tipo: "puerta" | "linea_h" | "linea_v" | "zona";
+    _id: string; tipo: "puerta" | "linea_h" | "linea_v" | "zona" | "barra";
     label: string; x: number; y: number; ancho: number; alto: number; color: string;
 };
 
-const ELEMENT_DEFAULTS: Record<SalonEl["tipo"], Partial<SalonEl>> = {
-    puerta:   { label: "PUERTA",  ancho: 6,  alto: 4,  color: "#fef3c7" },
-    linea_h:  { label: "",        ancho: 20, alto: 1,  color: "#374151" },
-    linea_v:  { label: "",        ancho: 1,  alto: 20, color: "#374151" },
-    zona:     { label: "Zona",    ancho: 18, alto: 14, color: "#dbeafe" },
+const EL_DEFAULTS: Record<SalonEl["tipo"], Partial<SalonEl>> = {
+    puerta:  { label: "PUERTA",  ancho: 6,  alto: 4,  color: "#fef3c7" },
+    barra:   { label: "BARRA",   ancho: 22, alto: 9,  color: "#b45309" },
+    linea_h: { label: "",        ancho: 20, alto: 1,  color: "#374151" },
+    linea_v: { label: "",        ancho: 1,  alto: 20, color: "#374151" },
+    zona:    { label: "Zona",    ancho: 18, alto: 14, color: "#dbeafe" },
 };
-
-const ELEMENT_ICONS: Record<SalonEl["tipo"], React.ElementType> = {
-    puerta: DoorOpen, linea_h: MoveHorizontal, linea_v: MoveVertical, zona: LayoutTemplate,
+const EL_ICONS: Record<SalonEl["tipo"], React.ElementType> = {
+    puerta: DoorOpen, barra: UtensilsCrossed,
+    linea_h: MoveHorizontal, linea_v: MoveVertical, zona: LayoutTemplate,
 };
-const ELEMENT_LABELS: Record<SalonEl["tipo"], string> = {
-    puerta: "Puerta", linea_h: "Línea H", linea_v: "Línea V", zona: "Zona",
+const EL_LABELS: Record<SalonEl["tipo"], string> = {
+    puerta: "Puerta", barra: "Barra",
+    linea_h: "Línea H", linea_v: "Línea V", zona: "Zona",
 };
 
 export default function SuperAdminMesasPage() {
@@ -41,8 +42,6 @@ export default function SuperAdminMesasPage() {
     const [nuevaMesa, setNuevaMesa] = useState("");
     const [guardando, setGuardando] = useState(false);
     const [error, setError] = useState("");
-
-    // config modals
     const [mesaModal, setMesaModal] = useState<Mesa | null>(null);
     const [mesaForm, setMesaForm] = useState<{ forma: Mesa["forma"]; capacidad: number; activa: boolean }>({ forma: "rect", capacidad: 4, activa: true });
     const [elModal, setElModal] = useState<SalonEl | null>(null);
@@ -52,10 +51,11 @@ export default function SuperAdminMesasPage() {
     const mesasRef = useRef<Mesa[]>([]);
     const elementsRef = useRef<SalonEl[]>([]);
     const dragState = useRef<{
-        type: "mesa" | "element";
-        id: string; startX: number; startY: number; origX: number; origY: number;
+        type: "mesa" | "element"; id: string;
+        startX: number; startY: number; origX: number; origY: number;
     } | null>(null);
-    const didDrag = useRef(false);
+    // Fix: track if a real drag happened so click doesn't open editor
+    const movedPx = useRef(0);
 
     useEffect(() => { mesasRef.current = mesas; }, [mesas]);
     useEffect(() => { elementsRef.current = elements; }, [elements]);
@@ -65,13 +65,11 @@ export default function SuperAdminMesasPage() {
         const data = await res.json();
         setMesas(Array.isArray(data) ? data.sort((a: Mesa, b: Mesa) => a.nombre.localeCompare(b.nombre, "es", { numeric: true })) : []);
     }, []);
-
     const fetchElements = useCallback(async () => {
         const res = await fetch("/api/superadmin/salon", { credentials: "include" });
         const data = await res.json();
         setElements(Array.isArray(data) ? data : []);
     }, []);
-
     const fetchOcupadas = useCallback(async () => {
         const res = await fetch("/api/pedidos?activos=true&fuente=empleado", { credentials: "include" });
         const data = await res.json().catch(() => []);
@@ -84,18 +82,21 @@ export default function SuperAdminMesasPage() {
         return () => clearInterval(iv);
     }, [fetchMesas, fetchElements, fetchOcupadas]);
 
-    // ── Drag system ──────────────────────────────────────────────
+    // ── Unified drag system ───────────────────────────────────────
     useEffect(() => {
         if (!editMode) return;
+
         const onMove = (e: MouseEvent | TouchEvent) => {
             if (!dragState.current || !canvasRef.current) return;
             if (e.cancelable) e.preventDefault();
-            didDrag.current = true;
             const cx = "touches" in e ? e.touches[0].clientX : e.clientX;
             const cy = "touches" in e ? e.touches[0].clientY : e.clientY;
             const rect = canvasRef.current.getBoundingClientRect();
-            const dx = (cx - dragState.current.startX) / rect.width * 100;
-            const dy = (cy - dragState.current.startY) / rect.height * 100;
+            const rawDx = cx - dragState.current.startX;
+            const rawDy = cy - dragState.current.startY;
+            movedPx.current = Math.sqrt(rawDx * rawDx + rawDy * rawDy);
+            const dx = rawDx / rect.width * 100;
+            const dy = rawDy / rect.height * 100;
             const nx = Math.max(1, Math.min(97, dragState.current.origX + dx));
             const ny = Math.max(1, Math.min(96, dragState.current.origY + dy));
             if (dragState.current.type === "mesa") {
@@ -104,13 +105,14 @@ export default function SuperAdminMesasPage() {
                 setElements(prev => prev.map(el => el._id === dragState.current!.id ? { ...el, x: nx, y: ny } : el));
             }
         };
+
         const onUp = async () => {
             if (!dragState.current) return;
             const { type, id } = dragState.current;
-            const wasDrag = didDrag.current;
+            const moved = movedPx.current;
             dragState.current = null;
-            didDrag.current = false;
-            if (!wasDrag) return;
+            if (moved < 5) return; // not a real drag → click will handle it
+            movedPx.current = 0;
             if (type === "mesa") {
                 const m = mesasRef.current.find(x => x._id === id);
                 if (m) await fetch("/api/admin/mesas", { method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ id: m._id, x: m.x, y: m.y }) });
@@ -119,6 +121,7 @@ export default function SuperAdminMesasPage() {
                 if (el) await fetch("/api/superadmin/salon", { method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ id: el._id, x: el.x, y: el.y }) });
             }
         };
+
         window.addEventListener("mousemove", onMove);
         window.addEventListener("touchmove", onMove, { passive: false });
         window.addEventListener("mouseup", onUp);
@@ -131,18 +134,18 @@ export default function SuperAdminMesasPage() {
         };
     }, [editMode]);
 
-    function startDrag(e: React.MouseEvent | React.TouchEvent, type: "mesa" | "element", id: string, origX: number, origY: number) {
+    function startDrag(e: React.MouseEvent | React.TouchEvent, type: "mesa" | "element", id: string, ox: number, oy: number) {
         if (!editMode) return;
         e.preventDefault(); e.stopPropagation();
-        didDrag.current = false;
+        movedPx.current = 0;
         const cx = "touches" in e ? e.touches[0].clientX : e.clientX;
         const cy = "touches" in e ? e.touches[0].clientY : e.clientY;
-        dragState.current = { type, id, startX: cx, startY: cy, origX, origY };
+        dragState.current = { type, id, startX: cx, startY: cy, origX: ox, origY: oy };
     }
 
-    // ── Mesa config ──────────────────────────────────────────────
-    function openMesaConfig(m: Mesa) {
-        if (!editMode || didDrag.current) return;
+    // ── Mesa config ───────────────────────────────────────────────
+    function clickMesa(m: Mesa) {
+        if (!editMode || movedPx.current >= 5) return;
         setMesaModal(m);
         setMesaForm({ forma: m.forma ?? "rect", capacidad: m.capacidad ?? 4, activa: m.activa });
     }
@@ -152,9 +155,9 @@ export default function SuperAdminMesasPage() {
         if (res.ok) { const u = await res.json(); setMesas(p => p.map(m => m._id === u._id ? u : m)); setMesaModal(null); }
     }
 
-    // ── Element config ───────────────────────────────────────────
-    function openElConfig(el: SalonEl) {
-        if (!editMode || didDrag.current) return;
+    // ── Element config ────────────────────────────────────────────
+    function clickEl(el: SalonEl) {
+        if (!editMode || movedPx.current >= 5) return;
         setElModal(el); setElForm({ label: el.label, ancho: el.ancho, alto: el.alto, color: el.color });
     }
     async function saveElConfig() {
@@ -164,17 +167,15 @@ export default function SuperAdminMesasPage() {
     }
     async function deleteEl(id: string) {
         await fetch(`/api/superadmin/salon?id=${id}`, { method: "DELETE", credentials: "include" });
-        setElements(p => p.filter(e => e._id !== id));
-        setElModal(null);
+        setElements(p => p.filter(e => e._id !== id)); setElModal(null);
     }
-
     async function addElement(tipo: SalonEl["tipo"]) {
-        const def = ELEMENT_DEFAULTS[tipo];
-        const res = await fetch("/api/superadmin/salon", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ tipo, x: 45, y: 45, ...def }) });
+        const def = EL_DEFAULTS[tipo];
+        const res = await fetch("/api/superadmin/salon", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ tipo, x: 48, y: 48, ...def }) });
         if (res.ok) { const el = await res.json(); setElements(p => [...p, el]); }
     }
 
-    // ── Mesa CRUD ────────────────────────────────────────────────
+    // ── Mesa CRUD ─────────────────────────────────────────────────
     async function agregarMesa() {
         if (!nuevaMesa.trim()) return;
         setGuardando(true); setError("");
@@ -226,7 +227,7 @@ export default function SuperAdminMesasPage() {
                 </div>
             </div>
 
-            {/* ── PLANO ─────────────────────────────────────────── */}
+            {/* ── PLANO ────────────────────────────────────────── */}
             {tab === "plano" && (
                 <div className="max-w-5xl mx-auto px-3 pt-3">
                     {/* Toolbar */}
@@ -236,86 +237,103 @@ export default function SuperAdminMesasPage() {
                             <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-red-500 inline-block" />Ocupada</span>
                             <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-gray-300 inline-block" />Inactiva</span>
                         </div>
-                        <button onClick={() => setEditMode(e => !e)}
+                        <button onClick={() => { setEditMode(e => !e); movedPx.current = 0; }}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${editMode ? "bg-red-600 text-white" : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"}`}>
                             <Move size={13} />{editMode ? "Salir del editor" : "Editar posiciones"}
                         </button>
                     </div>
 
-                    {/* Add element toolbar (edit mode only) */}
+                    {/* Add elements toolbar */}
                     {editMode && (
                         <div className="flex items-center gap-2 mb-2 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 flex-wrap">
                             <span className="text-xs font-semibold text-amber-700 mr-1">Agregar:</span>
-                            {(["puerta", "linea_h", "linea_v", "zona"] as const).map(tipo => {
-                                const Icon = ELEMENT_ICONS[tipo];
+                            {(["puerta", "barra", "linea_h", "linea_v", "zona"] as const).map(tipo => {
+                                const Icon = EL_ICONS[tipo];
                                 return (
                                     <button key={tipo} onClick={() => addElement(tipo)}
                                         className="flex items-center gap-1 px-2.5 py-1 bg-white border border-amber-200 hover:bg-amber-50 rounded-lg text-xs font-semibold text-gray-700 transition">
-                                        <Icon size={12} />{ELEMENT_LABELS[tipo]}
+                                        <Icon size={12} />{EL_LABELS[tipo]}
                                     </button>
                                 );
                             })}
-                            <span className="text-xs text-gray-400 ml-1">· Arrastrá para mover · Tocá para configurar</span>
+                            <span className="text-xs text-gray-400 ml-auto">Arrastrá para mover · Tocá para configurar</span>
                         </div>
                     )}
 
                     {/* Canvas */}
-                    <div className="relative w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm bg-white" style={{ paddingBottom: "66%" }}>
+                    <div className="relative w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm" style={{ paddingBottom: "66%" }}>
                         <div ref={canvasRef} className="absolute inset-0" style={{
                             backgroundColor: "#f9f5ef",
                             backgroundImage: "linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px)",
-                            backgroundSize: "32px 32px",
+                            backgroundSize: "30px 30px",
                         }}>
-                            {/* Barra */}
-                            <div className="absolute border-2 border-amber-700/30 bg-amber-800/15 rounded-xl flex items-center justify-center"
-                                style={{ right: "2%", bottom: "3%", width: "20%", height: "9%" }}>
-                                <span className="text-amber-800 text-[9px] sm:text-[11px] font-bold tracking-widest uppercase">Barra</span>
-                            </div>
-
-                            {/* Salon elements */}
+                            {/* Salon elements (puertas, líneas, zonas, barra) */}
                             {elements.map(el => {
                                 const isLine = el.tipo === "linea_h" || el.tipo === "linea_v";
-                                const isZona = el.tipo === "zona";
-                                const isPuerta = el.tipo === "puerta";
+                                const isBarra = el.tipo === "barra";
 
-                                const style: React.CSSProperties = {
+                                const baseStyle: React.CSSProperties = {
                                     position: "absolute",
-                                    left: `${el.x}%`,
-                                    top: `${el.y}%`,
                                     cursor: editMode ? "grab" : "default",
                                     userSelect: "none",
                                     touchAction: editMode ? "none" : "auto",
+                                    zIndex: 1,
                                 };
 
+                                let style: React.CSSProperties;
                                 if (isLine) {
-                                    style.width = el.tipo === "linea_h" ? `${el.ancho}%` : "3px";
-                                    style.height = el.tipo === "linea_v" ? `${el.alto}%` : "3px";
-                                    style.backgroundColor = el.color;
-                                    style.borderRadius = "2px";
-                                    style.transform = "translate(0, -50%)";
-                                    if (el.tipo === "linea_v") style.transform = "translate(-50%, 0)";
+                                    style = {
+                                        ...baseStyle,
+                                        left: `${el.x}%`,
+                                        top: `${el.y}%`,
+                                        width: el.tipo === "linea_h" ? `${el.ancho}%` : "3px",
+                                        height: el.tipo === "linea_v" ? `${el.alto}%` : "3px",
+                                        backgroundColor: el.color,
+                                        borderRadius: "2px",
+                                        transform: el.tipo === "linea_h" ? "translateY(-50%)" : "translateX(-50%)",
+                                    };
                                 } else {
-                                    style.width = `${el.ancho}%`;
-                                    style.height = `${el.alto}%`;
-                                    style.transform = "translate(-50%, -50%)";
-                                    style.minWidth = isPuerta ? "36px" : "48px";
-                                    style.minHeight = "18px";
-                                    style.backgroundColor = el.color;
-                                    style.border = isZona ? `2px dashed ${el.color === "#dbeafe" ? "#3b82f6" : "#6b7280"}80` : `2px solid ${el.color === "#fef3c7" ? "#d97706" : "#9ca3af"}80`;
-                                    style.borderRadius = "6px";
-                                    style.display = "flex";
-                                    style.alignItems = "center";
-                                    style.justifyContent = "center";
+                                    style = {
+                                        ...baseStyle,
+                                        left: `${el.x}%`,
+                                        top: `${el.y}%`,
+                                        transform: "translate(-50%, -50%)",
+                                        width: `${el.ancho}%`,
+                                        height: `${el.alto}%`,
+                                        minWidth: "40px",
+                                        minHeight: "18px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        borderRadius: isBarra ? "8px" : "6px",
+                                        backgroundColor: isBarra ? "#b45309" : el.color,
+                                        border: isBarra
+                                            ? "2px solid #92400e"
+                                            : el.tipo === "zona"
+                                                ? `2px dashed ${el.color === "#dbeafe" ? "#3b82f6" : "#6b7280"}99`
+                                                : `2px solid ${el.color === "#fef3c7" ? "#d97706" : "#9ca3af"}80`,
+                                    };
                                 }
 
                                 return (
                                     <div key={el._id} style={style}
                                         onMouseDown={editMode ? (e) => startDrag(e, "element", el._id, el.x, el.y) : undefined}
                                         onTouchStart={editMode ? (e) => startDrag(e, "element", el._id, el.x, el.y) : undefined}
-                                        onClick={() => openElConfig(el)}
+                                        onClick={() => clickEl(el)}
                                     >
-                                        {!isLine && el.label && (
-                                            <span className="text-[7px] sm:text-[9px] font-bold text-gray-700 px-1 text-center leading-tight">
+                                        {!isLine && (
+                                            <span style={{
+                                                fontSize: "clamp(7px, 1.1vw, 11px)",
+                                                fontWeight: 700,
+                                                color: isBarra ? "#fef3c7" : "#374151",
+                                                textAlign: "center",
+                                                padding: "0 4px",
+                                                letterSpacing: "0.05em",
+                                                lineHeight: 1.1,
+                                                whiteSpace: "nowrap",
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                            }}>
                                                 {el.label}
                                             </span>
                                         )}
@@ -328,15 +346,18 @@ export default function SuperAdminMesasPage() {
                                 const isOcupada = mesa.activa && ocupadas.has(mesa.nombre);
                                 const isRound = mesa.forma === "round";
                                 const isOval = mesa.forma === "oval";
-                                const bg = !mesa.activa ? "bg-gray-300 border-gray-400 text-gray-500"
-                                    : isOcupada ? "bg-red-500 border-red-600 text-white shadow-md"
-                                    : "bg-emerald-500 border-emerald-600 text-white shadow-sm";
+
+                                const bg = !mesa.activa
+                                    ? "bg-gray-300 border-gray-400 text-gray-500"
+                                    : isOcupada
+                                        ? "bg-red-500 border-red-600 text-white shadow-md shadow-red-200/50"
+                                        : "bg-emerald-500 border-emerald-600 text-white shadow-sm shadow-emerald-200/60";
 
                                 const sizeStyle: React.CSSProperties = isOval
-                                    ? { width: "min(12%, 70px)", height: "min(5.5%, 38px)", minWidth: "46px", minHeight: "26px" }
+                                    ? { width: "min(11%, 66px)", height: "min(5%, 34px)", minWidth: "40px", minHeight: "24px" }
                                     : isRound
-                                    ? { width: "min(6.5%, 42px)", height: "min(6.5%, 42px)", minWidth: "30px", minHeight: "30px" }
-                                    : { width: "min(8%, 50px)", height: "min(5.5%, 38px)", minWidth: "34px", minHeight: "26px" };
+                                    ? { width: "min(5.5%, 38px)", height: "min(5.5%, 38px)", minWidth: "26px", minHeight: "26px" }
+                                    : { width: "min(7%, 46px)", height: "min(5%, 34px)", minWidth: "30px", minHeight: "22px" };
 
                                 return (
                                     <div key={mesa._id} style={{
@@ -347,18 +368,19 @@ export default function SuperAdminMesasPage() {
                                         cursor: editMode ? "grab" : "default",
                                         touchAction: editMode ? "none" : "auto",
                                         userSelect: "none",
+                                        zIndex: 2,
                                         ...sizeStyle,
                                     }}
                                         className={`flex flex-col items-center justify-center border-2 select-none transition-transform
-                                            ${isRound ? "rounded-full" : isOval ? "rounded-full" : "rounded-xl"}
-                                            ${bg} ${editMode ? "hover:scale-110" : ""}`}
+                                            ${isRound || isOval ? "rounded-full" : "rounded-xl"}
+                                            ${bg} ${editMode ? "hover:scale-110 active:scale-95" : ""}`}
                                         onMouseDown={editMode ? (e) => startDrag(e, "mesa", mesa._id, mesa.x ?? 10, mesa.y ?? 10) : undefined}
                                         onTouchStart={editMode ? (e) => startDrag(e, "mesa", mesa._id, mesa.x ?? 10, mesa.y ?? 10) : undefined}
-                                        onClick={() => openMesaConfig(mesa)}
+                                        onClick={() => clickMesa(mesa)}
                                     >
-                                        <span className="text-[8px] sm:text-[10px] font-black leading-none">{mesa.nombre}</span>
+                                        <span style={{ fontSize: "clamp(7px, 1vw, 10px)", fontWeight: 900, lineHeight: 1 }}>{mesa.nombre}</span>
                                         {mesa.capacidad > 0 && !isRound && (
-                                            <span className="text-[6px] sm:text-[8px] opacity-75 leading-none mt-0.5">{mesa.capacidad}p</span>
+                                            <span style={{ fontSize: "clamp(5px, 0.8vw, 8px)", opacity: 0.75, lineHeight: 1, marginTop: "1px" }}>{mesa.capacidad}p</span>
                                         )}
                                     </div>
                                 );
@@ -366,8 +388,9 @@ export default function SuperAdminMesasPage() {
 
                             {mesas.length === 0 && elements.length === 0 && (
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <p className="text-gray-400 text-sm text-center px-4">
-                                        Sin mesas. Ejecutá el script o agregalas en Gestión.
+                                    <p className="text-gray-400 text-sm text-center px-6">
+                                        Sin datos. Ejecutá<br />
+                                        <code className="bg-gray-100 px-2 py-0.5 rounded text-xs">node scripts/seed-mesas.mjs</code>
                                     </p>
                                 </div>
                             )}
@@ -377,7 +400,7 @@ export default function SuperAdminMesasPage() {
                 </div>
             )}
 
-            {/* ── GESTIÓN ───────────────────────────────────────── */}
+            {/* ── GESTIÓN ──────────────────────────────────────── */}
             {tab === "gestion" && (
                 <div className="max-w-2xl mx-auto px-4 pt-4 space-y-4">
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
@@ -397,26 +420,24 @@ export default function SuperAdminMesasPage() {
 
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                         <div className="px-5 py-3 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-                            <span className="text-sm font-semibold text-gray-700">{mesas.length} mesas registradas</span>
+                            <span className="text-sm font-semibold text-gray-700">{mesas.length} mesas</span>
                             <button onClick={fetchMesas} className="text-xs text-gray-400 hover:text-gray-600">↻</button>
                         </div>
                         {mesas.length === 0 ? (
-                            <p className="text-center py-10 text-gray-400 text-sm">No hay mesas.</p>
+                            <p className="text-center py-10 text-gray-400 text-sm">Sin mesas.</p>
                         ) : (
                             <ul className="divide-y divide-gray-100">
                                 {mesas.map(m => {
                                     const isOcupada = m.activa && ocupadas.has(m.nombre);
                                     return (
                                         <li key={m._id} className="flex items-center gap-3 px-4 py-3">
-                                            <div className={`w-9 h-9 flex items-center justify-center text-[10px] font-black shrink-0 border-2
-                                                ${m.forma === "round" ? "rounded-full" : m.forma === "oval" ? "rounded-full" : "rounded-lg"}
+                                            <div className={`w-9 h-9 flex items-center justify-center text-[9px] font-black shrink-0 border-2
+                                                ${m.forma === "round" || m.forma === "oval" ? "rounded-full" : "rounded-lg"}
                                                 ${!m.activa ? "bg-gray-100 border-gray-200 text-gray-400" : isOcupada ? "bg-red-500 border-red-600 text-white" : "bg-emerald-500 border-emerald-600 text-white"}`}>
                                                 {m.nombre}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className={`font-semibold text-sm ${!m.activa ? "text-gray-400 line-through" : "text-gray-900"}`}>
-                                                    Mesa {m.nombre}
-                                                </p>
+                                                <p className={`font-semibold text-sm ${!m.activa ? "text-gray-400 line-through" : "text-gray-900"}`}>Mesa {m.nombre}</p>
                                                 <p className="text-xs text-gray-400">
                                                     {m.forma === "round" ? "Redonda" : m.forma === "oval" ? "Ovalada" : "Rectangular"} · {m.capacidad}p
                                                     {isOcupada && <span className="text-red-500 font-semibold"> · ocupada</span>}
@@ -424,9 +445,7 @@ export default function SuperAdminMesasPage() {
                                             </div>
                                             <div className="flex items-center gap-1 shrink-0">
                                                 <button onClick={() => { setMesaModal(m); setMesaForm({ forma: m.forma ?? "rect", capacidad: m.capacidad ?? 4, activa: m.activa }); }}
-                                                    className="p-2 rounded-lg hover:bg-gray-100 transition">
-                                                    <Users className="w-4 h-4 text-gray-500" />
-                                                </button>
+                                                    className="p-2 rounded-lg hover:bg-gray-100 transition"><Users className="w-4 h-4 text-gray-500" /></button>
                                                 <button onClick={() => toggleActiva(m._id)} className="p-2 rounded-lg hover:bg-gray-100 transition">
                                                     {m.activa ? <ToggleRight className="w-5 h-5 text-emerald-500" /> : <ToggleLeft className="w-5 h-5 text-gray-400" />}
                                                 </button>
@@ -443,7 +462,7 @@ export default function SuperAdminMesasPage() {
                 </div>
             )}
 
-            {/* ── Modal config mesa ─────────────────────────────── */}
+            {/* ── Modal mesa ───────────────────────────────────── */}
             {mesaModal && (
                 <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-4">
                     <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl">
@@ -468,7 +487,7 @@ export default function SuperAdminMesasPage() {
                                 <div className="flex gap-2">
                                     {[1, 2, 4, 6, 8, 10].map(n => (
                                         <button key={n} onClick={() => setMesaForm(p => ({ ...p, capacidad: n }))}
-                                            className={`flex-1 py-2 rounded-xl border text-xs font-bold transition ${mesaForm.capacidad === n ? "bg-red-600 text-white border-red-600" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
+                                            className={`flex-1 py-2 rounded-xl border text-xs font-bold transition ${mesaForm.capacidad === n ? "bg-red-600 text-white border-red-600" : "bg-white text-gray-600 border-gray-200"}`}>
                                             {n}
                                         </button>
                                     ))}
@@ -482,19 +501,19 @@ export default function SuperAdminMesasPage() {
                             </div>
                         </div>
                         <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
-                            <button onClick={() => setMesaModal(null)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">Cancelar</button>
+                            <button onClick={() => setMesaModal(null)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
                             <button onClick={saveMesaConfig} className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold transition">Guardar</button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* ── Modal config elemento ────────────────────────── */}
+            {/* ── Modal elemento ───────────────────────────────── */}
             {elModal && (
                 <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-4">
                     <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl">
                         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
-                            <h2 className="font-black text-gray-900 flex-1">{ELEMENT_LABELS[elModal.tipo]}</h2>
+                            <h2 className="font-black text-gray-900 flex-1">{EL_LABELS[elModal.tipo]}</h2>
                             <button onClick={() => setElModal(null)} className="p-1 text-gray-400 hover:text-gray-700"><X size={18} /></button>
                         </div>
                         <div className="px-5 py-4 space-y-3">
@@ -506,39 +525,39 @@ export default function SuperAdminMesasPage() {
                                 </div>
                             )}
                             <div className="grid grid-cols-2 gap-3">
+                                {(["ancho", "alto"] as const).map(dim => (
+                                    <div key={dim}>
+                                        <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">{dim === "ancho" ? "Ancho (%)" : "Alto (%)"}</label>
+                                        <div className="flex items-center gap-2">
+                                            <button onClick={() => setElForm(p => ({ ...p, [dim]: Math.max(1, ((p[dim] as number) ?? 8) - 1) }))}>
+                                                <Minus size={14} className="text-gray-500" />
+                                            </button>
+                                            <span className="text-sm font-bold w-8 text-center">{(elForm[dim] as number) ?? 8}</span>
+                                            <button onClick={() => setElForm(p => ({ ...p, [dim]: Math.min(95, ((p[dim] as number) ?? 8) + 1) }))}>
+                                                <Plus size={14} className="text-gray-500" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            {elModal.tipo !== "barra" && (
                                 <div>
-                                    <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Ancho (%)</label>
-                                    <div className="flex items-center gap-2">
-                                        <button onClick={() => setElForm(p => ({ ...p, ancho: Math.max(1, (p.ancho ?? 8) - 1) }))} className="p-1.5 bg-gray-100 rounded-lg hover:bg-gray-200 transition"><Minus size={12} /></button>
-                                        <span className="text-sm font-bold text-center w-8">{elForm.ancho ?? 8}</span>
-                                        <button onClick={() => setElForm(p => ({ ...p, ancho: Math.min(95, (p.ancho ?? 8) + 1) }))} className="p-1.5 bg-gray-100 rounded-lg hover:bg-gray-200 transition"><Plus size={12} /></button>
+                                    <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">Color</label>
+                                    <div className="flex gap-2 flex-wrap">
+                                        {["#fef3c7", "#fed7aa", "#dbeafe", "#dcfce7", "#f3e8ff", "#374151", "#9ca3af", "#ef4444"].map(c => (
+                                            <button key={c} onClick={() => setElForm(p => ({ ...p, color: c }))}
+                                                style={{ backgroundColor: c }}
+                                                className={`w-7 h-7 rounded-lg border-2 transition ${elForm.color === c ? "border-gray-900 scale-110" : "border-transparent hover:border-gray-400"}`} />
+                                        ))}
                                     </div>
                                 </div>
-                                <div>
-                                    <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Alto (%)</label>
-                                    <div className="flex items-center gap-2">
-                                        <button onClick={() => setElForm(p => ({ ...p, alto: Math.max(1, (p.alto ?? 4) - 1) }))} className="p-1.5 bg-gray-100 rounded-lg hover:bg-gray-200 transition"><Minus size={12} /></button>
-                                        <span className="text-sm font-bold text-center w-8">{elForm.alto ?? 4}</span>
-                                        <button onClick={() => setElForm(p => ({ ...p, alto: Math.min(95, (p.alto ?? 4) + 1) }))} className="p-1.5 bg-gray-100 rounded-lg hover:bg-gray-200 transition"><Plus size={12} /></button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div>
-                                <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">Color</label>
-                                <div className="flex gap-2 flex-wrap">
-                                    {["#fef3c7", "#fed7aa", "#dbeafe", "#dcfce7", "#f3e8ff", "#374151", "#9ca3af", "#ef4444"].map(c => (
-                                        <button key={c} onClick={() => setElForm(p => ({ ...p, color: c }))}
-                                            style={{ backgroundColor: c }}
-                                            className={`w-7 h-7 rounded-lg border-2 transition ${elForm.color === c ? "border-gray-900 scale-110" : "border-transparent hover:border-gray-400"}`} />
-                                    ))}
-                                </div>
-                            </div>
+                            )}
                         </div>
                         <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
-                            <button onClick={() => deleteEl(elModal._id)} className="py-2.5 px-3 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-sm font-semibold transition">
+                            <button onClick={() => deleteEl(elModal._id)} className="p-2.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl transition">
                                 <Trash2 size={15} />
                             </button>
-                            <button onClick={() => setElModal(null)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">Cancelar</button>
+                            <button onClick={() => setElModal(null)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
                             <button onClick={saveElConfig} className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold transition">Guardar</button>
                         </div>
                     </div>
