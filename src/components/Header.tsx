@@ -71,6 +71,17 @@ export default function Header() {
     { href: "/admin/configuracion", label: "Ajustes", icon: Settings },
   ];
 
+  const linksSuper = [
+    { href: "/superadmin", label: "Dashboard", icon: Home },
+    { href: "/superadmin/stock", label: "Stock", icon: Package },
+    { href: "/superadmin/caja", label: "Caja", icon: BarChart2 },
+    { href: "/admin/pedidos", label: "Pedidos", icon: ClipboardList },
+    { href: "/admin/clientes", label: "Clientes", icon: Users },
+    { href: "/admin/menu", label: "Menú", icon: Utensils },
+    { href: "/admin/estadisticas", label: "Estadísticas", icon: BarChart2 },
+    { href: "/admin/configuracion", label: "Ajustes", icon: Settings },
+  ];
+
   const linksEmpleado = [
     { href: "/", label: "Inicio", icon: Home },
     { href: "/empleado/anotador", label: "Anotador de Pedidos", icon: ClipboardList },
@@ -81,6 +92,7 @@ export default function Header() {
   ];
 
   const links =
+    user?.role === "superadmin" ? linksSuper :
     user?.role === "admin" ? linksAdmin :
     user?.role === "empleado" ? linksEmpleado :
     linksCliente;
@@ -88,7 +100,7 @@ export default function Header() {
   if (loading) return null;
 
   return (
-    <header className="fixed left-0 right-0 z-30 bg-black">
+    <header className="fixed left-0 right-0 z-30 bg-black print:hidden">
 
       {/* Safe area / Dynamic Island */}
       <div style={{ height: "calc(env(safe-area-inset-top) + 16px)" }} />

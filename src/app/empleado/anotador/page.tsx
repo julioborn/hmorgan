@@ -7,7 +7,7 @@ import {
     UtensilsCrossed, Pizza, Beef, Sandwich, Salad, Beer,
     CupSoda, Martini, BottleWine, GlassWater, Beaker,
     CakeSlice, Hamburger, Milk, Plus, Minus, ShoppingCart,
-    Send, ChevronLeft, CheckCircle,
+    Send, ChevronLeft, CheckCircle, Printer, X,
 } from "lucide-react";
 import Loader from "@/components/Loader";
 import { useCategoryConfigs } from "@/hooks/useCategoryConfigs";
@@ -69,11 +69,11 @@ export default function AnotadorPage() {
     const [mesasRegistradas, setMesasRegistradas] = useState<{ _id: string; nombre: string }[]>([]);
     const [categoriaActiva, setCategoriaActiva] = useState<string | null>(null);
     const [enviando, setEnviando] = useState(false);
+    const [lastOrder, setLastOrder] = useState<{ items: CartItem[]; mesa: string; nota: string; timestamp: Date } | null>(null);
 
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
     }, [categoriaActiva]);
-    const [enviado, setEnviado] = useState(false);
     const [error, setError] = useState("");
 
     useEffect(() => {
@@ -144,11 +144,10 @@ export default function AnotadorPage() {
                 setError(err.message || "Error al enviar el pedido");
                 return;
             }
+            setLastOrder({ items: [...cart], mesa, nota, timestamp: new Date() });
             setCart([]);
             setMesa("");
             setNota("");
-            setEnviado(true);
-            setTimeout(() => setEnviado(false), 3500);
         } catch {
             setError("Error de conexión");
         } finally {
@@ -170,6 +169,34 @@ export default function AnotadorPage() {
         if (cat === "BEBIDAS") return BEBIDAS_CATS.some(bc => menuItems.some(i => i.categoria === bc));
         return menuItems.some(i => i.categoria === cat);
     });
+
+    function printComanda(order: { items: CartItem[]; mesa: string; nota: string; timestamp: Date }) {
+        const hora = order.timestamp.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+        const rows = order.items.map(i =>
+            `<div class="item"><span class="qty">${i.cantidad}x</span><span class="name">${i.nombre}</span></div>`
+        ).join("");
+        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Comanda</title><style>
+            *{margin:0;padding:0;box-sizing:border-box}
+            body{font-family:'Courier New',monospace;font-size:13px;padding:12px;max-width:280px}
+            h2{text-align:center;font-size:16px;letter-spacing:3px;margin-bottom:2px}
+            .sub{text-align:center;font-size:11px;color:#555;margin-bottom:4px}
+            .mesa{text-align:center;font-size:15px;font-weight:bold;padding:4px 0}
+            hr{border:none;border-top:1px dashed #000;margin:6px 0}
+            .item{display:flex;gap:8px;padding:3px 0}
+            .qty{font-weight:bold;min-width:26px}
+            .name{flex:1}
+            .nota{font-style:italic;font-size:12px;margin-top:6px;color:#444}
+        </style></head><body>
+        <h2>★ COMANDA ★</h2>
+        <div class="sub">H. Morgan Bar</div>
+        <div class="mesa">${order.mesa ? `MESA ${order.mesa}` : "SIN MESA"}</div>
+        <div class="sub">${hora}</div>
+        <hr/>${rows}<hr/>
+        ${order.nota ? `<div class="nota">Nota: ${order.nota}</div>` : ""}
+        </body></html>`;
+        const w = window.open("", "_blank", "width=320,height=450,toolbar=0,menubar=0,scrollbars=0");
+        if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 200); }
+    }
 
     function CartPanel() {
         if (cart.length === 0) return null;
@@ -273,9 +300,22 @@ export default function AnotadorPage() {
                         <CategoryCard key={cat} cat={cat} idx={idx} onClick={() => setCategoriaActiva(cat)} />
                     ))}
                 </div>
-                {enviado && (
-                    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-emerald-500 text-white px-5 py-3 rounded-full shadow-lg font-semibold flex items-center gap-2 z-50">
-                        <CheckCircle className="w-5 h-5" />¡Pedido enviado al bar!
+                {lastOrder && (
+                    <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 text-white px-4 py-3 flex items-center gap-3 shadow-2xl">
+                        <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold">¡Pedido enviado al bar!</p>
+                            <p className="text-xs text-gray-400 truncate">
+                                {lastOrder.mesa ? `Mesa ${lastOrder.mesa} · ` : ""}{lastOrder.items.length} ítem{lastOrder.items.length !== 1 ? "s" : ""}
+                            </p>
+                        </div>
+                        <button onClick={() => printComanda(lastOrder)}
+                            className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg text-xs font-semibold transition shrink-0">
+                            <Printer className="w-4 h-4" /> Comanda
+                        </button>
+                        <button onClick={() => setLastOrder(null)} className="p-1 text-gray-400 hover:text-white shrink-0">
+                            <X className="w-4 h-4" />
+                        </button>
                     </div>
                 )}
             </div>
@@ -373,9 +413,22 @@ export default function AnotadorPage() {
                 </motion.div>
             </AnimatePresence>
 
-            {enviado && (
-                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-emerald-500 text-white px-5 py-3 rounded-full shadow-lg font-semibold flex items-center gap-2 z-50">
-                    <CheckCircle className="w-5 h-5" />¡Pedido enviado al bar!
+            {lastOrder && (
+                <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 text-white px-4 py-3 flex items-center gap-3 shadow-2xl">
+                    <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold">¡Pedido enviado al bar!</p>
+                        <p className="text-xs text-gray-400 truncate">
+                            {lastOrder.mesa ? `Mesa ${lastOrder.mesa} · ` : ""}{lastOrder.items.length} ítem{lastOrder.items.length !== 1 ? "s" : ""}
+                        </p>
+                    </div>
+                    <button onClick={() => printComanda(lastOrder)}
+                        className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg text-xs font-semibold transition shrink-0">
+                        <Printer className="w-4 h-4" /> Comanda
+                    </button>
+                    <button onClick={() => setLastOrder(null)} className="p-1 text-gray-400 hover:text-white shrink-0">
+                        <X className="w-4 h-4" />
+                    </button>
                 </div>
             )}
         </div>
