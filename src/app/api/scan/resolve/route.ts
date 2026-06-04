@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
         const token = req.cookies.get("session")?.value;
         if (!token) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
         const payload = jwt.verify(token, NEXTAUTH_SECRET) as any;
-        if (payload.role !== "admin") return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+        if (!["admin", "empleado"].includes(payload.role)) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
         const { searchParams } = new URL(req.url);
         const qrToken = searchParams.get("qrToken") || "";

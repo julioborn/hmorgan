@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
         const token = req.cookies.get("session")?.value;
         if (!token) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
         const payload = jwt.verify(token, NEXTAUTH_SECRET) as any;
-        if (payload.role !== "admin") return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+        if (!["admin", "empleado"].includes(payload.role)) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
         // --- Body ---
         const { consumoARS, userIds, mesa } = await req.json();
