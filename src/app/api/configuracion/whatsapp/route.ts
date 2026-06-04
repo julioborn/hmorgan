@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { MensajeWhatsApp } from "@/models/MensajeWhatsApp";
 
-const DEFAULT = "Hola {nombre}, tu pedido en H. Morgan está confirmado y en preparación. ¡Nos vemos pronto! 🍺";
+const DEFAULT = "Hola {nombre}, tu pedido en H. Morgan esta confirmado y en preparacion. Nos vemos pronto!";
 
 export async function GET() {
     await connectMongoDB();

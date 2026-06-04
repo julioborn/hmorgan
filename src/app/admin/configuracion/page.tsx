@@ -79,7 +79,7 @@ export default function ConfiguracionPage() {
                 <div>
                     <label className="block font-semibold">Mensaje de confirmación (WhatsApp)</label>
                     <p className="text-xs text-gray-500 mt-1">
-                        Usá <span className="font-mono bg-gray-100 px-1 rounded">{"{nombre}"}</span> para insertar el nombre del cliente.
+                        Usá <span className="font-mono bg-gray-100 px-1 rounded">{"{nombre}"}</span> para el nombre del cliente. Sin emojis.
                     </p>
                 </div>
                 <textarea
