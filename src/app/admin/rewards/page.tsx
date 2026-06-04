@@ -12,12 +12,13 @@ type Reward = {
     titulo: string;
     puntos: number;
     descripcion?: string;
+    activo: boolean;
 };
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function AdminRewardsPage() {
-    const { data: rewards, mutate } = useSWR<Reward[]>("/api/rewards", fetcher);
+    const { data: rewards, mutate } = useSWR<Reward[]>("/api/rewards?all=true", fetcher);
 
     const [titulo, setTitulo] = useState("");
     const [descripcion, setDescripcion] = useState("");
@@ -58,6 +59,11 @@ export default function AdminRewardsPage() {
                 <Loader size={40} />
             </div>
         );
+    }
+
+    async function handleToggle(id: string) {
+        await fetch(`/api/rewards/${id}`, { method: "PATCH" });
+        await mutate();
     }
 
     async function handleDelete(id: string) {
@@ -158,7 +164,9 @@ export default function AdminRewardsPage() {
                 {rewards.map((r) => (
                     <div
                         key={r._id}
-                        className="relative bg-white border border-gray-200 rounded-2xl shadow-sm p-5 flex flex-col justify-between hover:bg-red-50/40 transition overflow-visible"
+                        className={`relative border rounded-2xl shadow-sm p-5 flex flex-col justify-between transition overflow-visible ${
+                            r.activo ? "bg-white border-gray-200 hover:bg-red-50/40" : "bg-gray-50 border-gray-200 opacity-60"
+                        }`}
                     >
                         {/* Borde lateral tipo ticket */}
                         <div className="absolute inset-y-0 -left-3 flex items-center">
@@ -168,18 +176,30 @@ export default function AdminRewardsPage() {
                             <span className="w-6 h-6 bg-gray-100 rounded-full border border-gray-200" />
                         </div>
 
-                        <button
-                            onClick={() => handleDelete(r._id)}
-                            className="absolute top-3 right-3 p-2 rounded-lg 
-             bg-red-50 text-red-600 
-             hover:bg-red-100 transition"
-                            title="Eliminar canje"
-                        >
-                            <Trash2 size={16} />
-                        </button>
+                        {/* Acciones */}
+                        <div className="absolute top-3 right-3 flex items-center gap-1">
+                            <button
+                                onClick={() => handleToggle(r._id)}
+                                title={r.activo ? "Desactivar" : "Activar"}
+                                className={`px-2 py-1 rounded-lg text-xs font-semibold transition ${
+                                    r.activo
+                                        ? "bg-green-100 text-green-700 hover:bg-green-200"
+                                        : "bg-gray-200 text-gray-500 hover:bg-gray-300"
+                                }`}
+                            >
+                                {r.activo ? "Activo" : "Inactivo"}
+                            </button>
+                            <button
+                                onClick={() => handleDelete(r._id)}
+                                className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition"
+                                title="Eliminar canje"
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                        </div>
 
                         {/* Contenido */}
-                        <div className="flex-1">
+                        <div className="flex-1 pr-24">
                             <h3 className="text-lg font-bold text-black">{r.titulo}</h3>
                             <p className="text-sm text-gray-600 mt-1">
                                 {r.descripcion || "Sin descripción"}

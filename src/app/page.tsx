@@ -163,15 +163,11 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
       </div>
 
       {/* Carrusel de recompensas */}
+      {rewards.length > 0 && (
       <section className="relative">
         <div className="relative rounded-2xl bg-gradient-to-b from-gray-50 to-gray-100 shadow-xl p-5 border border-gray-200">
+          <>
 
-          {rewards.length === 0 ? (
-            <p className="text-center py-10 opacity-70">
-              No hay recompensas disponibles.
-            </p>
-          ) : (
-            <>
               {/* Swiper */}
               <Swiper
                 modules={[Autoplay, Pagination]}
@@ -232,10 +228,10 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
                   Ver todos los canjes
                 </Link>
               </div>
-            </>
-          )}
+          </>
         </div>
       </section>
+      )}
 
       {/* Botonera */}
       <div className="grid grid-cols-2 gap-4">

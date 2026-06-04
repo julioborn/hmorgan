@@ -1,10 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { Reward } from "@/models/Reward";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     await connectMongoDB();
-    const rewards = await Reward.find({ activo: true }).lean();
+    const all = req.nextUrl.searchParams.get("all") === "true";
+    const rewards = await Reward.find(all ? {} : { activo: true }).lean();
     return NextResponse.json(rewards);
 }
 
