@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 
 const BarMap = dynamic(() => import("@/components/BarMap"), { ssr: false });
-import { QrCode, Users, Bell, PackagePlus, Package, Utensils, Ticket, History, ScanQrCode, ScanText, Settings, Star, BarChart2, ClipboardList, LayoutGrid, Images } from "lucide-react";
+import { QrCode, Users, Bell, PackagePlus, Package, Utensils, Ticket, History, ScanQrCode, ScanText, Settings, Star, BarChart2, ClipboardList, LayoutGrid, Images, CalendarDays } from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 import Loader from "@/components/Loader";
@@ -278,6 +278,12 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
           href="/cliente/historial"
           title="Historial"
           Icon={History}
+          accent="from-red-600 to-red-800"
+        />
+        <ActionCard
+          href="/cliente/reservas"
+          title="Reservas"
+          Icon={CalendarDays}
           accent="from-red-600 to-red-800"
         />
       </div>
