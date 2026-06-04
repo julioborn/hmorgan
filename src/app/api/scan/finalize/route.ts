@@ -27,14 +27,10 @@ export async function POST(req: NextRequest) {
         await connectMongoDB();
 
         const ratio = await getPointsRatio();
-        const totalPoints = Math.floor(consumoARS * ratio);
-        if (totalPoints <= 0) {
+        const puntos = Math.floor(consumoARS * ratio);
+        if (puntos <= 0) {
             return NextResponse.json({ ok: true, message: "Consumo bajo, 0 puntos" });
         }
-
-        // --- Reparto equitativo + resto ---
-        const base = Math.floor(totalPoints / userIds.length);
-        let resto = totalPoints - base * userIds.length;
 
         // --- Usuarios válidos ---
         const users = await User.find({ _id: { $in: userIds } });
@@ -42,19 +38,14 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Algunos usuarios no existen" }, { status: 400 });
         }
 
-        // --- Aplicar transacciones y sumar puntos ---
+        // --- Cada usuario recibe los puntos completos del consumo ---
         for (const u of users) {
-            const extra = resto > 0 ? 1 : 0;
-            if (resto > 0) resto--;
-
-            const puntos = base + extra;
-
             await PointTransaction.create({
                 userId: u._id,
                 source: "consumo",
                 amount: puntos,
                 notes: `Mesa ${mesa || "-"}`,
-                meta: { consumoARS, mesa: mesa || null, mozoId: payload.sub, share: userIds.length },
+                meta: { consumoARS, mesa: mesa || null, mozoId: payload.sub },
 
                 pendingReview: true,   // 🔥 AGREGADO
             });
@@ -114,50 +105,10 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // ---------- 🔔 PUSH A LOS CLIENTES (único y deduplicado) ----------
-        const pushPayload = {
-            title: "¡Puntos sumados!",
-            body: `Se acreditaron ${totalPoints} puntos. ¡Gracias por venir!`,
-            url: "/cliente/qr",
-        };
-
-        await Promise.all(
-            users.map(async (u: any) => {
-                if (Array.isArray(u.pushSubscriptions) && u.pushSubscriptions.length) {
-                    try {
-                        // 🧩 Eliminar duplicados exactos por endpoint
-                        const uniqueSubs = Array.from(
-                            new Map(
-                                u.pushSubscriptions.map(
-                                    (s: { endpoint: string; keys?: { p256dh?: string; auth?: string } }) => [s.endpoint, s]
-                                )
-                            ).values()
-                        ) as { endpoint: string; keys?: { p256dh?: string; auth?: string } }[];
-
-                        // Enviar push solo una vez por endpoint único
-                        const invalid = await sendPushAndCollectInvalid(uniqueSubs, pushPayload);
-
-                        // 🧹 Si hay suscripciones inválidas, las eliminamos de la DB
-                        if (invalid.length) {
-                            await User.updateOne(
-                                { _id: u._id },
-                                { $pull: { pushSubscriptions: { endpoint: { $in: invalid } } } }
-                            );
-                        }
-                    } catch (e) {
-                        console.error("push error user", u._id, e);
-                    }
-                }
-            })
-        );
-        // ---------- 🔔 FIN PUSH ----------
-
         return NextResponse.json({
             ok: true,
-            totalPoints,
-            repartidos: userIds.length,
-            porCabeza: base,
-            sobranteYaDistribuido: totalPoints - base * userIds.length,
+            puntos,
+            usuarios: userIds.length,
         });
     } catch (e) {
         console.error(e);
