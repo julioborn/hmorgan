@@ -68,6 +68,11 @@ export async function POST(req: NextRequest) {
     const { fecha, hora, comensales, zona, notas } = await req.json();
     if (!fecha || !hora || !comensales) return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
 
+    // Validar que la fecha no sea pasada (se permite hoy)
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const fechaReserva = new Date(fecha); fechaReserva.setHours(0, 0, 0, 0);
+    if (fechaReserva < hoy) return NextResponse.json({ error: "No podés reservar en una fecha pasada" }, { status: 400 });
+
     const reserva = await Reserva.create({
         userId: payload.sub,
         fecha: new Date(fecha),

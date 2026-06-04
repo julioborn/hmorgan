@@ -20,7 +20,7 @@ const ZONA_OPTIONS = [
     { value: "indiferente", label: "Sin preferencia",  emoji: "🤷" },
 ] as const;
 
-const HORAS = ["12:00","12:30","13:00","13:30","14:00","18:00","18:30","19:00","19:30","20:00","20:30","21:00","21:30","22:00","22:30","23:00","23:30","00:00"];
+const HORAS = ["19:00","19:30","20:00","20:30","21:00","21:30","22:00","22:30","23:00"];
 
 const ESTADO_STYLES: Record<string, { bg: string; text: string; icon: React.ElementType; label: string }> = {
     pendiente:  { bg: "bg-amber-50 border-amber-200",  text: "text-amber-700",   icon: Clock,         label: "Pendiente"  },
@@ -57,6 +57,7 @@ export default function ClienteReservasPage() {
 
     useEffect(() => {
         if (!user) return;
+        // Carga inicial
         Promise.all([
             fetch("/api/config/reservas").then(r => r.json()),
             fetch("/api/reservas", { credentials: "include" }).then(r => r.json()),
@@ -64,6 +65,13 @@ export default function ClienteReservasPage() {
             setReservasActivas(cfg.activo ?? true);
             setReservas(Array.isArray(data) ? data : []);
         }).finally(() => setLoadingData(false));
+
+        // Polling tiempo real: actualiza estado (ej: pendiente → confirmada)
+        const iv = setInterval(async () => {
+            const data = await fetch("/api/reservas", { credentials: "include" }).then(r => r.json()).catch(() => null);
+            if (Array.isArray(data)) setReservas(data);
+        }, 8000);
+        return () => clearInterval(iv);
     }, [user]);
 
     async function submit(e: React.FormEvent) {
@@ -144,18 +152,24 @@ export default function ClienteReservasPage() {
                             {/* Fecha */}
                             <div>
                                 <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Fecha</label>
-                                <input type="date" min={todayISO()} value={form.fecha}
-                                    onChange={e => setForm(p => ({ ...p, fecha: e.target.value }))} required
-                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-red-400" />
+                                <input
+                                    type="date"
+                                    min={todayISO()}
+                                    value={form.fecha}
+                                    onChange={e => setForm(p => ({ ...p, fecha: e.target.value }))}
+                                    required
+                                    style={{ fontSize: "16px" }}
+                                    className="w-full min-w-0 px-4 py-2.5 border border-gray-200 rounded-xl font-semibold focus:outline-none focus:ring-2 focus:ring-red-400 bg-white box-border"
+                                />
                             </div>
 
                             {/* Hora */}
                             <div>
-                                <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Horario</label>
-                                <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-6">
+                                <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Horario <span className="text-gray-400 normal-case font-normal">(19hs–23hs)</span></label>
+                                <div className="grid grid-cols-3 gap-1.5">
                                     {HORAS.map(h => (
                                         <button type="button" key={h} onClick={() => setForm(p => ({ ...p, hora: h }))}
-                                            className={`py-2 rounded-xl text-xs font-bold border transition ${form.hora === h ? "bg-red-600 text-white border-red-600" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"}`}>
+                                            className={`py-2.5 rounded-xl text-sm font-bold border transition ${form.hora === h ? "bg-red-600 text-white border-red-600" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"}`}>
                                             {h}
                                         </button>
                                     ))}
