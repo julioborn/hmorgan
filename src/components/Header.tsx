@@ -28,6 +28,7 @@ import {
   Images,
   Bell,
   ClipboardList,
+  CalendarDays,
 } from "lucide-react";
 import NotifBell from "@/components/NotifBell";
 
@@ -53,6 +54,7 @@ export default function Header() {
     { href: "/cliente/rewards", label: "Canjes", icon: Ticket },
     { href: "/cliente/historial", label: "Historial", icon: History },
     { href: "/cliente/ruleta", label: "Ruleta de Tragos", icon: LoaderPinwheel },
+    { href: "/cliente/reservas", label: "Reservas", icon: CalendarDays },
   ];
 
   const linksAdmin = [

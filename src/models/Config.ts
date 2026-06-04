@@ -11,6 +11,10 @@ const ConfigSchema = new Schema(
             type: Boolean,
             default: true,
         },
+        reservasActivas: {
+            type: Boolean,
+            default: true,
+        },
     },
     {
         timestamps: true,
