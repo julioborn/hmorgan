@@ -6,9 +6,12 @@ const MesaSchema = new Schema(
         activa: { type: Boolean, default: true },
         x: { type: Number, default: 10 },
         y: { type: Number, default: 10 },
+        tipo: { type: String, enum: ["mesa", "banqueta"], default: "mesa" },
         forma: { type: String, enum: ["rect", "round", "oval"], default: "rect" },
         capacidad: { type: Number, default: 4 },
         rotacion: { type: Number, default: 0 },
+        ancho: { type: Number, default: 0 },
+        alto: { type: Number, default: 0 },
     },
     { timestamps: true }
 );

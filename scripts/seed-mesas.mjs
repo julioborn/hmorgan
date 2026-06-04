@@ -26,12 +26,12 @@ if (!MONGO_URI) { console.error("❌ MONGODB_URI no encontrada en .env"); proces
 // ─────────────────────────────────────────────────────────────────
 
 const MESAS = [
-    // ── Sillas de la barra (1-5, redondas) ──────────────────────
-    { nombre: "1", forma: "round", capacidad: 1, x: 60, y: 65 },
-    { nombre: "2", forma: "round", capacidad: 1, x: 65, y: 65 },
-    { nombre: "3", forma: "round", capacidad: 1, x: 70, y: 65 },
-    { nombre: "4", forma: "round", capacidad: 1, x: 75, y: 65 },
-    { nombre: "5", forma: "round", capacidad: 1, x: 80, y: 65 },
+    // ── Banquetas de la barra (1-5, redondas) ───────────────────
+    { nombre: "1", tipo: "banqueta", forma: "round", capacidad: 1, x: 60, y: 65 },
+    { nombre: "2", tipo: "banqueta", forma: "round", capacidad: 1, x: 65, y: 65 },
+    { nombre: "3", tipo: "banqueta", forma: "round", capacidad: 1, x: 70, y: 65 },
+    { nombre: "4", tipo: "banqueta", forma: "round", capacidad: 1, x: 75, y: 65 },
+    { nombre: "5", tipo: "banqueta", forma: "round", capacidad: 1, x: 80, y: 65 },
 
     // ── Afuera — fila superior (422-428) ────────────────────────
     { nombre: "422", forma: "rect", capacidad: 2, x:  3, y:  4 },
