@@ -101,7 +101,8 @@ export default function SuperAdminMesasPage() {
     }, []);
     const fetchElements = useCallback(async () => {
         const r = await fetch("/api/superadmin/salon", { credentials: "include" });
-        setElements(Array.isArray(await r.json()) ? await fetch("/api/superadmin/salon", { credentials: "include" }).then(x => x.json()) : []);
+        const d = await r.json();
+        setElements(Array.isArray(d) ? d : []);
     }, []);
     const fetchOcupadas = useCallback(async () => {
         const d = await fetch("/api/pedidos?activos=true&fuente=empleado", { credentials: "include" }).then(r => r.json()).catch(() => []);
