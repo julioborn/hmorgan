@@ -291,7 +291,7 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
       {/* 👇 Invitación a la ruleta */}
       <Link
         href="/cliente/ruleta"
-        className="block w-full rounded-2xl bg-black text-white text-center p-6 shadow-xl hover:scale-[1.02] hover:shadow-emerald-500/30 transition-all duration-300"
+        className="block w-full rounded-2xl bg-black text-white text-center p-6 shadow-xl hover:scale-[1.02] hover:shadow-red-500/30 transition-all duration-300"
       >
         <h2 className="text-xl sm:text-2xl font-extrabold mb-2">
           ¿No sabés qué tomar?

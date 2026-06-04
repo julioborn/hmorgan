@@ -4,7 +4,7 @@ import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-config({ path: resolve(__dirname, "../.env.local") });
+config({ path: resolve(__dirname, "../.env") });
 
 const MONGO_URI = process.env.MONGODB_URI;
 if (!MONGO_URI) { console.error("❌ MONGODB_URI no encontrada en .env.local"); process.exit(1); }
