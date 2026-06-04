@@ -8,6 +8,7 @@ const MesaSchema = new Schema(
         y: { type: Number, default: 10 },
         forma: { type: String, enum: ["rect", "round", "oval"], default: "rect" },
         capacidad: { type: Number, default: 4 },
+        rotacion: { type: Number, default: 0 },
     },
     { timestamps: true }
 );

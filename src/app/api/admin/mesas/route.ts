@@ -74,7 +74,7 @@ export async function PATCH(req: NextRequest) {
     if (Object.keys(updates).length === 0) {
         mesa.activa = !mesa.activa;
     } else {
-        const allowed = ["activa", "x", "y", "forma", "capacidad", "nombre"];
+        const allowed = ["activa", "x", "y", "forma", "capacidad", "nombre", "rotacion"];
         for (const key of allowed) {
             if (key in updates) (mesa as any)[key] = updates[key];
         }

@@ -10,6 +10,7 @@ import Loader from "@/components/Loader";
 type Mesa = {
     _id: string; nombre: string; activa: boolean;
     x: number; y: number; forma: "rect" | "round" | "oval"; capacidad: number;
+    rotacion?: number;
 };
 type SalonEl = {
     _id: string; tipo: "puerta" | "linea_h" | "linea_v" | "zona" | "barra";
@@ -43,7 +44,7 @@ export default function SuperAdminMesasPage() {
     const [guardando, setGuardando] = useState(false);
     const [error, setError] = useState("");
     const [mesaModal, setMesaModal] = useState<Mesa | null>(null);
-    const [mesaForm, setMesaForm] = useState<{ forma: Mesa["forma"]; capacidad: number; activa: boolean }>({ forma: "rect", capacidad: 4, activa: true });
+    const [mesaForm, setMesaForm] = useState<{ forma: Mesa["forma"]; capacidad: number; activa: boolean; rotacion: number }>({ forma: "rect", capacidad: 4, activa: true, rotacion: 0 });
     const [elModal, setElModal] = useState<SalonEl | null>(null);
     const [elForm, setElForm] = useState<Partial<SalonEl>>({});
 
@@ -117,7 +118,7 @@ export default function SuperAdminMesasPage() {
                 // Tap: abrir config — todo en onUp antes de que dispare el click
                 if (type === "mesa") {
                     const m = mesasRef.current.find(x => x._id === id);
-                    if (m) { setMesaModal(m); setMesaForm({ forma: m.forma ?? "rect", capacidad: m.capacidad ?? 4, activa: m.activa }); }
+                    if (m) { setMesaModal(m); setMesaForm({ forma: m.forma ?? "rect", capacidad: m.capacidad ?? 4, activa: m.activa, rotacion: m.rotacion ?? 0 }); }
                 } else {
                     const el = elementsRef.current.find(x => x._id === id);
                     if (el) { setElModal(el); setElForm({ label: el.label, ancho: el.ancho, alto: el.alto, color: el.color }); }
@@ -369,7 +370,7 @@ export default function SuperAdminMesasPage() {
                                         position: "absolute",
                                         left: `${mesa.x ?? 10}%`,
                                         top: `${mesa.y ?? 10}%`,
-                                        transform: "translate(-50%, -50%)",
+                                        transform: `translate(-50%, -50%) rotate(${mesa.rotacion ?? 0}deg)`,
                                         cursor: editMode ? "grab" : "default",
                                         touchAction: editMode ? "none" : "auto",
                                         userSelect: "none",
@@ -448,7 +449,7 @@ export default function SuperAdminMesasPage() {
                                                 </p>
                                             </div>
                                             <div className="flex items-center gap-1 shrink-0">
-                                                <button onClick={() => { setMesaModal(m); setMesaForm({ forma: m.forma ?? "rect", capacidad: m.capacidad ?? 4, activa: m.activa }); }}
+                                                <button onClick={() => { setMesaModal(m); setMesaForm({ forma: m.forma ?? "rect", capacidad: m.capacidad ?? 4, activa: m.activa, rotacion: m.rotacion ?? 0 }); }}
                                                     className="p-2 rounded-lg hover:bg-gray-100 transition"><Users className="w-4 h-4 text-gray-500" /></button>
                                                 <button onClick={() => toggleActiva(m._id)} className="p-2 rounded-lg hover:bg-gray-100 transition">
                                                     {m.activa ? <ToggleRight className="w-5 h-5 text-emerald-500" /> : <ToggleLeft className="w-5 h-5 text-gray-400" />}
@@ -497,6 +498,45 @@ export default function SuperAdminMesasPage() {
                                     ))}
                                 </div>
                             </div>
+                            {/* Rotación — solo para ovaladas */}
+                            {mesaForm.forma === "oval" && (
+                                <div>
+                                    <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">
+                                        Rotación — {mesaForm.rotacion ?? 0}°
+                                    </label>
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => setMesaForm(p => ({ ...p, rotacion: ((p.rotacion ?? 0) - 15 + 360) % 360 }))}
+                                            className="flex-1 py-2 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition">
+                                            −15°
+                                        </button>
+                                        <button onClick={() => setMesaForm(p => ({ ...p, rotacion: ((p.rotacion ?? 0) - 45 + 360) % 360 }))}
+                                            className="flex-1 py-2 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition">
+                                            −45°
+                                        </button>
+                                        <button onClick={() => setMesaForm(p => ({ ...p, rotacion: 0 }))}
+                                            className="px-3 py-2 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-50 transition">
+                                            0°
+                                        </button>
+                                        <button onClick={() => setMesaForm(p => ({ ...p, rotacion: ((p.rotacion ?? 0) + 45) % 360 }))}
+                                            className="flex-1 py-2 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition">
+                                            +45°
+                                        </button>
+                                        <button onClick={() => setMesaForm(p => ({ ...p, rotacion: ((p.rotacion ?? 0) + 15) % 360 }))}
+                                            className="flex-1 py-2 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition">
+                                            +15°
+                                        </button>
+                                    </div>
+                                    {/* Preview */}
+                                    <div className="mt-3 flex justify-center">
+                                        <div style={{
+                                            width: 64, height: 30, borderRadius: "50%",
+                                            background: "#10b981", border: "2px solid #059669",
+                                            transform: `rotate(${mesaForm.rotacion ?? 0}deg)`,
+                                            transition: "transform 0.2s",
+                                        }} />
+                                    </div>
+                                </div>
+                            )}
                             <div className="flex items-center justify-between py-2 border-t border-gray-100">
                                 <span className="text-sm font-semibold text-gray-700">Mesa activa</span>
                                 <button onClick={() => setMesaForm(p => ({ ...p, activa: !p.activa }))}>
