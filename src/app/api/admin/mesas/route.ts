@@ -59,18 +59,26 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ ok: true });
 }
 
-// PATCH — togglear activa (solo admin)
+// PATCH — actualizar mesa (posición, forma, capacidad, activa)
 export async function PATCH(req: NextRequest) {
     const payload = getPayload(req);
-    if (!payload || payload.role !== "admin")
+    if (!payload || (payload.role !== "admin" && payload.role !== "superadmin"))
         return NextResponse.json({ message: "Acceso denegado" }, { status: 403 });
 
     await connectMongoDB();
-    const { id } = await req.json();
+    const { id, ...updates } = await req.json();
     const mesa = await Mesa.findById(id);
     if (!mesa) return NextResponse.json({ message: "Mesa no encontrada" }, { status: 404 });
 
-    mesa.activa = !mesa.activa;
+    if (Object.keys(updates).length === 0) {
+        mesa.activa = !mesa.activa;
+    } else {
+        const allowed = ["activa", "x", "y", "forma", "capacidad", "nombre"];
+        for (const key of allowed) {
+            if (key in updates) (mesa as any)[key] = updates[key];
+        }
+    }
+
     await mesa.save();
     return NextResponse.json(mesa);
 }
