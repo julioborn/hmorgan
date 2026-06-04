@@ -11,7 +11,7 @@ export default function ConfiguracionPage() {
     useEffect(() => {
         Promise.all([
             fetch("/api/configuracion").then((r) => r.json()),
-            fetch("/api/configuracion/whatsapp").then((r) => r.json()),
+            fetch("/api/mensaje-whatsapp").then((r) => r.json()),
         ])
             .then(([config, ws]) => {
                 setValor(config.valor);
@@ -35,7 +35,7 @@ export default function ConfiguracionPage() {
     };
 
     const guardarMensaje = async () => {
-        const res = await fetch("/api/configuracion/whatsapp", {
+        const res = await fetch("/api/mensaje-whatsapp", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ mensaje }),
