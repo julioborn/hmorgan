@@ -9,6 +9,7 @@ import RegisterSW from "@/components/RegisterSW";
 import { useEffect, useState } from "react";
 import { initPush } from "@/lib/pushNotifications";
 import ReviewModal from "@/components/ReviewModal";
+import PushToast from "@/components/PushToast";
 
 import { useSwipeBack } from "@/hooks/useSwipeBack";
 import SwipeBackZone from "@/components/SwipeBackZone";
@@ -52,6 +53,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
                 {/* Zona de swipe-back */}
                 <SwipeBackZone />
                 <RegisterSW />
+                <PushToast />
 
                 {/* Fondo iOS-style para swipe-back */}
                 <div

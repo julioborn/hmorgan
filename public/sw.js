@@ -56,17 +56,26 @@ self.addEventListener("fetch", (event) => {
     );
 });
 
-// 🔔 WebPush: mostrar notificación
+// 🔔 WebPush: mostrar notificación o pasar al cliente si está en primer plano
 self.addEventListener("push", (event) => {
     let data = {};
     try { data = event.data?.json() ?? {}; } catch {}
 
     event.waitUntil(
-        self.registration.showNotification(data.title || "Morgan", {
-            body: data.body || "",
-            icon: "/morganwhite.png",
-            badge: "/icon-badge-96x96.png",
-            data: { url: data.url || "/" },
+        self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+            const focused = clients.find((c) => c.visibilityState === "visible");
+            if (focused) {
+                // App en primer plano: enviar al cliente para mostrar toast in-app
+                focused.postMessage({ type: "PUSH_NOTIFICATION", title: data.title || "", body: data.body || "" });
+                return;
+            }
+            // App en background: mostrar notificación del sistema
+            return self.registration.showNotification(data.title || "Morgan", {
+                body: data.body || "",
+                icon: "/morganwhite.png",
+                badge: "/icon-badge-96x96.png",
+                data: { url: data.url || "/" },
+            });
         })
     );
 });

@@ -29,6 +29,15 @@ export default function RegisterSW() {
                         window.location.reload();
                     }
                 });
+
+                // 🔔 Recibir push en primer plano desde el SW
+                navigator.serviceWorker.addEventListener("message", (event) => {
+                    if (event.data?.type === "PUSH_NOTIFICATION") {
+                        window.dispatchEvent(new CustomEvent("push-notification", {
+                            detail: { title: event.data.title, body: event.data.body },
+                        }));
+                    }
+                });
             } catch (err) {
                 console.error("❌ Error al registrar el Service Worker:", err);
             }
