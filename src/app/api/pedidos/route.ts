@@ -32,10 +32,20 @@ export async function GET(req: NextRequest) {
         const payload = jwt.verify(token, NEXTAUTH_SECRET) as any;
         await connectMongoDB();
 
-        const query =
-            payload.role === "admin"
-                ? {} // admin: todos los pedidos
-                : { userId: payload.sub }; // cliente: solo los suyos
+        let query: any =
+            payload.role === "admin" || payload.role === "superadmin"
+                ? {}
+                : payload.role === "empleado"
+                ? { fuente: "empleado" }
+                : { userId: payload.sub };
+
+        const mesaParam = req.nextUrl.searchParams.get("mesa");
+        const activosParam = req.nextUrl.searchParams.get("activos");
+        const fuenteParam = req.nextUrl.searchParams.get("fuente");
+
+        if (mesaParam && payload.role !== "cliente") query.mesa = mesaParam;
+        if (activosParam === "true") query.estado = { $nin: ["cerrado", "cancelado"] };
+        if (fuenteParam && (payload.role === "admin" || payload.role === "superadmin")) query.fuente = fuenteParam;
 
         const pedidos = await Pedido.find(query)
             .populate("userId", "nombre apellido role telefono")

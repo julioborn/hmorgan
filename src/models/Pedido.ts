@@ -14,7 +14,7 @@ const PedidoSchema = new Schema(
         total: { type: Number },
         estado: {
             type: String,
-            enum: ["pendiente", "preparando", "listo", "entregado", "cancelado"], // 👈 nuevo estado
+            enum: ["pendiente", "preparando", "listo", "entregado", "cancelado", "cerrado"],
             default: "pendiente",
         },
         cancelableUntil: { type: Date },
@@ -23,6 +23,8 @@ const PedidoSchema = new Schema(
         notaEmpleado: { type: String },
         notaCliente: { type: String },
         puntosAcreditados: { type: Boolean, default: false },
+        metodoPago: { type: String },
+        montoPagado: { type: Number },
     },
     { timestamps: true }
 );

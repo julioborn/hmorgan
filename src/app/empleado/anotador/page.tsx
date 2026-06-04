@@ -29,6 +29,14 @@ type CartItem = {
     cantidad: number;
 };
 
+type ActiveOrder = {
+    _id: string;
+    items: { menuItemId: { _id: string; nombre: string; precio: number }; cantidad: number }[];
+    total: number;
+    mesa: string;
+    notaEmpleado?: string;
+};
+
 const formatPrice = (v: number) =>
     new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(v);
 
@@ -70,6 +78,8 @@ export default function AnotadorPage() {
     const [categoriaActiva, setCategoriaActiva] = useState<string | null>(null);
     const [enviando, setEnviando] = useState(false);
     const [lastOrder, setLastOrder] = useState<{ items: CartItem[]; mesa: string; nota: string; timestamp: Date } | null>(null);
+    const [activeOrder, setActiveOrder] = useState<ActiveOrder | null>(null);
+    const [activeOrderLoading, setActiveOrderLoading] = useState(false);
 
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
@@ -97,6 +107,19 @@ export default function AnotadorPage() {
             .then(data => { if (Array.isArray(data)) setMesasRegistradas(data); })
             .catch(() => {});
     }, []);
+
+    useEffect(() => {
+        if (!mesa) { setActiveOrder(null); return; }
+        setActiveOrderLoading(true);
+        fetch(`/api/pedidos?mesa=${encodeURIComponent(mesa)}&activos=true`, { credentials: "include" })
+            .then(r => r.json())
+            .then((data: any[]) => {
+                const order = Array.isArray(data) ? data.find(p => p.fuente === "empleado") : null;
+                setActiveOrder(order || null);
+            })
+            .catch(() => setActiveOrder(null))
+            .finally(() => setActiveOrderLoading(false));
+    }, [mesa]);
 
     function addToCart(item: MenuItem) {
         setCart(prev => {
@@ -127,27 +150,48 @@ export default function AnotadorPage() {
         setEnviando(true);
         setError("");
         try {
-            const res = await fetch("/api/pedidos", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-                body: JSON.stringify({
-                    items: cart.map(c => ({ menuItemId: c.menuItemId, cantidad: c.cantidad })),
-                    tipoEntrega: "retira",
-                    fuente: "empleado",
-                    mesa: mesa.trim() || undefined,
-                    notaEmpleado: nota.trim() || undefined,
-                }),
-            });
+            let res: Response;
+            if (activeOrder) {
+                // Agregar ítems a la comanda existente
+                res = await fetch(`/api/pedidos/${activeOrder._id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({
+                        items: cart.map(c => ({ menuItemId: c.menuItemId, cantidad: c.cantidad })),
+                        notaEmpleado: nota.trim() || undefined,
+                    }),
+                });
+            } else {
+                // Crear nueva comanda
+                res = await fetch("/api/pedidos", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({
+                        items: cart.map(c => ({ menuItemId: c.menuItemId, cantidad: c.cantidad })),
+                        tipoEntrega: "retira",
+                        fuente: "empleado",
+                        mesa: mesa.trim() || undefined,
+                        notaEmpleado: nota.trim() || undefined,
+                    }),
+                });
+            }
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
-                setError(err.message || "Error al enviar el pedido");
+                setError(err.message || err.error || "Error al enviar el pedido");
                 return;
             }
             setLastOrder({ items: [...cart], mesa, nota, timestamp: new Date() });
             setCart([]);
-            setMesa("");
             setNota("");
+            // Refrescar comanda activa de la mesa (no limpiar mesa)
+            if (mesa) {
+                const updated = await fetch(`/api/pedidos?mesa=${encodeURIComponent(mesa)}&activos=true`, { credentials: "include" });
+                const data = await updated.json().catch(() => []);
+                const order = Array.isArray(data) ? data.find((p: any) => p.fuente === "empleado") : null;
+                setActiveOrder(order || null);
+            }
         } catch {
             setError("Error de conexión");
         } finally {
@@ -199,17 +243,11 @@ export default function AnotadorPage() {
     }
 
     function CartPanel() {
-        if (cart.length === 0) return null;
+        if (cart.length === 0 && !activeOrder) return null;
         return (
             <div className="bg-white border-b border-gray-200 shadow-sm px-4 pt-3 pb-3">
                 <div className="max-w-2xl mx-auto">
-                    <div className="flex flex-wrap gap-1 mb-3 max-h-14 overflow-y-auto">
-                        {cart.map(c => (
-                            <span key={c.menuItemId} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
-                                {c.nombre} ×{c.cantidad}
-                            </span>
-                        ))}
-                    </div>
+                    {/* Selector de mesa y nota — siempre visible si hay items o comanda activa */}
                     <div className="flex gap-2 mb-3">
                         {mesasRegistradas.length > 0 ? (
                             <select value={mesa} onChange={e => setMesa(e.target.value)}
@@ -224,12 +262,51 @@ export default function AnotadorPage() {
                         <input type="text" placeholder="Nota para el bar..." value={nota} onChange={e => setNota(e.target.value)}
                             className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
                     </div>
+
+                    {/* Comanda activa de la mesa */}
+                    {activeOrderLoading && (
+                        <p className="text-xs text-gray-400 mb-2 text-center">Buscando comanda activa...</p>
+                    )}
+                    {activeOrder && !activeOrderLoading && (
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-3">
+                            <p className="text-xs font-bold text-amber-700 mb-1.5">
+                                Comanda activa · Mesa {activeOrder.mesa} · ${formatPrice(activeOrder.total)}
+                            </p>
+                            <div className="flex flex-wrap gap-1">
+                                {activeOrder.items.map((i, idx) => (
+                                    <span key={idx} className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
+                                        {i.cantidad}× {i.menuItemId?.nombre || "ítem"}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Nuevos ítems en el carrito */}
+                    {cart.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-3 max-h-14 overflow-y-auto">
+                            {cart.map(c => (
+                                <span key={c.menuItemId} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
+                                    {c.nombre} ×{c.cantidad}
+                                </span>
+                            ))}
+                        </div>
+                    )}
+
                     {error && <p className="text-red-600 text-xs mb-2 text-center">{error}</p>}
-                    <button onClick={enviarPedido} disabled={enviando}
-                        className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition">
-                        <Send className="w-5 h-5" />
-                        {enviando ? "Enviando..." : `Enviar al bar · $${formatPrice(total)}`}
-                    </button>
+
+                    {cart.length > 0 && (
+                        <button onClick={enviarPedido} disabled={enviando}
+                            className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition">
+                            <Send className="w-5 h-5" />
+                            {enviando
+                                ? "Enviando..."
+                                : activeOrder
+                                    ? `Agregar a Mesa ${mesa} · $${formatPrice(total)}`
+                                    : `Enviar al bar · $${formatPrice(total)}`
+                            }
+                        </button>
+                    )}
                 </div>
             </div>
         );

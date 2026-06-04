@@ -26,6 +26,16 @@ type CajaMovimiento = {
 
 type Resumen = Record<string, { ingreso: number; egreso: number }>;
 
+type PedidoActivo = {
+    _id: string;
+    mesa: string;
+    items: { menuItemId: { _id: string; nombre: string; precio: number }; cantidad: number }[];
+    total: number;
+    estado: string;
+    createdAt: string;
+    notaEmpleado?: string;
+};
+
 const formatMoney = (n: number) =>
     new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", minimumFractionDigits: 0 }).format(n);
 
@@ -47,6 +57,10 @@ export default function CajaPage() {
     const [sesion, setSesion] = useState<CajaSession | null | undefined>(undefined);
     const [movimientos, setMovimientos] = useState<CajaMovimiento[]>([]);
     const [loading, setLoading] = useState(true);
+    const [pedidosActivos, setPedidosActivos] = useState<PedidoActivo[]>([]);
+    const [cobrarModal, setCobrarModal] = useState<{ open: boolean; pedido: PedidoActivo | null }>({ open: false, pedido: null });
+    const [cobrarForm, setCobrarForm] = useState({ metodoPago: "efectivo" as "efectivo" | "tarjeta" | "transferencia", montoPagado: "" });
+    const [cobrarSaving, setCobrarSaving] = useState(false);
 
     // open session form
     const [openForm, setOpenForm] = useState({ montoInicial: "", notas: "" });
@@ -78,7 +92,14 @@ export default function CajaPage() {
             .finally(() => setLoading(false));
     }, []);
 
-    useEffect(() => { loadCaja(); }, [loadCaja]);
+    const loadPedidosActivos = useCallback(() => {
+        fetch("/api/pedidos?activos=true&fuente=empleado", { credentials: "include" })
+            .then(r => r.json())
+            .then(data => { if (Array.isArray(data)) setPedidosActivos(data.filter((p: PedidoActivo) => p.mesa)); })
+            .catch(() => {});
+    }, []);
+
+    useEffect(() => { loadCaja(); loadPedidosActivos(); }, [loadCaja, loadPedidosActivos]);
 
     async function abrirCaja() {
         setOpenSaving(true);
@@ -104,6 +125,70 @@ export default function CajaPage() {
                 loadCaja();
             }
         } finally { setMovSaving(false); }
+    }
+
+    async function cobrarPedido() {
+        if (!cobrarModal.pedido) return;
+        setCobrarSaving(true);
+        try {
+            const res = await fetch("/api/superadmin/caja/cobrar", {
+                method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
+                body: JSON.stringify({
+                    pedidoId: cobrarModal.pedido._id,
+                    metodoPago: cobrarForm.metodoPago,
+                    montoPagado: Number(cobrarForm.montoPagado) || cobrarModal.pedido.total,
+                }),
+            });
+            if (res.ok) {
+                const pedido = cobrarModal.pedido;
+                const monto = Number(cobrarForm.montoPagado) || pedido.total;
+                printTicket(pedido, cobrarForm.metodoPago, monto);
+                setCobrarModal({ open: false, pedido: null });
+                setCobrarForm({ metodoPago: "efectivo", montoPagado: "" });
+                loadCaja();
+                loadPedidosActivos();
+            }
+        } finally { setCobrarSaving(false); }
+    }
+
+    function printTicket(pedido: PedidoActivo, metodoPago: string, montoPagado: number) {
+        const hora = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+        const fecha = new Date().toLocaleDateString("es-AR");
+        const vuelto = metodoPago === "efectivo" && montoPagado > pedido.total ? montoPagado - pedido.total : 0;
+        const rows = pedido.items.map(i => {
+            const nombre = i.menuItemId?.nombre || "Ítem";
+            const precio = i.menuItemId?.precio || 0;
+            return `<tr><td>${i.cantidad}x ${nombre}</td><td style="text-align:right">${formatMoney(precio * i.cantidad)}</td></tr>`;
+        }).join("");
+        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Ticket</title><style>
+            *{margin:0;padding:0;box-sizing:border-box}
+            body{font-family:'Courier New',monospace;font-size:12px;padding:12px;max-width:280px}
+            h2{text-align:center;font-size:15px;letter-spacing:2px;margin-bottom:2px}
+            .sub{text-align:center;font-size:11px;color:#555;margin-bottom:4px}
+            .mesa{text-align:center;font-size:14px;font-weight:bold;padding:3px 0}
+            hr{border:none;border-top:1px dashed #000;margin:5px 0}
+            table{width:100%;border-collapse:collapse}
+            td{padding:2px 0;font-size:12px}
+            .total{font-size:14px;font-weight:bold}
+            .vuelto{font-weight:bold;color:#16a34a}
+        </style></head><body>
+        <h2>★ TICKET ★</h2>
+        <div class="sub">H. Morgan Bar</div>
+        <div class="mesa">MESA ${pedido.mesa}</div>
+        <div class="sub">${fecha} ${hora}</div>
+        <hr/>
+        <table>${rows}</table>
+        <hr/>
+        <table>
+            <tr><td class="total">TOTAL</td><td class="total" style="text-align:right">${formatMoney(pedido.total)}</td></tr>
+            <tr><td>${metodoLabel[metodoPago] || metodoPago}</td><td style="text-align:right">${formatMoney(montoPagado)}</td></tr>
+            ${vuelto > 0 ? `<tr><td class="vuelto">Vuelto</td><td class="vuelto" style="text-align:right">${formatMoney(vuelto)}</td></tr>` : ""}
+        </table>
+        <hr/>
+        <div class="sub" style="margin-top:6px">¡Gracias por su visita!</div>
+        </body></html>`;
+        const w = window.open("", "_blank", "width=320,height=500,toolbar=0,menubar=0");
+        if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 200); }
     }
 
     async function cerrarCaja() {
@@ -340,7 +425,114 @@ export default function CajaPage() {
                         </div>
                     )}
                 </div>
+
+                {/* Mesas activas */}
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                    <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                        <h2 className="font-bold text-gray-900 text-sm">Mesas Activas</h2>
+                        <button onClick={loadPedidosActivos} className="text-xs text-gray-400 hover:text-gray-600 transition">↻ actualizar</button>
+                    </div>
+                    {pedidosActivos.length === 0 ? (
+                        <p className="text-sm text-gray-400 text-center py-8">Sin mesas con comanda abierta</p>
+                    ) : (
+                        <div className="divide-y divide-gray-50">
+                            {pedidosActivos.map(p => (
+                                <div key={p._id} className="px-4 py-3">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div>
+                                            <p className="font-bold text-gray-900 text-sm">Mesa {p.mesa}</p>
+                                            <p className="text-xs text-gray-400">
+                                                {new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                                                {" · "}{p.estado}
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-sm font-black text-gray-900">{formatMoney(p.total)}</p>
+                                            <button
+                                                onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ metodoPago: "efectivo", montoPagado: String(p.total) }); }}
+                                                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition">
+                                                Cobrar
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1">
+                                        {p.items.map((i, idx) => (
+                                            <span key={idx} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                                                {i.cantidad}× {i.menuItemId?.nombre || "ítem"}
+                                            </span>
+                                        ))}
+                                    </div>
+                                    {p.notaEmpleado && <p className="text-xs text-amber-600 mt-1 italic">📝 {p.notaEmpleado}</p>}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
+
+            {/* Modal cobrar */}
+            {cobrarModal.open && cobrarModal.pedido && (
+                <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
+                        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+                            <h2 className="font-black text-gray-900 flex-1">Cobrar Mesa {cobrarModal.pedido.mesa}</h2>
+                            <button onClick={() => setCobrarModal({ open: false, pedido: null })} className="p-1 text-gray-400 hover:text-gray-700"><X size={18} /></button>
+                        </div>
+                        <div className="px-5 py-4 space-y-3">
+                            {/* Detalle de ítems */}
+                            <div className="bg-gray-50 rounded-xl p-3 space-y-1">
+                                {cobrarModal.pedido.items.map((i, idx) => {
+                                    const precio = i.menuItemId?.precio || 0;
+                                    return (
+                                        <div key={idx} className="flex justify-between text-sm">
+                                            <span className="text-gray-700">{i.cantidad}× {i.menuItemId?.nombre || "ítem"}</span>
+                                            <span className="font-semibold text-gray-900">{formatMoney(precio * i.cantidad)}</span>
+                                        </div>
+                                    );
+                                })}
+                                <div className="flex justify-between text-sm font-black text-gray-900 border-t border-gray-200 pt-2 mt-2">
+                                    <span>TOTAL</span>
+                                    <span>{formatMoney(cobrarModal.pedido.total)}</span>
+                                </div>
+                            </div>
+                            {/* Método de pago */}
+                            <div className="flex gap-2">
+                                {METODOS.map(met => {
+                                    const Icon = metodoIcon[met];
+                                    return (
+                                        <button key={met} onClick={() => setCobrarForm(p => ({ ...p, metodoPago: met }))}
+                                            className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border transition ${cobrarForm.metodoPago === met ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50"}`}>
+                                            <Icon size={13} /> {metodoLabel[met]}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            {/* Monto recibido */}
+                            <div>
+                                <label className="text-xs font-semibold text-gray-500 uppercase">Monto recibido</label>
+                                <input type="number" min="0" value={cobrarForm.montoPagado}
+                                    onChange={e => setCobrarForm(p => ({ ...p, montoPagado: e.target.value }))}
+                                    className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-xl text-xl font-black focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+                            </div>
+                            {/* Vuelto */}
+                            {cobrarForm.metodoPago === "efectivo" && Number(cobrarForm.montoPagado) > cobrarModal.pedido.total && (
+                                <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex justify-between">
+                                    <span className="text-sm font-semibold text-emerald-700">Vuelto</span>
+                                    <span className="text-sm font-black text-emerald-700">{formatMoney(Number(cobrarForm.montoPagado) - cobrarModal.pedido.total)}</span>
+                                </div>
+                            )}
+                        </div>
+                        <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
+                            <button onClick={() => setCobrarModal({ open: false, pedido: null })} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">Cancelar</button>
+                            <button onClick={cobrarPedido} disabled={cobrarSaving}
+                                className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition flex items-center justify-center gap-2">
+                                <Printer size={15} />
+                                {cobrarSaving ? "Procesando..." : "Cobrar e imprimir"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Close session modal */}
             {closeModal && (
