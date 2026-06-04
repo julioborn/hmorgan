@@ -50,7 +50,8 @@ export default function SuperAdminMesasPage() {
     const [mesas, setMesas]           = useState<Mesa[]>([]);
     const [elements, setElements]     = useState<SalonEl[]>([]);
     const [loading, setLoading]       = useState(true);
-    const [ocupadas, setOcupadas]     = useState<Set<string>>(new Set());
+    const [ocupadas, setOcupadas]         = useState<Set<string>>(new Set());
+    const [reservadasHoy, setReservadasHoy] = useState<Set<string>>(new Set()); // _id de mesas con reserva hoy
     const [tab, setTab]               = useState<"plano" | "gestion">("plano");
     const [mode, setMode]             = useState<Mode | null>(null); // null = view
     const [selected, setSelected]     = useState<Set<string>>(new Set());
@@ -109,11 +110,21 @@ export default function SuperAdminMesasPage() {
         if (Array.isArray(d)) setOcupadas(new Set(d.filter((p: any) => p.mesa).map((p: any) => String(p.mesa))));
     }, []);
 
+    const fetchReservadasHoy = useCallback(async () => {
+        const d = await fetch("/api/reservas", { credentials: "include" }).then(r => r.json()).catch(() => []);
+        if (!Array.isArray(d)) return;
+        const hoy = new Date().toISOString().slice(0, 10);
+        setReservadasHoy(new Set(
+            d.filter((r: any) => r.estado !== "cancelada" && r.mesaId && r.fecha?.slice(0, 10) === hoy)
+             .map((r: any) => String(r.mesaId?._id || r.mesaId))
+        ));
+    }, []);
+
     useEffect(() => {
-        Promise.all([fetchMesas(), fetchElements(), fetchOcupadas()]).finally(() => setLoading(false));
-        const iv = setInterval(fetchOcupadas, 15000);
+        Promise.all([fetchMesas(), fetchElements(), fetchOcupadas(), fetchReservadasHoy()]).finally(() => setLoading(false));
+        const iv = setInterval(() => { fetchOcupadas(); fetchReservadasHoy(); }, 15000);
         return () => clearInterval(iv);
-    }, [fetchMesas, fetchElements, fetchOcupadas]);
+    }, [fetchMesas, fetchElements, fetchOcupadas, fetchReservadasHoy]);
 
     // ── History ───────────────────────────────────────────────────
     function pushSnapshot() {
@@ -436,7 +447,7 @@ export default function SuperAdminMesasPage() {
 
                         <div className="ml-auto flex items-center gap-3 text-xs text-gray-400">
                             <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-emerald-500" />Libre</span>
-                            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-500" />Ocupada</span>
+                            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-500" />Ocupada / Reservada hoy</span>
                             <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-amber-700" />Banqueta</span>
                         </div>
                     </div>
@@ -524,12 +535,13 @@ export default function SuperAdminMesasPage() {
 
                             {/* Mesas */}
                             {mesas.map(mesa => {
-                                const isOcupada = mesa.activa && ocupadas.has(mesa.nombre);
-                                const isRound   = mesa.forma === "round";
-                                const isOval    = mesa.forma === "oval";
-                                const isBanq    = mesa.tipo === "banqueta";
-                                const isSel     = selected.has(mesa._id);
-                                const rot       = mesa.rotacion ?? 0;
+                                const isOcupada   = mesa.activa && ocupadas.has(mesa.nombre);
+                                const isReservada = mesa.activa && reservadasHoy.has(mesa._id);
+                                const isRound     = mesa.forma === "round";
+                                const isOval      = mesa.forma === "oval";
+                                const isBanq      = mesa.tipo === "banqueta";
+                                const isSel       = selected.has(mesa._id);
+                                const rot         = mesa.rotacion ?? 0;
                                 const interactive = mode === "select" || mode === "config";
 
                                 const def = MESA_DEFAULTS(mesa.forma);
@@ -537,8 +549,8 @@ export default function SuperAdminMesasPage() {
                                 const h = mesa.alto  || def.alto;
 
                                 const bg = !mesa.activa ? "bg-gray-300 border-gray-400 text-gray-500"
-                                    : isBanq           ? "bg-amber-700 border-amber-800 text-amber-100"
-                                    : isOcupada        ? "bg-red-500 border-red-600 text-white"
+                                    : isBanq                        ? "bg-amber-700 border-amber-800 text-amber-100"
+                                    : isOcupada || isReservada      ? "bg-red-500 border-red-600 text-white"
                                     : "bg-emerald-500 border-emerald-600 text-white";
 
                                 return (
