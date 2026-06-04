@@ -1,8 +1,13 @@
-import { createRequire } from "module";
-const require = createRequire(import.meta.url);
 import { randomBytes } from "crypto";
+import { config } from "dotenv";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
 
-const MONGO_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/hmorgan";
+const __dirname = dirname(fileURLToPath(import.meta.url));
+config({ path: resolve(__dirname, "../.env.local") });
+
+const MONGO_URI = process.env.MONGODB_URI;
+if (!MONGO_URI) { console.error("❌ MONGODB_URI no encontrada en .env.local"); process.exit(1); }
 
 async function main() {
     const mongoose = (await import("mongoose")).default;
@@ -11,16 +16,26 @@ async function main() {
     await mongoose.connect(MONGO_URI);
     console.log("✅ Conectado a MongoDB");
 
-    const UserModel = mongoose.models.User || (await import("../src/models/User.js")).User;
+    const UserSchema = new mongoose.Schema({
+        username: String,
+        nombre: String,
+        apellido: String,
+        passwordHash: String,
+        role: String,
+        qrToken: String,
+        puntos: { type: Number, default: 0 },
+    }, { strict: false });
 
-    const existing = await UserModel.findOne({ username: "superadmin" });
+    const User = mongoose.models.User || mongoose.model("User", UserSchema);
+
+    const existing = await User.findOne({ username: "superadmin" });
     if (existing) {
         console.log("⚠️  El usuario superadmin ya existe. Actualizando contraseña...");
         existing.passwordHash = await bcrypt.hash("hmorgan2025!", 10);
         await existing.save();
         console.log("✅ Contraseña actualizada");
     } else {
-        await UserModel.create({
+        await User.create({
             username: "superadmin",
             nombre: "Super",
             apellido: "Admin",
