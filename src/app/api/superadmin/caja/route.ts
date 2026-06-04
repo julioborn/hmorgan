@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
     const sesionAbierta = await CajaSession.findOne({ estado: "abierta" })
         .populate("abiertaPor", "nombre apellido")
-        .lean();
+        .lean<{ _id: any; [key: string]: any }>();
 
     if (!sesionAbierta) return NextResponse.json({ sesion: null, movimientos: [] });
 
