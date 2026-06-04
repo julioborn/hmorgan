@@ -154,10 +154,10 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
 
       {/* Saludo + puntos */}
       <div className="flex items-center justify-between px-1">
-        <p className="text-sm text-gray-500">
-          Hola, <span className="font-semibold text-black">{nombre}</span>
+        <p className="text-base text-gray-500">
+          Hola, <span className="font-bold text-black">{nombre}</span>
         </p>
-        <span className="text-xs font-bold text-red-600 bg-red-50 border border-red-100 px-3 py-1.5 rounded-full">
+        <span className="text-sm font-bold text-red-600 bg-red-50 border border-red-100 px-4 py-2 rounded-full">
           ★ {puntos} pts
         </span>
       </div>
