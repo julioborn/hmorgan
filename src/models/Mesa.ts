@@ -6,7 +6,7 @@ const MesaSchema = new Schema(
         activa: { type: Boolean, default: true },
         x: { type: Number, default: 10 },
         y: { type: Number, default: 10 },
-        forma: { type: String, enum: ["rect", "round"], default: "rect" },
+        forma: { type: String, enum: ["rect", "round", "oval"], default: "rect" },
         capacidad: { type: Number, default: 4 },
     },
     { timestamps: true }
