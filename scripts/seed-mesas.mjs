@@ -14,14 +14,14 @@ if (!MONGO_URI) { console.error("❌ MONGODB_URI no encontrada en .env"); proces
 //  ┌──────────────────────────────────────────────────────────────┐
 //  │ [422-428 top row]                                            │
 //  │ [407-409]                    [PUERTA ESCALERA]               │
-//  │ [421] [406]   │  [215]                                       │
-//  │ [420] [405]  PUERTA [221] [214]                             │
-//  │ [419] [404]   │  [221] [213]                                 │
-//  │ [418] [403]   │  [220] [212] [133][123][113]                │
-//  │ [417] [402]  PUERTA [211]  [132][122][112]   [1][2][3][4][5]│
-//  │ [416] [401]   │  [210] [131][121][111]    [   BARRA   ]      │
-//  │ [415]         │        [130][120][110]                       │
-//  │ [414] [412][411][410]                                        │
+//  │ [421] [406]  │  [215]        [332][322][312]                 │
+//  │ [420] [405] PUERTA [221][214][331][321][311]                 │
+//  │ [419] [404]  │  [220][213]   [330][320][310]                 │
+//  │ [418] [403]  │       [212] [133][123][113]                   │
+//  │ [417] [402] PUERTA   [211] [132][122][112]  [1][2][3][4][5] │
+//  │ [416] [401]  │       [210] [131][121][111]  [   BARRA   ]   │
+//  │ [415]        │            [130][120][110]                    │
+//  │ [414][413][412][411][410]                                    │
 //  └──────────────────────────────────────────────────────────────┘
 // ─────────────────────────────────────────────────────────────────
 
@@ -98,6 +98,21 @@ const MESAS = [
     { nombre: "112", forma: "rect", capacidad: 4, x: 61, y: 67 },
     { nombre: "111", forma: "rect", capacidad: 4, x: 61, y: 77 },
     { nombre: "110", forma: "rect", capacidad: 4, x: 61, y: 87 },
+
+    // ── Zona 3xx — fila superior (332, 322, 312) ─────────────────
+    { nombre: "332", forma: "rect", capacidad: 4, x: 70, y: 42 },
+    { nombre: "322", forma: "rect", capacidad: 4, x: 77, y: 42 },
+    { nombre: "312", forma: "rect", capacidad: 4, x: 84, y: 42 },
+
+    // ── Zona 3xx — fila media (331, 321, 311) ────────────────────
+    { nombre: "331", forma: "rect", capacidad: 4, x: 70, y: 52 },
+    { nombre: "321", forma: "rect", capacidad: 4, x: 77, y: 52 },
+    { nombre: "311", forma: "rect", capacidad: 4, x: 84, y: 52 },
+
+    // ── Zona 3xx — fila inferior (330, 320, 310) ─────────────────
+    { nombre: "330", forma: "rect", capacidad: 4, x: 70, y: 62 },
+    { nombre: "320", forma: "rect", capacidad: 4, x: 77, y: 62 },
+    { nombre: "310", forma: "rect", capacidad: 4, x: 84, y: 62 },
 ];
 
 // ─── Elementos decorativos ────────────────────────────────────────
@@ -130,19 +145,28 @@ async function main() {
     const Mesa = mongoose.models.Mesa || mongoose.model("Mesa", MesaSchema);
     const SalonElement = mongoose.models.SalonElement || mongoose.model("SalonElement", SalonElementSchema);
 
-    // Eliminar TODAS las mesas y elementos anteriores (reset completo)
-    const deletedMesas = await Mesa.deleteMany({});
-    const deletedEls = await SalonElement.deleteMany({});
-    console.log(`🗑️  ${deletedMesas.deletedCount} mesas eliminadas`);
-    console.log(`🗑️  ${deletedEls.deletedCount} elementos eliminados\n`);
+    // Modo aditivo: crea solo lo que NO existe (no toca posiciones ya guardadas)
+    let mesasCreadas = 0;
+    for (const def of MESAS) {
+        const exists = await Mesa.findOne({ nombre: def.nombre });
+        if (!exists) {
+            await Mesa.create({ ...def, activa: true });
+            console.log(`  + Mesa ${def.nombre}`);
+            mesasCreadas++;
+        }
+    }
+    console.log(`✅ ${mesasCreadas} mesas nuevas creadas (${MESAS.length - mesasCreadas} ya existían)\n`);
 
-    // Crear mesas
-    await Mesa.insertMany(MESAS.map(m => ({ ...m, activa: true })));
-    console.log(`✅ ${MESAS.length} mesas creadas`);
-
-    // Crear elementos
-    await SalonElement.insertMany(ELEMENTOS);
-    console.log(`✅ ${ELEMENTOS.length} elementos creados`);
+    let elCreados = 0;
+    for (const def of ELEMENTOS) {
+        const exists = await SalonElement.findOne({ tipo: def.tipo, label: def.label });
+        if (!exists) {
+            await SalonElement.create(def);
+            console.log(`  + Elemento "${def.label}"`);
+            elCreados++;
+        }
+    }
+    console.log(`✅ ${elCreados} elementos nuevos creados`);
 
     console.log("\n🎉 Listo! Abrí el plano en /superadmin/mesas\n");
     await mongoose.disconnect();
