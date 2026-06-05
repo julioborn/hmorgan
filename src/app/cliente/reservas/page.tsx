@@ -212,6 +212,7 @@ export default function ClienteReservasPage() {
                                 <textarea value={form.notas} onChange={e => setForm(p => ({ ...p, notas: e.target.value }))}
                                     placeholder="Ej: cumpleaños, silla para bebé, alergias..."
                                     rows={2}
+                                    style={{ fontSize: "16px" }}
                                     className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-400 resize-none" />
                             </div>
 
