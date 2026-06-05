@@ -2,8 +2,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
-import { Plus, UtensilsCrossed, Loader2, ChevronRight } from "lucide-react";
+import { Plus, UtensilsCrossed, ChevronRight, Trash2 } from "lucide-react";
 import Loader from "@/components/Loader";
+import { swalBase } from "@/lib/swalConfig";
 
 type Comanda = {
     _id: string;
@@ -43,6 +44,20 @@ export default function AnotadorPage() {
         const iv = setInterval(fetchComandas, 8000);
         return () => clearInterval(iv);
     }, [fetchComandas]);
+
+    async function eliminarComanda(id: string) {
+        const r = await swalBase.fire({
+            title: "¿Eliminar comanda?",
+            text: "Se borrará definitivamente.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Sí, eliminar",
+            cancelButtonText: "Cancelar",
+        });
+        if (!r.isConfirmed) return;
+        await fetch(`/api/pedidos?id=${id}`, { method: "DELETE", credentials: "include" });
+        setComandas(prev => prev.filter(c => c._id !== id));
+    }
 
     if (loading || loadingData) return <div className="flex justify-center py-20"><Loader size={64} /></div>;
     if (!user) return null;
@@ -123,8 +138,13 @@ export default function AnotadorPage() {
                                     </div>
                                 </div>
 
-                                {/* Acción */}
-                                <div className="px-4 pb-3 flex justify-end">
+                                {/* Acciones */}
+                                <div className="px-4 pb-3 flex items-center justify-between gap-2">
+                                    <button
+                                        onClick={() => eliminarComanda(c._id)}
+                                        className="flex items-center gap-1.5 text-red-500 hover:bg-red-50 border border-red-200 px-3 py-2 rounded-xl text-sm transition active:scale-95">
+                                        <Trash2 size={14} /> Eliminar
+                                    </button>
                                     <button
                                         onClick={() => router.push(`/empleado/anotador/menu?id=${c._id}`)}
                                         className="flex items-center gap-1.5 bg-gray-900 hover:bg-gray-700 text-white font-bold px-4 py-2 rounded-xl text-sm transition active:scale-95">

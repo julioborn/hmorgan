@@ -364,11 +364,15 @@ export async function DELETE(req: NextRequest) {
             return NextResponse.json({ message: "No autorizado" }, { status: 401 });
 
         const payload = jwt.verify(token, NEXTAUTH_SECRET) as any;
-        if (payload.role !== "admin" && payload.role !== "cajero")
+        const canDelete = payload.role === "admin" || payload.role === "cajero" || payload.role === "empleado" || payload.role === "superadmin";
+        if (!canDelete)
             return NextResponse.json(
                 { message: "Sin permiso para eliminar pedidos" },
                 { status: 403 }
             );
+
+        // Empleado solo puede eliminar sus propias comandas (fuente empleado)
+        // La verificación se hace abajo cuando se obtiene el pedido
 
         await connectMongoDB();
 
@@ -376,6 +380,13 @@ export async function DELETE(req: NextRequest) {
         const id = req.nextUrl.searchParams.get("id");
         if (!id)
             return NextResponse.json({ message: "Falta el ID del pedido" }, { status: 400 });
+
+        // Verificar que el empleado solo borre sus propias comandas
+        if (payload.role === "empleado") {
+            const p = await Pedido.findById(id);
+            if (!p) return NextResponse.json({ message: "Pedido no encontrado" }, { status: 404 });
+            if (p.fuente !== "empleado") return NextResponse.json({ message: "Sin permiso" }, { status: 403 });
+        }
 
         const pedido = await Pedido.findByIdAndDelete(id);
         if (!pedido)
