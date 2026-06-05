@@ -15,7 +15,10 @@ function authSuper(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-    if (!authSuper(req)) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    // Lectura pública para cualquier sesión válida (el plano no es dato sensible)
+    const token = req.cookies.get("session")?.value;
+    if (!token) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    try { jwt.verify(token, SECRET); } catch { return NextResponse.json({ error: "No autorizado" }, { status: 401 }); }
     await connectMongoDB();
     const elements = await SalonElement.find({}).lean();
     return NextResponse.json(elements);

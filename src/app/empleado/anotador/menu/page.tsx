@@ -228,128 +228,127 @@ function AnotadorMenuContent() {
 
     const mesaActual = comanda?.mesa || mesa;
 
-    // ── CartPanel ────────────────────────────────────────────────
-    function CartPanel() {
-        if (cart.length === 0 && !comanda) return null;
-        return (
-            <div className="bg-white border-b border-gray-200 shadow-sm px-4 pt-3 pb-3">
-                <div className="max-w-2xl mx-auto space-y-2">
+    // ── CartPanel como JSX (NO como función-componente anidada)
+    // Si fuera function CartPanel() {}, React la recrearía en cada render →
+    // desmonta/remonta el DOM → los inputs pierden el foco → teclado baja.
+    const cartPanelJSX = (cart.length === 0 && !comanda) ? null : (
+        <div className="bg-white border-b border-gray-200 shadow-sm px-4 pt-3 pb-3">
+            <div className="max-w-2xl mx-auto space-y-2">
 
-                    {/* Fila mesa + comensales */}
-                    {!comandaId && (
-                        <div className="flex gap-2 items-center">
-                            <button onClick={openMesaPicker}
-                                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-semibold transition shrink-0 ${mesa ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
-                                <MapPin className="w-3.5 h-3.5" />
-                                {mesa ? `Mesa ${mesa}` : "Mesa"}
-                                <ChevronDown className="w-3 h-3" />
-                            </button>
-                            <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-xl px-2 py-1.5 shrink-0">
-                                <button onClick={() => setComensales(c => Math.max(1, c - 1))} className="w-5 h-5 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 text-sm font-bold">−</button>
-                                <span className="text-sm font-bold text-gray-900 w-5 text-center">{comensales}</span>
-                                <button onClick={() => setComensales(c => Math.min(20, c + 1))} className="w-5 h-5 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 text-sm font-bold">+</button>
-                                <span className="text-[10px] text-gray-400">p</span>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Comanda context */}
-                    {comandaId && comanda && (
-                        <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-xs">
-                            <span className="font-bold text-amber-800">
-                                {comanda.mesa ? `Mesa ${comanda.mesa}` : "Sin mesa"}
-                                {comanda.comensales ? ` · ${comanda.comensales}p` : ""}
-                            </span>
-                            <span className="text-amber-600">· comanda activa · ${formatPrice(comanda.total)}</span>
-                        </div>
-                    )}
-
-                    {/* Nombre cliente */}
-                    <div className="relative">
-                        <input
-                            ref={clienteInputRef}
-                            type="text"
-                            placeholder="Nombre del cliente (opcional)"
-                            value={clienteNombre}
-                            onChange={e => {
-                                setClienteNombre(e.target.value);
-                                setClienteSearch(e.target.value);
-                            }}
-                            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
-                        />
-                        {clienteResults.length > 0 && (
-                            <div className="absolute top-full left-0 right-0 z-20 bg-white border border-gray-200 rounded-xl shadow-lg mt-1 overflow-hidden">
-                                {clienteResults.map(c => (
-                                    <button key={c._id} onMouseDown={e => e.preventDefault()} onClick={() => {
-                                        setClienteNombre(`${c.nombre} ${c.apellido}`);
-                                        setClienteSearch("");
-                                        setClienteResults([]);
-                                    }} className="w-full text-left px-4 py-2.5 hover:bg-gray-50 text-sm transition border-b border-gray-50 last:border-0">
-                                        <span className="font-semibold text-gray-900">{c.nombre} {c.apellido}</span>
-                                        <span className="text-gray-400 ml-2 text-xs">@{c.username}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Nota */}
-                    <input type="text" placeholder="Nota para el bar..." value={nota} onChange={e => setNota(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
-
-                    {/* Items del carrito — ticket style */}
-                    {cart.length > 0 && (
-                        <div className="rounded-xl border border-gray-200 overflow-hidden">
-                            <div className="bg-gray-50 px-3 py-1.5">
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                                    {comandaId ? "Agregar a comanda" : "Nuevo pedido"}
-                                </p>
-                            </div>
-                            <div className="bg-white px-3 py-2 space-y-0.5">
-                                {cart.map(c => (
-                                    <div key={c.menuItemId} className="flex items-center justify-between py-0.5">
-                                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                                            <div className="flex items-center gap-1 shrink-0">
-                                                <button onClick={() => removeFromCart(c.menuItemId)} className="w-5 h-5 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-xs transition">−</button>
-                                                <span className="text-sm font-bold text-gray-900 w-5 text-center">{c.cantidad}</span>
-                                                <button onClick={() => setCart(prev => prev.map(x => x.menuItemId === c.menuItemId ? { ...x, cantidad: x.cantidad + 1 } : x))} className="w-5 h-5 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-xs transition">+</button>
-                                            </div>
-                                            <span className="text-sm text-gray-800 truncate">{c.nombre}</span>
-                                        </div>
-                                        <span className="text-xs text-gray-500 shrink-0 ml-2">${formatPrice(c.precio * c.cantidad)}</span>
-                                    </div>
-                                ))}
-                                <div className="flex justify-between text-xs font-black text-gray-900 pt-1.5 border-t border-gray-200 mt-1">
-                                    <span>SUBTOTAL</span><span>${formatPrice(total)}</span>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {error && <p className="text-red-600 text-xs text-center">{error}</p>}
-
-                    {cart.length > 0 && (
-                        <button onClick={enviarPedido} disabled={enviando}
-                            className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition">
-                            <Send className="w-4 h-4" />
-                            {enviando ? "Enviando..."
-                                : comandaId ? `Agregar a comanda · $${formatPrice(total)}`
-                                : `Enviar al bar · $${formatPrice(total)}`
-                            }
+                {/* Fila mesa + comensales */}
+                {!comandaId && (
+                    <div className="flex gap-2 items-center">
+                        <button onClick={openMesaPicker}
+                            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-semibold transition shrink-0 ${mesa ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
+                            <MapPin className="w-3.5 h-3.5" />
+                            {mesa ? `Mesa ${mesa}` : "Mesa"}
+                            <ChevronDown className="w-3 h-3" />
                         </button>
+                        <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-xl px-2 py-1.5 shrink-0">
+                            <button onClick={() => setComensales(c => Math.max(1, c - 1))} className="w-5 h-5 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 text-sm font-bold">−</button>
+                            <span className="text-sm font-bold text-gray-900 w-5 text-center">{comensales}</span>
+                            <button onClick={() => setComensales(c => Math.min(20, c + 1))} className="w-5 h-5 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 text-sm font-bold">+</button>
+                            <span className="text-[10px] text-gray-400">p</span>
+                        </div>
+                    </div>
+                )}
+
+                {/* Comanda context */}
+                {comandaId && comanda && (
+                    <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-xs">
+                        <span className="font-bold text-amber-800">
+                            {comanda.mesa ? `Mesa ${comanda.mesa}` : "Sin mesa"}
+                            {comanda.comensales ? ` · ${comanda.comensales}p` : ""}
+                        </span>
+                        <span className="text-amber-600">· comanda activa · ${formatPrice(comanda.total)}</span>
+                    </div>
+                )}
+
+                {/* Nombre cliente */}
+                <div className="relative">
+                    <input
+                        ref={clienteInputRef}
+                        type="text"
+                        placeholder="Nombre del cliente (opcional)"
+                        value={clienteNombre}
+                        onChange={e => {
+                            setClienteNombre(e.target.value);
+                            setClienteSearch(e.target.value);
+                        }}
+                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                    />
+                    {clienteResults.length > 0 && (
+                        <div className="absolute top-full left-0 right-0 z-20 bg-white border border-gray-200 rounded-xl shadow-lg mt-1 overflow-hidden">
+                            {clienteResults.map(c => (
+                                <button key={c._id} onMouseDown={e => e.preventDefault()} onClick={() => {
+                                    setClienteNombre(`${c.nombre} ${c.apellido}`);
+                                    setClienteSearch("");
+                                    setClienteResults([]);
+                                }} className="w-full text-left px-4 py-2.5 hover:bg-gray-50 text-sm transition border-b border-gray-50 last:border-0">
+                                    <span className="font-semibold text-gray-900">{c.nombre} {c.apellido}</span>
+                                    <span className="text-gray-400 ml-2 text-xs">@{c.username}</span>
+                                </button>
+                            ))}
+                        </div>
                     )}
                 </div>
-            </div>
-        );
-    }
 
-    // ── StickyHeader ────────────────────────────────────────────
-    function StickyHeader({ title, onBack, icon: Icon }: { title: string; onBack: () => void; icon?: React.ElementType }) {
-        const I = Icon || UtensilsCrossed;
+                {/* Nota */}
+                <input type="text" placeholder="Nota para el bar..." value={nota} onChange={e => setNota(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
+
+                {/* Items del carrito — ticket style */}
+                {cart.length > 0 && (
+                    <div className="rounded-xl border border-gray-200 overflow-hidden">
+                        <div className="bg-gray-50 px-3 py-1.5">
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                                {comandaId ? "Agregar a comanda" : "Nuevo pedido"}
+                            </p>
+                        </div>
+                        <div className="bg-white px-3 py-2 space-y-0.5">
+                            {cart.map(c => (
+                                <div key={c.menuItemId} className="flex items-center justify-between py-0.5">
+                                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                                        <div className="flex items-center gap-1 shrink-0">
+                                            <button onClick={() => removeFromCart(c.menuItemId)} className="w-5 h-5 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-xs transition">−</button>
+                                            <span className="text-sm font-bold text-gray-900 w-5 text-center">{c.cantidad}</span>
+                                            <button onClick={() => setCart(prev => prev.map(x => x.menuItemId === c.menuItemId ? { ...x, cantidad: x.cantidad + 1 } : x))} className="w-5 h-5 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-xs transition">+</button>
+                                        </div>
+                                        <span className="text-sm text-gray-800 truncate">{c.nombre}</span>
+                                    </div>
+                                    <span className="text-xs text-gray-500 shrink-0 ml-2">${formatPrice(c.precio * c.cantidad)}</span>
+                                </div>
+                            ))}
+                            <div className="flex justify-between text-xs font-black text-gray-900 pt-1.5 border-t border-gray-200 mt-1">
+                                <span>SUBTOTAL</span><span>${formatPrice(total)}</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {error && <p className="text-red-600 text-xs text-center">{error}</p>}
+
+                {cart.length > 0 && (
+                    <button onClick={enviarPedido} disabled={enviando}
+                        className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition">
+                        <Send className="w-4 h-4" />
+                        {enviando ? "Enviando..."
+                            : comandaId ? `Agregar a comanda · $${formatPrice(total)}`
+                            : `Enviar al bar · $${formatPrice(total)}`
+                        }
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+
+    // ── StickyHeader como JSX ────────────────────────────────────
+    // Mismo motivo que CartPanel: evitar función anidada
+    function makeStickyHeader(title: string, onBack: () => void, Icon: React.ElementType = UtensilsCrossed) {
         return (
             <div className="bg-black text-white px-4 py-3 flex items-center gap-3">
                 <button onClick={onBack} className="p-1 -ml-1"><ChevronLeft className="w-6 h-6" /></button>
-                <I size={18} className="text-white/80 shrink-0" />
+                <Icon size={18} className="text-white/80 shrink-0" />
                 <h1 className="text-xl font-bold flex-1">{title}</h1>
                 {totalItems > 0 && (
                     <div className="flex items-center gap-1.5 bg-red-600 px-3 py-1 rounded-full">
@@ -418,8 +417,8 @@ function AnotadorMenuContent() {
         <div className="bg-white min-h-screen pb-6">
             {/* Sticky header + CartPanel — siempre visibles */}
             <div className="sticky z-20" style={{ top: "calc(env(safe-area-inset-top) + 98px)" }}>
-                <StickyHeader title={stickyTitle} onBack={stickyBack} icon={stickyIcon} />
-                <CartPanel />
+                {makeStickyHeader(stickyTitle, stickyBack, stickyIcon)}
+                {cartPanelJSX}
             </div>
 
             {/* Vista: categorías principales */}
@@ -475,10 +474,10 @@ function AnotadorMenuContent() {
 
             {/* Mesa picker modal — SIEMPRE disponible sin importar la vista actual */}
             {mesaPickerOpen && (
-                <div className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center sm:p-4"
+                <div className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center pt-[calc(env(safe-area-inset-top)+100px)] px-3 sm:items-center sm:pt-0 sm:p-4"
                      onClick={e => { if (e.target === e.currentTarget) setMesaPickerOpen(false); }}>
-                    <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-2xl shadow-2xl flex flex-col" style={{ maxHeight: "92vh" }}>
-                        <div className="flex justify-center pt-3 pb-1 sm:hidden shrink-0"><div className="w-10 h-1.5 bg-gray-300 rounded-full" /></div>
+                    <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col" style={{ maxHeight: "80vh" }}>
+                        <div className="hidden" />
                         <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-100 shrink-0">
                             <MapPin size={16} className="text-gray-500" />
                             <h2 className="font-black text-gray-900 flex-1">Elegir mesa</h2>
