@@ -387,8 +387,12 @@ function AnotadorMenuContent() {
                                     <span className="text-xs text-gray-500 shrink-0 ml-2">${formatPrice(c.precio * c.cantidad)}</span>
                                 </div>
                             ))}
-                            <div className="flex justify-between text-xs font-black text-gray-900 pt-1.5 border-t border-gray-200 mt-1">
-                                <span>SUBTOTAL</span><span>${formatPrice(total)}</span>
+                            <div className="flex justify-between items-center pt-1.5 border-t border-gray-200 mt-1">
+                                <span className="text-xs font-black text-gray-900">SUBTOTAL ${formatPrice(total)}</span>
+                                <button onClick={() => { setCart([]); sessionStorage.removeItem(CART_KEY); }}
+                                    className="text-[10px] text-red-500 hover:text-red-700 font-semibold transition">
+                                    Vaciar
+                                </button>
                             </div>
                         </div>
                     </div>
