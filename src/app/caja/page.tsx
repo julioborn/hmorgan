@@ -204,8 +204,8 @@ export default function CajaPage() {
 
     if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-gray-400" size={36} /></div>;
 
-    // Todos los pedidos LISTOS para cobrar (mozo + app)
-    const paraCobrar = pedidos.filter(p => p.estado === "listo");
+    // Todos los pedidos FINALIZADOS (entregado) para cobrar (mozo + app)
+    const paraCobrar = pedidos.filter(p => p.estado === "entregado");
 
     // Listas por estado
     const pendientes   = pedidos.filter(p => p.estado === "pendiente");
@@ -448,17 +448,12 @@ export default function CajaPage() {
                                                         </div>
                                                     )}
 
-                                                    {/* Listo → botón para ir a cobrar (mozo y app) */}
-                                                    {p.estado === "listo" && (
+                                                    {/* Finalizado → botón para ir a cobrar */}
+                                                    {p.estado === "entregado" && (
                                                         <button onClick={() => setTab("caja")}
                                                             className="mt-4 w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-sm transition">
                                                             <Wallet size={14} /> Cobrar en caja →
                                                         </button>
-                                                    )}
-                                                    {esMozo && p.estado !== "listo" && (
-                                                        <p className="text-xs text-blue-500 text-center mt-4">
-                                                            Cuando esté listo aparecerá en la pestaña Cobrar
-                                                        </p>
                                                     )}
                                                 </div>
                                             </motion.div>
@@ -498,7 +493,7 @@ export default function CajaPage() {
                                                     {p.comensales ? <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">{p.comensales}p</span> : null}
                                                     {p.nombreComanda && !esMozo && <span className="text-xs text-gray-400 truncate max-w-[100px]">{p.nombreComanda}</span>}
                                                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${esMozo ? "border-emerald-500 bg-emerald-100 text-emerald-700" : "border-blue-400 bg-blue-100 text-blue-700"}`}>
-                                                        Listo
+                                                        Finalizado
                                                     </span>
                                                 </div>
                                                 <p className="text-xs text-gray-400 mt-0.5">{format(new Date(p.createdAt), "HH:mm", { locale: es })}{p.tipoEntrega === "envio" ? " · Envío" : ""}</p>
