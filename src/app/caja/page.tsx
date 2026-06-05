@@ -194,7 +194,7 @@ export default function CajaPage() {
         <button onClick={() => setVista(key)}
             className={`relative flex-1 py-2.5 text-xs font-bold transition rounded-xl ${vista === key ? "bg-red-600 text-white" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"}`}>
             {label}
-            {count > 0 && key !== "entregados" && (
+            {count > 0 && key !== "finalizados" && (
                 <span className="absolute -top-1.5 -right-1.5 min-w-[1.2rem] px-1 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-bold text-center leading-tight"
                     style={{ display: vista === key ? "none" : "block" }}>{count}</span>
             )}
