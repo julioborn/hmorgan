@@ -22,12 +22,10 @@ export default function RegisterSW() {
                     }
                 });
 
-                // 🔁 Refrescar al activar nueva versión
+                // El nuevo SW se activa silenciosamente sin forzar reload
+                // (evita recarga inesperada al volver de otra app)
                 navigator.serviceWorker.addEventListener("controllerchange", () => {
-                    if (!sessionStorage.getItem("sw-refreshed")) {
-                        sessionStorage.setItem("sw-refreshed", "1");
-                        window.location.reload();
-                    }
+                    console.log("🆕 Service Worker actualizado en background.");
                 });
 
                 // 🔔 Recibir push en primer plano desde el SW

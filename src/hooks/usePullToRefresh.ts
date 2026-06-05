@@ -2,8 +2,8 @@
 
 import { useEffect, useRef } from "react";
 
-const THRESHOLD = 72;  // px de arrastre para disparar el reload
-const DAMPEN   = 0.45; // resistencia al arrastre
+const THRESHOLD = 100; // px de arrastre para disparar el reload (subido para evitar falsos positivos)
+const DAMPEN   = 0.4;  // resistencia al arrastre
 
 export function usePullToRefresh() {
     const startY   = useRef(0);
@@ -35,9 +35,12 @@ export function usePullToRefresh() {
 
         const onTouchStart = (e: TouchEvent) => {
             // No activar si la página está scrolleada hacia abajo
-            if (window.scrollY > 2) return;
+            if (window.scrollY > 5) return;
             // No pisar la zona de swipe-back (borde izquierdo)
             if (e.touches[0].clientX < 28) return;
+            // Ignorar toques en zonas de input/botón para no interferir
+            const tag = (e.target as HTMLElement)?.tagName;
+            if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || tag === "BUTTON") return;
 
             pulling.current = true;
             startY.current  = e.touches[0].clientY;
