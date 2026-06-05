@@ -143,7 +143,15 @@ export default function CajaPage() {
                 method: "PUT", headers: { "Content-Type": "application/json" }, credentials: "include",
                 body: JSON.stringify({ id: p._id, estado }),
             });
-            if (res.ok) { setVista(VISTA_MAP[estado]); loadData(); }
+            if (res.ok) {
+                if (estado === "entregado") {
+                    // Al finalizar, ir directo a Cobrar
+                    setTab("caja");
+                } else {
+                    setVista(VISTA_MAP[estado] || "pendientes");
+                }
+                await loadData();
+            }
         } finally { setUpdatingId(null); }
     }
 
@@ -204,8 +212,8 @@ export default function CajaPage() {
 
     if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-gray-400" size={36} /></div>;
 
-    // Todos los pedidos FINALIZADOS (entregado) para cobrar (mozo + app)
-    const paraCobrar = pedidos.filter(p => p.estado === "entregado");
+    // Pedidos listos para cobrar: estado listo O entregado (ambos estados válidos)
+    const paraCobrar = pedidos.filter(p => p.estado === "listo" || p.estado === "entregado");
 
     // Listas por estado
     const pendientes   = pedidos.filter(p => p.estado === "pendiente");
@@ -475,7 +483,7 @@ export default function CajaPage() {
                                 <div className="text-center py-16 text-gray-400">
                                     <Wallet size={40} className="mx-auto mb-3 text-gray-200" />
                                     <p className="font-semibold">Sin pedidos listos para cobrar</p>
-                                    <p className="text-sm mt-1">Aparecen acá cuando el mozo los marca como "Listo"</p>
+                                    <p className="text-sm mt-1">Aparecen acá cuando el pedido está Listo o Finalizado</p>
                                 </div>
                             ) : paraCobrar.map(p => {
                                 const esMozo = p.fuente === "empleado" || p.userId?.role === "empleado";
@@ -493,7 +501,7 @@ export default function CajaPage() {
                                                     {p.comensales ? <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">{p.comensales}p</span> : null}
                                                     {p.nombreComanda && !esMozo && <span className="text-xs text-gray-400 truncate max-w-[100px]">{p.nombreComanda}</span>}
                                                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${esMozo ? "border-emerald-500 bg-emerald-100 text-emerald-700" : "border-blue-400 bg-blue-100 text-blue-700"}`}>
-                                                        Finalizado
+                                                        {p.estado === "entregado" ? "Finalizado" : "Listo"}
                                                     </span>
                                                 </div>
                                                 <p className="text-xs text-gray-400 mt-0.5">{format(new Date(p.createdAt), "HH:mm", { locale: es })}{p.tipoEntrega === "envio" ? " · Envío" : ""}</p>
