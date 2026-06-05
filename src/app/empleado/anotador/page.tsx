@@ -52,7 +52,7 @@ export default function AnotadorPage() {
             <div className="max-w-2xl mx-auto px-4 pt-4">
 
                 {/* Header */}
-                <div className="flex items-center justify-between mb-5">
+                <div className="flex items-start justify-between mb-5">
                     <div>
                         <h1 className="text-2xl font-black text-gray-900">Comandas</h1>
                         <p className="text-sm text-gray-400">
