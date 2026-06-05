@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 
 const BarMap = dynamic(() => import("@/components/BarMap"), { ssr: false });
-import { QrCode, Users, Bell, PackagePlus, Package, Utensils, Ticket, History, ScanQrCode, ScanText, Settings, Star, BarChart2, ClipboardList, LayoutGrid, Images, CalendarDays } from "lucide-react";
+import { QrCode, Users, Bell, PackagePlus, Package, Utensils, Ticket, History, ScanQrCode, ScanText, Settings, Star, BarChart2, ClipboardList, LayoutGrid, Images, CalendarDays, Wallet, MapPin, TrendingUp } from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 import Loader from "@/components/Loader";
@@ -358,8 +358,9 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
    ========================= */
 function AdminHome() {
   const [pedidosActivos, setPedidosActivos] = useState<any[]>([]);
-  const [clientes, setClientes] = useState<number | null>(null);
-  const [statsHoy, setStatsHoy] = useState<{ pedidos: number; ingresos: number } | null>(null);
+  const [clientes, setClientes]             = useState<number | null>(null);
+  const [statsHoy, setStatsHoy]             = useState<{ pedidos: number; ingresos: number } | null>(null);
+  const [reservasPendientes, setReservasPendientes] = useState(0);
   const [hora, setHora] = useState(() => new Date().getHours());
 
   useEffect(() => {
@@ -367,40 +368,47 @@ function AdminHome() {
     return () => clearInterval(tick);
   }, []);
 
+  // Pedidos en tiempo real
   useEffect(() => {
-    const fetchPedidos = async () => {
+    const fetch_ = async () => {
       try {
         const res = await fetch("/api/pedidos", { cache: "no-store" });
         if (!res.ok) return;
         const data = await res.json();
-        setPedidosActivos(
-          data?.filter((p: any) => ["pendiente", "preparando", "listo"].includes(p.estado)) ?? []
-        );
+        setPedidosActivos(data?.filter((p: any) => ["pendiente", "preparando", "listo"].includes(p.estado)) ?? []);
       } catch {}
     };
-    fetchPedidos();
-    const interval = setInterval(fetchPedidos, 5000);
-    return () => clearInterval(interval);
+    fetch_();
+    const iv = setInterval(fetch_, 5000);
+    return () => clearInterval(iv);
   }, []);
 
+  // Reservas pendientes hoy en tiempo real
   useEffect(() => {
-    const hoy = new Date();
-    const yyyy = hoy.getFullYear();
-    const mm = String(hoy.getMonth() + 1).padStart(2, "0");
-    const dd = String(hoy.getDate()).padStart(2, "0");
-    const hoyStr = `${yyyy}-${mm}-${dd}`;
-
-    const fetchStatsHoy = async () => {
+    const fetch_ = async () => {
       try {
-        const res = await fetch(`/api/admin/estadisticas?desde=${hoyStr}&hasta=${hoyStr}`, { cache: "no-store" });
+        const res = await fetch("/api/reservas", { credentials: "include" });
         if (!res.ok) return;
         const data = await res.json();
-        setStatsHoy({ pedidos: data.totalPedidos ?? 0, ingresos: data.totalIngresos ?? 0 });
-        setClientes(data.totalUsuarios ?? null);
+        const hoy = new Date().toISOString().slice(0, 10);
+        setReservasPendientes(data.filter((r: any) => r.estado === "pendiente" && r.fecha?.slice(0, 10) === hoy).length);
       } catch {}
     };
+    fetch_();
+    const iv = setInterval(fetch_, 10000);
+    return () => clearInterval(iv);
+  }, []);
 
-    fetchStatsHoy();
+  // Stats del día
+  useEffect(() => {
+    const hoy = new Date();
+    const hoyStr = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,"0")}-${String(hoy.getDate()).padStart(2,"0")}`;
+    fetch(`/api/admin/estadisticas?desde=${hoyStr}&hasta=${hoyStr}`, { cache: "no-store" })
+      .then(r => r.json())
+      .then(d => {
+        setStatsHoy({ pedidos: d.totalPedidos ?? 0, ingresos: d.totalIngresos ?? 0 });
+        setClientes(d.totalUsuarios ?? null);
+      }).catch(() => {});
   }, []);
 
   const saludo = hora < 12 ? "Buenos días" : hora < 20 ? "Buenas tardes" : "Buenas noches";
@@ -409,95 +417,129 @@ function AdminHome() {
   const pendientes = pedidosActivos.filter(p => p.estado === "pendiente").length;
 
   return (
-    <div
-      className={`${container} pb-10 space-y-6`}
-      style={{ paddingBottom: "max(2.5rem, env(safe-area-inset-bottom))" }}
-    >
-      {/* ── Header ── */}
-      <div className="rounded-2xl bg-black text-white px-5 py-6 flex items-center justify-between shadow-lg">
+    <div className={`${container} pb-10 space-y-5`} style={{ paddingBottom: "max(2.5rem, env(safe-area-inset-bottom))" }}>
+
+      {/* Welcome */}
+      <div className="rounded-2xl bg-black text-white px-5 py-5 flex items-center justify-between shadow-lg">
         <div>
           <p className="text-sm text-gray-400 capitalize">{fechaHoy}</p>
-          <h1 className="text-2xl font-extrabold mt-0.5">{saludo}</h1>
-          <p className="text-sm text-gray-400 mt-1">Panel de Administración</p>
+          <h1 className="text-xl font-extrabold mt-0.5">{saludo}</h1>
+          <p className="text-xs text-gray-500 mt-0.5">Panel de Administración</p>
         </div>
-        <img src="/morganwhite.png" alt="Logo" className="h-14 w-14 object-contain opacity-90" />
+        <img src="/morganwhite.png" alt="Logo" className="h-12 w-12 object-contain opacity-90" />
       </div>
 
-      {/* ── Stats rápidas ── */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">
-          <p className={`text-3xl font-extrabold ${pedidosActivosCount > 0 ? "text-red-600" : "text-gray-800"}`}>
-            {pedidosActivosCount}
-          </p>
-          <p className="text-[11px] text-gray-500 font-medium mt-1 leading-tight">Pedidos activos</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">
-          <p className="text-3xl font-extrabold text-gray-800">{clientes ?? "—"}</p>
-          <p className="text-[11px] text-gray-500 font-medium mt-1 leading-tight">Clientes</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">
-          <p className="text-2xl font-extrabold text-gray-800 leading-tight">
-            {statsHoy ? `$${statsHoy.ingresos.toLocaleString("es-AR")}` : "—"}
-          </p>
-          <p className="text-[11px] text-gray-500 font-medium mt-1 leading-tight">Ingresos hoy</p>
-        </div>
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        {[
+          { label: "Pedidos activos", value: pedidosActivosCount, color: pedidosActivosCount > 0 ? "text-red-600" : "text-gray-800" },
+          { label: "Reservas hoy",    value: reservasPendientes,  color: reservasPendientes > 0  ? "text-amber-600" : "text-gray-800" },
+          { label: "Clientes",        value: clientes ?? "—",     color: "text-gray-800" },
+          { label: "Ingresos hoy",    value: statsHoy ? `$${statsHoy.ingresos.toLocaleString("es-AR")}` : "—", color: "text-gray-800", small: true },
+        ].map(s => (
+          <div key={s.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 text-center">
+            <p className={`font-extrabold leading-tight ${s.small ? "text-lg" : "text-2xl"} ${s.color}`}>{s.value}</p>
+            <p className="text-[10px] text-gray-400 font-medium mt-0.5">{s.label}</p>
+          </div>
+        ))}
       </div>
 
-      {/* ── Pedidos destacado ── */}
-      <Link
-        href="/admin/pedidos"
-        className="block rounded-2xl bg-red-600 text-white px-5 py-5 shadow-lg hover:bg-red-700 transition-all active:scale-[0.98]"
-      >
+      {/* Live: Pedidos */}
+      <Link href="/admin/pedidos"
+        className="block rounded-2xl bg-red-600 text-white px-5 py-4 shadow-lg hover:bg-red-700 transition-all active:scale-[0.98]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-white/20 rounded-xl p-2.5">
-              <Package className="h-6 w-6" />
-            </div>
+            <div className="bg-white/20 rounded-xl p-2.5"><Package className="h-5 w-5" /></div>
             <div>
-              <p className="font-extrabold text-lg leading-tight">Pedidos</p>
+              <p className="font-extrabold leading-tight">Pedidos</p>
               <p className="text-red-100 text-sm">
-                {pedidosActivosCount === 0
-                  ? "Sin pedidos activos"
+                {pedidosActivosCount === 0 ? "Sin pedidos activos"
                   : `${pedidosActivosCount} activo${pedidosActivosCount > 1 ? "s" : ""}${pendientes > 0 ? ` · ${pendientes} pendiente${pendientes > 1 ? "s" : ""}` : ""}`}
               </p>
             </div>
           </div>
           {pedidosActivosCount > 0 && (
-            <span className="bg-white text-red-600 font-extrabold text-lg rounded-full h-10 w-10 flex items-center justify-center shadow animate-pulse">
+            <span className="bg-white text-red-600 font-extrabold text-lg rounded-full h-9 w-9 flex items-center justify-center shadow animate-pulse">
               {pedidosActivosCount}
             </span>
           )}
         </div>
       </Link>
 
-      {/* ── Operaciones ── */}
-      <section className="space-y-3">
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Operaciones</p>
-        <div className="grid grid-cols-2 gap-3">
-          <AdminCard href="/admin/scan" title="Escanear Puntos" Icon={ScanQrCode} />
+      {/* Live: Reservas */}
+      <Link href="/superadmin/reservas"
+        className={`block rounded-2xl px-5 py-4 shadow-sm transition-all active:scale-[0.98] border ${
+          reservasPendientes > 0
+            ? "bg-amber-50 border-amber-200 hover:bg-amber-100"
+            : "bg-white border-gray-100 hover:bg-gray-50"
+        }`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`rounded-xl p-2.5 ${reservasPendientes > 0 ? "bg-amber-100" : "bg-gray-100"}`}>
+              <CalendarDays className={`h-5 w-5 ${reservasPendientes > 0 ? "text-amber-600" : "text-gray-500"}`} />
+            </div>
+            <div>
+              <p className="font-extrabold text-gray-900 leading-tight">Reservas</p>
+              <p className={`text-sm ${reservasPendientes > 0 ? "text-amber-600 font-semibold" : "text-gray-400"}`}>
+                {reservasPendientes > 0
+                  ? `${reservasPendientes} pendiente${reservasPendientes > 1 ? "s" : ""} hoy`
+                  : "Sin reservas pendientes hoy"}
+              </p>
+            </div>
+          </div>
+          {reservasPendientes > 0 && (
+            <span className="bg-amber-500 text-white font-extrabold text-base rounded-full h-9 w-9 flex items-center justify-center shadow">
+              {reservasPendientes}
+            </span>
+          )}
+        </div>
+      </Link>
+
+      {/* Salón */}
+      <section className="space-y-2.5">
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Salón</p>
+        <div className="grid grid-cols-2 gap-2.5">
+          <AdminCard href="/superadmin/mesas"   title="Plano de Mesas" Icon={MapPin} />
+          <AdminCard href="/empleado/anotador"  title="Anotador"       Icon={ClipboardList} />
+        </div>
+      </section>
+
+      {/* Caja & Stock */}
+      <section className="space-y-2.5">
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Caja y Stock</p>
+        <div className="grid grid-cols-2 gap-2.5">
+          <AdminCard href="/superadmin/caja"  title="Caja"  Icon={Wallet} />
+          <AdminCard href="/superadmin/stock" title="Stock" Icon={TrendingUp} />
+        </div>
+      </section>
+
+      {/* Clientes */}
+      <section className="space-y-2.5">
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Clientes</p>
+        <div className="grid grid-cols-2 gap-2.5">
+          <AdminCard href="/admin/scan"         title="Escanear Puntos" Icon={ScanQrCode} />
           <AdminCard href="/admin/rewards/scan" title="Escanear Canjes" Icon={ScanText} />
-          <AdminCard href="/admin/mesas" title="Mesas" Icon={LayoutGrid} />
-          <AdminCard href="/admin/clientes" title="Clientes" Icon={Users} />
+          <AdminCard href="/admin/clientes"     title="Clientes"        Icon={Users} />
+          <AdminCard href="/admin/rewards"      title="Canjes"          Icon={Ticket} />
         </div>
       </section>
 
-      {/* ── Gestión ── */}
-      <section className="space-y-3">
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Gestión</p>
-        <div className="grid grid-cols-2 gap-3">
-          <AdminCard href="/admin/menu" title="Menú" Icon={Utensils} />
-          <AdminCard href="/admin/rewards" title="Canjes" Icon={Ticket} />
-          <AdminCard href="/admin/reviews" title="Reseñas" Icon={Star} />
-          <AdminCard href="/admin/carrousel" title="Fotos" Icon={Images} />
+      {/* Contenido */}
+      <section className="space-y-2.5">
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Contenido</p>
+        <div className="grid grid-cols-2 gap-2.5">
+          <AdminCard href="/admin/menu"      title="Menú"    Icon={Utensils} />
+          <AdminCard href="/admin/reviews"   title="Reseñas" Icon={Star} />
+          <AdminCard href="/admin/carrousel" title="Fotos"   Icon={Images} />
         </div>
       </section>
 
-      {/* ── Herramientas ── */}
-      <section className="space-y-3">
+      {/* Herramientas */}
+      <section className="space-y-2.5">
         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Herramientas</p>
-        <div className="grid grid-cols-2 gap-3">
-          <AdminCard href="/admin/estadisticas" title="Estadísticas" Icon={BarChart2} />
-          <AdminCard href="/admin/configuracion" title="Ajustes" Icon={Settings} />
+        <div className="grid grid-cols-2 gap-2.5">
+          <AdminCard href="/admin/estadisticas"  title="Estadísticas" Icon={BarChart2} />
+          <AdminCard href="/admin/configuracion" title="Ajustes"      Icon={Settings} />
         </div>
         <AdminCard href="/admin/notificaciones" title="Notificaciones" Icon={Bell} full />
       </section>
