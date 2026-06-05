@@ -101,6 +101,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         refresh();
     }, []);
 
+    // 🔄 Refresh silencioso: actualiza el usuario SIN activar loading
+    // (no muestra spinner → el usuario no percibe ningún cambio de pantalla)
+    const silentRefresh = async () => {
+        try {
+            const res = await fetch("/api/auth/me", { cache: "no-store" });
+            const data = await res.json();
+            const usr = data.user || null;
+            setUser(usr);
+            if (usr?.id || usr?._id) {
+                silentPushRecovery(usr.id || usr._id);
+            }
+        } catch { }
+    };
+
     // 🔄 Mantener la sesión activa automáticamente
     useEffect(() => {
         let t: NodeJS.Timeout;
@@ -109,14 +123,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             try {
                 await fetch("/api/auth/me", { cache: "no-store" });
             } catch { }
-            // renovar cada 12 horas
             t = setTimeout(ping, 1000 * 60 * 60 * 12);
         };
 
-        const onFocus = () => {
-            // Al volver a la app refresca (y reintenta push si hiciera falta)
-            refresh();
-        };
+        // Al volver a la ventana: refresh silencioso (sin loading → sin "reload" visual)
+        const onFocus = () => { silentRefresh(); };
 
         ping();
         window.addEventListener("focus", onFocus);
@@ -125,7 +136,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             clearTimeout(t);
             window.removeEventListener("focus", onFocus);
         };
-    }, [refresh]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return (
         <AuthCtx.Provider value={{ user, loading, refresh, logout }}>
