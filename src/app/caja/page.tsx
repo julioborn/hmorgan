@@ -123,20 +123,26 @@ export default function CajaPage() {
     async function cobrar() {
         if (!cobrarModal.pedido) return;
         setCobrarSaving(true);
+        const pedidoCobrado = cobrarModal.pedido;
+        const metodoPago    = cobrarForm.metodoPago;
+        const montoPagado   = Number(cobrarForm.montoPagado) || pedidoCobrado.total;
         try {
             const res = await fetch("/api/superadmin/caja/cobrar", {
                 method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
-                body: JSON.stringify({
-                    pedidoId: cobrarModal.pedido._id,
-                    metodoPago: cobrarForm.metodoPago,
-                    montoPagado: Number(cobrarForm.montoPagado) || cobrarModal.pedido.total,
-                }),
+                body: JSON.stringify({ pedidoId: pedidoCobrado._id, metodoPago, montoPagado }),
             });
             if (res.ok) {
-                printTicket(cobrarModal.pedido, cobrarForm.metodoPago, Number(cobrarForm.montoPagado) || cobrarModal.pedido.total);
+                // Cerrar modal inmediatamente
                 setCobrarModal({ open: false, pedido: null });
                 setCobrarForm({ metodoPago: "efectivo", montoPagado: "" });
-                loadData();
+                // Quitar el pedido de la lista local de forma optimista (no esperar al poll)
+                setPedidos(prev => prev.map(p =>
+                    p._id === pedidoCobrado._id ? { ...p, estado: "cerrado" } : p
+                ));
+                // Imprimir ticket
+                printTicket(pedidoCobrado, metodoPago, montoPagado);
+                // Confirmar con datos frescos del servidor
+                await loadData();
             }
         } finally { setCobrarSaving(false); }
     }
