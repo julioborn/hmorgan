@@ -267,7 +267,40 @@ export async function PUT(req: NextRequest) {
             }
         }
 
-        // 🧠 Mensajes personalizados según el estado
+        const esPedidoMozo = pedido.fuente === "empleado";
+
+        // ── Notificaciones para PEDIDOS DEL MOZO ─────────────────────────
+        // El mozo recibe mensajes específicos de su comanda, no mensajes de cliente
+        if (esPedidoMozo) {
+            const mesaLabel = pedido.mesa ? ` · Mesa ${pedido.mesa}` : "";
+            const mensajesMozo: Record<string, { title: string; body: string } | null> = {
+                preparando: { title: `Comanda en preparación${mesaLabel}`, body: "La cocina está trabajando en tu comanda." },
+                listo:      { title: `Comanda lista${mesaLabel}`, body: "Lista para servir. Podés pasar a cobrar cuando terminen." },
+                entregado:  { title: `Comanda finalizada${mesaLabel}`, body: "La comanda fue marcada como finalizada." },
+                pendiente:  null, // El mozo la creó él mismo, no necesita notificación
+            };
+            const msgMozo = mensajesMozo[estado];
+            if (msgMozo) {
+                const mozo = await User.findById(pedido.userId);
+                if (mozo?.pushSubscriptions?.length) {
+                    await sendPushToSubscriptions(mozo.pushSubscriptions, {
+                        title: msgMozo.title, body: msgMozo.body,
+                        url: "/empleado/anotador",
+                        icon: "/icon-192.png", badge: "/icon-badge-96x96.png",
+                    });
+                }
+                if (mozo) {
+                    const fcmTokens = new Set<string>([...(mozo.fcmTokens ?? []), ...(mozo.tokenFCM ? [mozo.tokenFCM] : [])]);
+                    for (const token of fcmTokens) {
+                        try { await enviarNotificacionFCM(token, msgMozo.title, msgMozo.body, "/empleado/anotador"); }
+                        catch (err) { if (isFCMTokenInvalid(err)) await User.updateOne({ _id: mozo._id }, { $pull: { fcmTokens: token } }); }
+                    }
+                }
+            }
+            return NextResponse.json({ ok: true, pedido });
+        }
+
+        // ── Notificaciones para PEDIDOS DE CLIENTES (app) ────────────────
         const mensajes: Record<
             string,
             (tipoEntrega?: string) => { title: string; body: string }

@@ -359,7 +359,6 @@ export default function CajaPage() {
                                                                 <p className="text-xs text-blue-100 font-semibold truncate">{(p as any).nombreComanda}</p>
                                                             )}
                                                         </div>
-                                                        {p.notaEmpleado && <span className="text-xs opacity-80 italic truncate max-w-[100px] shrink-0">{p.notaEmpleado}</span>}
                                                     </div>
                                                 )}
 
@@ -399,10 +398,11 @@ export default function CajaPage() {
                                                         ))}
                                                     </ul>
 
-                                                    {(p.notaCliente) && (
-                                                        <p className="text-xs text-gray-600 italic bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2 mb-3">
-                                                            📝 {p.notaCliente}
-                                                        </p>
+                                                    {(p.notaEmpleado || p.notaCliente) && (
+                                                        <div className="border-l-2 border-amber-400 pl-3 py-1 mb-3">
+                                                            <p className="text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Nota</p>
+                                                            <p className="text-xs text-gray-600 italic">{p.notaEmpleado || p.notaCliente}</p>
+                                                        </div>
                                                     )}
 
                                                     {/* Total */}
