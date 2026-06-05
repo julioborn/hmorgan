@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const { items, tipoEntrega, direccion, fuente, mesa, notaEmpleado, notaCliente } = await req.json();
+        const { items, tipoEntrega, direccion, fuente, mesa, comensales, notaEmpleado, notaCliente } = await req.json();
         if (!items?.length)
             return NextResponse.json({ message: "Sin items" }, { status: 400 });
 
@@ -153,6 +153,7 @@ export async function POST(req: NextRequest) {
             cancelableUntil,
             fuente: fuente === "empleado" ? "empleado" : "cliente",
             mesa: mesa || undefined,
+            comensales: Number(comensales) || 0,
             notaEmpleado: notaEmpleado || undefined,
             notaCliente: notaCliente || undefined,
         });
@@ -362,9 +363,9 @@ export async function DELETE(req: NextRequest) {
             return NextResponse.json({ message: "No autorizado" }, { status: 401 });
 
         const payload = jwt.verify(token, NEXTAUTH_SECRET) as any;
-        if (payload.role !== "admin")
+        if (payload.role !== "admin" && payload.role !== "cajero")
             return NextResponse.json(
-                { message: "Solo el admin puede eliminar pedidos" },
+                { message: "Sin permiso para eliminar pedidos" },
                 { status: 403 }
             );
 

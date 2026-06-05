@@ -78,9 +78,10 @@ export default function AnotadorPage() {
     const router = useRouter();
     const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
     const [loadingMenu, setLoadingMenu] = useState(true);
-    const [cart, setCart] = useState<CartItem[]>([]);
-    const [mesa, setMesa] = useState("");
-    const [nota, setNota] = useState("");
+    const [cart, setCart]           = useState<CartItem[]>([]);
+    const [mesa, setMesa]           = useState("");
+    const [nota, setNota]           = useState("");
+    const [comensales, setComensales] = useState(2);
     const [mesasRegistradas, setMesasRegistradas] = useState<{ _id: string; nombre: string }[]>([]);
     const [categoriaActiva, setCategoriaActiva] = useState<string | null>(null);
     const [enviando, setEnviando] = useState(false);
@@ -200,6 +201,7 @@ export default function AnotadorPage() {
                         tipoEntrega: "retira",
                         fuente: "empleado",
                         mesa: mesa.trim() || undefined,
+                        comensales: comensales || undefined,
                         notaEmpleado: nota.trim() || undefined,
                     }),
                 });
@@ -209,16 +211,23 @@ export default function AnotadorPage() {
                 setError(err.message || err.error || "Error al enviar el pedido");
                 return;
             }
+            const wasAddingToComanda = comandaSeleccionada && !!activeOrder;
             setLastOrder({ items: [...cart], mesa, nota, timestamp: new Date() });
             setCart([]);
             setNota("");
             setComandaseleccionada(false);
-            // Refrescar comanda activa de la mesa (no limpiar mesa)
-            if (mesa) {
+
+            if (wasAddingToComanda) {
+                // Agregar a comanda existente: mantener mesa y refrescar la comanda
                 const updated = await fetch(`/api/pedidos?mesa=${encodeURIComponent(mesa)}&activos=true`, { credentials: "include" });
                 const data = await updated.json().catch(() => []);
                 const order = Array.isArray(data) ? data.find((p: any) => p.fuente === "empleado") : null;
                 setActiveOrder(order || null);
+            } else {
+                // Nueva comanda: limpiar mesa y comensales para el siguiente pedido
+                setMesa("");
+                setComensales(2);
+                setActiveOrder(null);
             }
         } catch {
             setError("Error de conexión");
@@ -276,16 +285,23 @@ export default function AnotadorPage() {
             <div className="bg-white border-b border-gray-200 shadow-sm px-4 pt-3 pb-3">
                 <div className="max-w-2xl mx-auto space-y-2">
 
-                    {/* Selector de mesa → abre plano */}
-                    <div className="flex gap-2">
+                    {/* Fila 1: mesa + comensales */}
+                    <div className="flex gap-2 items-center">
                         <button onClick={openMesaPicker}
-                            className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-semibold transition ${mesa ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
+                            className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-semibold transition shrink-0 ${mesa ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
                             <MapPin className="w-4 h-4 shrink-0" />
                             {mesa ? `Mesa ${mesa}` : "Elegir mesa"}
                             <ChevronDown className="w-3 h-3" />
                         </button>
-                        <input type="text" placeholder="Nota para el bar..." value={nota} onChange={e => setNota(e.target.value)}
-                            className="flex-1 px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
+                        {/* Comensales */}
+                        <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-2 py-1.5">
+                            <button onClick={() => setComensales(c => Math.max(1, c - 1))} className="w-6 h-6 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 font-bold text-sm">−</button>
+                            <span className="text-sm font-bold text-gray-900 min-w-[1.5rem] text-center">{comensales}</span>
+                            <button onClick={() => setComensales(c => Math.min(20, c + 1))} className="w-6 h-6 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 font-bold text-sm">+</button>
+                            <span className="text-xs text-gray-400 ml-0.5">p.</span>
+                        </div>
+                        <input type="text" placeholder="Nota..." value={nota} onChange={e => setNota(e.target.value)}
+                            className="flex-1 min-w-0 px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
                     </div>
 
                     {/* Comanda activa — hay que presionarla para agregar */}
@@ -302,7 +318,9 @@ export default function AnotadorPage() {
                             <div className="flex items-center justify-between mb-1">
                                 <p className="text-xs font-bold">
                                     {comandaSeleccionada ? "✓ Editando comanda" : "Comanda activa · tocá para agregar"}
-                                    {" · "}{formatPrice(activeOrder.total)}
+                                    {" · Mesa "}{activeOrder.mesa}
+                                    {(activeOrder as any).comensales > 0 ? ` · ${(activeOrder as any).comensales}p` : ""}
+                                    {" · $"}{formatPrice(activeOrder.total)}
                                 </p>
                                 <ChevronDown className={`w-3 h-3 transition-transform ${comandaSeleccionada ? "rotate-180" : ""}`} />
                             </div>
@@ -542,18 +560,24 @@ export default function AnotadorPage() {
                 </div>
             )}
 
-            {/* Modal picker plano de mesas */}
+            {/* Modal picker plano de mesas — bottom sheet en mobile */}
             {mesaPickerOpen && (
-                <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-3">
-                    <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col" style={{ maxHeight: "92vh" }}>
-                        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
+                <div className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center sm:p-4"
+                     onClick={e => { if (e.target === e.currentTarget) setMesaPickerOpen(false); }}>
+                    <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-2xl shadow-2xl flex flex-col" style={{ maxHeight: "92vh" }}>
+                        {/* Drag handle (mobile) */}
+                        <div className="flex justify-center pt-3 pb-1 sm:hidden shrink-0">
+                            <div className="w-10 h-1.5 bg-gray-300 rounded-full" />
+                        </div>
+                        <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-100 shrink-0">
                             <MapPin size={16} className="text-gray-500" />
                             <h2 className="font-black text-gray-900 flex-1">Elegir mesa</h2>
                             <button onClick={() => setMesaPickerOpen(false)} className="p-1 text-gray-400 hover:text-gray-700"><X size={18} /></button>
                         </div>
-                        <div className="p-4 overflow-y-auto flex-1">
-                            {/* Canvas del plano */}
-                            <div className="relative w-full rounded-xl overflow-hidden border border-gray-200" style={{ paddingBottom: "72%" }}>
+                        <div className="p-3 overflow-y-auto flex-1 min-h-0">
+                            {/* Canvas con altura fija responsive */}
+                            <div className="relative w-full rounded-xl overflow-hidden border border-gray-200"
+                                 style={{ height: "clamp(200px, 60vw, 380px)" }}>
                                 <div className="absolute inset-0" style={{ backgroundColor: "#f9f5ef", backgroundImage: "linear-gradient(rgba(0,0,0,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.04) 1px,transparent 1px)", backgroundSize: "30px 30px" }}>
                                     {/* Elementos decorativos */}
                                     {elementsPlano.map(el => {

@@ -95,6 +95,12 @@ export default function CajaPage() {
         } finally { setOpenSaving(false); }
     }
 
+    async function rechazarPedido(id: string) {
+        if (!confirm("¿Rechazar este pedido?")) return;
+        await fetch(`/api/pedidos?id=${id}`, { method: "DELETE", credentials: "include" });
+        loadData();
+    }
+
     async function avanzarEstado(p: Pedido, estado: string) {
         setUpdatingId(p._id);
         try {
@@ -330,12 +336,18 @@ export default function CajaPage() {
 
                                                     {/* Botones estado pendiente */}
                                                     {p.estado === "pendiente" ? (
-                                                        <button disabled={isUpdating}
-                                                            onClick={() => avanzarEstado(p, "preparando")}
-                                                            className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-semibold py-2 rounded-xl transition flex items-center justify-center gap-2">
-                                                            {isUpdating ? <Loader2 size={14} className="animate-spin" /> : null}
-                                                            Aceptar pedido
-                                                        </button>
+                                                        <div className="flex gap-2">
+                                                            <button disabled={isUpdating}
+                                                                onClick={() => avanzarEstado(p, "preparando")}
+                                                                className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-semibold py-2 rounded-xl transition flex items-center justify-center gap-1">
+                                                                {isUpdating ? <Loader2 size={14} className="animate-spin" /> : null}
+                                                                Aceptar
+                                                            </button>
+                                                            <button onClick={() => rechazarPedido(p._id)}
+                                                                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 rounded-xl transition">
+                                                                Rechazar
+                                                            </button>
+                                                        </div>
                                                     ) : (
                                                         /* Barra de progreso con estados */
                                                         <div className="relative w-full flex justify-between items-center mt-4">

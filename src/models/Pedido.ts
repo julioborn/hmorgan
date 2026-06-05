@@ -20,6 +20,7 @@ const PedidoSchema = new Schema(
         cancelableUntil: { type: Date },
         fuente: { type: String, enum: ["cliente", "empleado"], default: "cliente" },
         mesa: { type: String },
+        comensales: { type: Number, default: 0 },
         notaEmpleado: { type: String },
         notaCliente: { type: String },
         puntosAcreditados: { type: Boolean, default: false },
