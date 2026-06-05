@@ -204,11 +204,8 @@ export default function CajaPage() {
 
     if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-gray-400" size={36} /></div>;
 
-    // Pedidos de mozo LISTOS para cobrar (con o sin mesa)
-    const paraCobrar = pedidos.filter(p =>
-        (p.fuente === "empleado" || p.userId?.role === "empleado") &&
-        p.estado === "listo"
-    );
+    // Todos los pedidos LISTOS para cobrar (mozo + app)
+    const paraCobrar = pedidos.filter(p => p.estado === "listo");
 
     // Listas por estado
     const pendientes   = pedidos.filter(p => p.estado === "pendiente");
@@ -451,8 +448,8 @@ export default function CajaPage() {
                                                         </div>
                                                     )}
 
-                                                    {/* Mozo listo → botón para ir a cobrar */}
-                                                    {esMozo && p.estado === "listo" && (
+                                                    {/* Listo → botón para ir a cobrar (mozo y app) */}
+                                                    {p.estado === "listo" && (
                                                         <button onClick={() => setTab("caja")}
                                                             className="mt-4 w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-sm transition">
                                                             <Wallet size={14} /> Cobrar en caja →
@@ -486,20 +483,25 @@ export default function CajaPage() {
                                     <p className="text-sm mt-1">Aparecen acá cuando el mozo los marca como "Listo"</p>
                                 </div>
                             ) : paraCobrar.map(p => {
-                                const label = p.mesa ? `Mesa ${p.mesa}` : p.nombreComanda || p.userId?.nombre || "Sin mesa";
+                                const esMozo = p.fuente === "empleado" || p.userId?.role === "empleado";
+                                const label = esMozo
+                                    ? (p.mesa ? `Mesa ${p.mesa}` : p.nombreComanda || "Sin mesa")
+                                    : (p.userId ? `${p.userId.nombre} ${p.userId.apellido || ""}`.trim() : "Cliente app");
                                 return (
-                                    <div key={p._id} className="bg-white rounded-2xl border border-emerald-200 shadow-sm overflow-hidden mb-3">
-                                        <div className="flex items-center justify-between px-4 py-3 bg-emerald-50 border-b border-emerald-100">
+                                    <div key={p._id} className={`bg-white rounded-2xl border shadow-sm overflow-hidden mb-3 ${esMozo ? "border-emerald-200" : "border-blue-200"}`}>
+                                        <div className={`flex items-center justify-between px-4 py-3 border-b ${esMozo ? "bg-emerald-50 border-emerald-100" : "bg-blue-50 border-blue-100"}`}>
                                             <div>
-                                                <div className="flex items-center gap-2">
-                                                    <UtensilsCrossed size={14} className="text-emerald-600" />
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <UtensilsCrossed size={14} className={esMozo ? "text-emerald-600" : "text-blue-600"} />
                                                     <p className="font-black text-gray-900">{label}</p>
+                                                    {!esMozo && <span className="text-[10px] bg-blue-100 text-blue-700 font-semibold px-1.5 py-0.5 rounded-full">App</span>}
                                                     {p.comensales ? <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">{p.comensales}p</span> : null}
-                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500 bg-emerald-100 text-emerald-700">
+                                                    {p.nombreComanda && !esMozo && <span className="text-xs text-gray-400 truncate max-w-[100px]">{p.nombreComanda}</span>}
+                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${esMozo ? "border-emerald-500 bg-emerald-100 text-emerald-700" : "border-blue-400 bg-blue-100 text-blue-700"}`}>
                                                         Listo
                                                     </span>
                                                 </div>
-                                                <p className="text-xs text-gray-400 mt-0.5">{format(new Date(p.createdAt), "HH:mm", { locale: es })}</p>
+                                                <p className="text-xs text-gray-400 mt-0.5">{format(new Date(p.createdAt), "HH:mm", { locale: es })}{p.tipoEntrega === "envio" ? " · Envío" : ""}</p>
                                             </div>
                                             <div className="flex items-center gap-3">
                                                 <p className="text-xl font-black text-gray-900">{formatMoney(p.total)}</p>
