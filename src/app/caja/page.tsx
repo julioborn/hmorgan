@@ -32,10 +32,11 @@ const METODO_ICON: Record<string, React.ElementType> = { efectivo: Banknote, tar
 const formatMoney = (n: number) => new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", minimumFractionDigits: 0 }).format(n);
 
 const ESTADOS = [
-    { key: "pendiente",  label: "Pendiente",  icon: Clock,         color: "yellow" },
-    { key: "preparando", label: "Preparando", icon: Flame,         color: "orange" },
-    { key: "listo",      label: "Listo",      icon: CheckCircle,   color: "blue"   },
-    { key: "entregado",  label: "Entregado",  icon: Truck,         color: "emerald"},
+    { key: "pendiente",  label: "Pendiente",   icon: Clock,         color: "yellow"  },
+    { key: "preparando", label: "Preparando",  icon: Flame,         color: "orange"  },
+    { key: "listo",      label: "Listo",       icon: CheckCircle,   color: "blue"    },
+    { key: "entregado",  label: "Finalizado",  icon: Truck,         color: "emerald" },
+    { key: "cerrado",    label: "Cobrado",     icon: CheckCircle,   color: "emerald" },
 ];
 const COLOR_CLASSES: Record<string, string> = {
     yellow:  "border-yellow-500 bg-yellow-400/30 text-yellow-900 font-semibold",
@@ -47,9 +48,9 @@ const BAR_COLORS: Record<string, string> = {
     yellow: "bg-yellow-500", orange: "bg-orange-500", blue: "bg-blue-500", emerald: "bg-emerald-500",
 };
 
-type Vista = "pendientes" | "preparando" | "listos" | "entregados";
+type Vista = "pendientes" | "preparando" | "listos" | "finalizados";
 const VISTA_MAP: Record<string, Vista> = {
-    pendiente: "pendientes", preparando: "preparando", listo: "listos", entregado: "entregados",
+    pendiente: "pendientes", preparando: "preparando", listo: "listos", entregado: "finalizados",
 };
 
 export default function CajaPage() {
@@ -58,6 +59,7 @@ export default function CajaPage() {
     const [pedidos, setPedidos]           = useState<Pedido[]>([]);
     const [loading, setLoading]           = useState(true);
     const [vista, setVista]               = useState<Vista>("pendientes");
+    const hoyStr = new Date().toISOString().slice(0, 10);
     const [updatingId, setUpdatingId]     = useState<string | null>(null);
     const [openForm, setOpenForm]         = useState({ montoInicial: "", notas: "" });
     const [openSaving, setOpenSaving]     = useState(false);
@@ -74,7 +76,11 @@ export default function CajaPage() {
             const [cajaData, pedData] = await Promise.all([cajaRes.json(), pedRes.json()]);
             setSesion(cajaData.sesion || null);
             if (Array.isArray(pedData)) {
-                setPedidos(pedData.filter((p: Pedido) => !["cerrado", "cancelado"].includes(p.estado)));
+                // Incluir "cerrado" (cobrado por caja) solo del día de hoy para Finalizados
+                setPedidos(pedData.filter((p: Pedido) =>
+                    p.estado !== "cancelado" &&
+                    (p.estado !== "cerrado" || (p as any).createdAt?.slice(0, 10) === hoyStr)
+                ));
             }
         } finally { setLoading(false); }
     }, []);
@@ -142,18 +148,23 @@ export default function CajaPage() {
         const rows = pedido.items.map(i => `<tr><td>${i.cantidad}x ${i.menuItemId?.nombre || "ítem"}</td><td style="text-align:right">${formatMoney((i.menuItemId?.precio || 0) * i.cantidad)}</td></tr>`).join("");
         const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Ticket</title><style>
             *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Courier New',monospace;font-size:12px;padding:12px;max-width:280px}
-            h2{text-align:center;font-size:15px;letter-spacing:2px;margin-bottom:2px}.sub{text-align:center;font-size:11px;color:#555;margin-bottom:4px}
-            .mesa{text-align:center;font-size:14px;font-weight:bold;padding:3px 0}hr{border:none;border-top:1px dashed #000;margin:5px 0}
-            table{width:100%;border-collapse:collapse}td{padding:2px 0;font-size:12px}.total{font-size:14px;font-weight:bold}.vuelto{font-weight:bold;color:#16a34a}
+            h2{text-align:center;font-size:15px;letter-spacing:2px;margin-bottom:2px}
+            .sub{text-align:center;font-size:11px;color:#555;margin-bottom:4px}
+            hr{border:none;border-top:1px dashed #000;margin:5px 0}
+            table{width:100%;border-collapse:collapse}td{padding:2px 0;font-size:12px}
+            .total{font-size:14px;font-weight:bold}.vuelto{font-weight:bold;color:#16a34a}
+            .legal{text-align:center;font-size:9px;color:#aaa;margin-top:10px}
         </style></head><body>
-        <h2>TICKET</h2><div class="sub">H. Morgan Bar</div>
-        <div class="mesa">${pedido.mesa ? `MESA ${pedido.mesa}` : pedido.userId ? `${pedido.userId.nombre}` : "MOSTRADOR"}</div>
-        <div class="sub">${fecha} ${hora}</div><hr/><table>${rows}</table><hr/>
+        <h2>TICKET</h2>
+        <div class="sub">${fecha} ${hora}</div>
+        <hr/><table>${rows}</table><hr/>
         <table>
             <tr><td class="total">TOTAL</td><td class="total" style="text-align:right">${formatMoney(pedido.total)}</td></tr>
             <tr><td>${METODO_LABEL[metodo]}</td><td style="text-align:right">${formatMoney(montoPagado)}</td></tr>
             ${vuelto > 0 ? `<tr><td class="vuelto">Vuelto</td><td class="vuelto" style="text-align:right">${formatMoney(vuelto)}</td></tr>` : ""}
-        </table><hr/><div class="sub" style="margin-top:6px">Gracias por su visita!</div></body></html>`;
+        </table>
+        <div class="legal">Comprobante no válido como factura</div>
+        </body></html>`;
         const w = window.open("", "_blank", "width=320,height=500,toolbar=0,menubar=0");
         if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 200); }
     }
@@ -164,12 +175,12 @@ export default function CajaPage() {
     const mesasCobrar = pedidos.filter(p => p.mesa && p.fuente === "empleado");
 
     // Listas por estado
-    const pendientes = pedidos.filter(p => p.estado === "pendiente");
-    const preparando = pedidos.filter(p => p.estado === "preparando");
-    const listos     = pedidos.filter(p => p.estado === "listo");
-    const entregados = pedidos.filter(p => p.estado === "entregado");
+    const pendientes   = pedidos.filter(p => p.estado === "pendiente");
+    const preparando   = pedidos.filter(p => p.estado === "preparando");
+    const listos       = pedidos.filter(p => p.estado === "listo");
+    const finalizados  = pedidos.filter(p => p.estado === "entregado" || p.estado === "cerrado");
 
-    let lista = vista === "pendientes" ? pendientes : vista === "preparando" ? preparando : vista === "listos" ? listos : entregados;
+    let lista = vista === "pendientes" ? pendientes : vista === "preparando" ? preparando : vista === "listos" ? listos : finalizados;
     // Mozo primero
     lista = [...lista].sort((a, b) => {
         const aEmp = a.fuente === "empleado" || a.userId?.role === "empleado";
@@ -254,10 +265,10 @@ export default function CajaPage() {
                         <div className="max-w-2xl mx-auto px-4 pt-4">
                             {/* Sub-tabs estado */}
                             <div className="flex gap-2 mb-5">
-                                {renderTabBtn("pendientes", "Pendientes", pendientes.length)}
-                                {renderTabBtn("preparando", "Preparando", preparando.length)}
-                                {renderTabBtn("listos",     "Listos",     listos.length)}
-                                {renderTabBtn("entregados", "Entregados", entregados.length)}
+                                {renderTabBtn("pendientes",  "Pendientes",  pendientes.length)}
+                                {renderTabBtn("preparando", "Preparando",  preparando.length)}
+                                {renderTabBtn("listos",     "Listos",      listos.length)}
+                                {renderTabBtn("finalizados","Finalizados", finalizados.length)}
                             </div>
 
                             <div className="space-y-4">

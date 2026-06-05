@@ -2,6 +2,7 @@
 
 import { AuthProvider } from "@/context/auth-context";
 import NextAuthSessionProvider from "@/providers/session-provider";
+import { SWRConfig } from "swr";
 import Header from "@/components/Header";
 import RegisterSW from "@/components/RegisterSW";
 import { useEffect, useState } from "react";
@@ -41,6 +42,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
     }, []);
 
     return (
+        <SWRConfig value={{ revalidateOnFocus: false, revalidateOnReconnect: false }}>
         <NextAuthSessionProvider>
             <AuthProvider>
                 {/* Zona de swipe-back */}
@@ -126,5 +128,6 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
                 />
             </AuthProvider>
         </NextAuthSessionProvider>
+        </SWRConfig>
     );
 }
