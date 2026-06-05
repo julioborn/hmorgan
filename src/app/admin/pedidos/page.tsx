@@ -1,7 +1,7 @@
 ﻿"use client";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Clock, Flame, CheckCircle, Truck } from "lucide-react";
+import { Clock, Flame, CheckCircle, Truck, ToggleLeft, ToggleRight } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import Loader from "@/components/Loader";
@@ -305,33 +305,26 @@ export default function AdminPedidosPage() {
         <div className="p-6 min-h-screen text-white">
             <h1 className="text-4xl font-extrabold mb-3 text-center text-black">Pedidos</h1>
 
-            <div className="flex justify-center mb-6">
+            <div className="flex justify-center items-center gap-3 mb-6">
+                <span className={`text-sm font-semibold ${pedidosActivos ? "text-gray-900" : "text-gray-400"}`}>
+                    Pedidos {pedidosActivos ? "activos" : "desactivados"}
+                </span>
                 <button
                     onClick={async () => {
                         const nuevoEstado = !pedidosActivos;
-
                         await fetch("/api/config/pedidos", {
                             method: "PUT",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({ activos: nuevoEstado }),
                         });
-
                         setPedidosActivos(nuevoEstado);
-
-                        swalBase.fire({
-                            icon: "success",
-                            title: nuevoEstado ? "Pedidos ACTIVADOS" : "Pedidos DESACTIVADOS",
-                            timer: 1200,
-                            showConfirmButton: false,
-                        });
                     }}
-                    className={`px-2 py-1 rounded-xl font-semibold text-white transition
-      ${pedidosActivos
-                            ? "bg-red-600 hover:bg-red-700"
-                            : "bg-black hover:bg-gray-900"
-                        }`}
+                    className="transition-transform active:scale-95"
                 >
-                    {pedidosActivos ? "Desactivar pedidos" : "Activar pedidos"}
+                    {pedidosActivos
+                        ? <ToggleRight className="w-10 h-10 text-emerald-500" />
+                        : <ToggleLeft  className="w-10 h-10 text-gray-400" />
+                    }
                 </button>
             </div>
 

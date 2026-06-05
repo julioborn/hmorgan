@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
         await connectMongoDB();
 
         let query: any =
-            payload.role === "admin" || payload.role === "superadmin"
+            payload.role === "admin" || payload.role === "superadmin" || payload.role === "cajero"
                 ? {}
                 : payload.role === "empleado"
                 ? { fuente: "empleado" }

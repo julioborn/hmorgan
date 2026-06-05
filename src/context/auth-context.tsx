@@ -11,7 +11,7 @@ type User =
         apellido: string;
         dni: string;
         telefono: string;
-        role: "cliente" | "admin" | "empleado" | "superadmin";
+        role: "cliente" | "admin" | "empleado" | "superadmin" | "cajero";
         qrToken?: string;
         puntos?: number;
     }

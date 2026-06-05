@@ -83,6 +83,10 @@ export default function Header() {
     { href: "/admin/configuracion", label: "Ajustes", icon: Settings },
   ];
 
+  const linksCajero = [
+    { href: "/superadmin/cajero", label: "Caja", icon: ClipboardList },
+  ];
+
   const linksEmpleado = [
     { href: "/", label: "Inicio", icon: Home },
     { href: "/empleado/anotador", label: "Anotador de Pedidos", icon: ClipboardList },
@@ -94,8 +98,9 @@ export default function Header() {
 
   const links =
     user?.role === "superadmin" ? linksSuper :
-    user?.role === "admin" ? linksAdmin :
-    user?.role === "empleado" ? linksEmpleado :
+    user?.role === "admin"      ? linksAdmin :
+    user?.role === "cajero"     ? linksCajero :
+    user?.role === "empleado"   ? linksEmpleado :
     linksCliente;
 
   if (loading) return null;
