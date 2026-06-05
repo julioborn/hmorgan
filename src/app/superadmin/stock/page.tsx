@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import { swalBase } from "@/lib/swalConfig";
 import {
     Plus, Package, TrendingUp, TrendingDown, AlertTriangle,
     X, History, Edit2, Trash2, ChevronDown, ChevronUp, Loader2,
@@ -83,7 +84,8 @@ export default function StockPage() {
     }
 
     async function deleteItem(id: string, nombre: string) {
-        if (!confirm(`¿Eliminar "${nombre}"?`)) return;
+        const r = await swalBase.fire({ title: `¿Eliminar "${nombre}"?`, icon: "warning", showCancelButton: true, confirmButtonText: "Sí, eliminar", cancelButtonText: "Cancelar" });
+        if (!r.isConfirmed) return;
         await fetch(`/api/superadmin/stock/${id}`, { method: "DELETE", credentials: "include" });
         loadItems();
     }

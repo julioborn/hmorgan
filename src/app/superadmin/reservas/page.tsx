@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback, useRef } from "react";
+import { swalBase } from "@/lib/swalConfig";
 import {
     CalendarDays, Users, MapPin, MessageCircle, Check, X,
     ToggleLeft, ToggleRight, Clock, Loader2, Phone, ChevronDown,
@@ -186,7 +187,8 @@ export default function SuperAdminReservasPage() {
     }
 
     async function deleteReserva(id: string) {
-        if (!confirm("¿Cancelar y eliminar esta reserva?")) return;
+        const r = await swalBase.fire({ title: "¿Cancelar reserva?", text: "Se notificará al cliente.", icon: "warning", showCancelButton: true, confirmButtonText: "Sí, cancelar", cancelButtonText: "No" });
+        if (!r.isConfirmed) return;
         await fetch(`/api/reservas?id=${id}`, { method: "DELETE", credentials: "include" });
         setReservas(p => p.filter(r => r._id !== id));
     }

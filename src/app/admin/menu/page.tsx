@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
+import { swalBase } from "@/lib/swalConfig";
 import useSWR, { mutate } from "swr";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -233,7 +234,8 @@ export default function AdminMenuPage() {
     }
 
     async function eliminarItem(id: string) {
-        if (!confirm("¿Seguro que deseas eliminar este producto?")) return;
+        const r = await swalBase.fire({ title: "¿Eliminar producto?", text: "Esta acción no se puede deshacer.", icon: "warning", showCancelButton: true, confirmButtonText: "Sí, eliminar", cancelButtonText: "Cancelar" });
+        if (!r.isConfirmed) return;
         await fetch(`/api/menu/${id}`, { method: "DELETE" });
         mutateItems();
     }

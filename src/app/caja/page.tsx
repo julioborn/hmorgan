@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
+import { swalBase } from "@/lib/swalConfig";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -96,7 +97,8 @@ export default function CajaPage() {
     }
 
     async function rechazarPedido(id: string) {
-        if (!confirm("¿Rechazar este pedido?")) return;
+        const r = await swalBase.fire({ title: "¿Rechazar pedido?", icon: "warning", showCancelButton: true, confirmButtonText: "Sí, rechazar", cancelButtonText: "Cancelar" });
+        if (!r.isConfirmed) return;
         await fetch(`/api/pedidos?id=${id}`, { method: "DELETE", credentials: "include" });
         loadData();
     }

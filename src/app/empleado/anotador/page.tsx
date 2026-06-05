@@ -84,7 +84,7 @@ export default function AnotadorPage() {
     const [comensales, setComensales] = useState(2);
     const [clienteNombre, setClienteNombre] = useState("");
     const [clienteSearch, setClienteSearch] = useState("");
-    const [clienteResults, setClienteResults] = useState<{_id:string;nombre:string;apellido:string}[]>([]);
+    const [clienteResults, setClienteResults] = useState<{_id:string;nombre:string;apellido:string;username:string}[]>([]);
     const [panelExpanded, setPanelExpanded] = useState(true);
     const [mesasRegistradas, setMesasRegistradas] = useState<{ _id: string; nombre: string }[]>([]);
     const [categoriaActiva, setCategoriaActiva] = useState<string | null>(null);

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useRef, useCallback } from "react";
+import { swalBase } from "@/lib/swalConfig";
 import {
     Plus, Trash2, ToggleLeft, ToggleRight, Move, X,
     Circle, Square, Users, MapPin, Minus,
@@ -367,7 +368,8 @@ export default function SuperAdminMesasPage() {
         } finally { setGuardando(false); }
     }
     async function eliminarMesa(id: string) {
-        if (!confirm("¿Eliminar esta mesa?")) return;
+        const r = await swalBase.fire({ title: "¿Eliminar esta mesa?", icon: "warning", showCancelButton: true, confirmButtonText: "Sí, eliminar", cancelButtonText: "Cancelar" });
+        if (!r.isConfirmed) return;
         await fetch(`/api/admin/mesas?id=${id}`, { method: "DELETE", credentials: "include" });
         setMesas(p => p.filter(m => m._id !== id));
     }
