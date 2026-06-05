@@ -7,6 +7,7 @@ const MesaSchema = new Schema(
         x: { type: Number, default: 10 },
         y: { type: Number, default: 10 },
         tipo: { type: String, enum: ["mesa", "banqueta"], default: "mesa" },
+        zona: { type: String, default: "" },
         forma: { type: String, enum: ["rect", "round", "oval"], default: "rect" },
         capacidad: { type: Number, default: 4 },
         rotacion: { type: Number, default: 0 },

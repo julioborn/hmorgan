@@ -18,7 +18,7 @@ type Reserva = {
     notas?: string;
     createdAt: string;
 };
-type Mesa = { _id: string; nombre: string; forma: string; activa: boolean; tipo?: string; x: number; y: number; ancho?: number; alto?: number; rotacion?: number };
+type Mesa = { _id: string; nombre: string; forma: string; activa: boolean; tipo?: string; zona?: string; x: number; y: number; ancho?: number; alto?: number; rotacion?: number };
 type SalonEl = { _id: string; tipo: string; label: string; x: number; y: number; ancho: number; alto: number; color: string };
 
 const ZONA_LABEL: Record<string, string> = { adentro: "Adentro", afuera: "Afuera", indiferente: "Sin preferencia" };
@@ -37,6 +37,7 @@ function buildWhatsApp(r: Reserva) {
     const tel = r.userId.telefono?.replace(/\D/g, "");
     if (!tel) return null;
     const fecha = formatFecha(r.fecha);
+    const mesaLine = r.mesaId?.nombre ? `Mesa: ${r.mesaId.nombre}` : null;
     const msg = [
         `Hola ${r.userId.nombre}!`,
         ``,
@@ -46,7 +47,7 @@ function buildWhatsApp(r: Reserva) {
         `Hora: ${r.hora}hs`,
         `Comensales: ${r.comensales}`,
         `Zona: ${ZONA_LABEL[r.zona]}`,
-        r.notas ? `Aclaraciones: ${r.notas}` : null,
+        mesaLine,
         ``,
         `Te esperamos!`,
     ].filter(l => l !== null).join("\n");
@@ -258,76 +259,97 @@ export default function SuperAdminReservasPage() {
                         {filtered.map(r => {
                             const waUrl = buildWhatsApp(r);
                             const isLoading = saving === r._id;
+                            const mesaAsignada = mesas.find(m => m._id === r.mesaId?._id);
                             return (
-                                <div key={r._id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                                    {/* Top */}
-                                    <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-50">
+                                <div key={r._id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                                    {/* Header con nombre, estado y WA */}
+                                    <div className="flex items-start justify-between gap-3 px-5 pt-4 pb-3">
                                         <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                                <p className="font-bold text-gray-900">{r.userId.nombre} {r.userId.apellido}</p>
-                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${ESTADO_COLOR[r.estado]}`}>{r.estado}</span>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border uppercase tracking-wide ${ESTADO_COLOR[r.estado]}`}>
+                                                    {r.estado}
+                                                </span>
                                             </div>
+                                            <p className="text-lg font-black text-gray-900 leading-tight">
+                                                {r.userId.nombre} {r.userId.apellido}
+                                            </p>
                                             {r.userId.telefono && (
-                                                <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                                                <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
                                                     <Phone size={10} />{r.userId.telefono}
                                                 </p>
                                             )}
                                         </div>
                                         {waUrl && (
                                             <a href={waUrl} target="_blank" rel="noopener noreferrer"
-                                                className="flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shrink-0">
+                                                className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-semibold transition shrink-0">
                                                 <MessageCircle size={13} /> WhatsApp
                                             </a>
                                         )}
                                     </div>
 
-                                    {/* Info */}
-                                    <div className="px-4 py-3 grid grid-cols-2 gap-2 text-sm">
-                                        <div className="flex items-center gap-1.5 text-gray-700">
-                                            <CalendarDays size={14} className="text-gray-400 shrink-0" />
-                                            <span className="font-semibold">{formatFecha(r.fecha)}</span>
+                                    {/* Detalle en fila */}
+                                    <div className="px-5 pb-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                        <div className="bg-gray-50 rounded-xl px-3 py-2">
+                                            <p className="text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Fecha</p>
+                                            <p className="text-sm font-bold text-gray-900 leading-tight">{new Date(r.fecha).toLocaleDateString("es-AR", { day:"numeric", month:"short", year:"2-digit" })}</p>
                                         </div>
-                                        <div className="flex items-center gap-1.5 text-gray-700">
-                                            <Clock size={14} className="text-gray-400 shrink-0" />
-                                            <span className="font-semibold">{r.hora}hs</span>
+                                        <div className="bg-gray-50 rounded-xl px-3 py-2">
+                                            <p className="text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Horario</p>
+                                            <p className="text-sm font-bold text-gray-900">{r.hora}hs</p>
                                         </div>
-                                        <div className="flex items-center gap-1.5">
-                                            <Users size={14} className="text-gray-400 shrink-0" />
-                                            <span className="text-gray-700">{r.comensales} persona{r.comensales !== 1 ? "s" : ""}</span>
+                                        <div className="bg-gray-50 rounded-xl px-3 py-2">
+                                            <p className="text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Comensales</p>
+                                            <p className="text-sm font-bold text-gray-900">{r.comensales} persona{r.comensales !== 1 ? "s" : ""}</p>
                                         </div>
-                                        <div className="flex items-center gap-1.5">
-                                            <MapPin size={14} className="text-gray-400 shrink-0" />
+                                        <div className="bg-gray-50 rounded-xl px-3 py-2">
+                                            <p className="text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Preferencia</p>
                                             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${ZONA_COLOR[r.zona]}`}>{ZONA_LABEL[r.zona]}</span>
                                         </div>
                                     </div>
 
+                                    {/* Mesa asignada */}
+                                    {mesaAsignada && (
+                                        <div className="px-5 pb-3">
+                                            <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2">
+                                                <MapPin size={13} className="text-indigo-500 shrink-0" />
+                                                <span className="text-sm font-semibold text-indigo-800">Mesa {mesaAsignada.nombre}</span>
+                                                {mesaAsignada.zona && <span className="text-xs text-indigo-500">· {mesaAsignada.zona}</span>}
+                                                {mesaAsignada.capacidad ? <span className="text-xs text-indigo-400 ml-auto">{mesaAsignada.capacidad}p</span> : null}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Notas (sin emoji, estilo limpio) */}
                                     {r.notas && (
-                                        <div className="px-4 pb-3">
-                                            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-1.5">📝 {r.notas}</p>
+                                        <div className="px-5 pb-3">
+                                            <div className="border-l-2 border-amber-400 pl-3 py-1">
+                                                <p className="text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Observaciones</p>
+                                                <p className="text-xs text-gray-600">{r.notas}</p>
+                                            </div>
                                         </div>
                                     )}
 
                                     {/* Actions */}
                                     {r.estado !== "cancelada" && (
-                                        <div className="px-4 pb-3 flex items-center gap-2 flex-wrap border-t border-gray-50 pt-3">
-                                            {/* Assign mesa — opens floor plan picker */}
+                                        <div className="px-5 pb-4 flex items-center gap-2 flex-wrap border-t border-gray-100 pt-3">
                                             <button onClick={() => openPicker(r._id, r.mesaId?._id)}
-                                                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-semibold text-gray-700 transition">
-                                                🪑 {r.mesaId?.nombre ? `Mesa ${r.mesaId.nombre}` : "Asignar mesa"}
-                                                <ChevronDown size={12} />
+                                                className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-xs font-semibold text-gray-700 transition border border-gray-200">
+                                                <MapPin size={12} />
+                                                {r.mesaId?.nombre ? `Mesa ${r.mesaId.nombre}` : "Asignar mesa"}
+                                                <ChevronDown size={11} className="text-gray-400" />
                                             </button>
 
                                             {/* Confirm */}
                                             {r.estado === "pendiente" && (
                                                 <button onClick={() => updateReserva(r._id, { estado: "confirmada" })} disabled={isLoading}
-                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition">
-                                                    {isLoading ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />} Confirmar
+                                                    className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold transition">
+                                                    {isLoading ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />} Confirmar reserva
                                                 </button>
                                             )}
 
                                             {/* Cancel */}
                                             <button onClick={() => deleteReserva(r._id)} disabled={isLoading}
-                                                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-semibold transition ml-auto">
+                                                className="flex items-center gap-1.5 px-3 py-2 border border-red-200 text-red-600 hover:bg-red-50 rounded-xl text-xs font-semibold transition ml-auto">
                                                 <X size={12} /> Cancelar
                                             </button>
                                         </div>

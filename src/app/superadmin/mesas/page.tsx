@@ -18,6 +18,7 @@ type Mesa = {
     tipo?: "mesa" | "banqueta";
     capacidad: number; rotacion?: number;
     ancho?: number; alto?: number;
+    zona?: string;
 };
 type SalonEl = {
     _id: string; tipo: "puerta" | "linea_h" | "linea_v" | "zona" | "barra";
@@ -65,7 +66,7 @@ export default function SuperAdminMesasPage() {
     const [error, setError]         = useState("");
 
     const [mesaModal, setMesaModal] = useState<Mesa | null>(null);
-    const [mesaForm, setMesaForm]   = useState<{ forma: Mesa["forma"]; tipo: "mesa"|"banqueta"; capacidad: number; activa: boolean; rotacion: number; ancho: number; alto: number }>({ forma: "rect", tipo: "mesa", capacidad: 4, activa: true, rotacion: 0, ancho: 7, alto: 5 });
+    const [mesaForm, setMesaForm]   = useState<{ forma: Mesa["forma"]; tipo: "mesa"|"banqueta"; capacidad: number; activa: boolean; rotacion: number; ancho: number; alto: number; zona: string }>({ forma: "rect", tipo: "mesa", capacidad: 4, activa: true, rotacion: 0, ancho: 7, alto: 5, zona: "" });
     const [elModal, setElModal]     = useState<SalonEl | null>(null);
     const [elForm, setElForm]       = useState<Partial<SalonEl>>({});
 
@@ -235,7 +236,7 @@ export default function SuperAdminMesasPage() {
                 if (modeRef.current === "config") {
                     // Open config directly
                     const m = mesasRef.current.find(x => x._id === id);
-                    if (m) { const def = MESA_DEFAULTS(m.forma); setMesaModal(m); setMesaForm({ forma: m.forma ?? "rect", tipo: m.tipo ?? "mesa", capacidad: m.capacidad ?? 4, activa: m.activa, rotacion: m.rotacion ?? 0, ancho: m.ancho || def.ancho, alto: m.alto || def.alto }); return; }
+                    if (m) { const def = MESA_DEFAULTS(m.forma); setMesaModal(m); setMesaForm({ forma: m.forma ?? "rect", tipo: m.tipo ?? "mesa", capacidad: m.capacidad ?? 4, activa: m.activa, rotacion: m.rotacion ?? 0, ancho: m.ancho || def.ancho, alto: m.alto || def.alto, zona: m.zona || "" }); return; }
                     const el = elementsRef.current.find(x => x._id === id);
                     if (el) { setElModal(el); setElForm({ label: el.label, ancho: el.ancho, alto: el.alto, color: el.color }); }
                 } else {
@@ -382,7 +383,7 @@ export default function SuperAdminMesasPage() {
         if (selected.size !== 1) return;
         const id = [...selected][0];
         const m = mesas.find(x => x._id === id);
-        if (m) { const def = MESA_DEFAULTS(m.forma); setMesaModal(m); setMesaForm({ forma: m.forma ?? "rect", tipo: m.tipo ?? "mesa", capacidad: m.capacidad ?? 4, activa: m.activa, rotacion: m.rotacion ?? 0, ancho: m.ancho || def.ancho, alto: m.alto || def.alto }); return; }
+        if (m) { const def = MESA_DEFAULTS(m.forma); setMesaModal(m); setMesaForm({ forma: m.forma ?? "rect", tipo: m.tipo ?? "mesa", capacidad: m.capacidad ?? 4, activa: m.activa, rotacion: m.rotacion ?? 0, ancho: m.ancho || def.ancho, alto: m.alto || def.alto, zona: m.zona || "" }); return; }
         const el = elements.find(x => x._id === id);
         if (el) { setElModal(el); setElForm({ label: el.label, ancho: el.ancho, alto: el.alto, color: el.color }); }
     }
@@ -624,7 +625,7 @@ export default function SuperAdminMesasPage() {
                                                 <p className="text-xs text-gray-400">{m.forma==="round"?"Redonda":m.forma==="oval"?"Ovalada":"Rectangular"} · {m.capacidad}p{m.forma==="oval"&&(m.rotacion??0)!==0?` · ${m.rotacion}°`:""}{isOcupada?<span className="text-red-500 font-semibold"> · ocupada</span>:""}</p>
                                             </div>
                                             <div className="flex items-center gap-1 shrink-0">
-                                                <button onClick={() => { const def=MESA_DEFAULTS(m.forma); setMesaModal(m); setMesaForm({forma:m.forma??"rect",tipo:m.tipo??"mesa",capacidad:m.capacidad??4,activa:m.activa,rotacion:m.rotacion??0,ancho:m.ancho||def.ancho,alto:m.alto||def.alto}); }} className="p-2 rounded-lg hover:bg-gray-100 transition"><Users className="w-4 h-4 text-gray-500"/></button>
+                                                <button onClick={() => { const def=MESA_DEFAULTS(m.forma); setMesaModal(m); setMesaForm({forma:m.forma??"rect",tipo:m.tipo??"mesa",capacidad:m.capacidad??4,activa:m.activa,rotacion:m.rotacion??0,ancho:m.ancho||def.ancho,alto:m.alto||def.alto,zona:m.zona||""}); }} className="p-2 rounded-lg hover:bg-gray-100 transition"><Users className="w-4 h-4 text-gray-500"/></button>
                                                 <button onClick={()=>toggleActiva(m._id)} className="p-2 rounded-lg hover:bg-gray-100 transition">{m.activa?<ToggleRight className="w-5 h-5 text-emerald-500"/>:<ToggleLeft className="w-5 h-5 text-gray-400"/>}</button>
                                                 <button onClick={()=>eliminarMesa(m._id)} className="p-2 rounded-lg hover:bg-red-50 transition text-red-500"><Trash2 className="w-4 h-4"/></button>
                                             </div>
@@ -707,6 +708,13 @@ export default function SuperAdminMesasPage() {
                                     </div>
                                 </div>
                             )}
+                            {/* Zona */}
+                            <div>
+                                <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Zona</label>
+                                <input value={mesaForm.zona} onChange={e=>setMesaForm(p=>({...p,zona:e.target.value}))}
+                                    placeholder="Ej: Adentro, Afuera, Living, Terraza..."
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
+                            </div>
                             {/* Activa */}
                             <div className="flex items-center justify-between py-2 border-t border-gray-100">
                                 <span className="text-sm font-semibold text-gray-700">Activa</span>
