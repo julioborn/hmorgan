@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     if (!token) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     let payload: any;
     try { payload = jwt.verify(token, SECRET) as any; } catch { return NextResponse.json({ error: "No autorizado" }, { status: 401 }); }
-    if (payload.role !== "superadmin") return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    if (!["superadmin", "cajero"].includes(payload.role)) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
     await connectMongoDB();
     const sesion = await CajaSession.findOne({ estado: "abierta" });

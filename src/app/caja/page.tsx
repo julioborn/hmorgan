@@ -71,6 +71,7 @@ export default function CajaPage() {
     const [closeModal, setCloseModal]     = useState(false);
     const [closeForm, setCloseForm]       = useState({ montoCierre: "", notas: "" });
     const [closeSaving, setCloseSaving]   = useState(false);
+    const [closeError, setCloseError]     = useState("");
 
     const loadData = useCallback(async () => {
         try {
@@ -116,6 +117,7 @@ export default function CajaPage() {
 
     async function cerrarCaja() {
         setCloseSaving(true);
+        setCloseError("");
         try {
             const res = await fetch("/api/superadmin/caja/cerrar", {
                 method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
@@ -125,7 +127,12 @@ export default function CajaPage() {
                 setCloseModal(false);
                 setCloseForm({ montoCierre: "", notas: "" });
                 await loadData();
+            } else {
+                const err = await res.json().catch(() => ({}));
+                setCloseError(err.error || `Error ${res.status}`);
             }
+        } catch {
+            setCloseError("Error de conexión");
         } finally { setCloseSaving(false); }
     }
 
@@ -534,9 +541,10 @@ export default function CajaPage() {
                             <input value={closeForm.notas} onChange={e => setCloseForm(p => ({ ...p, notas: e.target.value }))}
                                 placeholder="Notas del cierre (opcional)"
                                 className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none" />
+                            {closeError && <p className="text-red-600 text-xs font-semibold">{closeError}</p>}
                         </div>
                         <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
-                            <button onClick={() => setCloseModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
+                            <button onClick={() => { setCloseModal(false); setCloseError(""); }} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
                             <button onClick={cerrarCaja} disabled={closeSaving}
                                 className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
                                 {closeSaving ? "Cerrando..." : "Confirmar cierre"}
