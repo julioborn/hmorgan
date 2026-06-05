@@ -467,12 +467,9 @@ function AdminHome() {
         </div>
       </Link>
 
-      {/* Live: Reservas */}
-      <Link href="/superadmin/reservas"
-        className={`block rounded-2xl px-5 py-4 shadow-sm transition-all active:scale-[0.98] border ${
-          reservasPendientes > 0
-            ? "bg-amber-50 border-amber-200 hover:bg-amber-100"
-            : "bg-white border-gray-100 hover:bg-gray-50"
+      {/* Live: Reservas (solo stat, sin link a superadmin) */}
+      <div className={`block rounded-2xl px-5 py-4 shadow-sm border ${
+          reservasPendientes > 0 ? "bg-amber-50 border-amber-200" : "bg-white border-gray-100"
         }`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -494,23 +491,14 @@ function AdminHome() {
             </span>
           )}
         </div>
-      </Link>
+      </div>
 
       {/* Salón */}
       <section className="space-y-2.5">
         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Salón</p>
         <div className="grid grid-cols-2 gap-2.5">
-          <AdminCard href="/superadmin/mesas"   title="Plano de Mesas" Icon={MapPin} />
-          <AdminCard href="/empleado/anotador"  title="Anotador"       Icon={ClipboardList} />
-        </div>
-      </section>
-
-      {/* Caja & Stock */}
-      <section className="space-y-2.5">
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Caja y Stock</p>
-        <div className="grid grid-cols-2 gap-2.5">
-          <AdminCard href="/superadmin/caja"  title="Caja"  Icon={Wallet} />
-          <AdminCard href="/superadmin/stock" title="Stock" Icon={TrendingUp} />
+          <AdminCard href="/admin/mesas"        title="Mesas"    Icon={LayoutGrid} />
+          <AdminCard href="/empleado/anotador"  title="Anotador" Icon={ClipboardList} />
         </div>
       </section>
 
