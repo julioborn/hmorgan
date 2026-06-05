@@ -201,9 +201,9 @@ export async function PUT(req: NextRequest) {
             return NextResponse.json({ message: "No autorizado" }, { status: 401 });
 
         const payload = jwt.verify(token, NEXTAUTH_SECRET) as any;
-        if (payload.role !== "admin")
+        if (payload.role !== "admin" && payload.role !== "cajero")
             return NextResponse.json(
-                { message: "Solo admin puede cambiar estados" },
+                { message: "Solo admin o cajero puede cambiar estados" },
                 { status: 403 }
             );
 
