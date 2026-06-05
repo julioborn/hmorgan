@@ -68,6 +68,9 @@ export default function CajaPage() {
     const [cobrarModal, setCobrarModal]   = useState<{ open: boolean; pedido: Pedido | null }>({ open: false, pedido: null });
     const [cobrarForm, setCobrarForm]     = useState({ metodoPago: "efectivo" as typeof METODOS[number], montoPagado: "" });
     const [cobrarSaving, setCobrarSaving] = useState(false);
+    const [closeModal, setCloseModal]     = useState(false);
+    const [closeForm, setCloseForm]       = useState({ montoCierre: "", notas: "" });
+    const [closeSaving, setCloseSaving]   = useState(false);
 
     const loadData = useCallback(async () => {
         try {
@@ -109,6 +112,21 @@ export default function CajaPage() {
         if (!r.isConfirmed) return;
         await fetch(`/api/pedidos?id=${id}`, { method: "DELETE", credentials: "include" });
         loadData();
+    }
+
+    async function cerrarCaja() {
+        setCloseSaving(true);
+        try {
+            const res = await fetch("/api/superadmin/caja/cerrar", {
+                method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
+                body: JSON.stringify({ montoCierre: Number(closeForm.montoCierre) || 0, notas: closeForm.notas || undefined }),
+            });
+            if (res.ok) {
+                setCloseModal(false);
+                setCloseForm({ montoCierre: "", notas: "" });
+                await loadData();
+            }
+        } finally { setCloseSaving(false); }
     }
 
     async function avanzarEstado(p: Pedido, estado: string) {
@@ -228,7 +246,15 @@ export default function CajaPage() {
                         </p>
                     </div>
                 </div>
-                <span className="text-xs text-gray-400">{new Date().toLocaleDateString("es-AR", { day: "numeric", month: "short" })}</span>
+                <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400">{new Date().toLocaleDateString("es-AR", { day: "numeric", month: "short" })}</span>
+                    {sesion && (
+                        <button onClick={() => { setCloseModal(true); setCloseForm({ montoCierre: "", notas: "" }); }}
+                            className="text-xs font-bold bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg transition">
+                            Cerrar caja
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Abrir caja */}
@@ -483,6 +509,41 @@ export default function CajaPage() {
                         </div>
                     )}
                 </>
+            )}
+
+            {/* Modal cerrar caja */}
+            {closeModal && (
+                <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl">
+                        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+                            <h2 className="font-black text-gray-900 flex-1">Cerrar caja</h2>
+                            <button onClick={() => setCloseModal(false)} className="p-1 text-gray-400 hover:text-gray-700"><X size={18} /></button>
+                        </div>
+                        <div className="px-5 py-4 space-y-3">
+                            <p className="text-sm text-gray-600">
+                                Abierta desde las <strong>{sesion ? new Date(sesion.fechaApertura).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : "—"}</strong>
+                                {sesion && ` · Inicial: ${formatMoney(sesion.montoInicial)}`}
+                            </p>
+                            <div>
+                                <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Monto en caja al cierre</label>
+                                <input type="number" min="0" value={closeForm.montoCierre}
+                                    onChange={e => setCloseForm(p => ({ ...p, montoCierre: e.target.value }))}
+                                    placeholder="$0" style={{ fontSize: "16px" }}
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-xl font-black focus:outline-none focus:ring-2 focus:ring-red-400" />
+                            </div>
+                            <input value={closeForm.notas} onChange={e => setCloseForm(p => ({ ...p, notas: e.target.value }))}
+                                placeholder="Notas del cierre (opcional)"
+                                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none" />
+                        </div>
+                        <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
+                            <button onClick={() => setCloseModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
+                            <button onClick={cerrarCaja} disabled={closeSaving}
+                                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
+                                {closeSaving ? "Cerrando..." : "Confirmar cierre"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* Modal cobrar */}
