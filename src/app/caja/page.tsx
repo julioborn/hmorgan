@@ -171,8 +171,11 @@ export default function CajaPage() {
 
     if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-gray-400" size={36} /></div>;
 
-    // Pedidos para el tab Cobrar (mozo con mesa, no cerrados)
-    const mesasCobrar = pedidos.filter(p => p.mesa && p.fuente === "empleado");
+    // Pedidos de mozo LISTOS para cobrar (con o sin mesa)
+    const paraCobrar = pedidos.filter(p =>
+        (p.fuente === "empleado" || p.userId?.role === "empleado") &&
+        p.estado === "listo"
+    );
 
     // Listas por estado
     const pendientes   = pedidos.filter(p => p.estado === "pendiente");
@@ -256,7 +259,7 @@ export default function CajaPage() {
                         <button onClick={() => setTab("caja")}
                             className={`flex-1 py-3 text-sm font-bold transition flex items-center justify-center gap-2 ${tab === "caja" ? "border-b-2 border-red-600 text-red-600" : "text-gray-500"}`}>
                             <Wallet size={15} /> Cobrar
-                            {mesasCobrar.length > 0 && <span className="bg-amber-100 text-amber-600 text-xs px-1.5 py-0.5 rounded-full">{mesasCobrar.length}</span>}
+                            {paraCobrar.length > 0 && <span className="bg-amber-100 text-amber-600 text-xs px-1.5 py-0.5 rounded-full">{paraCobrar.length}</span>}
                         </button>
                     </div>
 
@@ -282,9 +285,12 @@ export default function CajaPage() {
                                         const fechaHora = p.createdAt ? format(new Date(p.createdAt), "dd/MM HH:mm", { locale: es }) : "";
                                         const isUpdating = updatingId === p._id;
 
-                                        // Para mozo: solo hasta "listo" en este tab (se cobra en Cobrar)
-                                        const estadosMozo = ESTADOS.filter(e => e.key !== "entregado");
-                                        const estadosList = esMozo ? estadosMozo : ESTADOS;
+                                        // "cerrado" nunca es clickeable en el progress bar (solo via Cobrar)
+                                        // Mozo: pendiente→preparando→listo (cobrar = pestaña Cobrar)
+                                        // Cliente: pendiente→preparando→listo→entregado (finalizado)
+                                        const estadosMozo   = ESTADOS.filter(e => e.key !== "entregado" && e.key !== "cerrado");
+                                        const estadosCliente = ESTADOS.filter(e => e.key !== "cerrado");
+                                        const estadosList = esMozo ? estadosMozo : estadosCliente;
 
                                         return (
                                             <motion.div key={p._id}
@@ -395,10 +401,16 @@ export default function CajaPage() {
                                                         </div>
                                                     )}
 
-                                                    {/* Nota mozo sobre cobro */}
-                                                    {esMozo && (
+                                                    {/* Mozo listo → botón para ir a cobrar */}
+                                                    {esMozo && p.estado === "listo" && (
+                                                        <button onClick={() => setTab("caja")}
+                                                            className="mt-4 w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-sm transition">
+                                                            <Wallet size={14} /> Cobrar en caja →
+                                                        </button>
+                                                    )}
+                                                    {esMozo && p.estado !== "listo" && (
                                                         <p className="text-xs text-blue-500 text-center mt-4">
-                                                            Se cobra en la pestaña Cobrar
+                                                            Cuando esté listo aparecerá en la pestaña Cobrar
                                                         </p>
                                                     )}
                                                 </div>
@@ -414,27 +426,27 @@ export default function CajaPage() {
                     {tab === "caja" && (
                         <div className="max-w-2xl mx-auto px-4 pt-4">
                             <div className="flex items-center justify-between mb-3">
-                                <h2 className="font-black text-gray-900">Mesas para cobrar</h2>
-                                <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">{mesasCobrar.length}</span>
+                                <h2 className="font-black text-gray-900">Listos para cobrar</h2>
+                                <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">{paraCobrar.length}</span>
                             </div>
-                            {mesasCobrar.length === 0 ? (
+                            {paraCobrar.length === 0 ? (
                                 <div className="text-center py-16 text-gray-400">
                                     <Wallet size={40} className="mx-auto mb-3 text-gray-200" />
-                                    <p className="font-semibold">Sin mesas activas</p>
-                                    <p className="text-sm mt-1">Los pedidos del mozo aparecen acá cuando estén listos</p>
+                                    <p className="font-semibold">Sin pedidos listos para cobrar</p>
+                                    <p className="text-sm mt-1">Aparecen acá cuando el mozo los marca como "Listo"</p>
                                 </div>
-                            ) : mesasCobrar.map(p => {
-                                const estadoIdx = getEstadoIdx(p.estado);
-                                const color = ESTADOS[estadoIdx]?.color || "gray";
+                            ) : paraCobrar.map(p => {
+                                const label = p.mesa ? `Mesa ${p.mesa}` : p.nombreComanda || p.userId?.nombre || "Sin mesa";
                                 return (
-                                    <div key={p._id} className="bg-white rounded-2xl border border-blue-200 shadow-sm overflow-hidden mb-3">
-                                        <div className="flex items-center justify-between px-4 py-3 bg-blue-50 border-b border-blue-100">
+                                    <div key={p._id} className="bg-white rounded-2xl border border-emerald-200 shadow-sm overflow-hidden mb-3">
+                                        <div className="flex items-center justify-between px-4 py-3 bg-emerald-50 border-b border-emerald-100">
                                             <div>
                                                 <div className="flex items-center gap-2">
-                                                    <UtensilsCrossed size={14} className="text-blue-600" />
-                                                    <p className="font-black text-gray-900">Mesa {p.mesa}</p>
-                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${COLOR_CLASSES[color]}`}>
-                                                        {p.estado}
+                                                    <UtensilsCrossed size={14} className="text-emerald-600" />
+                                                    <p className="font-black text-gray-900">{label}</p>
+                                                    {p.comensales ? <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">{p.comensales}p</span> : null}
+                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500 bg-emerald-100 text-emerald-700">
+                                                        Listo
                                                     </span>
                                                 </div>
                                                 <p className="text-xs text-gray-400 mt-0.5">{format(new Date(p.createdAt), "HH:mm", { locale: es })}</p>
