@@ -14,6 +14,7 @@ type Pedido = {
     _id: string;
     mesa?: string;
     nombreComanda?: string;
+    comensales?: number;
     fuente: string;
     items: { _id?: string; menuItemId: { nombre: string; precio: number }; cantidad: number }[];
     total: number;
