@@ -84,7 +84,7 @@ export default function Header() {
   ];
 
   const linksCajero = [
-    { href: "/superadmin/cajero", label: "Caja", icon: ClipboardList },
+    { href: "/caja", label: "Caja", icon: ClipboardList },
   ];
 
   const linksEmpleado = [

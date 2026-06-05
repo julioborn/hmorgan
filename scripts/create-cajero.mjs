@@ -23,15 +23,15 @@ async function main() {
 
     const User = mongoose.models.User || mongoose.model("User", UserSchema);
 
-    const existing = await User.findOne({ username: "cajero" });
+    const existing = await User.findOne({ username: "caja" });
     if (existing) {
-        console.log("⚠️  El usuario cajero ya existe. Actualizando contraseña...");
+        console.log("⚠️  El usuario caja ya existe. Actualizando contraseña...");
         existing.passwordHash = await bcrypt.hash("caja2025!", 10);
         await existing.save();
         console.log("✅ Contraseña actualizada");
     } else {
         await User.create({
-            username: "cajero",
+            username: "caja",
             nombre: "Cajero",
             apellido: "Bar",
             passwordHash: await bcrypt.hash("caja2025!", 10),
@@ -39,10 +39,10 @@ async function main() {
             qrToken: randomBytes(16).toString("hex"),
             puntos: 0,
         });
-        console.log("✅ Usuario cajero creado");
+        console.log("✅ Usuario caja creado");
     }
 
-    console.log("\n  Usuario:   cajero");
+    console.log("\n  Usuario:   caja");
     console.log("  Contraseña: caja2025!\n");
 
     await mongoose.disconnect();

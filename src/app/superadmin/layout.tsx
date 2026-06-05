@@ -11,7 +11,7 @@ const NAV = [
     { href: "/superadmin/caja", label: "Caja", icon: Wallet },
     { href: "/superadmin/mesas", label: "Mesas", icon: MapPin },
     { href: "/superadmin/reservas", label: "Reservas", icon: CalendarDays },
-    { href: "/superadmin/cajero",   label: "Cajero",   icon: Wallet },
+    { href: "/caja",                 label: "Cajero",   icon: Wallet },
     { href: "/admin/pedidos", label: "Pedidos", icon: ClipboardList },
     { href: "/admin/clientes", label: "Clientes", icon: Users },
     { href: "/admin/menu", label: "Menú", icon: Utensils },
