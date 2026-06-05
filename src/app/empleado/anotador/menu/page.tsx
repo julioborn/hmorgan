@@ -67,6 +67,11 @@ function AnotadorMenuContent() {
     const [mesasPlano, setMesasPlano]         = useState<MesaPlano[]>([]);
     const [elementsPlano, setElementsPlano]   = useState<SalonElPlano[]>([]);
     const [ocupadasPlano, setOcupadasPlano]   = useState<Set<string>>(new Set());
+    // Zoom del plano
+    const [mapScale, setMapScale]   = useState(1);
+    const [mapOffset, setMapOffset] = useState({ x: 0, y: 0 });
+    const pinchRef = useRef<{ dist: number } | null>(null);
+    const panRef   = useRef<{ x: number; y: number } | null>(null);
 
     useEffect(() => {
         if (!loading && user && user.role !== "empleado" && user.role !== "admin" && user.role !== "superadmin") router.replace("/");
@@ -98,6 +103,36 @@ function AnotadorMenuContent() {
             .finally(() => setLoadingComanda(false));
     }, [comandaId]);
 
+    // ── SessionStorage: persistir cart si se navega/recarga ──────
+    const CART_KEY = `anotador_cart_${comandaId || "new"}`;
+    // Restaurar al montar
+    useEffect(() => {
+        try {
+            const saved = sessionStorage.getItem(CART_KEY);
+            if (!saved) return;
+            const { cart: sc, mesa: sm, comensales: scm, clienteNombre: sn, nota: sno } = JSON.parse(saved);
+            if (Array.isArray(sc) && sc.length > 0) setCart(sc);
+            if (sm && !comandaId) setMesa(sm);
+            if (scm && !comandaId) setComensales(scm);
+            if (sn) setClienteNombre(sn);
+            if (sno) setNota(sno);
+        } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+    // Guardar cuando cambia el cart
+    useEffect(() => {
+        if (cart.length > 0) {
+            sessionStorage.setItem(CART_KEY, JSON.stringify({ cart, mesa, comensales, clienteNombre, nota }));
+        } else {
+            sessionStorage.removeItem(CART_KEY);
+        }
+    }, [cart, mesa, comensales, clienteNombre, nota, CART_KEY]);
+
+    // Reset zoom al abrir el picker
+    useEffect(() => {
+        if (mesaPickerOpen) { setMapScale(1); setMapOffset({ x: 0, y: 0 }); }
+    }, [mesaPickerOpen]);
+
     // Búsqueda cliente con debounce
     useEffect(() => {
         if (clienteSearch.length < 2) { setClienteResults([]); return; }
@@ -108,6 +143,38 @@ function AnotadorMenuContent() {
         }, 400);
         return () => clearTimeout(t);
     }, [clienteSearch]);
+
+    function onMapTouchStart(e: React.TouchEvent) {
+        if (e.touches.length === 2) {
+            const dx = e.touches[1].clientX - e.touches[0].clientX;
+            const dy = e.touches[1].clientY - e.touches[0].clientY;
+            pinchRef.current = { dist: Math.sqrt(dx*dx + dy*dy) };
+            panRef.current = null;
+        } else if (e.touches.length === 1) {
+            panRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            pinchRef.current = null;
+        }
+    }
+    function onMapTouchMove(e: React.TouchEvent) {
+        e.preventDefault();
+        if (e.touches.length === 2 && pinchRef.current) {
+            const dx = e.touches[1].clientX - e.touches[0].clientX;
+            const dy = e.touches[1].clientY - e.touches[0].clientY;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            const factor = dist / pinchRef.current.dist;
+            setMapScale(s => Math.max(1, Math.min(5, s * factor)));
+            pinchRef.current.dist = dist;
+        } else if (e.touches.length === 1 && panRef.current) {
+            const dx = e.touches[0].clientX - panRef.current.x;
+            const dy = e.touches[0].clientY - panRef.current.y;
+            setMapOffset(o => ({ x: o.x + dx, y: o.y + dy }));
+            panRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }
+    }
+    function onMapTouchEnd(e: React.TouchEvent) {
+        if (e.touches.length < 2) pinchRef.current = null;
+        if (e.touches.length === 0) panRef.current = null;
+    }
 
     async function openMesaPicker() {
         setMesaPickerOpen(true);
@@ -174,6 +241,7 @@ function AnotadorMenuContent() {
                 });
             }
             if (!res.ok) { const e = await res.json().catch(() => ({})); setError(e.message || e.error || "Error"); return; }
+            sessionStorage.removeItem(CART_KEY);
             setLastOrder({ items: [...cart], mesa: mesa || comanda?.mesa || "", timestamp: new Date() });
             setCart([]);
             // Volver a comandas después de un momento
@@ -484,7 +552,16 @@ function AnotadorMenuContent() {
                             <button onClick={() => setMesaPickerOpen(false)} className="p-1 text-gray-400"><X size={18} /></button>
                         </div>
                         <div className="p-3 overflow-y-auto flex-1 min-h-0">
-                            <div className="relative w-full rounded-xl overflow-hidden border border-gray-200" style={{ height: "clamp(200px, 60vw, 380px)" }}>
+                            {/* Hint zoom */}
+                            <p className="text-[10px] text-gray-400 text-center mb-1.5">
+                                Pellizco para hacer zoom · arrastrá para mover
+                            </p>
+                            <div className="relative w-full rounded-xl overflow-hidden border border-gray-200" style={{ height: "clamp(220px, 65vw, 400px)" }}
+                                onTouchStart={onMapTouchStart}
+                                onTouchMove={onMapTouchMove}
+                                onTouchEnd={onMapTouchEnd}>
+                                <div style={{ width:"100%", height:"100%", overflow:"hidden", touchAction:"none" }}>
+                                <div style={{ width:"100%", height:"100%", transform:`translate(${mapOffset.x}px,${mapOffset.y}px) scale(${mapScale})`, transformOrigin:"0 0", willChange:"transform" }}>
                                 <div className="absolute inset-0" style={{ backgroundColor:"#f9f5ef", backgroundImage:"linear-gradient(rgba(0,0,0,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.04) 1px,transparent 1px)", backgroundSize:"30px 30px" }}>
                                     {elementsPlano.map(el => {
                                         const isLine=el.tipo==="linea_h"||el.tipo==="linea_v"; const isBarra=el.tipo==="barra";
@@ -498,12 +575,20 @@ function AnotadorMenuContent() {
                                         return <div key={m._id} onClick={() => { setMesa(m.nombre); setMesaPickerOpen(false); }} style={{ position:"absolute", left:`${m.x??10}%`, top:`${m.y??10}%`, transform:`translate(-50%,-50%) rotate(${rot}deg)`, width:`min(${w}%,${w*7}px)`, height:`min(${h}%,${h*7.5}px)`, minWidth:"24px", minHeight:"18px", borderRadius:isRound?"50%":"8px", cursor:"pointer", userSelect:"none", zIndex:2 }} className={`flex items-center justify-center border-2 ${bg} hover:brightness-110 active:scale-95 transition-all`}><div style={{ transform:`rotate(${-rot}deg)`, fontSize:"clamp(6px,0.8vw,9px)", fontWeight:900 }}>{m.nombre}</div></div>;
                                     })}
                                 </div>
+                                </div>{/* end scale wrapper */}
+                                </div>{/* end touch-action wrapper */}
                             </div>
-                            <div className="flex items-center gap-3 mt-3 text-xs text-gray-500 flex-wrap">
+                            <div className="flex items-center gap-3 mt-2 text-xs text-gray-500 flex-wrap">
                                 <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-emerald-500 inline-block"/>Libre</span>
                                 <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-400 inline-block"/>Ocupada</span>
                                 <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-500 inline-block"/>Seleccionada</span>
-                                {mesa&&<span className="ml-auto font-semibold text-gray-700">Mesa {mesa}</span>}
+                                {mapScale > 1 && (
+                                    <button onClick={() => { setMapScale(1); setMapOffset({ x:0, y:0 }); }}
+                                        className="ml-auto text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 rounded-lg transition">
+                                        ↺ Reset zoom
+                                    </button>
+                                )}
+                                {mesa&&<span className={mapScale > 1 ? "" : "ml-auto"+ " font-semibold text-gray-700"}>Mesa {mesa}</span>}
                             </div>
                         </div>
                         <div className="px-5 py-4 border-t border-gray-100 flex gap-2 shrink-0">

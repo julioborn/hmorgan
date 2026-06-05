@@ -295,7 +295,11 @@ export default function CajaPage() {
                         <button onClick={() => setTab("pedidos")}
                             className={`flex-1 py-3 text-sm font-bold transition flex items-center justify-center gap-2 ${tab === "pedidos" ? "border-b-2 border-red-600 text-red-600" : "text-gray-500"}`}>
                             <Package size={15} /> Pedidos
-                            {pedidos.length > 0 && <span className="bg-red-100 text-red-600 text-xs px-1.5 py-0.5 rounded-full">{pedidos.length}</span>}
+                            {(pendientes.length + preparando.length + listos.length) > 0 && (
+                                <span className="bg-red-100 text-red-600 text-xs px-1.5 py-0.5 rounded-full">
+                                    {pendientes.length + preparando.length + listos.length}
+                                </span>
+                            )}
                         </button>
                         <button onClick={() => setTab("caja")}
                             className={`flex-1 py-3 text-sm font-bold transition flex items-center justify-center gap-2 ${tab === "caja" ? "border-b-2 border-red-600 text-red-600" : "text-gray-500"}`}>
@@ -342,10 +346,15 @@ export default function CajaPage() {
                                                 {esMozo && (
                                                     <div className="bg-blue-600 text-white px-4 py-2 flex items-center gap-2">
                                                         <UtensilsCrossed size={14} />
-                                                        <span className="font-bold text-sm">
-                                                            Barra — Mozo{p.mesa ? ` · Mesa ${p.mesa}` : ""}
-                                                        </span>
-                                                        {p.notaEmpleado && <span className="ml-auto text-xs opacity-80 italic truncate max-w-[120px]">{p.notaEmpleado}</span>}
+                                                        <div className="flex-1 min-w-0">
+                                                            <span className="font-bold text-sm">
+                                                                Barra — Mozo{p.mesa ? ` · Mesa ${p.mesa}` : ""}
+                                                            </span>
+                                                            {(p as any).nombreComanda && (
+                                                                <p className="text-xs text-blue-100 font-semibold truncate">{(p as any).nombreComanda}</p>
+                                                            )}
+                                                        </div>
+                                                        {p.notaEmpleado && <span className="text-xs opacity-80 italic truncate max-w-[100px] shrink-0">{p.notaEmpleado}</span>}
                                                     </div>
                                                 )}
 

@@ -89,10 +89,10 @@ export default function AnotadorPage() {
                                                     {c.comensales}p
                                                 </span>
                                             )}
-                                            {c.nombreComanda && (
-                                                <span className="text-xs text-gray-400 truncate">{c.nombreComanda}</span>
-                                            )}
                                         </div>
+                                        {c.nombreComanda && (
+                                            <p className="text-base font-bold text-gray-800 mt-0.5 truncate">{c.nombreComanda}</p>
+                                        )}
                                         <p className="text-xs text-gray-400 mt-0.5">
                                             {new Date(c.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
                                             {" · "}{c.estado}
