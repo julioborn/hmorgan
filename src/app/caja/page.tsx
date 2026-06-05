@@ -34,6 +34,8 @@ export default function CajeroPage() {
     const [sesion, setSesion]             = useState<CajaSession | null | undefined>(undefined);
     const [pedidos, setPedidos]           = useState<PedidoActivo[]>([]);
     const [loading, setLoading]           = useState(true);
+    const [openForm, setOpenForm]         = useState({ montoInicial: "", notas: "" });
+    const [openSaving, setOpenSaving]     = useState(false);
     const [cobrarModal, setCobrarModal]   = useState<{ open: boolean; pedido: PedidoActivo | null }>({ open: false, pedido: null });
     const [cobrarForm, setCobrarForm]     = useState({ metodoPago: "efectivo" as typeof METODOS[number], montoPagado: "" });
     const [cobrarSaving, setCobrarSaving] = useState(false);
@@ -58,6 +60,19 @@ export default function CajeroPage() {
         const iv = setInterval(loadData, 6000);
         return () => clearInterval(iv);
     }, [loadData]);
+
+    async function abrirCaja() {
+        setOpenSaving(true);
+        try {
+            const res = await fetch("/api/superadmin/caja", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ montoInicial: Number(openForm.montoInicial) || 0, notas: openForm.notas || undefined }),
+            });
+            if (res.ok) { setOpenForm({ montoInicial: "", notas: "" }); loadData(); }
+        } finally { setOpenSaving(false); }
+    }
 
     async function cobrar() {
         if (!cobrarModal.pedido) return;
@@ -151,9 +166,40 @@ export default function CajeroPage() {
             </div>
 
             {!sesion && (
-                <div className="mx-4 mt-4 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-center gap-3">
-                    <AlertCircle size={18} className="text-amber-600 shrink-0" />
-                    <p className="text-sm text-amber-700 font-semibold">No hay caja abierta. Pedí al superadmin que la abra antes de cobrar.</p>
+                <div className="max-w-2xl mx-auto px-4 mt-4">
+                    <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+                        <div className="px-5 py-4 border-b border-gray-100">
+                            <h2 className="font-black text-gray-900">Abrir caja</h2>
+                            <p className="text-xs text-gray-400 mt-0.5">Ingresá el monto inicial en efectivo antes de empezar</p>
+                        </div>
+                        <div className="px-5 py-4 space-y-3">
+                            <div>
+                                <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Monto inicial en caja</label>
+                                <input
+                                    type="number" min="0" value={openForm.montoInicial}
+                                    onChange={e => setOpenForm(p => ({ ...p, montoInicial: e.target.value }))}
+                                    placeholder="$0"
+                                    style={{ fontSize: "16px" }}
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-2xl font-black focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Notas <span className="text-gray-400 normal-case font-normal">(opcional)</span></label>
+                                <input
+                                    value={openForm.notas}
+                                    onChange={e => setOpenForm(p => ({ ...p, notas: e.target.value }))}
+                                    placeholder="Ej: turno noche, feria, etc."
+                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                                />
+                            </div>
+                            <button
+                                onClick={abrirCaja} disabled={openSaving}
+                                className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition mt-1">
+                                <Wallet size={18} />
+                                {openSaving ? "Abriendo..." : "Abrir caja"}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 
