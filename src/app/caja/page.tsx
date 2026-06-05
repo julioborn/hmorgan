@@ -13,6 +13,7 @@ import {
 type Pedido = {
     _id: string;
     mesa?: string;
+    nombreComanda?: string;
     fuente: string;
     items: { _id?: string; menuItemId: { nombre: string; precio: number }; cantidad: number }[];
     total: number;
