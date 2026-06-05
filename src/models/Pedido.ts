@@ -21,6 +21,7 @@ const PedidoSchema = new Schema(
         fuente: { type: String, enum: ["cliente", "empleado"], default: "cliente" },
         mesa: { type: String },
         comensales: { type: Number, default: 0 },
+        nombreComanda: { type: String },
         notaEmpleado: { type: String },
         notaCliente: { type: String },
         puntosAcreditados: { type: Boolean, default: false },

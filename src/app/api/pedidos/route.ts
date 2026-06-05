@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const { items, tipoEntrega, direccion, fuente, mesa, comensales, notaEmpleado, notaCliente } = await req.json();
+        const { items, tipoEntrega, direccion, fuente, mesa, comensales, nombreComanda, notaEmpleado, notaCliente } = await req.json();
         if (!items?.length)
             return NextResponse.json({ message: "Sin items" }, { status: 400 });
 
@@ -154,6 +154,7 @@ export async function POST(req: NextRequest) {
             fuente: fuente === "empleado" ? "empleado" : "cliente",
             mesa: mesa || undefined,
             comensales: Number(comensales) || 0,
+            nombreComanda: nombreComanda || undefined,
             notaEmpleado: notaEmpleado || undefined,
             notaCliente: notaCliente || undefined,
         });

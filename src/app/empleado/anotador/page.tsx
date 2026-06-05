@@ -78,10 +78,14 @@ export default function AnotadorPage() {
     const router = useRouter();
     const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
     const [loadingMenu, setLoadingMenu] = useState(true);
-    const [cart, setCart]           = useState<CartItem[]>([]);
-    const [mesa, setMesa]           = useState("");
-    const [nota, setNota]           = useState("");
+    const [cart, setCart]             = useState<CartItem[]>([]);
+    const [mesa, setMesa]             = useState("");
+    const [nota, setNota]             = useState("");
     const [comensales, setComensales] = useState(2);
+    const [clienteNombre, setClienteNombre] = useState("");
+    const [clienteSearch, setClienteSearch] = useState("");
+    const [clienteResults, setClienteResults] = useState<{_id:string;nombre:string;apellido:string}[]>([]);
+    const [panelExpanded, setPanelExpanded] = useState(true);
     const [mesasRegistradas, setMesasRegistradas] = useState<{ _id: string; nombre: string }[]>([]);
     const [categoriaActiva, setCategoriaActiva] = useState<string | null>(null);
     const [enviando, setEnviando] = useState(false);
@@ -135,6 +139,17 @@ export default function AnotadorPage() {
             .catch(() => setActiveOrder(null))
             .finally(() => setActiveOrderLoading(false));
     }, [mesa]);
+
+    // Búsqueda de cliente con debounce
+    useEffect(() => {
+        if (clienteSearch.length < 2) { setClienteResults([]); return; }
+        const t = setTimeout(async () => {
+            const r = await fetch(`/api/empleado/buscar-cliente?q=${encodeURIComponent(clienteSearch)}`, { credentials: "include" });
+            const d = await r.json().catch(() => []);
+            setClienteResults(Array.isArray(d) ? d : []);
+        }, 300);
+        return () => clearTimeout(t);
+    }, [clienteSearch]);
 
     async function openMesaPicker() {
         setMesaPickerOpen(true);
@@ -202,6 +217,7 @@ export default function AnotadorPage() {
                         fuente: "empleado",
                         mesa: mesa.trim() || undefined,
                         comensales: comensales || undefined,
+                        nombreComanda: clienteNombre.trim() || undefined,
                         notaEmpleado: nota.trim() || undefined,
                     }),
                 });
@@ -211,23 +227,19 @@ export default function AnotadorPage() {
                 setError(err.message || err.error || "Error al enviar el pedido");
                 return;
             }
-            const wasAddingToComanda = comandaSeleccionada && !!activeOrder;
             setLastOrder({ items: [...cart], mesa, nota, timestamp: new Date() });
             setCart([]);
             setNota("");
             setComandaseleccionada(false);
-
-            if (wasAddingToComanda) {
-                // Agregar a comanda existente: mantener mesa y refrescar la comanda
+            setClienteNombre("");
+            setClienteSearch("");
+            setClienteResults([]);
+            // Refrescar la comanda activa de la mesa (no borrar ni la mesa ni la comanda)
+            if (mesa) {
                 const updated = await fetch(`/api/pedidos?mesa=${encodeURIComponent(mesa)}&activos=true`, { credentials: "include" });
                 const data = await updated.json().catch(() => []);
                 const order = Array.isArray(data) ? data.find((p: any) => p.fuente === "empleado") : null;
                 setActiveOrder(order || null);
-            } else {
-                // Nueva comanda: limpiar mesa y comensales para el siguiente pedido
-                setMesa("");
-                setComensales(2);
-                setActiveOrder(null);
             }
         } catch {
             setError("Error de conexión");
@@ -281,82 +293,176 @@ export default function AnotadorPage() {
 
     function CartPanel() {
         if (cart.length === 0 && !activeOrder && !mesa) return null;
-        return (
-            <div className="bg-white border-b border-gray-200 shadow-sm px-4 pt-3 pb-3">
-                <div className="max-w-2xl mx-auto space-y-2">
 
-                    {/* Fila 1: mesa + comensales */}
+        const hayComanda = !!activeOrder;
+        const hayCart    = cart.length > 0;
+
+        return (
+            <div className="bg-white border-b border-gray-200 shadow-sm">
+                <div className="max-w-2xl mx-auto px-4 pt-3 pb-3 space-y-2">
+
+                    {/* Fila 1: Mesa + comensales + expandir */}
                     <div className="flex gap-2 items-center">
                         <button onClick={openMesaPicker}
-                            className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-semibold transition shrink-0 ${mesa ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
-                            <MapPin className="w-4 h-4 shrink-0" />
-                            {mesa ? `Mesa ${mesa}` : "Elegir mesa"}
+                            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-semibold transition shrink-0 ${mesa ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
+                            <MapPin className="w-3.5 h-3.5" />
+                            {mesa ? `Mesa ${mesa}` : "Mesa"}
                             <ChevronDown className="w-3 h-3" />
                         </button>
-                        {/* Comensales */}
-                        <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-2 py-1.5">
-                            <button onClick={() => setComensales(c => Math.max(1, c - 1))} className="w-6 h-6 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 font-bold text-sm">−</button>
-                            <span className="text-sm font-bold text-gray-900 min-w-[1.5rem] text-center">{comensales}</span>
-                            <button onClick={() => setComensales(c => Math.min(20, c + 1))} className="w-6 h-6 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 font-bold text-sm">+</button>
-                            <span className="text-xs text-gray-400 ml-0.5">p.</span>
+                        <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-xl px-2 py-1.5 shrink-0">
+                            <button onClick={() => setComensales(c => Math.max(1, c - 1))} className="w-5 h-5 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 text-sm font-bold">−</button>
+                            <span className="text-sm font-bold text-gray-900 w-5 text-center">{comensales}</span>
+                            <button onClick={() => setComensales(c => Math.min(20, c + 1))} className="w-5 h-5 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 text-sm font-bold">+</button>
+                            <span className="text-[10px] text-gray-400">p</span>
                         </div>
                         <input type="text" placeholder="Nota..." value={nota} onChange={e => setNota(e.target.value)}
                             className="flex-1 min-w-0 px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
+                        {(hayComanda || hayCart) && (
+                            <button onClick={() => setPanelExpanded(v => !v)}
+                                className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 shrink-0">
+                                <ChevronDown className={`w-4 h-4 transition-transform ${panelExpanded ? "rotate-180" : ""}`} />
+                            </button>
+                        )}
                     </div>
 
-                    {/* Comanda activa — hay que presionarla para agregar */}
-                    {activeOrderLoading && <p className="text-xs text-gray-400 text-center py-1">Buscando comanda...</p>}
-                    {activeOrder && !activeOrderLoading && (
-                        <button
-                            onClick={() => setComandaseleccionada(v => !v)}
-                            className={`w-full text-left rounded-xl border px-3 py-2 transition ${
-                                comandaSeleccionada
-                                    ? "bg-amber-500 border-amber-600 text-white"
-                                    : "bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100"
-                            }`}
-                        >
-                            <div className="flex items-center justify-between mb-1">
-                                <p className="text-xs font-bold">
-                                    {comandaSeleccionada ? "✓ Editando comanda" : "Comanda activa · tocá para agregar"}
-                                    {" · Mesa "}{activeOrder.mesa}
-                                    {(activeOrder as any).comensales > 0 ? ` · ${(activeOrder as any).comensales}p` : ""}
-                                    {" · $"}{formatPrice(activeOrder.total)}
-                                </p>
-                                <ChevronDown className={`w-3 h-3 transition-transform ${comandaSeleccionada ? "rotate-180" : ""}`} />
+                    {panelExpanded && (
+                        <>
+                            {/* Búsqueda de cliente */}
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    placeholder="Nombre del cliente (buscá o anotá)"
+                                    value={clienteNombre || clienteSearch}
+                                    onChange={e => {
+                                        const v = e.target.value;
+                                        setClienteSearch(v);
+                                        if (!v) setClienteNombre("");
+                                    }}
+                                    className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                                />
+                                {clienteResults.length > 0 && (
+                                    <div className="absolute top-full left-0 right-0 z-20 bg-white border border-gray-200 rounded-xl shadow-lg mt-1 overflow-hidden">
+                                        {clienteResults.map(c => (
+                                            <button key={c._id} onClick={() => {
+                                                setClienteNombre(`${c.nombre} ${c.apellido}`);
+                                                setClienteSearch("");
+                                                setClienteResults([]);
+                                            }} className="w-full text-left px-4 py-2.5 hover:bg-gray-50 text-sm transition border-b border-gray-50 last:border-0">
+                                                <span className="font-semibold text-gray-900">{c.nombre} {c.apellido}</span>
+                                                <span className="text-gray-400 ml-2 text-xs">@{c.username}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
-                            <div className="flex flex-wrap gap-1">
-                                {activeOrder.items.map((i, idx) => (
-                                    <span key={idx} className={`text-xs px-2 py-0.5 rounded-full ${comandaSeleccionada ? "bg-white/30 text-white" : "bg-amber-100 text-amber-800"}`}>
-                                        {i.cantidad}× {i.menuItemId?.nombre || "ítem"}
-                                    </span>
-                                ))}
-                            </div>
-                        </button>
+
+                            {/* Comanda activa — ticket style */}
+                            {activeOrderLoading && <p className="text-xs text-gray-400 text-center py-1">Buscando comanda...</p>}
+                            {activeOrder && !activeOrderLoading && (
+                                <div className={`rounded-xl border overflow-hidden ${comandaSeleccionada ? "border-amber-500" : "border-amber-200"}`}>
+                                    <button onClick={() => setComandaseleccionada(v => !v)}
+                                        className={`w-full flex items-center justify-between px-3 py-2 text-xs font-bold transition ${comandaSeleccionada ? "bg-amber-500 text-white" : "bg-amber-50 text-amber-800 hover:bg-amber-100"}`}>
+                                        <span>
+                                            {comandaSeleccionada ? "✓ Editando" : "Comanda activa"}
+                                            {(activeOrder as any).comensales > 0 ? ` · ${(activeOrder as any).comensales}p` : ""}
+                                        </span>
+                                        <span className="flex items-center gap-1">
+                                            ${formatPrice(activeOrder.total)}
+                                            <ChevronDown className={`w-3 h-3 transition-transform ${comandaSeleccionada ? "rotate-180" : ""}`} />
+                                        </span>
+                                    </button>
+                                    {/* Items de la comanda tipo ticket */}
+                                    <div className="bg-white px-3 py-2 space-y-0.5">
+                                        {activeOrder.items.map((i, idx) => (
+                                            <div key={idx} className="flex justify-between text-sm py-0.5 border-b border-gray-50 last:border-0">
+                                                <span className="text-gray-700">
+                                                    <span className="font-bold text-gray-500 mr-1.5">{i.cantidad}×</span>
+                                                    {i.menuItemId?.nombre || "ítem"}
+                                                </span>
+                                                <span className="text-gray-500 text-xs">${formatPrice((i.menuItemId?.precio || 0) * i.cantidad)}</span>
+                                            </div>
+                                        ))}
+                                        <div className="flex justify-between text-xs font-black text-gray-900 pt-1 border-t border-gray-200 mt-1">
+                                            <span>TOTAL</span>
+                                            <span>${formatPrice(activeOrder.total)}</span>
+                                        </div>
+                                    </div>
+                                    {comandaSeleccionada && (
+                                        <p className="text-[10px] text-amber-600 text-center bg-amber-50 py-1">
+                                            Agregá productos abajo y presioná Enviar
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Nuevos ítems en el carrito — ticket style */}
+                            {cart.length > 0 && (
+                                <div className="rounded-xl border border-gray-200 overflow-hidden">
+                                    <div className="bg-gray-50 px-3 py-1.5">
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                                            {comandaSeleccionada ? "Agregar a comanda" : "Nuevo pedido"}
+                                        </p>
+                                    </div>
+                                    <div className="bg-white px-3 py-2 space-y-0.5">
+                                        {cart.map(c => (
+                                            <div key={c.menuItemId} className="flex items-center justify-between py-0.5">
+                                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                                    <div className="flex items-center gap-1 shrink-0">
+                                                        <button onClick={() => removeFromCart(c.menuItemId)}
+                                                            className="w-5 h-5 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-xs transition">
+                                                            −
+                                                        </button>
+                                                        <span className="text-sm font-bold text-gray-900 w-5 text-center">{c.cantidad}</span>
+                                                        <button onClick={() => setCart(prev => prev.map(x => x.menuItemId === c.menuItemId ? { ...x, cantidad: x.cantidad + 1 } : x))}
+                                                            className="w-5 h-5 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-xs transition">
+                                                            +
+                                                        </button>
+                                                    </div>
+                                                    <span className="text-sm text-gray-800 truncate">{c.nombre}</span>
+                                                </div>
+                                                <span className="text-xs text-gray-500 shrink-0 ml-2">${formatPrice(c.precio * c.cantidad)}</span>
+                                            </div>
+                                        ))}
+                                        <div className="flex justify-between text-xs font-black text-gray-900 pt-1 border-t border-gray-200 mt-1">
+                                            <span>SUBTOTAL</span>
+                                            <span>${formatPrice(total)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {error && <p className="text-red-600 text-xs text-center">{error}</p>}
+
+                            {cart.length > 0 && (
+                                <button onClick={enviarPedido} disabled={enviando}
+                                    className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition">
+                                    <Send className="w-4 h-4" />
+                                    {enviando ? "Enviando..."
+                                        : comandaSeleccionada && activeOrder
+                                            ? `Agregar a comanda · $${formatPrice(total)}`
+                                            : `Enviar al bar · $${formatPrice(total)}`
+                                    }
+                                </button>
+                            )}
+                        </>
                     )}
 
-                    {/* Nuevos ítems en el carrito */}
-                    {cart.length > 0 && (
-                        <div className="flex flex-wrap gap-1 max-h-14 overflow-y-auto">
-                            {cart.map(c => (
-                                <span key={c.menuItemId} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
-                                    {c.nombre} ×{c.cantidad}
-                                </span>
-                            ))}
+                    {/* Summary cuando está colapsado */}
+                    {!panelExpanded && (hayComanda || hayCart) && (
+                        <div className="flex items-center justify-between text-sm text-gray-600 px-1">
+                            <span>
+                                {hayComanda && <span className="text-amber-600 font-semibold">Comanda: ${formatPrice(activeOrder!.total)}</span>}
+                                {hayComanda && hayCart && <span className="text-gray-400 mx-2">+</span>}
+                                {hayCart && <span className="font-semibold">{cart.length} ítem{cart.length !== 1 ? "s" : ""} · ${formatPrice(total)}</span>}
+                            </span>
+                            {hayCart && (
+                                <button onClick={enviarPedido} disabled={enviando}
+                                    className="flex items-center gap-1.5 bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition">
+                                    <Send className="w-3 h-3" />
+                                    {enviando ? "..." : "Enviar"}
+                                </button>
+                            )}
                         </div>
-                    )}
-
-                    {error && <p className="text-red-600 text-xs text-center">{error}</p>}
-
-                    {cart.length > 0 && (
-                        <button onClick={enviarPedido} disabled={enviando}
-                            className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition">
-                            <Send className="w-5 h-5" />
-                            {enviando ? "Enviando..."
-                                : comandaSeleccionada && activeOrder
-                                    ? `Agregar a Mesa ${mesa} · $${formatPrice(total)}`
-                                    : `Enviar al bar · $${formatPrice(total)}`
-                            }
-                        </button>
                     )}
                 </div>
             </div>
