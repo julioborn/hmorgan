@@ -1,5 +1,5 @@
 "use client";
-export const dynamic = "force-dynamic";
+import { Suspense } from "react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/context/auth-context";
@@ -34,7 +34,7 @@ const MAIN_ORDER   = ["PARRILLA","PIZZAS","HAMBURGUESAS","SANDWICHES","PICADAS",
 const categoryImages: Record<string, string> = { PARRILLA:"/parrilla.jpg", PIZZAS:"/pizzas.jpg", HAMBURGUESAS:"/hamburguesas.jpg", SANDWICHES:"/sandwiches.jpg", PICADAS:"/picada.jpg", ENSALADAS:"/ensaladas.jpg", FRITURAS:"/frituras.jpeg", BEBIDAS:"/bebidas.jpeg","POSTRE Y CAFE":"/postreycafe.jpeg" };
 const categoryIcons: Record<string, React.ElementType> = { PARRILLA:Beef, PIZZAS:Pizza, HAMBURGUESAS:Hamburger, SANDWICHES:Sandwich, PICADAS:UtensilsCrossed, ENSALADAS:Salad, FRITURAS:UtensilsCrossed, BEBIDAS:Beer, CERVEZAS:Beer, VINOS:BottleWine, GASEOSAS:Milk, JARROS:CupSoda, COCKTAILS:Martini, WHISKY:GlassWater, MEDIDAS:Beaker, "POSTRE Y CAFE":CakeSlice };
 
-export default function AnotadorMenuPage() {
+function AnotadorMenuContent() {
     const categoryConfigMap = useCategoryConfigs();
     const { user, loading }   = useAuth();
     const router              = useRouter();
@@ -496,5 +496,13 @@ export default function AnotadorMenuPage() {
             </AnimatePresence>
             {successBanner}
         </div>
+    );
+}
+
+export default function AnotadorMenuPage() {
+    return (
+        <Suspense fallback={<div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600" /></div>}>
+            <AnotadorMenuContent />
+        </Suspense>
     );
 }
