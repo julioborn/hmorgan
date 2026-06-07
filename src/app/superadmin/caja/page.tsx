@@ -264,7 +264,7 @@ export default function CajaPage() {
     /* ── No session open ── */
     if (sesion === null) {
         return (
-            <div className="min-h-screen bg-gray-50 p-4">
+            <div className="min-h-screen p-4">
                 <div className="max-w-md mx-auto pt-8">
                     <div className="text-center mb-6">
                         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -307,7 +307,7 @@ export default function CajaPage() {
     const horaApertura = sesion ? new Date(sesion.fechaApertura).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : "";
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-24">
+        <div className="min-h-screen pb-24">
             {/* Session header */}
             <div className="bg-emerald-600 text-white px-4 py-3">
                 <div className="max-w-2xl mx-auto flex items-center gap-3">

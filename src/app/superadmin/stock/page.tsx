@@ -147,7 +147,7 @@ export default function StockPage() {
     const alertas = items.filter(i => i.activo && i.stockMinimo > 0 && i.stockActual <= i.stockMinimo);
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="min-h-screen pb-20">
             {/* Top bar */}
             <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
                 <Package size={18} className="text-gray-500 shrink-0" />

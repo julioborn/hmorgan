@@ -214,7 +214,7 @@ export default function SuperAdminReservasPage() {
     };
 
     return (
-        <div className="min-h-screen bg-white pb-16">
+        <div className="min-h-screen pb-16">
             {/* Header */}
             <div className="bg-white border-b border-gray-200 px-4 py-3">
                 <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
