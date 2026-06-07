@@ -264,17 +264,12 @@ export default function CajaPage() {
     /* ── No session open ── */
     if (sesion === null) {
         return (
-            <div className="min-h-screen p-4">
-                <div className="max-w-md mx-auto pt-8">
-                    <div className="text-center mb-6">
-                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <Wallet size={28} className="text-gray-400" />
-                        </div>
-                        <h1 className="text-xl font-black text-gray-900">Caja cerrada</h1>
-                        <p className="text-sm text-gray-500 mt-1">No hay sesión activa. Abrí la caja para empezar.</p>
-                    </div>
+            <div className="min-h-screen">
+                <div className="max-w-md mx-auto px-4">
+                    <h1 className="text-3xl font-extrabold text-center py-6 text-black">Caja</h1>
 
                     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 space-y-3">
+                        <p className="text-sm text-gray-500 text-center mb-1">Sin sesión activa. Abrí la caja para empezar.</p>
                         <div>
                             <label className="text-xs font-semibold text-gray-500 uppercase">Monto inicial (en caja)</label>
                             <input type="number" min="0" value={openForm.montoInicial}
@@ -308,25 +303,29 @@ export default function CajaPage() {
 
     return (
         <div className="min-h-screen pb-24">
-            {/* Session header */}
-            <div className="bg-emerald-600 text-white px-4 py-3">
-                <div className="max-w-2xl mx-auto flex items-center gap-3">
-                    <CheckCircle size={18} className="shrink-0" />
-                    <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold">Sesión abierta</p>
-                        <p className="text-xs text-emerald-100">Desde las {horaApertura} · Inicial: {formatMoney(sesion?.montoInicial || 0)}</p>
+            <div className="px-4 max-w-2xl mx-auto">
+                <div className="flex items-center justify-between py-6">
+                    <h1 className="text-3xl font-extrabold text-black">Caja</h1>
+                    <div className="flex items-center gap-2">
+                        <button onClick={printResumen} className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 px-3 py-1.5 rounded-xl text-xs font-semibold transition text-gray-700">
+                            <Printer size={13} /> Imprimir
+                        </button>
+                        <button onClick={() => { setCloseModal(true); setCloseForm({ montoCierre: "", notas: "" }); }}
+                            className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition">
+                            Cerrar caja
+                        </button>
                     </div>
-                    <button onClick={printResumen} className="flex items-center gap-1.5 bg-emerald-700 hover:bg-emerald-800 px-3 py-1.5 rounded-lg text-xs font-semibold transition">
-                        <Printer size={13} /> Imprimir
-                    </button>
-                    <button onClick={() => { setCloseModal(true); setCloseForm({ montoCierre: "", notas: "" }); }}
-                        className="flex items-center gap-1.5 bg-white text-red-600 hover:bg-gray-100 px-3 py-1.5 rounded-lg text-xs font-bold transition">
-                        Cerrar caja
-                    </button>
                 </div>
-            </div>
 
-            <div className="px-4 pt-4 max-w-2xl mx-auto space-y-4">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 flex items-center gap-3 mb-4">
+                    <CheckCircle size={18} className="text-emerald-600 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-emerald-800">Sesión abierta</p>
+                        <p className="text-xs text-emerald-600">Desde las {horaApertura} · Inicial: {formatMoney(sesion?.montoInicial || 0)}</p>
+                    </div>
+                </div>
+
+                <div className="space-y-4">
                 {/* Summary cards */}
                 <div className="grid grid-cols-3 gap-2">
                     <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-3 text-center">
@@ -469,6 +468,7 @@ export default function CajaPage() {
                     )}
                 </div>
             </div>
+        </div>
 
             {/* Modal cobrar */}
             {cobrarModal.open && cobrarModal.pedido && (

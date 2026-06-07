@@ -411,16 +411,13 @@ export default function SuperAdminMesasPage() {
     return (
         <div className="min-h-screen pb-16">
             {/* Header */}
-            <div className="bg-white border-b border-gray-200 px-4 py-3">
-                <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                        <MapPin size={18} className="text-gray-500 shrink-0" />
-                        <div>
-                            <h1 className="font-black text-gray-900">Plano del salón</h1>
-                            <p className="text-xs text-gray-400">{mesasActivas} mesas · {mesas.filter(m => m.tipo === "banqueta").length} banquetas · <span className="text-red-500 font-semibold">{ocupadasCount} ocupadas</span></p>
-                        </div>
-                    </div>
-                    <div className="flex gap-1 bg-gray-100 rounded-xl p-1 shrink-0">
+            <div className="px-4">
+                <h1 className="text-3xl font-extrabold text-center py-6 text-black">Mesas</h1>
+                <p className="text-xs text-gray-400 text-center -mt-4 mb-4">
+                    {mesasActivas} mesas · {mesas.filter(m => m.tipo === "banqueta").length} banquetas · <span className="text-red-500 font-semibold">{ocupadasCount} ocupadas</span>
+                </p>
+                <div className="flex justify-center mb-4">
+                    <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
                         {(["plano","gestion"] as const).map(t => (
                             <button key={t} onClick={() => setTab(t)}
                                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${tab === t ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}>
@@ -433,7 +430,7 @@ export default function SuperAdminMesasPage() {
 
             {/* PLANO */}
             {tab === "plano" && (
-                <div className="max-w-5xl mx-auto px-3 pt-3">
+                <div className="max-w-5xl mx-auto px-3">
                     {/* Mode toolbar */}
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <ModeBtn m="select" icon={MousePointer}       label="Seleccionar" />
@@ -598,7 +595,7 @@ export default function SuperAdminMesasPage() {
 
             {/* GESTIÓN */}
             {tab === "gestion" && (
-                <div className="max-w-2xl mx-auto px-4 pt-4 space-y-4">
+                <div className="max-w-2xl mx-auto px-4 space-y-4">
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
                         <h2 className="font-bold text-gray-800 mb-3 text-sm">Agregar mesa</h2>
                         <div className="flex gap-2">

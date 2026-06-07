@@ -148,17 +148,14 @@ export default function StockPage() {
 
     return (
         <div className="min-h-screen pb-20">
-            {/* Top bar */}
-            <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
-                <Package size={18} className="text-gray-500 shrink-0" />
-                <h1 className="font-black text-gray-900 flex-1">Stock</h1>
-                <button onClick={() => setEditModal({ open: true, item: { ...EMPTY_ITEM } })}
-                    className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-sm font-semibold transition">
-                    <Plus size={15} /> Nuevo
-                </button>
-            </div>
-
-            <div className="px-4 pt-4 max-w-3xl mx-auto">
+            <div className="px-4 max-w-3xl mx-auto">
+                <div className="flex items-center justify-between py-6">
+                    <h1 className="text-3xl font-extrabold text-black">Stock</h1>
+                    <button onClick={() => setEditModal({ open: true, item: { ...EMPTY_ITEM } })}
+                        className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition">
+                        <Plus size={15} /> Nuevo
+                    </button>
+                </div>
                 {/* Alertas */}
                 {alertas.length > 0 && (
                     <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4 flex items-start gap-2">
