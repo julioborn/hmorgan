@@ -19,6 +19,7 @@ type Reward = {
   titulo: string;
   descripcion?: string;
   puntos: number;
+  tema?: string;
 };
 
 type CarouselImg = { _id: string; url: string };
