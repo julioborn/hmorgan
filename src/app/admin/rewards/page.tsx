@@ -13,6 +13,7 @@ type Reward = {
     puntos: number;
     descripcion?: string;
     activo: boolean;
+    tema?: string;
 };
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -23,6 +24,7 @@ export default function AdminRewardsPage() {
     const [titulo, setTitulo] = useState("");
     const [descripcion, setDescripcion] = useState("");
     const [puntos, setPuntos] = useState<number>(0);
+    const [tema, setTema] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [showForm, setShowForm] = useState(false);
@@ -36,7 +38,7 @@ export default function AdminRewardsPage() {
             const res = await fetch("/api/rewards", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ titulo, descripcion, puntos }),
+                body: JSON.stringify({ titulo, descripcion, puntos, tema }),
             });
 
             if (!res.ok) throw new Error("Error creando canje");
@@ -45,6 +47,7 @@ export default function AdminRewardsPage() {
             setTitulo("");
             setDescripcion("");
             setPuntos(0);
+            setTema("");
             setShowForm(false);
         } catch (e: any) {
             setError(e.message);
@@ -91,7 +94,7 @@ export default function AdminRewardsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-6">
+        <div className="max-w-4xl mx-auto py-6">
             {/* 🏷️ Título */}
             <h1 className="text-3xl font-extrabold mb-8 text-black text-center md:text-left flex justify-center items-center gap-2">
                 Canjes
@@ -134,6 +137,15 @@ export default function AdminRewardsPage() {
                             className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-black placeholder-gray-400 min-h-[80px] focus:outline-none focus:ring-2 focus:ring-red-500"
                         />
 
+                        <select
+                            value={tema}
+                            onChange={(e) => setTema(e.target.value)}
+                            className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-black focus:outline-none focus:ring-2 focus:ring-red-500"
+                        >
+                            <option value="">Tarjeta estándar</option>
+                            <option value="argentina">🇦🇷 Especial Argentina — Mundial 2026</option>
+                        </select>
+
                         {error && <p className="text-sm text-red-600">{error}</p>}
 
                         <div className="flex justify-end">
@@ -162,62 +174,88 @@ export default function AdminRewardsPage() {
             {/* 🎟️ Lista de canjes */}
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {rewards.map((r) => (
-                    <div
-                        key={r._id}
-                        className={`relative border rounded-2xl shadow-sm p-5 flex flex-col justify-between transition overflow-visible ${
-                            r.activo ? "bg-white border-gray-200 hover:bg-red-50/40" : "bg-gray-50 border-gray-200 opacity-60"
-                        }`}
-                    >
-                        {/* Borde lateral tipo ticket */}
-                        <div className="absolute inset-y-0 -left-3 flex items-center">
-                            <span className="w-6 h-6 bg-gray-100 rounded-full border border-gray-200" />
-                        </div>
-                        <div className="absolute inset-y-0 -right-3 flex items-center">
-                            <span className="w-6 h-6 bg-gray-100 rounded-full border border-gray-200" />
-                        </div>
-
-                        {/* Acciones */}
-                        <div className="absolute top-3 right-3 flex items-center gap-1">
-                            <button
-                                onClick={() => handleToggle(r._id)}
-                                title={r.activo ? "Desactivar" : "Activar"}
-                                className={`px-2 py-1 rounded-lg text-xs font-semibold transition ${
-                                    r.activo
-                                        ? "bg-green-100 text-green-700 hover:bg-green-200"
-                                        : "bg-gray-200 text-gray-500 hover:bg-gray-300"
+                    r.tema === "argentina"
+                        ? <ArgentinaCard key={r._id} r={r} onToggle={handleToggle} onDelete={handleDelete} />
+                        : (
+                            <div
+                                key={r._id}
+                                className={`relative border rounded-2xl shadow-sm p-5 flex flex-col justify-between transition overflow-visible ${
+                                    r.activo ? "bg-white border-gray-200 hover:bg-red-50/40" : "bg-gray-50 border-gray-200 opacity-60"
                                 }`}
                             >
-                                {r.activo ? "Activo" : "Inactivo"}
-                            </button>
-                            <button
-                                onClick={() => handleDelete(r._id)}
-                                className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition"
-                                title="Eliminar canje"
-                            >
-                                <Trash2 size={16} />
-                            </button>
-                        </div>
-
-                        {/* Contenido */}
-                        <div className="flex-1 pr-24">
-                            <h3 className="text-lg font-bold text-black">{r.titulo}</h3>
-                            <p className="text-sm text-gray-600 mt-1">
-                                {r.descripcion || "Sin descripción"}
-                            </p>
-                            <p className="text-sm font-semibold text-red-600 mt-2">
-                                {r.puntos} puntos
-                            </p>
-                        </div>
-
-                        <div className="absolute bottom-3 right-3">
-                            <img
-                                src="/icon-192x192.png"
-                                alt="Logo"
-                                className="h-7 w-7 object-contain opacity-80"
-                            />
-                        </div>
-                    </div>
+                                <div className="absolute inset-y-0 -left-3 flex items-center">
+                                    <span className="w-6 h-6 bg-gray-100 rounded-full border border-gray-200" />
+                                </div>
+                                <div className="absolute inset-y-0 -right-3 flex items-center">
+                                    <span className="w-6 h-6 bg-gray-100 rounded-full border border-gray-200" />
+                                </div>
+                                <div className="absolute top-3 right-3 flex items-center gap-1">
+                                    <button onClick={() => handleToggle(r._id)}
+                                        className={`px-2 py-1 rounded-lg text-xs font-semibold transition ${r.activo ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-gray-200 text-gray-500 hover:bg-gray-300"}`}>
+                                        {r.activo ? "Activo" : "Inactivo"}
+                                    </button>
+                                    <button onClick={() => handleDelete(r._id)}
+                                        className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition">
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                                <div className="flex-1 pr-24">
+                                    <h3 className="text-lg font-bold text-black">{r.titulo}</h3>
+                                    <p className="text-sm text-gray-600 mt-1">{r.descripcion || "Sin descripción"}</p>
+                                    <p className="text-sm font-semibold text-red-600 mt-2">{r.puntos} puntos</p>
+                                </div>
+                                <div className="absolute bottom-3 right-3">
+                                    <img src="/icon-192x192.png" alt="Logo" className="h-7 w-7 object-contain opacity-80" />
+                                </div>
+                            </div>
+                        )
                 ))}
+            </div>
+        </div>
+    );
+}
+
+function ArgentinaCard({ r, onToggle, onDelete }: { r: any; onToggle: (id: string) => void; onDelete: (id: string) => void }) {
+    return (
+        <div className={`relative rounded-2xl shadow-xl overflow-visible border-2 border-[#74ACDF] ${!r.activo ? "opacity-60" : ""}`}>
+            <div
+                className="relative rounded-2xl p-5 h-44 flex flex-col justify-between overflow-hidden"
+                style={{ background: "repeating-linear-gradient(90deg,#74ACDF 0px,#74ACDF 26px,white 26px,white 52px)" }}
+            >
+                {/* Overlay blanco para legibilidad */}
+                <div className="absolute inset-0 bg-white/55 rounded-2xl" />
+
+                {/* Muescas laterales */}
+                <span className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-[#74ACDF] rounded-full shadow" />
+                <span className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-[#74ACDF] rounded-full shadow" />
+
+                {/* Acciones */}
+                <div className="relative z-10 flex justify-between items-start">
+                    <div className="flex gap-0.5 text-yellow-400 text-base leading-none">★★★</div>
+                    <div className="flex items-center gap-1">
+                        <button onClick={() => onToggle(r._id)}
+                            className={`px-2 py-1 rounded-lg text-xs font-semibold transition ${r.activo ? "bg-white/80 text-emerald-700" : "bg-white/60 text-gray-500"}`}>
+                            {r.activo ? "Activo" : "Inactivo"}
+                        </button>
+                        <button onClick={() => onDelete(r._id)}
+                            className="p-1.5 rounded-lg bg-white/70 text-red-600 hover:bg-white transition">
+                            <Trash2 size={14} />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Contenido */}
+                <div className="relative z-10 flex-1 flex flex-col justify-end gap-1">
+                    <p className="text-[10px] font-black text-[#003DA5] uppercase tracking-widest">Mundial 2026</p>
+                    <h3 className="text-base font-extrabold text-[#003DA5] leading-tight">{r.titulo}</h3>
+                    {r.descripcion && <p className="text-xs text-[#003DA5]/70 line-clamp-1">{r.descripcion}</p>}
+                    <span className="text-xs font-bold text-[#003DA5] bg-[#74ACDF]/30 px-2 py-0.5 rounded-full w-fit mt-0.5">
+                        {r.puntos} pts
+                    </span>
+                </div>
+
+                {/* Pelota */}
+                <span className="absolute bottom-3 right-4 text-2xl z-10">⚽</span>
             </div>
         </div>
     );

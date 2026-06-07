@@ -201,32 +201,43 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
               >
                 {rewards.map((r) => (
                   <SwiperSlide key={r._id}>
-                    <div className="relative bg-white text-black rounded-2xl shadow-md border border-gray-200 p-5 h-44 flex flex-col justify-between overflow-hidden">
-                      <div className="flex-1 flex flex-col justify-between">
-                        <h3 className="font-extrabold text-base md:text-lg line-clamp-2">
-                          {r.titulo}
-                        </h3>
-                        <p className="text-sm text-gray-600 line-clamp-2">
-                          {r.descripcion || "Canje"}
-                        </p>
-                        <span className="text-sm font-semibold text-red-600">
-                          {r.puntos} pts
-                        </span>
+                    {r.tema === "argentina" ? (
+                      <div
+                        className="relative rounded-2xl border-2 border-[#74ACDF] h-44 flex flex-col justify-between overflow-hidden shadow-lg"
+                        style={{ background: "repeating-linear-gradient(90deg,#74ACDF 0px,#74ACDF 26px,white 26px,white 52px)" }}
+                      >
+                        <div className="absolute inset-0 bg-white/55" />
+                        <span className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-[#74ACDF] rounded-full shadow" />
+                        <span className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-[#74ACDF] rounded-full shadow" />
+                        <div className="relative z-10 p-4 flex flex-col h-full justify-between">
+                          <div className="flex items-center justify-between">
+                            <span className="text-yellow-400 text-base drop-shadow">★★★</span>
+                            <span className="text-[9px] font-black text-white bg-[#003DA5] px-2 py-0.5 rounded-full uppercase tracking-widest">Mundial 2026</span>
+                          </div>
+                          <div>
+                            <h3 className="font-extrabold text-base text-[#003DA5] line-clamp-2">{r.titulo}</h3>
+                            {r.descripcion && <p className="text-xs text-[#003DA5]/70 line-clamp-1 mt-0.5">{r.descripcion}</p>}
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-extrabold text-white bg-[#003DA5] px-2.5 py-1 rounded-full">{r.puntos} pts</span>
+                            <span className="text-2xl">⚽</span>
+                          </div>
+                        </div>
                       </div>
-
-                      {/* Logo */}
-                      <div className="absolute bottom-3 right-3">
-                        <img
-                          src="/icon-192x192.png"
-                          alt="Logo"
-                          className="h-8 w-8 object-contain opacity-70"
-                        />
+                    ) : (
+                      <div className="relative bg-white text-black rounded-2xl shadow-md border border-gray-200 p-5 h-44 flex flex-col justify-between overflow-hidden">
+                        <div className="flex-1 flex flex-col justify-between">
+                          <h3 className="font-extrabold text-base md:text-lg line-clamp-2">{r.titulo}</h3>
+                          <p className="text-sm text-gray-600 line-clamp-2">{r.descripcion || "Canje"}</p>
+                          <span className="text-sm font-semibold text-red-600">{r.puntos} pts</span>
+                        </div>
+                        <div className="absolute bottom-3 right-3">
+                          <img src="/icon-192x192.png" alt="Logo" className="h-8 w-8 object-contain opacity-70" />
+                        </div>
+                        <span className="absolute -left-3 top-1/2 w-6 h-6 bg-gray-100 border border-gray-300 rounded-full shadow-sm" />
+                        <span className="absolute -right-3 top-1/2 w-6 h-6 bg-gray-100 border border-gray-300 rounded-full shadow-sm" />
                       </div>
-
-                      {/* Círculos laterales */}
-                      <span className="absolute -left-3 top-1/2 w-6 h-6 bg-gray-100 border border-gray-300 rounded-full shadow-sm" />
-                      <span className="absolute -right-3 top-1/2 w-6 h-6 bg-gray-100 border border-gray-300 rounded-full shadow-sm" />
-                    </div>
+                    )}
                   </SwiperSlide>
                 ))}
               </Swiper>

@@ -6,6 +6,7 @@ export interface IReward {
     descripcion?: string;
     puntos: number;
     activo: boolean;
+    tema?: string;
 }
 
 const rewardSchema = new Schema<IReward>(
@@ -14,6 +15,7 @@ const rewardSchema = new Schema<IReward>(
         descripcion: { type: String, trim: true },
         puntos: { type: Number, required: true, min: 0 },
         activo: { type: Boolean, default: true },
+        tema: { type: String, default: "" },
     },
     { timestamps: true }
 );
