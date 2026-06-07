@@ -1,7 +1,7 @@
 ﻿"use client";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Clock, Flame, CheckCircle, Truck, ToggleLeft, ToggleRight } from "lucide-react";
+import { Clock, Flame, CheckCircle, Truck } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import Loader from "@/components/Loader";
@@ -319,12 +319,9 @@ export default function AdminPedidosPage() {
                         });
                         setPedidosActivos(nuevoEstado);
                     }}
-                    className="transition-transform active:scale-95"
+                    className={`relative flex h-7 w-12 shrink-0 cursor-pointer rounded-full items-center transition-colors duration-200 ${pedidosActivos ? "bg-red-500" : "bg-gray-300"}`}
                 >
-                    {pedidosActivos
-                        ? <ToggleRight className="w-10 h-10 text-emerald-500" />
-                        : <ToggleLeft  className="w-10 h-10 text-gray-400" />
-                    }
+                    <span className={`absolute h-6 w-6 rounded-full bg-white shadow-md transition-transform duration-200 ${pedidosActivos ? "translate-x-[22px]" : "translate-x-[2px]"}`} />
                 </button>
             </div>
 

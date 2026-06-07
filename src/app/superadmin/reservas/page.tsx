@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { swalBase } from "@/lib/swalConfig";
 import {
     CalendarDays, Users, MapPin, MessageCircle, Check, X,
-    ToggleLeft, ToggleRight, Clock, Loader2, Phone, ChevronDown,
+    Clock, Loader2, Phone, ChevronDown,
 } from "lucide-react";
 
 type Reserva = {
@@ -222,8 +222,11 @@ export default function SuperAdminReservasPage() {
                     <span className={`text-sm font-semibold ${activo ? "text-gray-900" : "text-gray-400"}`}>
                         Reservas {activo ? "activas" : "desactivadas"}
                     </span>
-                    <button onClick={toggleActivo}>
-                        {activo ? <ToggleRight className="w-10 h-10 text-emerald-500" /> : <ToggleLeft className="w-10 h-10 text-gray-400" />}
+                    <button
+                        onClick={toggleActivo}
+                        className={`relative flex h-7 w-12 shrink-0 cursor-pointer rounded-full items-center transition-colors duration-200 ${activo ? "bg-red-500" : "bg-gray-300"}`}
+                    >
+                        <span className={`absolute h-6 w-6 rounded-full bg-white shadow-md transition-transform duration-200 ${activo ? "translate-x-[22px]" : "translate-x-[2px]"}`} />
                     </button>
                 </div>
                 {/* Tabs */}
