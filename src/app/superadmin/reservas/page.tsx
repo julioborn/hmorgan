@@ -18,7 +18,7 @@ type Reserva = {
     notas?: string;
     createdAt: string;
 };
-type Mesa = { _id: string; nombre: string; forma: string; activa: boolean; tipo?: string; zona?: string; x: number; y: number; ancho?: number; alto?: number; rotacion?: number };
+type Mesa = { _id: string; nombre: string; forma: string; activa: boolean; tipo?: string; zona?: string; capacidad?: number; x: number; y: number; ancho?: number; alto?: number; rotacion?: number };
 type SalonEl = { _id: string; tipo: string; label: string; x: number; y: number; ancho: number; alto: number; color: string };
 
 const ZONA_LABEL: Record<string, string> = { adentro: "Adentro", afuera: "Afuera", indiferente: "Sin preferencia" };
