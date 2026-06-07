@@ -73,9 +73,11 @@ export default function Header() {
   ];
 
   const linksSuper = [
-    { href: "/superadmin", label: "Dashboard", icon: Home },
+    { href: "/superadmin", label: "Inicio", icon: Home },
     { href: "/superadmin/stock", label: "Stock", icon: Package },
     { href: "/superadmin/caja", label: "Caja", icon: BarChart2 },
+    { href: "/superadmin/mesas", label: "Mesas", icon: LayoutGrid },
+    { href: "/superadmin/reservas", label: "Reservas", icon: CalendarDays },
     { href: "/admin/pedidos", label: "Pedidos", icon: ClipboardList },
     { href: "/admin/clientes", label: "Clientes", icon: Users },
     { href: "/admin/menu", label: "Menú", icon: Utensils },
