@@ -319,9 +319,9 @@ export default function AdminPedidosPage() {
                         });
                         setPedidosActivos(nuevoEstado);
                     }}
-                    className={`relative flex h-7 w-12 shrink-0 cursor-pointer rounded-full items-center transition-colors duration-200 ${pedidosActivos ? "bg-red-500" : "bg-gray-300"}`}
+                    className={`relative flex h-6 w-10 shrink-0 cursor-pointer rounded-full items-center transition-colors duration-200 ${pedidosActivos ? "bg-red-500" : "bg-gray-300"}`}
                 >
-                    <span className={`absolute h-6 w-6 rounded-full bg-white shadow-md transition-transform duration-200 ${pedidosActivos ? "translate-x-[22px]" : "translate-x-[2px]"}`} />
+                    <span className={`absolute h-5 w-5 rounded-full bg-white shadow-md transition-transform duration-200 ${pedidosActivos ? "translate-x-[18px]" : "translate-x-[2px]"}`} />
                 </button>
             </div>
 
