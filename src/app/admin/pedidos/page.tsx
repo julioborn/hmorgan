@@ -160,6 +160,46 @@ export default function AdminPedidosPage() {
         }
     }
 
+    function printComanda(p: any) {
+        const hora = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+        const mesa = p.mesa ? `Mesa ${p.mesa}` : p.tipoEntrega === "envio" ? "Envío a domicilio" : "Retira en barra";
+        const cliente = p.userId?.role === "empleado"
+            ? (p.nombreComanda || p.userId?.nombre || "Mozo")
+            : (p.userId?.nombre || "Cliente");
+        const filas = (p.items as any[]).map(it =>
+            `<tr>
+                <td style="font-size:22px;font-weight:900;padding:4px 10px 4px 0;white-space:nowrap">${it.cantidad}x</td>
+                <td style="font-size:20px;font-weight:700;padding:4px 0">${it.menuItemId?.nombre ?? "Ítem"}</td>
+            </tr>`
+        ).join("");
+        const nota = p.notaEmpleado || p.notaCliente;
+
+        const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+        <style>
+            * { margin:0; padding:0; box-sizing:border-box; }
+            body { font-family: 'Courier New', monospace; width: 80mm; padding: 8px; }
+            .centro { text-align:center; }
+            .sep { border-top: 2px dashed #000; margin: 8px 0; }
+            .badge { font-size:28px; font-weight:900; text-transform:uppercase; }
+            .meta { font-size:14px; margin:4px 0; }
+            table { width:100%; border-collapse:collapse; }
+            .nota { font-size:14px; margin-top:6px; padding:6px; border:2px solid #000; border-radius:4px; }
+        </style></head><body>
+        <div class="centro"><div class="badge">⬛ COMANDA ⬛</div></div>
+        <div class="sep"></div>
+        <div class="meta"><b>${mesa}</b></div>
+        <div class="meta">Cliente: ${cliente}</div>
+        <div class="meta">Hora: ${hora}</div>
+        <div class="sep"></div>
+        <table>${filas}</table>
+        <div class="sep"></div>
+        ${nota ? `<div class="nota">📝 ${nota}</div>` : ""}
+        </body></html>`;
+
+        const w = window.open("", "_blank", "width=340,height=500,toolbar=0,menubar=0");
+        if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 200); }
+    }
+
     if (loading) return <Loader />;
 
     function abrirWhatsApp(p: any) {
@@ -456,7 +496,10 @@ export default function AdminPedidosPage() {
                                     {p.estado === "pendiente" ? (
                                         <div className="flex gap-3 mt-2">
                                             <button
-                                                onClick={() => actualizarEstado(p._id, "preparando")}
+                                                onClick={async () => {
+                                                    await actualizarEstado(p._id, "preparando");
+                                                    printComanda(p);
+                                                }}
                                                 className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 rounded-lg transition-all shadow-sm hover:shadow-red-400/40"
                                             >
                                                 Aceptar
