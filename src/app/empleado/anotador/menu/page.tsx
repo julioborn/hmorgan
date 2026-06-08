@@ -40,6 +40,7 @@ function AnotadorMenuContent() {
     const router              = useRouter();
     const searchParams        = useSearchParams();
     const comandaId           = searchParams.get("id"); // null = nueva comanda
+    const [step, setStep]    = useState<"info"|"menu">(comandaId ? "menu" : "info");
 
     const [menuItems, setMenuItems]     = useState<MenuItem[]>([]);
     const [loadingMenu, setLoadingMenu] = useState(true);
@@ -303,21 +304,14 @@ function AnotadorMenuContent() {
         <div className="bg-white border-b border-gray-200 shadow-sm px-4 pt-3 pb-3">
             <div className="max-w-2xl mx-auto space-y-2">
 
-                {/* Fila mesa + comensales */}
+                {/* Resumen mesa/comensales/nombre (solo nueva comanda en step menú) */}
                 {!comandaId && (
-                    <div className="flex gap-2 items-center">
-                        <button onClick={openMesaPicker}
-                            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-semibold transition shrink-0 ${mesa ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
-                            <MapPin className="w-3.5 h-3.5" />
-                            {mesa ? `Mesa ${mesa}` : "Mesa"}
-                            <ChevronDown className="w-3 h-3" />
-                        </button>
-                        <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-xl px-2 py-1.5 shrink-0">
-                            <button onClick={() => setComensales(c => Math.max(1, c - 1))} className="w-5 h-5 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 text-sm font-bold">−</button>
-                            <span className="text-sm font-bold text-gray-900 w-5 text-center">{comensales}</span>
-                            <button onClick={() => setComensales(c => Math.min(20, c + 1))} className="w-5 h-5 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 text-sm font-bold">+</button>
-                            <span className="text-[10px] text-gray-400">p</span>
-                        </div>
+                    <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs">
+                        <MapPin className="w-3 h-3 text-gray-400 shrink-0" />
+                        <span className="font-bold text-gray-800">{mesa ? `Mesa ${mesa}` : "Sin mesa"}</span>
+                        <span className="text-gray-400">· {comensales}p</span>
+                        {clienteNombre && <span className="text-gray-500 truncate">· {clienteNombre}</span>}
+                        <button onClick={() => setStep("info")} className="ml-auto text-red-500 font-semibold shrink-0 hover:text-red-700 transition">Cambiar</button>
                     </div>
                 )}
 
@@ -331,35 +325,6 @@ function AnotadorMenuContent() {
                         <span className="text-amber-600">· comanda activa · ${formatPrice(comanda.total)}</span>
                     </div>
                 )}
-
-                {/* Nombre cliente */}
-                <div className="relative">
-                    <input
-                        ref={clienteInputRef}
-                        type="text"
-                        placeholder="Nombre del cliente (opcional)"
-                        value={clienteNombre}
-                        onChange={e => {
-                            setClienteNombre(e.target.value);
-                            setClienteSearch(e.target.value);
-                        }}
-                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
-                    />
-                    {clienteResults.length > 0 && (
-                        <div className="absolute top-full left-0 right-0 z-20 bg-white border border-gray-200 rounded-xl shadow-lg mt-1 overflow-hidden">
-                            {clienteResults.map(c => (
-                                <button key={c._id} onMouseDown={e => e.preventDefault()} onClick={() => {
-                                    setClienteNombre(`${c.nombre} ${c.apellido}`);
-                                    setClienteSearch("");
-                                    setClienteResults([]);
-                                }} className="w-full text-left px-4 py-2.5 hover:bg-gray-50 text-sm transition border-b border-gray-50 last:border-0">
-                                    <span className="font-semibold text-gray-900">{c.nombre} {c.apellido}</span>
-                                    <span className="text-gray-400 ml-2 text-xs">@{c.username}</span>
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                </div>
 
                 {/* Nota */}
                 <input type="text" placeholder="Nota para el bar..." value={nota} onChange={e => setNota(e.target.value)}
@@ -487,58 +452,149 @@ function AnotadorMenuContent() {
     // ── Single return ─────────────────────────────────────────────
     return (
         <div className="bg-white min-h-screen pb-6">
-            {/* Sticky header + CartPanel — siempre visibles */}
-            <div className="sticky z-20" style={{ top: "calc(env(safe-area-inset-top) + 98px)" }}>
-                {makeStickyHeader(stickyTitle, stickyBack, stickyIcon)}
-                {cartPanelJSX}
-            </div>
 
-            {/* Vista: categorías principales */}
-            {!categoriaActiva && (
+            {/* ── STEP 1: Selección de mesa, personas y cliente ── */}
+            {step === "info" && (
                 <>
-                    <div className="px-5 pt-5 pb-3"><p className="text-sm text-gray-400">Elegí una categoría</p></div>
-                    <div className="px-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {categoriasNav.map((cat, idx) => <CategoryCard key={cat} cat={cat} idx={idx} onClick={() => setCategoriaActiva(cat)} />)}
+                    <div className="sticky z-20 bg-black text-white px-4 py-3 flex items-center gap-3"
+                        style={{ top: "calc(env(safe-area-inset-top) + 98px)" }}>
+                        <button onClick={() => router.back()} className="p-1 -ml-1"><ChevronLeft className="w-6 h-6" /></button>
+                        <h1 className="text-xl font-bold flex-1">Nueva comanda</h1>
+                    </div>
+
+                    <div className="max-w-md mx-auto px-5 pt-8 space-y-7 pb-10">
+
+                        {/* Mesa */}
+                        <div>
+                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Mesa</p>
+                            <button onClick={openMesaPicker}
+                                className={`w-full flex items-center justify-between px-4 py-4 rounded-2xl border-2 font-bold transition text-sm ${mesa ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-500 border-gray-200 hover:border-gray-400"}`}>
+                                <div className="flex items-center gap-2">
+                                    <MapPin className="w-4 h-4" />
+                                    {mesa ? `Mesa ${mesa}` : "Seleccionar mesa"}
+                                </div>
+                                <ChevronDown className="w-4 h-4 opacity-60" />
+                            </button>
+                        </div>
+
+                        {/* Personas */}
+                        <div>
+                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Personas</p>
+                            <div className="flex items-center gap-5">
+                                <button onClick={() => setComensales(c => Math.max(1, c - 1))}
+                                    className="w-12 h-12 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-2xl font-bold transition active:scale-95">−</button>
+                                <span className="text-4xl font-black text-gray-900 w-12 text-center">{comensales}</span>
+                                <button onClick={() => setComensales(c => Math.min(20, c + 1))}
+                                    className="w-12 h-12 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-2xl font-bold transition active:scale-95">+</button>
+                            </div>
+                        </div>
+
+                        {/* Nombre cliente */}
+                        <div>
+                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Cliente <span className="font-normal normal-case text-gray-300">(opcional)</span></p>
+                            <div className="relative">
+                                <input
+                                    ref={clienteInputRef}
+                                    type="text"
+                                    placeholder="Buscar o escribir nombre..."
+                                    value={clienteNombre}
+                                    onChange={e => { setClienteNombre(e.target.value); setClienteSearch(e.target.value); }}
+                                    className="w-full px-4 py-4 rounded-2xl border-2 border-gray-200 text-sm focus:outline-none focus:border-red-400"
+                                />
+                                {clienteResults.length > 0 && (
+                                    <div className="absolute top-full left-0 right-0 z-20 bg-white border border-gray-200 rounded-2xl shadow-lg mt-1 overflow-hidden">
+                                        {clienteResults.map(c => (
+                                            <button key={c._id} onMouseDown={e => e.preventDefault()} onClick={() => {
+                                                setClienteNombre(`${c.nombre} ${c.apellido}`);
+                                                setClienteSearch("");
+                                                setClienteResults([]);
+                                            }} className="w-full text-left px-4 py-3 hover:bg-gray-50 text-sm transition border-b border-gray-50 last:border-0">
+                                                <span className="font-semibold text-gray-900">{c.nombre} {c.apellido}</span>
+                                                <span className="text-gray-400 ml-2 text-xs">@{c.username}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Nota */}
+                        <div>
+                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Observaciones <span className="font-normal normal-case text-gray-300">(opcional)</span></p>
+                            <input type="text" placeholder="Nota para el bar..."
+                                value={nota} onChange={e => setNota(e.target.value)}
+                                className="w-full px-4 py-4 rounded-2xl border-2 border-gray-200 text-sm focus:outline-none focus:border-red-400" />
+                        </div>
+
+                        {/* Continuar */}
+                        <button onClick={() => setStep("menu")}
+                            className="w-full bg-red-600 hover:bg-red-700 text-white font-extrabold py-4 rounded-2xl flex items-center justify-center gap-2 transition active:scale-[0.98] text-base shadow-lg shadow-red-600/20 mt-2">
+                            Continuar al menú →
+                        </button>
+                        {!mesa && (
+                            <p className="text-center text-xs text-gray-400 -mt-4">Podés continuar sin elegir mesa</p>
+                        )}
                     </div>
                 </>
             )}
 
-            {/* Vista: subcategorías BEBIDAS */}
-            {categoriaActiva === "BEBIDAS" && (
-                <div className="px-5 py-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {subCats.map((cat, idx) => <CategoryCard key={cat} cat={cat} idx={idx} onClick={() => setCategoriaActiva(cat)} />)}
-                </div>
-            )}
+            {/* ── STEP 2: Menú ── */}
+            {step === "menu" && (
+                <>
+                    {/* Sticky header + CartPanel */}
+                    <div className="sticky z-20" style={{ top: "calc(env(safe-area-inset-top) + 98px)" }}>
+                        {makeStickyHeader(stickyTitle, stickyBack, stickyIcon)}
+                        {cartPanelJSX}
+                    </div>
 
-            {/* Vista: ítems de categoría */}
-            {categoriaActiva && categoriaActiva !== "BEBIDAS" && (
-                <AnimatePresence mode="wait">
-                    <motion.div key={categoriaActiva} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.22 }} className="px-4 py-3 space-y-2 max-w-2xl mx-auto">
-                        {itemsCat.map(item => {
-                            const qty = getQty(item._id);
-                            return (
-                                <div key={item._id} className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex items-center justify-between">
-                                    <div className="flex-1 min-w-0 mr-3">
-                                        <p className="font-semibold text-gray-900 text-sm leading-tight">{item.nombre}</p>
-                                        {item.descripcion && <p className="text-xs text-gray-500 truncate mt-0.5">{item.descripcion}</p>}
-                                        <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full mt-1 inline-block">${formatPrice(item.precio)}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 shrink-0">
-                                        {qty > 0 ? (
-                                            <>
-                                                <button onClick={() => removeFromCart(item._id)} className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition"><Minus className="w-4 h-4 text-gray-700" /></button>
-                                                <span className="w-6 text-center font-bold text-gray-900 text-sm">{qty}</span>
-                                                <button onClick={() => addToCart(item)} className="w-8 h-8 rounded-full bg-red-600 hover:bg-red-700 flex items-center justify-center transition"><Plus className="w-4 h-4 text-white" /></button>
-                                            </>
-                                        ) : (
-                                            <button onClick={() => addToCart(item)} className="w-8 h-8 rounded-full bg-red-600 hover:bg-red-700 flex items-center justify-center transition"><Plus className="w-4 h-4 text-white" /></button>
-                                        )}
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </motion.div>
-                </AnimatePresence>
+                    {/* Vista: categorías principales */}
+                    {!categoriaActiva && (
+                        <>
+                            <div className="px-5 pt-5 pb-3"><p className="text-sm text-gray-400">Elegí una categoría</p></div>
+                            <div className="px-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {categoriasNav.map((cat, idx) => <CategoryCard key={cat} cat={cat} idx={idx} onClick={() => setCategoriaActiva(cat)} />)}
+                            </div>
+                        </>
+                    )}
+
+                    {/* Vista: subcategorías BEBIDAS */}
+                    {categoriaActiva === "BEBIDAS" && (
+                        <div className="px-5 py-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {subCats.map((cat, idx) => <CategoryCard key={cat} cat={cat} idx={idx} onClick={() => setCategoriaActiva(cat)} />)}
+                        </div>
+                    )}
+
+                    {/* Vista: ítems de categoría */}
+                    {categoriaActiva && categoriaActiva !== "BEBIDAS" && (
+                        <AnimatePresence mode="wait">
+                            <motion.div key={categoriaActiva} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.22 }} className="px-4 py-3 space-y-2 max-w-2xl mx-auto">
+                                {itemsCat.map(item => {
+                                    const qty = getQty(item._id);
+                                    return (
+                                        <div key={item._id} className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex items-center justify-between">
+                                            <div className="flex-1 min-w-0 mr-3">
+                                                <p className="font-semibold text-gray-900 text-sm leading-tight">{item.nombre}</p>
+                                                {item.descripcion && <p className="text-xs text-gray-500 truncate mt-0.5">{item.descripcion}</p>}
+                                                <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full mt-1 inline-block">${formatPrice(item.precio)}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                {qty > 0 ? (
+                                                    <>
+                                                        <button onClick={() => removeFromCart(item._id)} className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition"><Minus className="w-4 h-4 text-gray-700" /></button>
+                                                        <span className="w-6 text-center font-bold text-gray-900 text-sm">{qty}</span>
+                                                        <button onClick={() => addToCart(item)} className="w-8 h-8 rounded-full bg-red-600 hover:bg-red-700 flex items-center justify-center transition"><Plus className="w-4 h-4 text-white" /></button>
+                                                    </>
+                                                ) : (
+                                                    <button onClick={() => addToCart(item)} className="w-8 h-8 rounded-full bg-red-600 hover:bg-red-700 flex items-center justify-center transition"><Plus className="w-4 h-4 text-white" /></button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </motion.div>
+                        </AnimatePresence>
+                    )}
+                </>
             )}
 
             {/* Success banner */}
