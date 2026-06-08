@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import { connectMongoDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
 
-const SECRET = process.env.JWT_SECRET || "secret";
+const SECRET = process.env.NEXTAUTH_SECRET!;
 
 async function authorize(req: NextRequest) {
     const token = req.cookies.get("session")?.value;
