@@ -30,16 +30,16 @@ const formatPrice = (value: number) =>
     new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(value);
 
 const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
-const MAIN_ORDER = ["PARRILLA", "PIZZAS", "HAMBURGUESAS", "SANDWICHES", "PICADAS", "ENSALADAS", "FRITURAS", "BEBIDAS", "POSTRE Y CAFE"];
+const PICAR_CATS   = ["PICADAS", "FRITURAS"];
+const MAIN_ORDER   = ["PARRILLA", "PIZZAS", "HAMBURGUESAS", "SANDWICHES", "PARA PICAR", "ENSALADAS", "BEBIDAS", "POSTRE Y CAFE"];
 
 const categoryImages: Record<string, string> = {
     PARRILLA: "/parrilla.jpg",
     PIZZAS: "/pizzas.jpg",
     HAMBURGUESAS: "/hamburguesas.jpg",
     SANDWICHES: "/sandwiches.jpg",
-    PICADAS: "/picada.jpg",
+    "PARA PICAR": "/picada.jpg",
     ENSALADAS: "/ensaladas.jpg",
-    FRITURAS: "/frituras.jpeg",
     BEBIDAS: "/bebidas.jpeg",
     "POSTRE Y CAFE": "/postreycafe.jpeg",
     CERVEZAS: "/subcategoria-bebidas/cervezas.png",
@@ -48,6 +48,7 @@ const categoryImages: Record<string, string> = {
     JARROS: "/subcategoria-bebidas/jarros.png",
     COCKTAILS: "/subcategoria-bebidas/cocktails.png",
     WHISKY: "/subcategoria-bebidas/whisky.png",
+    MEDIDAS: "/subcategoria-bebidas/medidas.png",
 };
 
 const categoryIcons: Record<string, React.ElementType> = {
@@ -81,7 +82,7 @@ export default function AdminMenuPage() {
         if (!items || !categoriaActiva) return;
         setOrderedItems(
             items
-                .filter(i => i.categoria === categoriaActiva)
+                .filter(i => categoriaActiva === "PARA PICAR" ? PICAR_CATS.includes(i.categoria) : i.categoria === categoriaActiva)
                 .sort((a, b) => {
                     const diff = (a.order ?? 0) - (b.order ?? 0);
                     if (diff !== 0) return diff;
@@ -305,10 +306,11 @@ export default function AdminMenuPage() {
 
     const todasCats = Array.from(new Set(items.map(i => i.categoria)));
     const categoriasNavegacion = [
-        ...MAIN_ORDER.filter(cat => cat === "BEBIDAS"
-            ? BEBIDAS_CATS.some(bc => items.some(i => i.categoria === bc))
-            : items.some(i => i.categoria === cat)),
-        ...todasCats.filter(cat => !MAIN_ORDER.includes(cat) && !BEBIDAS_CATS.includes(cat)),
+        ...MAIN_ORDER.filter(cat =>
+            cat === "BEBIDAS"    ? BEBIDAS_CATS.some(bc => items.some(i => i.categoria === bc)) :
+            cat === "PARA PICAR" ? PICAR_CATS.some(pc => items.some(i => i.categoria === pc)) :
+            items.some(i => i.categoria === cat)),
+        ...todasCats.filter(cat => !MAIN_ORDER.includes(cat) && !BEBIDAS_CATS.includes(cat) && !PICAR_CATS.includes(cat)),
     ];
 
     function CategoryCard({ cat, idx, onClick }: { cat: string; idx: number; onClick: () => void }) {
@@ -316,9 +318,9 @@ export default function AdminMenuPage() {
         const bg = getImage(cat);
         const imagePosition = getPosition(cat);
         const allItems = items ?? [];
-        const count = cat === "BEBIDAS"
-            ? allItems.filter((i) => BEBIDAS_CATS.includes(i.categoria)).length
-            : allItems.filter((i) => i.categoria === cat).length;
+        const count = cat === "BEBIDAS"    ? allItems.filter(i => BEBIDAS_CATS.includes(i.categoria)).length
+            : cat === "PARA PICAR" ? allItems.filter(i => PICAR_CATS.includes(i.categoria)).length
+            : allItems.filter(i => i.categoria === cat).length;
         return (
             <motion.button
                 onClick={onClick}

@@ -30,8 +30,9 @@ type SalonElPlano = { _id: string; tipo: string; label: string; x: number; y: nu
 const formatPrice = (v: number) => new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(v);
 
 const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
-const MAIN_ORDER   = ["PARRILLA","PIZZAS","HAMBURGUESAS","SANDWICHES","PICADAS","ENSALADAS","FRITURAS","BEBIDAS","POSTRE Y CAFE"];
-const categoryImages: Record<string, string> = { PARRILLA:"/parrilla.jpg", PIZZAS:"/pizzas.jpg", HAMBURGUESAS:"/hamburguesas.jpg", SANDWICHES:"/sandwiches.jpg", PICADAS:"/picada.jpg", ENSALADAS:"/ensaladas.jpg", FRITURAS:"/frituras.jpeg", BEBIDAS:"/bebidas.jpeg","POSTRE Y CAFE":"/postreycafe.jpeg", CERVEZAS:"/subcategoria-bebidas/cervezas.png", VINOS:"/subcategoria-bebidas/vinos.png", GASEOSAS:"/subcategoria-bebidas/gaseosas.png", JARROS:"/subcategoria-bebidas/jarros.png", COCKTAILS:"/subcategoria-bebidas/cocktails.png", WHISKY:"/subcategoria-bebidas/whisky.png" };
+const PICAR_CATS   = ["PICADAS", "FRITURAS"];
+const MAIN_ORDER   = ["PARRILLA","PIZZAS","HAMBURGUESAS","SANDWICHES","PARA PICAR","ENSALADAS","BEBIDAS","POSTRE Y CAFE"];
+const categoryImages: Record<string, string> = { PARRILLA:"/parrilla.jpg", PIZZAS:"/pizzas.jpg", HAMBURGUESAS:"/hamburguesas.jpg", SANDWICHES:"/sandwiches.jpg", "PARA PICAR":"/picada.jpg", ENSALADAS:"/ensaladas.jpg", BEBIDAS:"/bebidas.jpeg","POSTRE Y CAFE":"/postreycafe.jpeg", CERVEZAS:"/subcategoria-bebidas/cervezas.png", VINOS:"/subcategoria-bebidas/vinos.png", GASEOSAS:"/subcategoria-bebidas/gaseosas.png", JARROS:"/subcategoria-bebidas/jarros.png", COCKTAILS:"/subcategoria-bebidas/cocktails.png", WHISKY:"/subcategoria-bebidas/whisky.png", MEDIDAS:"/subcategoria-bebidas/medidas.png" };
 const categoryIcons: Record<string, React.ElementType> = { PARRILLA:Beef, PIZZAS:Pizza, HAMBURGUESAS:Hamburger, SANDWICHES:Sandwich, PICADAS:UtensilsCrossed, ENSALADAS:Salad, FRITURAS:UtensilsCrossed, BEBIDAS:Beer, CERVEZAS:Beer, VINOS:BottleWine, GASEOSAS:Milk, JARROS:CupSoda, COCKTAILS:Martini, WHISKY:GlassWater, MEDIDAS:Beaker, "POSTRE Y CAFE":CakeSlice };
 
 function AnotadorMenuContent() {
@@ -308,8 +309,11 @@ function AnotadorMenuContent() {
     const getPosition = (cat: string) => categoryConfigMap[cat]?.imagePosition || "50% 50%";
     const todasCats = Array.from(new Set(menuItems.map(i => i.categoria)));
     const categoriasNav = [
-        ...MAIN_ORDER.filter(cat => cat === "BEBIDAS" ? BEBIDAS_CATS.some(bc => menuItems.some(i => i.categoria === bc)) : menuItems.some(i => i.categoria === cat)),
-        ...todasCats.filter(cat => !MAIN_ORDER.includes(cat) && !BEBIDAS_CATS.includes(cat)),
+        ...MAIN_ORDER.filter(cat =>
+            cat === "BEBIDAS"    ? BEBIDAS_CATS.some(bc => menuItems.some(i => i.categoria === bc)) :
+            cat === "PARA PICAR" ? PICAR_CATS.some(pc => menuItems.some(i => i.categoria === pc)) :
+            menuItems.some(i => i.categoria === cat)),
+        ...todasCats.filter(cat => !MAIN_ORDER.includes(cat) && !BEBIDAS_CATS.includes(cat) && !PICAR_CATS.includes(cat)),
     ];
 
     const mesaActual = comanda?.mesa || mesa;
@@ -418,7 +422,9 @@ function AnotadorMenuContent() {
     function CategoryCard({ cat, idx, onClick }: { cat: string; idx: number; onClick: () => void }) {
         const Icon = categoryIcons[cat] || UtensilsCrossed;
         const bg = getImage(cat); const pos = getPosition(cat);
-        const count = cat === "BEBIDAS" ? menuItems.filter(i => BEBIDAS_CATS.includes(i.categoria)).length : menuItems.filter(i => i.categoria === cat).length;
+        const count = cat === "BEBIDAS"    ? menuItems.filter(i => BEBIDAS_CATS.includes(i.categoria)).length
+            : cat === "PARA PICAR" ? menuItems.filter(i => PICAR_CATS.includes(i.categoria)).length
+            : menuItems.filter(i => i.categoria === cat).length;
         return (
             <motion.button onClick={onClick} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.04 }}
                 className="relative w-full h-36 rounded-2xl overflow-hidden shadow-md active:scale-[0.97] transition-transform">
@@ -451,7 +457,7 @@ function AnotadorMenuContent() {
     const CatIcon   = categoriaActiva ? (categoryIcons[categoriaActiva] || UtensilsCrossed) : UtensilsCrossed;
     const subCats   = BEBIDAS_CATS.filter(bc => menuItems.some(i => i.categoria === bc));
     const itemsCat  = (categoriaActiva && categoriaActiva !== "BEBIDAS")
-        ? menuItems.filter(i => i.categoria === categoriaActiva).sort((a, b) => {
+        ? menuItems.filter(i => categoriaActiva === "PARA PICAR" ? PICAR_CATS.includes(i.categoria) : i.categoria === categoriaActiva).sort((a, b) => {
             const d = ((a as any).order ?? 0) - ((b as any).order ?? 0);
             if (d !== 0) return d;
             if (categoriaActiva === "PIZZAS") { const aH = a.nombre.trim().startsWith("1/2"); const bH = b.nombre.trim().startsWith("1/2"); return aH === bH ? 0 : aH ? 1 : -1; }
