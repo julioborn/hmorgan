@@ -71,7 +71,7 @@ function AnotadorMenuContent() {
     // Zoom del plano
     const [mapScale, setMapScale]   = useState(1);
     const [mapOffset, setMapOffset] = useState({ x: 0, y: 0 });
-    const pinchRef = useRef<{ dist: number } | null>(null);
+    const pinchRef = useRef<{ dist: number; midX: number; midY: number } | null>(null);
     const panRef   = useRef<{ x: number; y: number } | null>(null);
 
     useEffect(() => {
@@ -149,7 +149,11 @@ function AnotadorMenuContent() {
         if (e.touches.length === 2) {
             const dx = e.touches[1].clientX - e.touches[0].clientX;
             const dy = e.touches[1].clientY - e.touches[0].clientY;
-            pinchRef.current = { dist: Math.sqrt(dx*dx + dy*dy) };
+            pinchRef.current = {
+                dist: Math.sqrt(dx*dx + dy*dy),
+                midX: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+                midY: (e.touches[0].clientY + e.touches[1].clientY) / 2,
+            };
             panRef.current = null;
         } else if (e.touches.length === 1) {
             panRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
@@ -163,8 +167,17 @@ function AnotadorMenuContent() {
             const dy = e.touches[1].clientY - e.touches[0].clientY;
             const dist = Math.sqrt(dx*dx + dy*dy);
             const factor = dist / pinchRef.current.dist;
+            const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+            const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+            const prevMidX = pinchRef.current.midX;
+            const prevMidY = pinchRef.current.midY;
             setMapScale(s => Math.max(1, Math.min(5, s * factor)));
-            pinchRef.current.dist = dist;
+            // Zoom hacia donde están los dedos + pan simultáneo
+            setMapOffset(o => ({
+                x: midX - (prevMidX - o.x) * factor,
+                y: midY - (prevMidY - o.y) * factor,
+            }));
+            pinchRef.current = { dist, midX, midY };
         } else if (e.touches.length === 1 && panRef.current) {
             const dx = e.touches[0].clientX - panRef.current.x;
             const dy = e.touches[0].clientY - panRef.current.y;
@@ -456,13 +469,12 @@ function AnotadorMenuContent() {
             {/* ── STEP 1: Selección de mesa, personas y cliente ── */}
             {step === "info" && (
                 <>
-                    <div className="sticky z-20 bg-black text-white px-4 py-3 flex items-center gap-3"
-                        style={{ top: "calc(env(safe-area-inset-top) + 98px)" }}>
+                    <div className="bg-black text-white px-4 py-3 flex items-center gap-3">
                         <button onClick={() => router.back()} className="p-1 -ml-1"><ChevronLeft className="w-6 h-6" /></button>
                         <h1 className="text-xl font-bold flex-1">Nueva comanda</h1>
                     </div>
 
-                    <div className="max-w-md mx-auto px-5 pt-8 space-y-7 pb-10">
+                    <div className="max-w-md mx-auto px-5 pt-4 space-y-7 pb-10">
 
                         {/* Mesa */}
                         <div>
@@ -516,14 +528,6 @@ function AnotadorMenuContent() {
                                     </div>
                                 )}
                             </div>
-                        </div>
-
-                        {/* Nota */}
-                        <div>
-                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Observaciones <span className="font-normal normal-case text-gray-300">(opcional)</span></p>
-                            <input type="text" placeholder="Nota para el bar..."
-                                value={nota} onChange={e => setNota(e.target.value)}
-                                className="w-full px-4 py-4 rounded-2xl border-2 border-gray-200 text-sm focus:outline-none focus:border-red-400" />
                         </div>
 
                         {/* Continuar */}
