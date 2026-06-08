@@ -63,7 +63,7 @@ export default function AnotadorPage() {
     if (!user) return null;
 
     return (
-        <div className="min-h-screen bg-white pb-24" style={{ paddingTop: "calc(env(safe-area-inset-top) + 98px)" }}>
+        <div className="min-h-screen bg-white pb-24">
             <div className="max-w-2xl mx-auto px-4">
 
                 {/* Header */}

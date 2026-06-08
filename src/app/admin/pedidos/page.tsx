@@ -1,15 +1,17 @@
 ﻿"use client";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Clock, Flame, CheckCircle, Truck } from "lucide-react";
+import { Clock, Flame, CheckCircle, Truck, LockKeyhole } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import Link from "next/link";
 import Loader from "@/components/Loader";
 import { swalBase } from "@/lib/swalConfig";
 
 export default function AdminPedidosPage() {
     const [pedidos, setPedidos] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [cajaAbierta, setCajaAbierta] = useState<boolean | null>(null);
     const [vista, setVista] = useState<"pendientes" | "preparando" | "listos" | "entregados">("pendientes");
     const ITEMS_POR_PAGINA = 6;
     const [pagina, setPagina] = useState(1);
@@ -18,11 +20,19 @@ export default function AdminPedidosPage() {
     const MENSAJE_WA = "Hola {nombre}, tu pedido en H. Morgan esta confirmado y en preparacion. Nos vemos pronto!";
 
     useEffect(() => {
+        fetch("/api/caja/status", { credentials: "include" })
+            .then(r => r.json())
+            .then(d => setCajaAbierta(!!d.abierta))
+            .catch(() => setCajaAbierta(false));
+    }, []);
+
+    useEffect(() => {
+        if (cajaAbierta === false) return;
         const loadPedidos = async () => await fetchPedidos();
         loadPedidos();
         const interval = setInterval(loadPedidos, 4000);
         return () => clearInterval(interval);
-    }, []);
+    }, [cajaAbierta]);
 
     useEffect(() => {
         setPagina(1);
@@ -198,6 +208,26 @@ export default function AdminPedidosPage() {
 
         const w = window.open("", "_blank", "width=340,height=500,toolbar=0,menubar=0");
         if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 200); }
+    }
+
+    if (cajaAbierta === null) return <div className="flex justify-center py-20"><Loader /></div>;
+
+    if (cajaAbierta === false) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 px-4 text-center">
+                <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
+                    <LockKeyhole size={32} className="text-gray-400" />
+                </div>
+                <div>
+                    <h2 className="text-xl font-extrabold text-gray-900 mb-1">Caja cerrada</h2>
+                    <p className="text-sm text-gray-500">Para gestionar pedidos, primero abrí la caja del día.</p>
+                </div>
+                <Link href="/superadmin/caja"
+                    className="bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-3 rounded-xl transition">
+                    Ir a Caja
+                </Link>
+            </div>
+        );
     }
 
     if (loading) return <Loader />;

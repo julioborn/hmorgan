@@ -1,8 +1,9 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import {
     Wallet, TrendingUp, TrendingDown, Plus, X, Printer,
-    Clock, CreditCard, Banknote, Send, Loader2, CheckCircle,
+    Clock, CreditCard, Banknote, Send, Loader2, CheckCircle, Trash2, History,
 } from "lucide-react";
 
 type CajaSession = {
@@ -206,6 +207,52 @@ export default function CajaPage() {
         } finally { setCloseSaving(false); }
     }
 
+    function printComanda(p: PedidoActivo) {
+        const hora = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+        const filas = p.items.map(it =>
+            `<tr>
+                <td style="font-size:22px;font-weight:900;padding:4px 10px 4px 0;white-space:nowrap">${it.cantidad}x</td>
+                <td style="font-size:20px;font-weight:700;padding:4px 0">${it.menuItemId?.nombre ?? "Ítem"}</td>
+            </tr>`
+        ).join("");
+        const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+        <style>
+            * { margin:0; padding:0; box-sizing:border-box; }
+            body { font-family: 'Courier New', monospace; width: 80mm; padding: 8px; }
+            .centro { text-align:center; }
+            .sep { border-top: 2px dashed #000; margin: 8px 0; }
+            .badge { font-size:28px; font-weight:900; text-transform:uppercase; }
+            .meta { font-size:14px; margin:4px 0; }
+            table { width:100%; border-collapse:collapse; }
+            .nota { font-size:14px; margin-top:6px; padding:6px; border:2px solid #000; border-radius:4px; }
+        </style></head><body>
+        <div class="centro"><div class="badge">⬛ COMANDA ⬛</div></div>
+        <div class="sep"></div>
+        <div class="meta"><b>Mesa:</b> ${p.mesa}</div>
+        <div class="meta"><b>Hora:</b> ${hora}</div>
+        <div class="sep"></div>
+        <table>${filas}</table>
+        ${p.notaEmpleado ? `<div class="nota">📝 ${p.notaEmpleado}</div>` : ""}
+        </body></html>`;
+        const w = window.open("", "_blank", "width=320,height=500,toolbar=0,menubar=0");
+        if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 200); }
+    }
+
+    async function aceptarPedido(p: PedidoActivo) {
+        await fetch("/api/pedidos", {
+            method: "PUT", headers: { "Content-Type": "application/json" }, credentials: "include",
+            body: JSON.stringify({ id: p._id, estado: "preparando" }),
+        });
+        printComanda(p);
+        loadPedidosActivos();
+    }
+
+    async function deletePedido(id: string) {
+        if (!confirm("¿Eliminar este pedido?")) return;
+        await fetch(`/api/pedidos?id=${id}`, { method: "DELETE", credentials: "include" });
+        loadPedidosActivos();
+    }
+
     function printResumen() {
         const totales = calcularTotales();
         const movRows = movimientos.map(m =>
@@ -266,7 +313,13 @@ export default function CajaPage() {
         return (
             <div className="min-h-screen">
                 <div className="max-w-md mx-auto px-4">
-                    <h1 className="text-3xl font-extrabold text-center py-6 text-black">Caja</h1>
+                    <div className="flex items-center justify-between py-6">
+                        <h1 className="text-3xl font-extrabold text-black">Caja</h1>
+                        <Link href="/superadmin/caja/historial"
+                            className="flex items-center gap-1.5 text-sm font-semibold text-gray-500 hover:text-gray-800 transition">
+                            <History size={16} /> Historial
+                        </Link>
+                    </div>
 
                     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 space-y-3">
                         <p className="text-sm text-gray-500 text-center mb-1">Sin sesión activa. Abrí la caja para empezar.</p>
@@ -307,6 +360,10 @@ export default function CajaPage() {
                 <div className="flex items-center justify-between py-6">
                     <h1 className="text-3xl font-extrabold text-black">Caja</h1>
                     <div className="flex items-center gap-2">
+                        <Link href="/superadmin/caja/historial"
+                            className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 px-3 py-1.5 rounded-xl text-xs font-semibold transition text-gray-600">
+                            <History size={13} /> Historial
+                        </Link>
                         <button onClick={printResumen} className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 px-3 py-1.5 rounded-xl text-xs font-semibold transition text-gray-700">
                             <Printer size={13} /> Imprimir
                         </button>
@@ -447,10 +504,22 @@ export default function CajaPage() {
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <p className="text-sm font-black text-gray-900">{formatMoney(p.total)}</p>
+                                            {p.estado === "pendiente" && (
+                                                <button
+                                                    onClick={() => aceptarPedido(p)}
+                                                    className="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition">
+                                                    Aceptar
+                                                </button>
+                                            )}
                                             <button
                                                 onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ metodoPago: "efectivo", montoPagado: String(p.total) }); }}
                                                 className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition">
                                                 Cobrar
+                                            </button>
+                                            <button
+                                                onClick={() => deletePedido(p._id)}
+                                                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
+                                                <Trash2 size={14} />
                                             </button>
                                         </div>
                                     </div>
