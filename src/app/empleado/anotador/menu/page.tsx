@@ -84,7 +84,7 @@ function AnotadorMenuContent() {
 
     useEffect(() => {
         fetch("/api/menu").then(r => r.json()).then(d => {
-            setMenuItems(Array.isArray(d) ? d.filter((i: MenuItem) => i.activo) : []);
+            setMenuItems(Array.isArray(d) ? d.filter((i: MenuItem) => i.activo !== false) : []);
         }).catch(() => {}).finally(() => setLoadingMenu(false));
     }, []);
 
@@ -424,9 +424,6 @@ function AnotadorMenuContent() {
                 className="relative w-full h-36 rounded-2xl overflow-hidden shadow-md active:scale-[0.97] transition-transform">
                 {bg ? <img src={bg} alt={cat} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: pos }} /> : <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-600" />}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/10" />
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 w-9 h-9 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg">
-                    <Icon size={16} className="text-red-700" />
-                </div>
                 <div className="absolute bottom-3 left-0 right-0 px-2 text-center">
                     <p className="text-white font-black text-sm tracking-tight leading-tight">{cat}</p>
                     <p className="text-white/60 text-[11px] font-medium mt-0.5">{count} {count === 1 ? "producto" : "productos"}</p>

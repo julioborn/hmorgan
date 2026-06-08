@@ -66,11 +66,11 @@ export default function ClienteMenuPage() {
 
     if (!items) return <div className="p-12 flex justify-center"><Loader size={40} /></div>;
 
-    const todasCats = Array.from(new Set(items.map(i => i.categoria)));
+    const todasCats = Array.from(new Set(items.filter(i => i.activo).map(i => i.categoria)));
     const categoriasNavegacion = [
         ...MAIN_ORDER.filter(cat => cat === "BEBIDAS"
-            ? BEBIDAS_CATS.some(bc => items.some(i => i.categoria === bc))
-            : items.some(i => i.categoria === cat)),
+            ? BEBIDAS_CATS.some(bc => items.some(i => i.categoria === bc && i.activo))
+            : items.some(i => i.categoria === cat && i.activo)),
         ...todasCats.filter(cat => !MAIN_ORDER.includes(cat) && !BEBIDAS_CATS.includes(cat)),
     ];
 
@@ -87,8 +87,8 @@ export default function ClienteMenuPage() {
         const imagePosition = getPosition(cat);
         const allItems = items ?? [];
         const count = cat === "BEBIDAS"
-            ? allItems.filter((i) => BEBIDAS_CATS.includes(i.categoria)).length
-            : allItems.filter((i) => i.categoria === cat).length;
+            ? allItems.filter((i) => BEBIDAS_CATS.includes(i.categoria) && i.activo).length
+            : allItems.filter((i) => i.categoria === cat && i.activo).length;
         return (
             <motion.button
                 onClick={onClick}
@@ -103,9 +103,6 @@ export default function ClienteMenuPage() {
                     <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-600" />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/10" />
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 w-9 h-9 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg">
-                    <Icon size={16} className="text-red-700" />
-                </div>
                 <div className="absolute bottom-3 left-0 right-0 px-2 text-center">
                     <p className="text-white font-black text-sm tracking-tight leading-tight">{cat}</p>
                     <p className="text-white/60 text-[11px] font-medium mt-0.5">{count} {count === 1 ? "producto" : "productos"}</p>
@@ -133,7 +130,7 @@ export default function ClienteMenuPage() {
 
     /* ── BEBIDAS: subcategorías ── */
     if (categoriaActiva === "BEBIDAS") {
-        const subCats = BEBIDAS_CATS.filter((bc) => items.some((i) => i.categoria === bc));
+        const subCats = BEBIDAS_CATS.filter((bc) => items.some((i) => i.categoria === bc && i.activo));
         return (
             <div className="bg-white min-h-screen">
                 <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
