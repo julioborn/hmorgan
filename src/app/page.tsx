@@ -270,13 +270,6 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
           accent="from-red-600 to-red-800"
         />
         <ActionCard
-          href="/cliente/pedidos"
-          title="Pedir"
-          Icon={PackagePlus}
-          accent="from-red-600 to-red-800"
-          disabled={!pedidosActivos}
-        />
-        <ActionCard
           href="/cliente/mis-pedidos"
           title="Pedidos"
           Icon={Package}
@@ -288,6 +281,13 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
           title="Canjes"
           Icon={Ticket}
           accent="from-red-600 to-red-800"
+        />
+        <ActionCard
+          href="/cliente/pedidos"
+          title="Pedir"
+          Icon={PackagePlus}
+          accent="from-red-600 to-red-800"
+          disabled={!pedidosActivos}
         />
         <ActionCard
           href="/cliente/reservas"
@@ -329,17 +329,11 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
           >
             {carouselImages.map((img) => (
               <SwiperSlide key={img._id}>
-                <div className="rounded-2xl overflow-hidden aspect-[4/3] shadow-lg relative">
-                  <img
-                    src={img.url}
-                    alt=""
-                    aria-hidden
-                    className="absolute inset-0 w-full h-full object-cover scale-110 blur-xl brightness-75 pointer-events-none"
-                  />
+                <div className="aspect-[4/3] shadow-lg relative overflow-hidden">
                   <img
                     src={img.url}
                     alt="Foto del bar"
-                    className="relative w-full h-full object-contain"
+                    className="w-full h-full object-cover"
                   />
                 </div>
               </SwiperSlide>
