@@ -329,11 +329,17 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
           >
             {carouselImages.map((img) => (
               <SwiperSlide key={img._id}>
-                <div className="rounded-2xl overflow-hidden aspect-[4/3] shadow-lg bg-black">
+                <div className="rounded-2xl overflow-hidden aspect-[4/3] shadow-lg relative">
+                  <img
+                    src={img.url}
+                    alt=""
+                    aria-hidden
+                    className="absolute inset-0 w-full h-full object-cover scale-110 blur-xl brightness-75 pointer-events-none"
+                  />
                   <img
                     src={img.url}
                     alt="Foto del bar"
-                    className="w-full h-full object-contain"
+                    className="relative w-full h-full object-contain"
                   />
                 </div>
               </SwiperSlide>
