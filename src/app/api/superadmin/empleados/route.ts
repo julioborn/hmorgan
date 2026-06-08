@@ -1,0 +1,51 @@
+import { NextRequest, NextResponse } from "next/server";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
+import { connectMongoDB } from "@/lib/mongodb";
+import { User } from "@/models/User";
+
+const SECRET = process.env.JWT_SECRET || "secret";
+
+async function authorize(req: NextRequest) {
+    const token = req.cookies.get("session")?.value;
+    if (!token) return null;
+    try {
+        const decoded = jwt.verify(token, SECRET) as any;
+        if (!["superadmin", "admin"].includes(decoded.role)) return null;
+        return decoded;
+    } catch { return null; }
+}
+
+export async function GET(req: NextRequest) {
+    if (!await authorize(req)) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    await connectMongoDB();
+    const empleados = await User.find({ role: "empleado" })
+        .select("nombre apellido username role createdAt")
+        .sort({ nombre: 1 })
+        .lean();
+    return NextResponse.json(empleados);
+}
+
+export async function POST(req: NextRequest) {
+    if (!await authorize(req)) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    const { nombre, apellido, username, password } = await req.json();
+    if (!nombre || !apellido || !username || !password)
+        return NextResponse.json({ error: "Faltan datos" }, { status: 400 });
+
+    await connectMongoDB();
+    const existe = await User.findOne({ username: username.toLowerCase().trim() });
+    if (existe) return NextResponse.json({ error: "El usuario ya existe" }, { status: 409 });
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const qrToken = crypto.randomUUID();
+    const emp = await User.create({
+        nombre, apellido,
+        username: username.toLowerCase().trim(),
+        passwordHash,
+        role: "empleado",
+        qrToken,
+        puntos: 0,
+    });
+    return NextResponse.json({ ok: true, empleado: { _id: emp._id, nombre, apellido, username: emp.username } }, { status: 201 });
+}

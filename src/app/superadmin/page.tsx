@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
     Package, Wallet, AlertTriangle, CheckCircle, MapPin, CalendarDays,
-    ClipboardList, Users, Utensils, BarChart2, Settings, LayoutGrid,
+    ClipboardList, Users, Utensils, BarChart2, Settings, LayoutGrid, UserCog,
 } from "lucide-react";
 
 const container = "mx-auto w-full max-w-screen-sm md:max-w-2xl lg:max-w-4xl xl:max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8";
@@ -181,8 +181,9 @@ export default function SuperAdminHome() {
             <section className="space-y-2.5">
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Clientes</p>
                 <div className="grid grid-cols-2 gap-2.5">
-                    <SuperCard href="/admin/clientes"     title="Clientes" Icon={Users} />
-                    <SuperCard href="/admin/menu"         title="Menú"     Icon={Utensils} />
+                    <SuperCard href="/admin/clientes"        title="Clientes"  Icon={Users} />
+                    <SuperCard href="/admin/menu"            title="Menú"      Icon={Utensils} />
+                    <SuperCard href="/superadmin/empleados"  title="Empleados" Icon={UserCog} />
                 </div>
             </section>
 
