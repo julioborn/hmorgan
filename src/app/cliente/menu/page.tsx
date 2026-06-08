@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import useSWR from "swr";
 import {
@@ -60,9 +60,29 @@ export default function ClienteMenuPage() {
     const { data: items } = useSWR<MenuItem[]>("/api/menu", fetcher);
     const categoryConfigMap = useCategoryConfigs();
     const [categoriaActiva, setCategoriaActiva] = useState<string | null>(null);
+    const isPopNav = useRef(false);
 
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+    }, [categoriaActiva]);
+
+    useEffect(() => {
+        if (categoriaActiva !== null && !isPopNav.current) {
+            window.history.pushState(null, "");
+        }
+        isPopNav.current = false;
+    }, [categoriaActiva]);
+
+    useEffect(() => {
+        const onPop = () => {
+            if (categoriaActiva !== null) {
+                isPopNav.current = true;
+                const esBeb = BEBIDAS_CATS.includes(categoriaActiva);
+                setCategoriaActiva(categoriaActiva === "BEBIDAS" ? null : esBeb ? "BEBIDAS" : null);
+            }
+        };
+        window.addEventListener("popstate", onPop);
+        return () => window.removeEventListener("popstate", onPop);
     }, [categoriaActiva]);
 
     if (!items) return <div className="p-12 flex justify-center"><Loader size={40} /></div>;

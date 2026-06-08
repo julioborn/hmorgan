@@ -73,9 +73,29 @@ export default function AdminMenuPage() {
     const [orderedItems, setOrderedItems] = useState<MenuItem[]>([]);
     const [hasOrderChanges, setHasOrderChanges] = useState(false);
     const [savingOrder, setSavingOrder] = useState(false);
+    const isPopNav = useRef(false);
 
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+    }, [categoriaActiva]);
+
+    useEffect(() => {
+        if (categoriaActiva !== null && !isPopNav.current) {
+            window.history.pushState(null, "");
+        }
+        isPopNav.current = false;
+    }, [categoriaActiva]);
+
+    useEffect(() => {
+        const onPop = () => {
+            if (categoriaActiva !== null) {
+                isPopNav.current = true;
+                const esBeb = BEBIDAS_CATS.includes(categoriaActiva);
+                setCategoriaActiva(categoriaActiva === "BEBIDAS" ? null : esBeb ? "BEBIDAS" : null);
+            }
+        };
+        window.addEventListener("popstate", onPop);
+        return () => window.removeEventListener("popstate", onPop);
     }, [categoriaActiva]);
 
     useEffect(() => {
