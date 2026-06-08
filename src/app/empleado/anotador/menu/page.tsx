@@ -31,7 +31,7 @@ const formatPrice = (v: number) => new Intl.NumberFormat("es-AR", { minimumFract
 
 const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
 const MAIN_ORDER   = ["PARRILLA","PIZZAS","HAMBURGUESAS","SANDWICHES","PICADAS","ENSALADAS","FRITURAS","BEBIDAS","POSTRE Y CAFE"];
-const categoryImages: Record<string, string> = { PARRILLA:"/parrilla.jpg", PIZZAS:"/pizzas.jpg", HAMBURGUESAS:"/hamburguesas.jpg", SANDWICHES:"/sandwiches.jpg", PICADAS:"/picada.jpg", ENSALADAS:"/ensaladas.jpg", FRITURAS:"/frituras.jpeg", BEBIDAS:"/bebidas.jpeg","POSTRE Y CAFE":"/postreycafe.jpeg" };
+const categoryImages: Record<string, string> = { PARRILLA:"/parrilla.jpg", PIZZAS:"/pizzas.jpg", HAMBURGUESAS:"/hamburguesas.jpg", SANDWICHES:"/sandwiches.jpg", PICADAS:"/picada.jpg", ENSALADAS:"/ensaladas.jpg", FRITURAS:"/frituras.jpeg", BEBIDAS:"/bebidas.jpeg","POSTRE Y CAFE":"/postreycafe.jpeg", CERVEZAS:"/subcategoria-bebidas/cervezas.png", VINOS:"/subcategoria-bebidas/vinos.png", GASEOSAS:"/subcategoria-bebidas/gaseosas.png", JARROS:"/subcategoria-bebidas/jarros.png", COCKTAILS:"/subcategoria-bebidas/cocktails.png", WHISKY:"/subcategoria-bebidas/whisky.png" };
 const categoryIcons: Record<string, React.ElementType> = { PARRILLA:Beef, PIZZAS:Pizza, HAMBURGUESAS:Hamburger, SANDWICHES:Sandwich, PICADAS:UtensilsCrossed, ENSALADAS:Salad, FRITURAS:UtensilsCrossed, BEBIDAS:Beer, CERVEZAS:Beer, VINOS:BottleWine, GASEOSAS:Milk, JARROS:CupSoda, COCKTAILS:Martini, WHISKY:GlassWater, MEDIDAS:Beaker, "POSTRE Y CAFE":CakeSlice };
 
 function AnotadorMenuContent() {
@@ -306,7 +306,11 @@ function AnotadorMenuContent() {
 
     const getImage    = (cat: string) => { const cfg = categoryConfigMap[cat]; return cfg?.imageUrl || categoryImages[cat] || null; };
     const getPosition = (cat: string) => categoryConfigMap[cat]?.imagePosition || "50% 50%";
-    const categoriasNav = MAIN_ORDER.filter(cat => cat === "BEBIDAS" ? BEBIDAS_CATS.some(bc => menuItems.some(i => i.categoria === bc)) : menuItems.some(i => i.categoria === cat));
+    const todasCats = Array.from(new Set(menuItems.map(i => i.categoria)));
+    const categoriasNav = [
+        ...MAIN_ORDER.filter(cat => cat === "BEBIDAS" ? BEBIDAS_CATS.some(bc => menuItems.some(i => i.categoria === bc)) : menuItems.some(i => i.categoria === cat)),
+        ...todasCats.filter(cat => !MAIN_ORDER.includes(cat) && !BEBIDAS_CATS.includes(cat)),
+    ];
 
     const mesaActual = comanda?.mesa || mesa;
 
@@ -420,8 +424,8 @@ function AnotadorMenuContent() {
                 className="relative w-full h-36 rounded-2xl overflow-hidden shadow-md active:scale-[0.97] transition-transform">
                 {bg ? <img src={bg} alt={cat} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: pos }} /> : <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-600" />}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/10" />
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 w-12 h-12 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg">
-                    <Icon size={22} className="text-red-700" />
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 w-9 h-9 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg">
+                    <Icon size={16} className="text-red-700" />
                 </div>
                 <div className="absolute bottom-3 left-0 right-0 px-2 text-center">
                     <p className="text-white font-black text-sm tracking-tight leading-tight">{cat}</p>
