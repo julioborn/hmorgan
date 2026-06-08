@@ -66,11 +66,11 @@ export default function ClienteMenuPage() {
 
     if (!items) return <div className="p-12 flex justify-center"><Loader size={40} /></div>;
 
-    const todasCats = Array.from(new Set(items.filter(i => i.activo).map(i => i.categoria)));
+    const todasCats = Array.from(new Set(items.filter(i => i.activo !== false).map(i => i.categoria)));
     const categoriasNavegacion = [
         ...MAIN_ORDER.filter(cat => cat === "BEBIDAS"
-            ? BEBIDAS_CATS.some(bc => items.some(i => i.categoria === bc && i.activo))
-            : items.some(i => i.categoria === cat && i.activo)),
+            ? BEBIDAS_CATS.some(bc => items.some(i => i.categoria === bc && i.activo !== false))
+            : items.some(i => i.categoria === cat && i.activo !== false)),
         ...todasCats.filter(cat => !MAIN_ORDER.includes(cat) && !BEBIDAS_CATS.includes(cat)),
     ];
 
@@ -87,8 +87,8 @@ export default function ClienteMenuPage() {
         const imagePosition = getPosition(cat);
         const allItems = items ?? [];
         const count = cat === "BEBIDAS"
-            ? allItems.filter((i) => BEBIDAS_CATS.includes(i.categoria) && i.activo).length
-            : allItems.filter((i) => i.categoria === cat && i.activo).length;
+            ? allItems.filter((i) => BEBIDAS_CATS.includes(i.categoria) && i.activo !== false).length
+            : allItems.filter((i) => i.categoria === cat && i.activo !== false).length;
         return (
             <motion.button
                 onClick={onClick}
@@ -130,7 +130,7 @@ export default function ClienteMenuPage() {
 
     /* ── BEBIDAS: subcategorías ── */
     if (categoriaActiva === "BEBIDAS") {
-        const subCats = BEBIDAS_CATS.filter((bc) => items.some((i) => i.categoria === bc && i.activo));
+        const subCats = BEBIDAS_CATS.filter((bc) => items.some((i) => i.categoria === bc && i.activo !== false));
         return (
             <div className="bg-white min-h-screen">
                 <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
@@ -153,7 +153,7 @@ export default function ClienteMenuPage() {
     const Icon = categoryIcons[categoriaActiva] || UtensilsCrossed;
     const esBebida = BEBIDAS_CATS.includes(categoriaActiva);
     const productos = items
-        .filter((i) => i.categoria === categoriaActiva && i.activo)
+        .filter((i) => i.categoria === categoriaActiva && i.activo !== false)
         .sort((a, b) => {
             const diff = ((a as any).order ?? 0) - ((b as any).order ?? 0);
             if (diff !== 0) return diff;
