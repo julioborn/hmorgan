@@ -417,15 +417,15 @@ function AnotadorMenuContent() {
         const count = cat === "BEBIDAS" ? menuItems.filter(i => BEBIDAS_CATS.includes(i.categoria)).length : menuItems.filter(i => i.categoria === cat).length;
         return (
             <motion.button onClick={onClick} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.04 }}
-                className="relative w-full h-40 rounded-2xl overflow-hidden shadow-md active:scale-[0.98] transition-transform text-left">
-                {bg ? <img src={bg} alt={cat} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: pos }} /> : <div className="absolute inset-0 bg-gradient-to-r from-gray-800 to-gray-600" />}
-                <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-black/10" />
-                <div className="absolute left-5 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg">
-                    <Icon size={26} className="text-red-700" />
+                className="relative w-full h-36 rounded-2xl overflow-hidden shadow-md active:scale-[0.97] transition-transform">
+                {bg ? <img src={bg} alt={cat} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: pos }} /> : <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-600" />}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/10" />
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 w-12 h-12 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg">
+                    <Icon size={22} className="text-red-700" />
                 </div>
-                <div className="absolute left-[88px] bottom-5 right-5">
-                    <p className="text-white font-black text-lg tracking-tight leading-tight">{cat}</p>
-                    <p className="text-white/60 text-xs font-medium mt-0.5">{count} {count === 1 ? "producto" : "productos"}</p>
+                <div className="absolute bottom-3 left-0 right-0 px-2 text-center">
+                    <p className="text-white font-black text-sm tracking-tight leading-tight">{cat}</p>
+                    <p className="text-white/60 text-[11px] font-medium mt-0.5">{count} {count === 1 ? "producto" : "productos"}</p>
                 </div>
             </motion.button>
         );
@@ -555,7 +555,7 @@ function AnotadorMenuContent() {
                     {!categoriaActiva && (
                         <>
                             <div className="px-5 pt-5 pb-3"><p className="text-sm text-gray-400">Elegí una categoría</p></div>
-                            <div className="px-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="px-5 grid grid-cols-2 gap-3">
                                 {categoriasNav.map((cat, idx) => <CategoryCard key={cat} cat={cat} idx={idx} onClick={() => setCategoriaActiva(cat)} />)}
                             </div>
                         </>
@@ -563,7 +563,7 @@ function AnotadorMenuContent() {
 
                     {/* Vista: subcategorías BEBIDAS */}
                     {categoriaActiva === "BEBIDAS" && (
-                        <div className="px-5 py-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="px-5 py-5 grid grid-cols-2 gap-3">
                             {subCats.map((cat, idx) => <CategoryCard key={cat} cat={cat} idx={idx} onClick={() => setCategoriaActiva(cat)} />)}
                         </div>
                     )}
