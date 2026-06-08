@@ -84,7 +84,7 @@ function AnotadorMenuContent() {
 
     useEffect(() => {
         fetch("/api/menu").then(r => r.json()).then(d => {
-            setMenuItems(Array.isArray(d) ? d.filter((i: MenuItem) => i.activo !== false) : []);
+            setMenuItems(Array.isArray(d) ? d : []);
         }).catch(() => {}).finally(() => setLoadingMenu(false));
     }, []);
 
