@@ -27,14 +27,14 @@ const formatPrice = (v: number) =>
 
 const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
 const PICAR_CATS   = ["PICADAS", "FRITURAS"];
-const MAIN_ORDER   = ["PARRILLA", "PIZZAS", "HAMBURGUESAS", "SANDWICHES", "PARA PICAR", "ENSALADAS", "BEBIDAS", "POSTRE Y CAFE"];
+const MAIN_ORDER   = ["PARRILLA", "PIZZAS", "HAMBURGUESAS", "SANDWICHES", "PICADAS Y FRITURAS", "ENSALADAS", "BEBIDAS", "POSTRE Y CAFE"];
 
 const categoryImages: Record<string, string> = {
     PARRILLA: "/parrilla.jpg",
     PIZZAS: "/pizzas.jpg",
     HAMBURGUESAS: "/hamburguesas.jpg",
     SANDWICHES: "/sandwiches.jpg",
-    "PARA PICAR": "/picada.jpg",
+    "PICADAS Y FRITURAS": "/picada.jpg",
     ENSALADAS: "/ensaladas.jpg",
     BEBIDAS: "/bebidas.jpeg",
     "POSTRE Y CAFE": "/postreycafe.jpeg",
@@ -71,7 +71,7 @@ export default function ClienteMenuPage() {
     const categoriasNavegacion = [
         ...MAIN_ORDER.filter(cat =>
             cat === "BEBIDAS"   ? BEBIDAS_CATS.some(bc => items.some(i => i.categoria === bc)) :
-            cat === "PARA PICAR" ? PICAR_CATS.some(pc => items.some(i => i.categoria === pc)) :
+            cat === "PICADAS Y FRITURAS" ? PICAR_CATS.some(pc => items.some(i => i.categoria === pc)) :
             items.some(i => i.categoria === cat)),
         ...todasCats.filter(cat => !MAIN_ORDER.includes(cat) && !BEBIDAS_CATS.includes(cat) && !PICAR_CATS.includes(cat)),
     ];
@@ -89,7 +89,7 @@ export default function ClienteMenuPage() {
         const imagePosition = getPosition(cat);
         const allItems = items ?? [];
         const count = cat === "BEBIDAS"    ? allItems.filter(i => BEBIDAS_CATS.includes(i.categoria)).length
-            : cat === "PARA PICAR" ? allItems.filter(i => PICAR_CATS.includes(i.categoria)).length
+            : cat === "PICADAS Y FRITURAS" ? allItems.filter(i => PICAR_CATS.includes(i.categoria)).length
             : allItems.filter(i => i.categoria === cat).length;
         return (
             <motion.button
@@ -155,7 +155,7 @@ export default function ClienteMenuPage() {
     const Icon = categoryIcons[categoriaActiva] || UtensilsCrossed;
     const esBebida = BEBIDAS_CATS.includes(categoriaActiva);
     const productos = items
-        .filter((i) => categoriaActiva === "PARA PICAR" ? PICAR_CATS.includes(i.categoria) : i.categoria === categoriaActiva)
+        .filter((i) => categoriaActiva === "PICADAS Y FRITURAS" ? PICAR_CATS.includes(i.categoria) : i.categoria === categoriaActiva)
         .sort((a, b) => {
             const diff = ((a as any).order ?? 0) - ((b as any).order ?? 0);
             if (diff !== 0) return diff;
