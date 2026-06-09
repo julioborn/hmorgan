@@ -222,7 +222,7 @@ export default function AdminPedidosPage() {
                     <h2 className="text-xl font-extrabold text-gray-900 mb-1">Caja cerrada</h2>
                     <p className="text-sm text-gray-500">Para gestionar pedidos, primero abrí la caja del día.</p>
                 </div>
-                <Link href="/superadmin/caja"
+                <Link href="/admin/caja"
                     className="bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-3 rounded-xl transition">
                     Ir a Caja
                 </Link>

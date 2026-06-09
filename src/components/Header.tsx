@@ -73,12 +73,13 @@ export default function Header() {
   ];
 
   const linksSuper = [
-    { href: "/superadmin", label: "Inicio", icon: Home },
-    { href: "/superadmin/stock", label: "Stock", icon: Package },
-    { href: "/superadmin/caja", label: "Caja", icon: BarChart2 },
-    { href: "/superadmin/mesas", label: "Mesas", icon: LayoutGrid },
-    { href: "/superadmin/reservas", label: "Reservas", icon: CalendarDays },
+    { href: "/", label: "Inicio", icon: Home },
+    { href: "/admin/caja", label: "Caja", icon: BarChart2 },
+    { href: "/admin/stock", label: "Stock", icon: Package },
+    { href: "/admin/mesas", label: "Mesas", icon: LayoutGrid },
+    { href: "/admin/reservas", label: "Reservas", icon: CalendarDays },
     { href: "/admin/pedidos", label: "Pedidos", icon: ClipboardList },
+    { href: "/admin/empleados", label: "Empleados", icon: Users },
     { href: "/admin/clientes", label: "Clientes", icon: Users },
     { href: "/admin/menu", label: "Menú", icon: Utensils },
     { href: "/admin/estadisticas", label: "Estadísticas", icon: BarChart2 },

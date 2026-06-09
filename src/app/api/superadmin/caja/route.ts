@@ -11,7 +11,7 @@ function authSuper(req: NextRequest) {
     if (!token) return null;
     try {
         const p = jwt.verify(token, SECRET) as any;
-        if (!["superadmin", "cajero"].includes(p.role)) return null;
+        if (!["superadmin", "admin", "cajero"].includes(p.role)) return null;
         return p;
     } catch { return null; }
 }
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     if (!token) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     let payload: any;
     try { payload = jwt.verify(token, SECRET) as any; } catch { return NextResponse.json({ error: "No autorizado" }, { status: 401 }); }
-    if (!["superadmin", "cajero"].includes(payload.role)) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    if (!["superadmin", "admin", "cajero"].includes(payload.role)) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     await connectMongoDB();
 
     const abierta = await CajaSession.findOne({ estado: "abierta" });

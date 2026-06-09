@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     if (!token) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     let payload: any;
     try { payload = jwt.verify(token, SECRET) as any; } catch { return NextResponse.json({ error: "No autorizado" }, { status: 401 }); }
-    if (payload.role !== "superadmin") return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    if (!["superadmin", "admin"].includes(payload.role)) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
     const { stockId, tipo, cantidad, motivo, precioUnitario, notas } = await req.json();
     if (!stockId || !tipo || !cantidad || !motivo) return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });

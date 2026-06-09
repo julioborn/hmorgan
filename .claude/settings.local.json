@@ -29,7 +29,14 @@
       "Bash(New-Item -ItemType Directory -Force \"C:\\\\PROYECTOS\\\\hmorgan\\\\src\\\\app\\\\api\\\\menu\\\\reorder\")",
       "Bash(Out-Null)",
       "Bash(Write-Output \"ok\")",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(dir \"C:\\\\PROYECTOS\\\\hmorgan\\\\public\\\\subcategoria-bebidas\")",
+      "Bash(xargs grep -l \"role.*empleado\\\\|empleado.*role\")",
+      "Bash(sed 's|/superadmin|/admin|g' C:/PROYECTOS/hmorgan/src/app/superadmin/caja/page.tsx)",
+      "Bash(sed 's|/superadmin|/admin|g' C:/PROYECTOS/hmorgan/src/app/superadmin/caja/historial/page.tsx)",
+      "Bash(sed 's|/superadmin|/admin|g' C:/PROYECTOS/hmorgan/src/app/superadmin/stock/page.tsx)",
+      "Bash(sed 's|/superadmin|/admin|g' C:/PROYECTOS/hmorgan/src/app/superadmin/reservas/page.tsx)",
+      "Bash(sed 's|/superadmin|/admin|g' C:/PROYECTOS/hmorgan/src/app/superadmin/mesas/page.tsx)"
     ]
   }
 }

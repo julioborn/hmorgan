@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
             await sendPushToSubscriptions(admin.pushSubscriptions, {
                 title: "Nueva reserva",
                 body: `Reserva para ${comensales} personas el ${formatFecha(new Date(fecha))} a las ${hora}hs`,
-                url: "/superadmin/reservas",
+                url: "/admin/reservas",
                 icon: "/icon-192.png",
             });
         }

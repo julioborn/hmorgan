@@ -43,7 +43,7 @@ export default function EmpleadosPage() {
 
             {/* Header */}
             <div className="flex items-center gap-3">
-                <Link href="/superadmin" className="p-2 rounded-full hover:bg-gray-100 transition">
+                <Link href="/admin" className="p-2 rounded-full hover:bg-gray-100 transition">
                     <ChevronLeft size={22} className="text-gray-700" />
                 </Link>
                 <div className="flex-1">

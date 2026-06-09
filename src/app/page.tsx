@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 
 const BarMap = dynamic(() => import("@/components/BarMap"), { ssr: false });
-import { QrCode, Users, Bell, PackagePlus, Package, Utensils, Ticket, History, ScanQrCode, ScanText, Settings, Star, BarChart2, ClipboardList, LayoutGrid, Images, CalendarDays, Wallet, MapPin, TrendingUp } from "lucide-react";
+import { QrCode, Users, Bell, PackagePlus, Package, Utensils, Ticket, History, ScanQrCode, ScanText, Settings, Star, BarChart2, ClipboardList, LayoutGrid, Images, CalendarDays, Wallet, MapPin, TrendingUp, UserCog } from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 import Loader from "@/components/Loader";
@@ -29,7 +29,7 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && user?.role === "superadmin") router.replace("/superadmin");
+    if (!loading && user?.role === "superadmin") router.replace("/admin");
   }, [user, loading, router]);
 
   if (loading) {
@@ -42,9 +42,8 @@ export default function Home() {
 
   if (!user) return <Landing />;
 
-  if (user.role === "superadmin") return null;
   if (user.role === "cajero") { if (typeof window !== "undefined") window.location.replace("/caja"); return null; }
-  if (user.role === "admin") return <AdminHome />;
+  if (user.role === "admin" || user.role === "superadmin") return <AdminHome />;
   if (user.role === "empleado") return <EmployeeHome nombre={user.nombre} />;
   return <ClientHome nombre={user.nombre} puntos={user.puntos ?? 0} />;
 }
@@ -374,6 +373,8 @@ function AdminHome() {
   const [clientes, setClientes]             = useState<number | null>(null);
   const [statsHoy, setStatsHoy]             = useState<{ pedidos: number; ingresos: number } | null>(null);
   const [reservasPendientes, setReservasPendientes] = useState(0);
+  const [cajaAbierta, setCajaAbierta]       = useState<boolean | null>(null);
+  const [stockAlertas, setStockAlertas]     = useState(0);
   const [hora, setHora] = useState(() => new Date().getHours());
 
   useEffect(() => {
@@ -410,6 +411,19 @@ function AdminHome() {
     fetch_();
     const iv = setInterval(fetch_, 10000);
     return () => clearInterval(iv);
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/caja/status", { credentials: "include" })
+      .then(r => r.json())
+      .then(d => setCajaAbierta(!!d.abierta))
+      .catch(() => {});
+    fetch("/api/superadmin/stock", { credentials: "include" })
+      .then(r => r.json())
+      .then((items: any[]) => {
+        if (!Array.isArray(items)) return;
+        setStockAlertas(items.filter(i => i.activo && i.stockMinimo > 0 && i.stockActual <= i.stockMinimo).length);
+      }).catch(() => {});
   }, []);
 
   // Stats del día
@@ -505,6 +519,26 @@ function AdminHome() {
         </div>
       </div>
 
+      {/* Caja */}
+      <Link href="/admin/caja"
+        className={`block rounded-2xl px-5 py-4 shadow-sm border transition-all active:scale-[0.98] ${
+          cajaAbierta === true ? "bg-emerald-50 border-emerald-200" : "bg-white border-gray-100"
+        }`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`rounded-xl p-2.5 ${cajaAbierta === true ? "bg-emerald-100" : "bg-gray-100"}`}>
+              <Wallet className={`h-5 w-5 ${cajaAbierta === true ? "text-emerald-600" : "text-gray-500"}`} />
+            </div>
+            <div>
+              <p className="font-extrabold text-gray-900 leading-tight">Caja</p>
+              <p className={`text-sm ${cajaAbierta === true ? "text-emerald-600 font-semibold" : "text-gray-400"}`}>
+                {cajaAbierta === null ? "..." : cajaAbierta ? "Abierta" : "Cerrada"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </Link>
+
       {/* Salón */}
       <section className="space-y-2.5">
         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Salón</p>
@@ -512,6 +546,14 @@ function AdminHome() {
           <AdminCard href="/admin/mesas"        title="Mesas"    Icon={LayoutGrid} />
           <AdminCard href="/empleado/anotador"  title="Anotador" Icon={ClipboardList} />
         </div>
+      </section>
+
+      {/* Inventario */}
+      <section className="space-y-2.5">
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Inventario</p>
+        <AdminCard href="/admin/stock" title="Stock" Icon={Package}
+          badge={stockAlertas > 0 ? `${stockAlertas} bajo mínimo` : undefined}
+          badgeColor="yellow" full />
       </section>
 
       {/* Clientes */}
@@ -522,6 +564,7 @@ function AdminHome() {
           <AdminCard href="/admin/rewards/scan" title="Escanear Canjes" Icon={ScanText} />
           <AdminCard href="/admin/clientes"     title="Clientes"        Icon={Users} />
           <AdminCard href="/admin/rewards"      title="Canjes"          Icon={Ticket} />
+          <AdminCard href="/admin/empleados"    title="Empleados"       Icon={UserCog} />
         </div>
       </section>
 
@@ -549,13 +592,20 @@ function AdminHome() {
 }
 
 function AdminCard({
-  href, title, Icon, full,
+  href, title, Icon, full, badge, badgeColor,
 }: {
   href: string;
   title: string;
   Icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   full?: boolean;
+  badge?: string;
+  badgeColor?: "yellow" | "red" | "emerald";
 }) {
+  const badgeStyles: Record<string, string> = {
+    yellow:  "bg-yellow-100 text-yellow-700",
+    red:     "bg-red-100 text-red-600",
+    emerald: "bg-emerald-100 text-emerald-700",
+  };
   return (
     <Link
       href={href}
@@ -564,7 +614,12 @@ function AdminCard({
       <div className="bg-gray-100 group-hover:bg-red-100 rounded-xl p-2.5 transition-colors">
         <Icon className="h-5 w-5 text-gray-600 group-hover:text-red-600 transition-colors" />
       </div>
-      <span className="font-semibold text-gray-800 group-hover:text-red-700 text-sm transition-colors">{title}</span>
+      <div className="min-w-0">
+        <span className="font-semibold text-gray-800 group-hover:text-red-700 text-sm transition-colors">{title}</span>
+        {badge && (
+          <p className={`text-[10px] font-semibold mt-0.5 ${badgeStyles[badgeColor ?? "yellow"]}`}>{badge}</p>
+        )}
+      </div>
     </Link>
   );
 }

@@ -53,12 +53,12 @@ function formatHora(iso: string) {
 }
 
 export default function CajaHistorialPage() {
-    const { data: sesiones, isLoading } = useSWR<Sesion[]>("/api/superadmin/caja/historial", fetcher);
+    const { data: sesiones, isLoading } = useSWR<Sesion[]>("/api/admin/caja/historial", fetcher);
 
     return (
         <div className="max-w-3xl mx-auto py-6 px-4">
             <div className="flex items-center gap-3 mb-8">
-                <Link href="/superadmin/caja" className="p-2 rounded-xl hover:bg-gray-100 transition">
+                <Link href="/admin/caja" className="p-2 rounded-xl hover:bg-gray-100 transition">
                     <ChevronLeft size={20} />
                 </Link>
                 <h1 className="text-3xl font-extrabold text-black">Historial de Caja</h1>

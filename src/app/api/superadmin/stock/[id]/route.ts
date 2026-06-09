@@ -11,7 +11,7 @@ function authSuper(req: NextRequest) {
     if (!token) return null;
     try {
         const p = jwt.verify(token, SECRET) as any;
-        if (p.role !== "superadmin") return null;
+        if (!["superadmin", "admin"].includes(p.role)) return null;
         return p;
     } catch { return null; }
 }
