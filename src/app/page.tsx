@@ -444,161 +444,148 @@ function AdminHome() {
   const pendientes = pedidosActivos.filter(p => p.estado === "pendiente").length;
 
   return (
-    <div className={`${container} pb-14`} style={{ paddingBottom: "max(3.5rem, env(safe-area-inset-bottom))" }}>
+    <div className="min-h-screen" style={{ background: "#0a0a0a", paddingBottom: "max(3.5rem, env(safe-area-inset-bottom))" }}>
+      <div className={container}>
 
-      {/* ── Welcome banner ── */}
-      <div className="relative overflow-hidden rounded-3xl mb-5 shadow-xl" style={{ background: "linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 60%, #111 100%)" }}>
-        <div className="absolute -top-12 -right-12 w-44 h-44 bg-red-600 rounded-full opacity-[0.12] blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-red-900 rounded-full opacity-[0.08] blur-2xl pointer-events-none" />
-        <div className="relative px-6 py-6 flex items-center justify-between">
-          <div>
-            <p className="text-[11px] text-gray-500 capitalize font-semibold tracking-wider">{fechaHoy}</p>
-            <h1 className="text-[1.6rem] font-black text-white mt-0.5 leading-tight tracking-tight">{saludo}</h1>
-            <p className="text-[11px] text-gray-600 mt-1.5 font-medium">Panel · H. Morgan</p>
-          </div>
-          <div className="relative shrink-0">
-            <div className="absolute -inset-3 bg-red-600 rounded-full opacity-20 blur-xl" />
-            <img src="/morganwhite.png" alt="Logo" className="relative h-14 w-14 object-contain drop-shadow-2xl" />
+        {/* ── Greeting ── */}
+        <div className="pt-7 pb-6 px-1">
+          <p className="text-[10px] font-bold uppercase tracking-[0.22em] capitalize" style={{ color: "#444" }}>{fechaHoy}</p>
+          <h1 className="text-[2rem] font-black leading-tight tracking-tight mt-1" style={{ color: "#f0f0f0" }}>{saludo}</h1>
+          <p className="text-xs mt-1.5 font-medium" style={{ color: "#3a3a3a" }}>H. Morgan · Panel de control</p>
+        </div>
+
+        {/* ── KPI grid ── */}
+        <div className="grid grid-cols-2 gap-2.5 mb-2.5">
+
+          {/* Pedidos */}
+          <Link href="/admin/pedidos" className="rounded-2xl p-4 relative overflow-hidden active:scale-[0.97] transition-transform" style={{
+            background: pedidosActivosCount > 0 ? "linear-gradient(135deg, #1a0505 0%, #2a0808 100%)" : "#111",
+            border: pedidosActivosCount > 0 ? "1px solid #4a0f0f" : "1px solid #1c1c1c",
+          }}>
+            {pedidosActivosCount > 0 && <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 80% 20%, rgba(239,68,68,0.15) 0%, transparent 60%)" }} />}
+            <div className="flex items-center justify-between mb-3">
+              <div className="rounded-lg p-1.5" style={{ background: pedidosActivosCount > 0 ? "rgba(239,68,68,0.15)" : "#1c1c1c" }}>
+                <Package className="h-3.5 w-3.5" style={{ color: pedidosActivosCount > 0 ? "#f87171" : "#444" }} />
+              </div>
+              {pedidosActivosCount > 0 && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />}
+            </div>
+            <p className="text-3xl font-black leading-none" style={{ color: pedidosActivosCount > 0 ? "#f87171" : "#2a2a2a" }}>{pedidosActivosCount}</p>
+            <p className="text-[10px] mt-1.5 font-semibold" style={{ color: pedidosActivosCount > 0 ? "#7f1d1d" : "#2a2a2a" }}>Pedidos activos</p>
+          </Link>
+
+          {/* Reservas */}
+          <Link href="/admin/reservas" className="rounded-2xl p-4 relative overflow-hidden active:scale-[0.97] transition-transform" style={{
+            background: reservasPendientes > 0 ? "linear-gradient(135deg, #1a1000 0%, #291800 100%)" : "#111",
+            border: reservasPendientes > 0 ? "1px solid #4a2e00" : "1px solid #1c1c1c",
+          }}>
+            {reservasPendientes > 0 && <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 80% 20%, rgba(245,158,11,0.15) 0%, transparent 60%)" }} />}
+            <div className="flex items-center justify-between mb-3">
+              <div className="rounded-lg p-1.5" style={{ background: reservasPendientes > 0 ? "rgba(245,158,11,0.15)" : "#1c1c1c" }}>
+                <CalendarDays className="h-3.5 w-3.5" style={{ color: reservasPendientes > 0 ? "#fbbf24" : "#444" }} />
+              </div>
+              {reservasPendientes > 0 && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
+            </div>
+            <p className="text-3xl font-black leading-none" style={{ color: reservasPendientes > 0 ? "#fbbf24" : "#2a2a2a" }}>{reservasPendientes}</p>
+            <p className="text-[10px] mt-1.5 font-semibold" style={{ color: reservasPendientes > 0 ? "#78350f" : "#2a2a2a" }}>Reservas hoy</p>
+          </Link>
+
+          {/* Caja */}
+          <Link href="/admin/caja" className="rounded-2xl p-4 relative overflow-hidden active:scale-[0.97] transition-transform" style={{
+            background: cajaAbierta === true ? "linear-gradient(135deg, #001a0e 0%, #002918 100%)" : "#111",
+            border: cajaAbierta === true ? "1px solid #064e3b" : "1px solid #1c1c1c",
+          }}>
+            {cajaAbierta === true && <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 80% 20%, rgba(16,185,129,0.15) 0%, transparent 60%)" }} />}
+            <div className="flex items-center justify-between mb-3">
+              <div className="rounded-lg p-1.5" style={{ background: cajaAbierta === true ? "rgba(16,185,129,0.15)" : "#1c1c1c" }}>
+                <Wallet className="h-3.5 w-3.5" style={{ color: cajaAbierta === true ? "#34d399" : "#444" }} />
+              </div>
+              {cajaAbierta === true && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
+            </div>
+            <p className="text-xl font-black leading-none" style={{ color: cajaAbierta === true ? "#34d399" : "#2a2a2a" }}>
+              {cajaAbierta === null ? "· · ·" : cajaAbierta ? "Abierta" : "Cerrada"}
+            </p>
+            <p className="text-[10px] mt-1.5 font-semibold" style={{ color: cajaAbierta === true ? "#064e3b" : "#2a2a2a" }}>Caja</p>
+          </Link>
+
+          {/* Ingresos */}
+          <div className="rounded-2xl p-4" style={{ background: "#111", border: "1px solid #1c1c1c" }}>
+            <div className="rounded-lg p-1.5 w-fit mb-3" style={{ background: "#1c1c1c" }}>
+              <TrendingUp className="h-3.5 w-3.5" style={{ color: "#444" }} />
+            </div>
+            <p className="text-xl font-black leading-none" style={{ color: statsHoy && statsHoy.ingresos > 0 ? "#e5e5e5" : "#2a2a2a" }}>
+              {statsHoy ? `$${statsHoy.ingresos.toLocaleString("es-AR")}` : "—"}
+            </p>
+            <p className="text-[10px] mt-1.5 font-semibold" style={{ color: "#2a2a2a" }}>Ingresos hoy</p>
           </div>
         </div>
-      </div>
 
-      {/* ── Stats 2×2 ── */}
-      <div className="grid grid-cols-2 gap-3 mb-5">
-
-        {/* Pedidos activos */}
-        <Link href="/admin/pedidos" className={`rounded-2xl p-4 transition-all active:scale-[0.97] ${
-          pedidosActivosCount > 0
-            ? "bg-gradient-to-br from-red-600 to-rose-700 shadow-lg shadow-red-500/25"
-            : "bg-white border border-gray-100 shadow-sm"
-        }`}>
-          <div className="flex items-center justify-between mb-2.5">
-            <Package className={`h-4 w-4 ${pedidosActivosCount > 0 ? "text-red-200" : "text-gray-400"}`} />
-            {pedidosActivosCount > 0 && <span className="w-2 h-2 rounded-full bg-white animate-pulse" />}
+        {/* ── Clientes strip ── */}
+        {clientes !== null && (
+          <div className="flex items-center gap-3 rounded-2xl px-4 py-3 mb-7" style={{ background: "#111", border: "1px solid #1c1c1c" }}>
+            <Users className="h-4 w-4 shrink-0" style={{ color: "#333" }} />
+            <span className="text-sm font-medium" style={{ color: "#333" }}>Clientes registrados</span>
+            <span className="ml-auto font-black text-sm" style={{ color: "#888" }}>{clientes}</span>
           </div>
-          <p className={`text-3xl font-black leading-none ${pedidosActivosCount > 0 ? "text-white" : "text-gray-900"}`}>
-            {pedidosActivosCount}
-          </p>
-          <p className={`text-[11px] mt-1.5 font-semibold ${pedidosActivosCount > 0 ? "text-red-100" : "text-gray-400"}`}>
-            Pedidos activos
-          </p>
-        </Link>
+        )}
 
-        {/* Reservas hoy */}
-        <Link href="/admin/reservas" className={`rounded-2xl p-4 transition-all active:scale-[0.97] ${
-          reservasPendientes > 0
-            ? "bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/25"
-            : "bg-white border border-gray-100 shadow-sm"
-        }`}>
-          <div className="flex items-center justify-between mb-2.5">
-            <CalendarDays className={`h-4 w-4 ${reservasPendientes > 0 ? "text-amber-200" : "text-gray-400"}`} />
-            {reservasPendientes > 0 && <span className="w-2 h-2 rounded-full bg-white animate-pulse" />}
+        {/* ── Salón ── */}
+        <div className="mb-6">
+          <p className="text-[9px] font-black uppercase tracking-[0.25em] px-1 mb-2.5" style={{ color: "#2a2a2a" }}>Salón</p>
+          <div className="grid grid-cols-2 gap-2">
+            <AdminCard href="/admin/mesas"       title="Mesas"    Icon={LayoutGrid}   iconBg="#1a1a2e" iconColor="#818cf8" />
+            <AdminCard href="/empleado/anotador" title="Anotador" Icon={ClipboardList} iconBg="#1a1a2e" iconColor="#818cf8" />
           </div>
-          <p className={`text-3xl font-black leading-none ${reservasPendientes > 0 ? "text-white" : "text-gray-900"}`}>
-            {reservasPendientes}
-          </p>
-          <p className={`text-[11px] mt-1.5 font-semibold ${reservasPendientes > 0 ? "text-amber-100" : "text-gray-400"}`}>
-            Reservas hoy
-          </p>
-        </Link>
-
-        {/* Caja */}
-        <Link href="/admin/caja" className={`rounded-2xl p-4 transition-all active:scale-[0.97] ${
-          cajaAbierta === true
-            ? "bg-gradient-to-br from-emerald-600 to-green-700 shadow-lg shadow-emerald-500/25"
-            : "bg-white border border-gray-100 shadow-sm"
-        }`}>
-          <div className="flex items-center justify-between mb-2.5">
-            <Wallet className={`h-4 w-4 ${cajaAbierta === true ? "text-emerald-200" : "text-gray-400"}`} />
-            {cajaAbierta === true && <span className="w-2 h-2 rounded-full bg-white animate-pulse" />}
-          </div>
-          <p className={`text-xl font-black leading-none ${cajaAbierta === true ? "text-white" : "text-gray-900"}`}>
-            {cajaAbierta === null ? "· · ·" : cajaAbierta ? "Abierta" : "Cerrada"}
-          </p>
-          <p className={`text-[11px] mt-1.5 font-semibold ${cajaAbierta === true ? "text-emerald-100" : "text-gray-400"}`}>
-            Caja
-          </p>
-        </Link>
-
-        {/* Ingresos hoy */}
-        <div className="rounded-2xl p-4 bg-white border border-gray-100 shadow-sm">
-          <TrendingUp className="h-4 w-4 text-gray-400 mb-2.5" />
-          <p className="text-xl font-black leading-none text-gray-900">
-            {statsHoy ? `$${statsHoy.ingresos.toLocaleString("es-AR")}` : "—"}
-          </p>
-          <p className="text-[11px] mt-1.5 font-semibold text-gray-400">Ingresos hoy</p>
         </div>
-      </div>
 
-      {/* ── Clientes total ── */}
-      {clientes !== null && (
-        <div className="flex items-center gap-3 bg-white border border-gray-100 rounded-2xl px-4 py-3 shadow-sm mb-5">
-          <Users className="h-4 w-4 text-gray-400 shrink-0" />
-          <span className="text-sm text-gray-500">Clientes registrados</span>
-          <span className="ml-auto font-black text-gray-900">{clientes}</span>
-        </div>
-      )}
-
-      {/* ── Sections ── */}
-      <div className="space-y-6">
-
-        {/* Salón */}
-        <section>
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] px-1 mb-2.5">Salón</p>
-          <div className="grid grid-cols-2 gap-2.5">
-            <AdminCard href="/admin/mesas"        title="Mesas"    Icon={LayoutGrid} />
-            <AdminCard href="/empleado/anotador"  title="Anotador" Icon={ClipboardList} />
-          </div>
-        </section>
-
-        {/* Inventario */}
-        <section>
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] px-1 mb-2.5">Inventario</p>
-          <AdminCard href="/admin/stock" title="Stock" Icon={Package}
+        {/* ── Inventario ── */}
+        <div className="mb-6">
+          <p className="text-[9px] font-black uppercase tracking-[0.25em] px-1 mb-2.5" style={{ color: "#2a2a2a" }}>Inventario</p>
+          <AdminCard href="/admin/stock" title="Stock" Icon={Package} iconBg="#1c1400" iconColor="#fbbf24"
             badge={stockAlertas > 0 ? `${stockAlertas} bajo mínimo` : undefined}
             badgeColor="yellow" full />
-        </section>
+        </div>
 
-        {/* Clientes */}
-        <section>
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] px-1 mb-2.5">Clientes</p>
-          <div className="grid grid-cols-2 gap-2.5">
-            <AdminCard href="/admin/scan"         title="Escanear Puntos" Icon={ScanQrCode} />
-            <AdminCard href="/admin/rewards/scan" title="Escanear Canjes" Icon={ScanText} />
-            <AdminCard href="/admin/clientes"     title="Clientes"        Icon={Users} />
-            <AdminCard href="/admin/rewards"      title="Canjes"          Icon={Ticket} />
-            <AdminCard href="/admin/empleados"    title="Empleados"       Icon={UserCog} />
+        {/* ── Clientes ── */}
+        <div className="mb-6">
+          <p className="text-[9px] font-black uppercase tracking-[0.25em] px-1 mb-2.5" style={{ color: "#2a2a2a" }}>Clientes</p>
+          <div className="grid grid-cols-2 gap-2">
+            <AdminCard href="/admin/scan"         title="Puntos"    Icon={ScanQrCode} iconBg="#1a0d2e" iconColor="#c084fc" />
+            <AdminCard href="/admin/rewards/scan" title="Canjes"    Icon={ScanText}   iconBg="#1a0d2e" iconColor="#c084fc" />
+            <AdminCard href="/admin/clientes"     title="Clientes"  Icon={Users}      iconBg="#1a0d2e" iconColor="#c084fc" />
+            <AdminCard href="/admin/rewards"      title="Programa"  Icon={Ticket}     iconBg="#1a0d2e" iconColor="#c084fc" />
+            <AdminCard href="/admin/empleados"    title="Empleados" Icon={UserCog}    iconBg="#1a0d2e" iconColor="#c084fc" />
           </div>
-        </section>
+        </div>
 
-        {/* Contenido */}
-        <section>
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] px-1 mb-2.5">Contenido</p>
-          <div className="grid grid-cols-2 gap-2.5">
-            <AdminCard href="/admin/menu"      title="Menú"    Icon={Utensils} />
-            <AdminCard href="/admin/reviews"   title="Reseñas" Icon={Star} />
-            <AdminCard href="/admin/carrousel" title="Fotos"   Icon={Images} />
+        {/* ── Contenido ── */}
+        <div className="mb-6">
+          <p className="text-[9px] font-black uppercase tracking-[0.25em] px-1 mb-2.5" style={{ color: "#2a2a2a" }}>Contenido</p>
+          <div className="grid grid-cols-2 gap-2">
+            <AdminCard href="/admin/menu"      title="Menú"    Icon={Utensils} iconBg="#001a2e" iconColor="#38bdf8" />
+            <AdminCard href="/admin/reviews"   title="Reseñas" Icon={Star}    iconBg="#001a2e" iconColor="#38bdf8" />
+            <AdminCard href="/admin/carrousel" title="Fotos"   Icon={Images}  iconBg="#001a2e" iconColor="#38bdf8" />
           </div>
-        </section>
+        </div>
 
-        {/* Herramientas */}
-        <section>
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] px-1 mb-2.5">Herramientas</p>
-          <div className="grid grid-cols-2 gap-2.5">
-            <AdminCard href="/admin/estadisticas"  title="Estadísticas" Icon={BarChart2} />
-            <AdminCard href="/admin/configuracion" title="Ajustes"      Icon={Settings} />
+        {/* ── Herramientas ── */}
+        <div>
+          <p className="text-[9px] font-black uppercase tracking-[0.25em] px-1 mb-2.5" style={{ color: "#2a2a2a" }}>Herramientas</p>
+          <div className="grid grid-cols-2 gap-2">
+            <AdminCard href="/admin/estadisticas"  title="Estadísticas"   Icon={BarChart2} iconBg="#001a14" iconColor="#2dd4bf" />
+            <AdminCard href="/admin/configuracion" title="Ajustes"        Icon={Settings}  iconBg="#001a14" iconColor="#2dd4bf" />
           </div>
-          <div className="mt-2.5">
-            <AdminCard href="/admin/notificaciones" title="Notificaciones" Icon={Bell} full />
+          <div className="mt-2">
+            <AdminCard href="/admin/notificaciones" title="Notificaciones" Icon={Bell} iconBg="#001a14" iconColor="#2dd4bf" full />
           </div>
-        </section>
+        </div>
+
       </div>
     </div>
   );
 }
 
 function AdminCard({
-  href, title, Icon, full, badge, badgeColor,
+  href, title, Icon, full, badge, badgeColor, iconBg = "#1c1c1c", iconColor = "#555",
 }: {
   href: string;
   title: string;
@@ -606,25 +593,25 @@ function AdminCard({
   full?: boolean;
   badge?: string;
   badgeColor?: "yellow" | "red" | "emerald";
+  iconBg?: string;
+  iconColor?: string;
 }) {
-  const badgeStyles: Record<string, string> = {
-    yellow:  "bg-amber-100 text-amber-700",
-    red:     "bg-red-100 text-red-600",
-    emerald: "bg-emerald-100 text-emerald-700",
-  };
   return (
     <Link
       href={href}
-      className={`${full ? "col-span-2" : ""} group relative flex items-center gap-3.5 bg-white border border-gray-100 rounded-2xl px-4 py-4 shadow-sm hover:shadow-md hover:border-gray-200 transition-all active:scale-[0.97] overflow-hidden`}
+      className={`${full ? "col-span-2" : ""} group flex items-center gap-3.5 rounded-2xl px-4 py-4 active:scale-[0.97] transition-all`}
+      style={{ background: "#111", border: "1px solid #1c1c1c" }}
     >
-      <div className="absolute inset-0 bg-gradient-to-r from-gray-50/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
-      <div className="relative shrink-0 bg-gray-100 group-hover:bg-gray-900 rounded-xl p-2.5 transition-all duration-200">
-        <Icon className="h-5 w-5 text-gray-500 group-hover:text-white transition-colors duration-200" />
+      <div className="shrink-0 rounded-xl p-2.5 transition-all" style={{ background: iconBg }}>
+        <Icon className="h-5 w-5" style={{ color: iconColor }} />
       </div>
-      <div className="relative min-w-0 flex-1 flex items-center gap-2 flex-wrap">
-        <span className="font-bold text-gray-800 text-sm leading-tight">{title}</span>
+      <div className="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+        <span className="font-bold text-sm leading-tight transition-colors" style={{ color: "#888" }}>{title}</span>
         {badge && (
-          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${badgeStyles[badgeColor ?? "yellow"]}`}>
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{
+            background: badgeColor === "yellow" ? "rgba(251,191,36,0.15)" : badgeColor === "red" ? "rgba(239,68,68,0.15)" : "rgba(52,211,153,0.15)",
+            color: badgeColor === "yellow" ? "#fbbf24" : badgeColor === "red" ? "#f87171" : "#34d399",
+          }}>
             {badge}
           </span>
         )}
