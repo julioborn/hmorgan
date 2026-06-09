@@ -153,7 +153,7 @@ export default function SuperAdminReservasPage() {
         const init = async () => {
             const [mRes, elRes, cfgRes] = await Promise.all([
                 fetch("/api/admin/mesas?all=true", { credentials: "include" }),
-                fetch("/api/admin/salon", { credentials: "include" }),
+                fetch("/api/superadmin/salon", { credentials: "include" }),
                 fetch("/api/config/reservas"),
             ]);
             const [mData, elData, cfgData] = await Promise.all([mRes.json(), elRes.json(), cfgRes.json()]);

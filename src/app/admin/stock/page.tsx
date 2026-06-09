@@ -57,7 +57,7 @@ export default function StockPage() {
 
     const loadItems = useCallback(() => {
         setLoading(true);
-        fetch("/api/admin/stock", { credentials: "include" })
+        fetch("/api/superadmin/stock", { credentials: "include" })
             .then(r => r.json())
             .then(data => { if (Array.isArray(data)) setItems(data); })
             .catch(() => {})
@@ -71,7 +71,7 @@ export default function StockPage() {
         if (!body.nombre?.trim()) return;
         setEditSaving(true);
         try {
-            const url = _id ? `/api/admin/stock/${_id}` : "/api/admin/stock";
+            const url = _id ? `/api/superadmin/stock/${_id}` : "/api/superadmin/stock";
             const method = _id ? "PATCH" : "POST";
             const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(body) });
             if (res.ok) {
@@ -86,12 +86,12 @@ export default function StockPage() {
     async function deleteItem(id: string, nombre: string) {
         const r = await swalBase.fire({ title: `¿Eliminar "${nombre}"?`, icon: "warning", showCancelButton: true, confirmButtonText: "Sí, eliminar", cancelButtonText: "Cancelar" });
         if (!r.isConfirmed) return;
-        await fetch(`/api/admin/stock/${id}`, { method: "DELETE", credentials: "include" });
+        await fetch(`/api/superadmin/stock/${id}`, { method: "DELETE", credentials: "include" });
         loadItems();
     }
 
     async function toggleActivo(item: StockItem) {
-        await fetch(`/api/admin/stock/${item._id}`, {
+        await fetch(`/api/superadmin/stock/${item._id}`, {
             method: "PATCH", headers: { "Content-Type": "application/json" },
             credentials: "include", body: JSON.stringify({ activo: !item.activo }),
         });
@@ -103,7 +103,7 @@ export default function StockPage() {
         if (!movForm.cantidad || !movForm.motivo) return;
         setMovSaving(true);
         try {
-            const res = await fetch("/api/admin/stock/movimientos", {
+            const res = await fetch("/api/superadmin/stock/movimientos", {
                 method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
                 body: JSON.stringify({
                     stockId: movModal.item._id,
@@ -128,7 +128,7 @@ export default function StockPage() {
         setHistModal({ open: true, item, movs: [] });
         setHistLoading(true);
         try {
-            const res = await fetch(`/api/admin/stock/${item._id}`, { credentials: "include" });
+            const res = await fetch(`/api/superadmin/stock/${item._id}`, { credentials: "include" });
             const data = await res.json();
             setHistModal(prev => ({ ...prev, movs: data.movimientos || [] }));
         } finally {

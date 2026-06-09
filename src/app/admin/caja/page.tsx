@@ -83,7 +83,7 @@ export default function CajaPage() {
     const [closeResumen, setCloseResumen] = useState<Resumen | null>(null);
 
     const loadCaja = useCallback(() => {
-        fetch("/api/admin/caja", { credentials: "include" })
+        fetch("/api/superadmin/caja", { credentials: "include" })
             .then(r => r.json())
             .then(data => {
                 setSesion(data.sesion || null);
@@ -105,7 +105,7 @@ export default function CajaPage() {
     async function abrirCaja() {
         setOpenSaving(true);
         try {
-            const res = await fetch("/api/admin/caja", {
+            const res = await fetch("/api/superadmin/caja", {
                 method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
                 body: JSON.stringify({ montoInicial: Number(openForm.montoInicial) || 0, notas: openForm.notas || undefined }),
             });
@@ -117,7 +117,7 @@ export default function CajaPage() {
         if (!movForm.concepto || !movForm.monto) return;
         setMovSaving(true);
         try {
-            const res = await fetch("/api/admin/caja/movimiento", {
+            const res = await fetch("/api/superadmin/caja/movimiento", {
                 method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
                 body: JSON.stringify({ tipo: movForm.tipo, concepto: movForm.concepto, monto: Number(movForm.monto), metodoPago: movForm.metodoPago }),
             });
@@ -132,7 +132,7 @@ export default function CajaPage() {
         if (!cobrarModal.pedido) return;
         setCobrarSaving(true);
         try {
-            const res = await fetch("/api/admin/caja/cobrar", {
+            const res = await fetch("/api/superadmin/caja/cobrar", {
                 method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
                 body: JSON.stringify({
                     pedidoId: cobrarModal.pedido._id,
@@ -195,7 +195,7 @@ export default function CajaPage() {
     async function cerrarCaja() {
         setCloseSaving(true);
         try {
-            const res = await fetch("/api/admin/caja/cerrar", {
+            const res = await fetch("/api/superadmin/caja/cerrar", {
                 method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
                 body: JSON.stringify({ montoCierre: Number(closeForm.montoCierre) || 0, notas: closeForm.notas || undefined }),
             });

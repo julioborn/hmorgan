@@ -103,7 +103,7 @@ export default function SuperAdminMesasPage() {
         setMesas(Array.isArray(d) ? d.sort((a: Mesa, b: Mesa) => a.nombre.localeCompare(b.nombre, "es", { numeric: true })) : []);
     }, []);
     const fetchElements = useCallback(async () => {
-        const r = await fetch("/api/admin/salon", { credentials: "include" });
+        const r = await fetch("/api/superadmin/salon", { credentials: "include" });
         const d = await r.json();
         setElements(Array.isArray(d) ? d : []);
     }, []);
@@ -144,7 +144,7 @@ export default function SuperAdminMesasPage() {
         const changedEl = snap.elements.filter(e => { const o = prev.elements.find(x => x._id === e._id); return !o || o.x !== e.x || o.y !== e.y || o.ancho !== e.ancho || o.alto !== e.alto; });
         await Promise.all([
             ...changedM.map(m => fetch("/api/admin/mesas", { method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ id: m._id, x: m.x, y: m.y, rotacion: m.rotacion, ancho: m.ancho, alto: m.alto }) })),
-            ...changedEl.map(e => fetch("/api/admin/salon", { method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ id: e._id, x: e.x, y: e.y, ancho: e.ancho, alto: e.alto }) })),
+            ...changedEl.map(e => fetch("/api/superadmin/salon", { method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ id: e._id, x: e.x, y: e.y, ancho: e.ancho, alto: e.alto }) })),
         ]);
     }
 
@@ -250,7 +250,7 @@ export default function SuperAdminMesasPage() {
                         const m = mesasRef.current.find(x => x._id === it.id);
                         if (m) { await fetch("/api/admin/mesas", { method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ id: m._id, x: m.x, y: m.y }) }); continue; }
                         const el = elementsRef.current.find(x => x._id === it.id);
-                        if (el) await fetch("/api/admin/salon", { method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ id: el._id, x: el.x, y: el.y }) });
+                        if (el) await fetch("/api/superadmin/salon", { method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ id: el._id, x: el.x, y: el.y }) });
                     }
                 })();
             }
@@ -332,7 +332,7 @@ export default function SuperAdminMesasPage() {
         setElements(prev => prev.map(e => map.has(e._id) ? { ...e, x: map.get(e._id)!.x, y: map.get(e._id)!.y } : e));
         await Promise.all(updates.map(u => u.type === "mesa"
             ? fetch("/api/admin/mesas", { method: "PATCH", headers: {"Content-Type":"application/json"}, credentials: "include", body: JSON.stringify({ id: u.id, x: u.x, y: u.y }) })
-            : fetch("/api/admin/salon", { method: "PATCH", headers: {"Content-Type":"application/json"}, credentials: "include", body: JSON.stringify({ id: u.id, x: u.x, y: u.y }) })
+            : fetch("/api/superadmin/salon", { method: "PATCH", headers: {"Content-Type":"application/json"}, credentials: "include", body: JSON.stringify({ id: u.id, x: u.x, y: u.y }) })
         ));
     }
 
@@ -345,15 +345,15 @@ export default function SuperAdminMesasPage() {
     }
     async function saveElConfig() {
         if (!elModal) return;
-        const res = await fetch("/api/admin/salon", { method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ id: elModal._id, ...elForm }) });
+        const res = await fetch("/api/superadmin/salon", { method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ id: elModal._id, ...elForm }) });
         if (res.ok) { const u = await res.json(); setElements(p => p.map(e => e._id === u._id ? u : e)); setElModal(null); }
     }
     async function deleteEl(id: string) {
-        await fetch(`/api/admin/salon?id=${id}`, { method: "DELETE", credentials: "include" });
+        await fetch(`/api/superadmin/salon?id=${id}`, { method: "DELETE", credentials: "include" });
         setElements(p => p.filter(e => e._id !== id)); setElModal(null);
     }
     async function addElement(tipo: SalonEl["tipo"]) {
-        const res = await fetch("/api/admin/salon", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ tipo, x: 48, y: 48, ...EL_DEFAULTS[tipo] }) });
+        const res = await fetch("/api/superadmin/salon", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ tipo, x: 48, y: 48, ...EL_DEFAULTS[tipo] }) });
         if (res.ok) { const el = await res.json(); setElements(p => [...p, el]); }
     }
 

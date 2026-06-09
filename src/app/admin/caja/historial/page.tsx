@@ -53,7 +53,7 @@ function formatHora(iso: string) {
 }
 
 export default function CajaHistorialPage() {
-    const { data: sesiones, isLoading } = useSWR<Sesion[]>("/api/admin/caja/historial", fetcher);
+    const { data: sesiones, isLoading } = useSWR<Sesion[]>("/api/superadmin/caja/historial", fetcher);
 
     return (
         <div className="max-w-3xl mx-auto py-6 px-4">
