@@ -493,8 +493,9 @@ function AdminHome() {
         </div>
       </Link>
 
-      {/* Live: Reservas (solo stat, sin link a superadmin) */}
-      <div className={`block rounded-2xl px-5 py-4 shadow-sm border ${
+      {/* Live: Reservas */}
+      <Link href="/admin/reservas"
+        className={`block rounded-2xl px-5 py-4 shadow-sm border transition-all active:scale-[0.98] ${
           reservasPendientes > 0 ? "bg-amber-50 border-amber-200" : "bg-white border-gray-100"
         }`}>
         <div className="flex items-center justify-between">
@@ -517,7 +518,7 @@ function AdminHome() {
             </span>
           )}
         </div>
-      </div>
+      </Link>
 
       {/* Caja */}
       <Link href="/admin/caja"
