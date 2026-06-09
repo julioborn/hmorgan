@@ -128,7 +128,7 @@ export default function SuperAdminReservasPage() {
     const [reservadasHoy, setReservadasHoy] = useState<Set<string>>(new Set());
     const [loading, setLoading]           = useState(true);
     const [activo, setActivo]             = useState(true);
-    const [tab, setTab]                   = useState<"pendiente" | "confirmada" | "cancelada">("pendiente");
+    const [tab, setTab]                   = useState<"pendiente" | "confirmada">("pendiente");
     const [saving, setSaving]             = useState<string | null>(null);
 
     // Mesa picker
@@ -210,7 +210,6 @@ export default function SuperAdminReservasPage() {
     const counts = {
         pendiente:  reservas.filter(r => r.estado === "pendiente").length,
         confirmada: reservas.filter(r => r.estado === "confirmada").length,
-        cancelada:  reservas.filter(r => r.estado === "cancelada").length,
     };
 
     return (
@@ -231,7 +230,7 @@ export default function SuperAdminReservasPage() {
                 </div>
                 {/* Tabs */}
                 <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-4">
-                    {(["pendiente", "confirmada", "cancelada"] as const).map(t => (
+                    {(["pendiente", "confirmada"] as const).map(t => (
                         <button key={t} onClick={() => setTab(t)}
                             className={`flex-1 py-2 rounded-lg text-xs font-bold transition capitalize ${tab === t ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}>
                             {t}
@@ -247,7 +246,7 @@ export default function SuperAdminReservasPage() {
                 {loading ? (
                     <div className="flex justify-center py-16"><Loader2 className="animate-spin text-gray-400" size={32} /></div>
                 ) : filtered.length === 0 ? (
-                    <p className="text-center text-gray-400 py-16 text-sm">Sin reservas {tab === "pendiente" ? "pendientes" : tab === "confirmada" ? "confirmadas" : "canceladas"}</p>
+                    <p className="text-center text-gray-400 py-16 text-sm">Sin reservas {tab === "pendiente" ? "pendientes" : "confirmadas"}</p>
                 ) : (
                     <div className="space-y-3">
                         {filtered.map(r => {
@@ -341,10 +340,10 @@ export default function SuperAdminReservasPage() {
                                                 </button>
                                             )}
 
-                                            {/* Cancel */}
+                                                            {/* Eliminar */}
                                             <button onClick={() => deleteReserva(r._id)} disabled={isLoading}
                                                 className="flex items-center gap-1.5 px-3 py-2 border border-red-200 text-red-600 hover:bg-red-50 rounded-xl text-xs font-semibold transition ml-auto">
-                                                <X size={12} /> Cancelar
+                                                <X size={12} /> Eliminar
                                             </button>
                                         </div>
                                     )}
