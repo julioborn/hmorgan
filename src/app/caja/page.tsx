@@ -233,36 +233,54 @@ export default function CajaPage() {
 
     const renderTabBtn = (key: Vista, label: string, count: number) => (
         <button onClick={() => setVista(key)}
-            className={`relative flex-1 py-2.5 text-xs font-bold transition rounded-xl ${vista === key ? "bg-red-600 text-white" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"}`}>
+            className={`relative flex-1 py-2.5 text-xs font-black transition rounded-xl ${
+                vista === key
+                    ? "bg-gray-900 text-white shadow-md"
+                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+            }`}>
             {label}
-            {count > 0 && key !== "finalizados" && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[1.2rem] px-1 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-bold text-center leading-tight"
-                    style={{ display: vista === key ? "none" : "block" }}>{count}</span>
+            {count > 0 && key !== "finalizados" && vista !== key && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[1.3rem] px-1 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-black text-center leading-tight">
+                    {count}
+                </span>
             )}
         </button>
     );
 
     return (
-        <div className="min-h-screen bg-white pb-24">
+        <div className="min-h-screen bg-gray-50 pb-24">
             {/* Header */}
-            <div className="bg-black text-white px-4 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <Wallet size={20} className="text-amber-400" />
+            <div className="text-white px-5 py-5 flex items-center justify-between" style={{ background: "linear-gradient(135deg, #0c0c0c 0%, #1c1c1c 100%)" }}>
+                <div className="flex items-center gap-3.5">
+                    <div className={`rounded-2xl p-2.5 ${sesion ? "bg-emerald-500/20" : "bg-red-500/15"}`}>
+                        <Wallet size={20} className={sesion ? "text-emerald-400" : "text-red-400"} />
+                    </div>
                     <div>
-                        <h1 className="font-black text-lg leading-tight">Caja</h1>
-                        <p className="text-xs">
-                            {sesion
-                                ? <span className="text-emerald-400 font-semibold flex items-center gap-1"><CheckCircle size={10} /> Sesión abierta · desde {new Date(sesion.fechaApertura).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</span>
-                                : <span className="text-red-400 font-semibold flex items-center gap-1"><AlertCircle size={10} /> Sin sesión activa</span>
-                            }
-                        </p>
+                        <h1 className="font-black text-xl leading-tight tracking-tight">Caja</h1>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                            {sesion ? (
+                                <>
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+                                    <span className="text-xs text-emerald-400 font-semibold">
+                                        Abierta · desde {new Date(sesion.fechaApertura).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                                    </span>
+                                </>
+                            ) : (
+                                <>
+                                    <span className="w-1.5 h-1.5 rounded-full bg-red-400 inline-block" />
+                                    <span className="text-xs text-red-400 font-semibold">Sin sesión activa</span>
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400">{new Date().toLocaleDateString("es-AR", { day: "numeric", month: "short" })}</span>
+                    {!sesion && (
+                        <span className="text-xs text-gray-500">{new Date().toLocaleDateString("es-AR", { day: "numeric", month: "short" })}</span>
+                    )}
                     {sesion && (
                         <button onClick={() => { setCloseModal(true); setCloseForm({ montoCierre: "", notas: "" }); }}
-                            className="text-xs font-bold bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg transition">
+                            className="text-xs font-black bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl transition shadow-lg shadow-red-600/30">
                             Cerrar caja
                         </button>
                     )}
@@ -271,22 +289,26 @@ export default function CajaPage() {
 
             {/* Abrir caja */}
             {!sesion && (
-                <div className="max-w-2xl mx-auto px-4 mt-4">
-                    <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-                        <div className="px-5 py-4 border-b border-gray-100">
-                            <h2 className="font-black text-gray-900">Abrir caja</h2>
-                            <p className="text-xs text-gray-400 mt-0.5">Ingresá el monto inicial antes de empezar</p>
+                <div className="max-w-sm mx-auto px-4 mt-10">
+                    <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+                        <div className="px-6 pt-8 pb-4 text-center">
+                            <div className="w-16 h-16 rounded-2xl bg-emerald-100 flex items-center justify-center mx-auto mb-4 shadow-sm">
+                                <Wallet size={28} className="text-emerald-600" />
+                            </div>
+                            <h2 className="font-black text-gray-900 text-xl tracking-tight">Abrir caja</h2>
+                            <p className="text-sm text-gray-400 mt-1">Ingresá el monto inicial para comenzar</p>
                         </div>
-                        <div className="px-5 py-4 space-y-3">
+                        <div className="px-6 pb-8 space-y-3">
                             <input type="number" min="0" value={openForm.montoInicial}
                                 onChange={e => setOpenForm(p => ({ ...p, montoInicial: e.target.value }))}
-                                placeholder="Monto inicial $0" style={{ fontSize: "16px" }}
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-2xl font-black focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+                                placeholder="$0" style={{ fontSize: "16px" }}
+                                className="w-full px-4 py-4 border-2 border-gray-100 focus:border-emerald-400 rounded-2xl text-3xl font-black text-center focus:outline-none transition-colors" />
                             <input value={openForm.notas} onChange={e => setOpenForm(p => ({ ...p, notas: e.target.value }))}
-                                placeholder="Notas (opcional)" className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none" />
+                                placeholder="Notas (opcional)" style={{ fontSize: "16px" }}
+                                className="w-full px-4 py-3 border border-gray-100 rounded-xl text-sm focus:outline-none focus:border-gray-300 transition-colors" />
                             <button onClick={abrirCaja} disabled={openSaving}
-                                className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition">
-                                <Wallet size={18} />{openSaving ? "Abriendo..." : "Abrir caja"}
+                                className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2.5 transition-all shadow-lg shadow-emerald-500/30 text-base">
+                                <Wallet size={19} />{openSaving ? "Abriendo..." : "Abrir caja"}
                             </button>
                         </div>
                     </div>
@@ -296,20 +318,28 @@ export default function CajaPage() {
             {sesion && (
                 <>
                     {/* Tabs principales */}
-                    <div className="flex border-b border-gray-200 bg-white sticky top-0 z-10">
+                    <div className="flex bg-white sticky top-0 z-10 border-b border-gray-100">
                         <button onClick={() => setTab("pedidos")}
-                            className={`flex-1 py-3 text-sm font-bold transition flex items-center justify-center gap-2 ${tab === "pedidos" ? "border-b-2 border-red-600 text-red-600" : "text-gray-500"}`}>
+                            className={`flex-1 py-3.5 text-sm font-black transition flex items-center justify-center gap-2 ${
+                                tab === "pedidos" ? "text-gray-900 border-b-2 border-gray-900" : "text-gray-400 hover:text-gray-600"
+                            }`}>
                             <Package size={15} /> Pedidos
                             {(pendientes.length + preparando.length + listos.length) > 0 && (
-                                <span className="bg-red-100 text-red-600 text-xs px-1.5 py-0.5 rounded-full">
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${tab === "pedidos" ? "bg-gray-900 text-white" : "bg-red-100 text-red-600"}`}>
                                     {pendientes.length + preparando.length + listos.length}
                                 </span>
                             )}
                         </button>
                         <button onClick={() => setTab("caja")}
-                            className={`flex-1 py-3 text-sm font-bold transition flex items-center justify-center gap-2 ${tab === "caja" ? "border-b-2 border-red-600 text-red-600" : "text-gray-500"}`}>
+                            className={`flex-1 py-3.5 text-sm font-black transition flex items-center justify-center gap-2 ${
+                                tab === "caja" ? "text-gray-900 border-b-2 border-gray-900" : "text-gray-400 hover:text-gray-600"
+                            }`}>
                             <Wallet size={15} /> Cobrar
-                            {paraCobrar.length > 0 && <span className="bg-amber-100 text-amber-600 text-xs px-1.5 py-0.5 rounded-full">{paraCobrar.length}</span>}
+                            {paraCobrar.length > 0 && (
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${tab === "caja" ? "bg-gray-900 text-white" : "bg-amber-100 text-amber-700"}`}>
+                                    {paraCobrar.length}
+                                </span>
+                            )}
                         </button>
                     </div>
 
@@ -345,18 +375,18 @@ export default function CajaPage() {
                                         return (
                                             <motion.div key={p._id}
                                                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                                                className={`rounded-2xl border shadow-sm overflow-hidden ${esMozo ? "border-blue-300" : "border-gray-200"}`}>
+                                                className={`rounded-2xl border shadow-sm overflow-hidden ${esMozo ? "border-gray-800" : "border-gray-200"}`}>
 
                                                 {/* Banner mozo */}
                                                 {esMozo && (
-                                                    <div className="bg-blue-600 text-white px-4 py-2 flex items-center gap-2">
-                                                        <UtensilsCrossed size={14} />
+                                                    <div className="text-white px-4 py-2.5 flex items-center gap-2" style={{ background: "linear-gradient(90deg, #1c1c1c 0%, #2a2a2a 100%)" }}>
+                                                        <UtensilsCrossed size={14} className="text-gray-400" />
                                                         <div className="flex-1 min-w-0">
-                                                            <span className="font-bold text-sm">
+                                                            <span className="font-black text-sm tracking-tight">
                                                                 Barra — Mozo{p.mesa ? ` · Mesa ${p.mesa}` : ""}
                                                             </span>
                                                             {(p as any).nombreComanda && (
-                                                                <p className="text-xs text-blue-100 font-semibold truncate">{(p as any).nombreComanda}</p>
+                                                                <p className="text-xs text-gray-400 font-semibold truncate mt-0.5">{(p as any).nombreComanda}</p>
                                                             )}
                                                         </div>
                                                     </div>
@@ -364,14 +394,14 @@ export default function CajaPage() {
 
                                                 {/* Banner app */}
                                                 {!esMozo && (
-                                                    <div className="bg-gray-100 text-gray-600 px-4 py-1.5 flex items-center gap-2">
+                                                    <div className="bg-gray-100 text-gray-600 px-4 py-2 flex items-center gap-2">
                                                         <Package size={12} />
-                                                        <span className="text-xs font-semibold">Pedido App</span>
+                                                        <span className="text-xs font-bold">Pedido App</span>
                                                         {p.tipoEntrega && <span className="text-xs text-gray-400 ml-1 capitalize">· {p.tipoEntrega}</span>}
                                                     </div>
                                                 )}
 
-                                                <div className={`p-4 ${esMozo ? "bg-blue-50" : "bg-white"}`}>
+                                                <div className={`p-4 ${esMozo ? "bg-gray-50" : "bg-white"}`}>
                                                     {/* Header */}
                                                     <div className="flex justify-between items-start mb-3">
                                                         <div>
@@ -475,15 +505,19 @@ export default function CajaPage() {
                     {/* ── TAB COBRAR ── */}
                     {tab === "caja" && (
                         <div className="max-w-2xl mx-auto px-4 pt-4">
-                            <div className="flex items-center justify-between mb-3">
-                                <h2 className="font-black text-gray-900">Listos para cobrar</h2>
-                                <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">{paraCobrar.length}</span>
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="font-black text-gray-900 text-lg tracking-tight">Para cobrar</h2>
+                                {paraCobrar.length > 0 && (
+                                    <span className="text-xs font-black text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">{paraCobrar.length}</span>
+                                )}
                             </div>
                             {paraCobrar.length === 0 ? (
-                                <div className="text-center py-16 text-gray-400">
-                                    <Wallet size={40} className="mx-auto mb-3 text-gray-200" />
-                                    <p className="font-semibold">Sin pedidos listos para cobrar</p>
-                                    <p className="text-sm mt-1">Aparecen acá cuando el pedido está Listo o Finalizado</p>
+                                <div className="text-center py-20 text-gray-400">
+                                    <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                                        <Wallet size={28} className="text-gray-300" />
+                                    </div>
+                                    <p className="font-bold text-gray-400">Sin pedidos para cobrar</p>
+                                    <p className="text-sm mt-1 text-gray-300">Aparecen acá cuando el pedido está Listo o Finalizado</p>
                                 </div>
                             ) : paraCobrar.map(p => {
                                 const esMozo = p.fuente === "empleado" || p.userId?.role === "empleado";
@@ -491,16 +525,15 @@ export default function CajaPage() {
                                     ? (p.mesa ? `Mesa ${p.mesa}` : p.nombreComanda || "Sin mesa")
                                     : (p.userId ? `${p.userId.nombre} ${p.userId.apellido || ""}`.trim() : "Cliente app");
                                 return (
-                                    <div key={p._id} className={`bg-white rounded-2xl border shadow-sm overflow-hidden mb-3 ${esMozo ? "border-emerald-200" : "border-blue-200"}`}>
-                                        <div className={`flex items-center justify-between px-4 py-3 border-b ${esMozo ? "bg-emerald-50 border-emerald-100" : "bg-blue-50 border-blue-100"}`}>
+                                    <div key={p._id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-3">
+                                        <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 bg-gray-50">
                                             <div>
                                                 <div className="flex items-center gap-2 flex-wrap">
-                                                    <UtensilsCrossed size={14} className={esMozo ? "text-emerald-600" : "text-blue-600"} />
+                                                    <UtensilsCrossed size={14} className="text-gray-400" />
                                                     <p className="font-black text-gray-900">{label}</p>
-                                                    {!esMozo && <span className="text-[10px] bg-blue-100 text-blue-700 font-semibold px-1.5 py-0.5 rounded-full">App</span>}
-                                                    {p.comensales ? <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">{p.comensales}p</span> : null}
-                                                    {p.nombreComanda && !esMozo && <span className="text-xs text-gray-400 truncate max-w-[100px]">{p.nombreComanda}</span>}
-                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${esMozo ? "border-emerald-500 bg-emerald-100 text-emerald-700" : "border-blue-400 bg-blue-100 text-blue-700"}`}>
+                                                    {!esMozo && <span className="text-[10px] bg-gray-200 text-gray-600 font-bold px-1.5 py-0.5 rounded-full">App</span>}
+                                                    {p.comensales ? <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full font-semibold">{p.comensales}p</span> : null}
+                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${p.estado === "entregado" ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"}`}>
                                                         {p.estado === "entregado" ? "Finalizado" : "Listo"}
                                                     </span>
                                                 </div>
@@ -534,8 +567,8 @@ export default function CajaPage() {
 
             {/* Modal cerrar caja */}
             {closeModal && (
-                <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl">
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl">
                         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
                             <h2 className="font-black text-gray-900 flex-1">Cerrar caja</h2>
                             <button onClick={() => setCloseModal(false)} className="p-1 text-gray-400 hover:text-gray-700"><X size={18} /></button>
@@ -570,8 +603,8 @@ export default function CajaPage() {
 
             {/* Modal cobrar */}
             {cobrarModal.open && cobrarModal.pedido && (
-                <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl">
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl">
                         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
                             <h2 className="font-black text-gray-900 flex-1">Cobrar Mesa {cobrarModal.pedido.mesa}</h2>
                             <button onClick={() => setCobrarModal({ open: false, pedido: null })} className="p-1 text-gray-400"><X size={18} /></button>
