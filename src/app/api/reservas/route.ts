@@ -16,7 +16,7 @@ function getPayload(req: NextRequest) {
     try { return jwt.verify(token, SECRET) as any; } catch { return null; }
 }
 
-function isStaff(role: string) { return role === "admin" || role === "superadmin"; }
+function isStaff(role: string) { return role === "admin" || role === "superadmin" || role === "cajero"; }
 
 function formatFecha(fecha: Date) {
     return new Date(fecha).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
