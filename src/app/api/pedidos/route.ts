@@ -37,6 +37,8 @@ export async function GET(req: NextRequest) {
                 ? {}
                 : payload.role === "empleado"
                 ? { fuente: "empleado" }
+                : payload.role === "delivery"
+                ? { tipoEntrega: "envio", estado: { $in: ["listo", "entregado"] } }
                 : { userId: payload.sub };
 
         const mesaParam = req.nextUrl.searchParams.get("mesa");
@@ -203,14 +205,25 @@ export async function PUT(req: NextRequest) {
             return NextResponse.json({ message: "No autorizado" }, { status: 401 });
 
         const payload = jwt.verify(token, NEXTAUTH_SECRET) as any;
-        if (payload.role !== "admin" && payload.role !== "cajero")
+        if (payload.role !== "admin" && payload.role !== "cajero" && payload.role !== "delivery")
             return NextResponse.json(
-                { message: "Solo admin o cajero puede cambiar estados" },
+                { message: "Solo admin, cajero o delivery puede cambiar estados" },
                 { status: 403 }
             );
 
         await connectMongoDB();
         const { id, estado } = await req.json();
+
+        // 🛵 El rol delivery solo puede marcar como entregado un envío que esté listo
+        if (payload.role === "delivery") {
+            const actual = await Pedido.findById(id);
+            if (!actual) {
+                return NextResponse.json({ message: "Pedido no encontrado" }, { status: 404 });
+            }
+            if (actual.tipoEntrega !== "envio" || actual.estado !== "listo" || estado !== "entregado") {
+                return NextResponse.json({ message: "Sin permiso para este cambio de estado" }, { status: 403 });
+            }
+        }
 
         const pedido = await Pedido.findByIdAndUpdate(id, { estado }, { new: true });
         if (!pedido) {

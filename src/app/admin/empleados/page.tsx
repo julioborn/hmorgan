@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { UserPlus, Trash2, KeyRound, X, Eye, EyeOff, ChevronLeft } from "lucide-react";
+import { UserPlus, Trash2, KeyRound, X, Eye, EyeOff, ChevronLeft, Truck, UtensilsCrossed } from "lucide-react";
 import Link from "next/link";
 
 type Empleado = {
@@ -8,6 +8,7 @@ type Empleado = {
     nombre: string;
     apellido: string;
     username: string;
+    role: "empleado" | "delivery";
 };
 
 type Modal =
@@ -48,7 +49,7 @@ export default function EmpleadosPage() {
                 </Link>
                 <div className="flex-1">
                     <h1 className="text-2xl font-black text-black tracking-tight">Empleados</h1>
-                    <p className="text-sm text-gray-400">{empleados.length} mozo{empleados.length !== 1 ? "s" : ""} registrado{empleados.length !== 1 ? "s" : ""}</p>
+                    <p className="text-sm text-gray-400">{empleados.length} persona{empleados.length !== 1 ? "s" : ""} registrada{empleados.length !== 1 ? "s" : ""}</p>
                 </div>
                 <button
                     onClick={() => setModal({ type: "nuevo" })}
@@ -77,7 +78,18 @@ export default function EmpleadosPage() {
                                 </span>
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="font-bold text-black leading-tight">{emp.nombre} {emp.apellido}</p>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <p className="font-bold text-black leading-tight">{emp.nombre} {emp.apellido}</p>
+                                    {emp.role === "delivery" ? (
+                                        <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200">
+                                            <Truck size={10} /> Repartidor
+                                        </span>
+                                    ) : (
+                                        <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200">
+                                            <UtensilsCrossed size={10} /> Mozo
+                                        </span>
+                                    )}
+                                </div>
                                 <p className="text-xs text-gray-400 font-mono mt-0.5">@{emp.username}</p>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
@@ -141,7 +153,7 @@ export default function EmpleadosPage() {
 
 /* ── Modal: Nuevo empleado ── */
 function NuevoEmpleadoModal({ onClose, onCreado }: { onClose: () => void; onCreado: () => void }) {
-    const [form, setForm] = useState({ nombre: "", apellido: "", username: "", password: "" });
+    const [form, setForm] = useState({ nombre: "", apellido: "", username: "", password: "", role: "empleado" as "empleado" | "delivery" });
     const [showPass, setShowPass] = useState(false);
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
@@ -169,10 +181,23 @@ function NuevoEmpleadoModal({ onClose, onCreado }: { onClose: () => void; onCrea
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm px-4">
             <div className="bg-white rounded-2xl p-6 w-full max-w-sm space-y-4 shadow-2xl">
                 <div className="flex items-center justify-between">
-                    <h2 className="font-black text-lg">Nuevo empleado</h2>
+                    <h2 className="font-black text-lg">Nueva persona</h2>
                     <button onClick={onClose} className="p-1.5 rounded-full hover:bg-gray-100 transition"><X size={18} /></button>
                 </div>
                 <form onSubmit={submit} className="space-y-3">
+                    <div>
+                        <label className="text-xs font-semibold text-gray-500 mb-1 block">Rol</label>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button type="button" onClick={() => setForm(f => ({ ...f, role: "empleado" }))}
+                                className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold border transition ${form.role === "empleado" ? "bg-black text-white border-black" : "border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
+                                <UtensilsCrossed size={15} /> Mozo
+                            </button>
+                            <button type="button" onClick={() => setForm(f => ({ ...f, role: "delivery" }))}
+                                className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold border transition ${form.role === "delivery" ? "bg-black text-white border-black" : "border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
+                                <Truck size={15} /> Repartidor
+                            </button>
+                        </div>
+                    </div>
                     <div className="grid grid-cols-2 gap-3">
                         <div>
                             <label className="text-xs font-semibold text-gray-500 mb-1 block">Nombre</label>
@@ -205,7 +230,7 @@ function NuevoEmpleadoModal({ onClose, onCreado }: { onClose: () => void; onCrea
                     {error && <p className="text-xs text-red-600 font-medium">{error}</p>}
                     <button type="submit" disabled={loading}
                         className="w-full py-3 rounded-xl bg-black text-white font-bold text-sm hover:bg-gray-800 transition disabled:opacity-50">
-                        {loading ? "Creando..." : "Crear empleado"}
+                        {loading ? "Creando..." : form.role === "delivery" ? "Crear repartidor" : "Crear mozo"}
                     </button>
                 </form>
             </div>

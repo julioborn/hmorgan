@@ -20,7 +20,7 @@ async function authorize(req: NextRequest) {
 export async function GET(req: NextRequest) {
     if (!await authorize(req)) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     await connectMongoDB();
-    const empleados = await User.find({ role: "empleado" })
+    const empleados = await User.find({ role: { $in: ["empleado", "delivery"] } })
         .select("nombre apellido username role createdAt")
         .sort({ nombre: 1 })
         .lean();
@@ -29,9 +29,11 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
     if (!await authorize(req)) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    const { nombre, apellido, username, password } = await req.json();
+    const { nombre, apellido, username, password, role } = await req.json();
     if (!nombre || !apellido || !username || !password)
         return NextResponse.json({ error: "Faltan datos" }, { status: 400 });
+
+    const finalRole = role === "delivery" ? "delivery" : "empleado";
 
     await connectMongoDB();
     const existe = await User.findOne({ username: username.toLowerCase().trim() });
@@ -43,9 +45,9 @@ export async function POST(req: NextRequest) {
         nombre, apellido,
         username: username.toLowerCase().trim(),
         passwordHash,
-        role: "empleado",
+        role: finalRole,
         qrToken,
         puntos: 0,
     });
-    return NextResponse.json({ ok: true, empleado: { _id: emp._id, nombre, apellido, username: emp.username } }, { status: 201 });
+    return NextResponse.json({ ok: true, empleado: { _id: emp._id, nombre, apellido, username: emp.username, role: emp.role } }, { status: 201 });
 }

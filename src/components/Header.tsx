@@ -29,6 +29,7 @@ import {
   Bell,
   ClipboardList,
   CalendarDays,
+  Truck,
 } from "lucide-react";
 import NotifBell from "@/components/NotifBell";
 
@@ -90,6 +91,10 @@ export default function Header() {
     { href: "/caja", label: "Caja", icon: ClipboardList },
   ];
 
+  const linksDelivery = [
+    { href: "/delivery", label: "Entregas", icon: Truck },
+  ];
+
   const linksEmpleado = [
     { href: "/", label: "Inicio", icon: Home },
     { href: "/empleado/anotador", label: "Anotador de Pedidos", icon: ClipboardList },
@@ -103,6 +108,7 @@ export default function Header() {
     user?.role === "superadmin" ? linksSuper :
     user?.role === "admin"      ? linksAdmin :
     user?.role === "cajero"     ? linksCajero :
+    user?.role === "delivery"   ? linksDelivery :
     user?.role === "empleado"   ? linksEmpleado :
     linksCliente;
 

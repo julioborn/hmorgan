@@ -12,7 +12,7 @@ type LeanUser = {
   apellido: string;
   dni: string;
   telefono: string;
-  role: "cliente" | "admin" | "empleado" | "superadmin" | "cajero";
+  role: "cliente" | "admin" | "empleado" | "superadmin" | "cajero" | "delivery";
   qrToken: string;
   puntos: number;
 };
