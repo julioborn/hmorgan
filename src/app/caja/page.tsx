@@ -7,8 +7,9 @@ import { es } from "date-fns/locale";
 import {
     Wallet, X, Printer, CreditCard, Banknote, Send,
     Loader2, CheckCircle, AlertCircle, Clock, Flame,
-    Package, Truck, UtensilsCrossed,
+    Package, Truck, UtensilsCrossed, CalendarDays,
 } from "lucide-react";
+import ReservasManager from "@/components/ReservasManager";
 
 type Pedido = {
     _id: string;
@@ -56,8 +57,11 @@ const VISTA_MAP: Record<string, Vista> = {
 };
 
 export default function CajaPage() {
-    const [tab, setTab]                   = useState<"pedidos" | "caja">("pedidos");
+    const [tab, setTab]                   = useState<"pedidos" | "caja" | "reservas">("pedidos");
     const [sesion, setSesion]             = useState<CajaSession | null | undefined>(undefined);
+    const [pedidosActivos, setPedidosActivos]   = useState(true);
+    const [reservasActivas, setReservasActivas] = useState(true);
+    const [reservasPendientes, setReservasPendientes] = useState(0);
     const [pedidos, setPedidos]           = useState<Pedido[]>([]);
     const [loading, setLoading]           = useState(true);
     const [vista, setVista]               = useState<Vista>("pendientes");
@@ -96,6 +100,23 @@ export default function CajaPage() {
         const iv = setInterval(loadData, 5000);
         return () => clearInterval(iv);
     }, [loadData]);
+
+    useEffect(() => {
+        fetch("/api/config/pedidos").then(r => r.json()).then(d => setPedidosActivos(d.activo ?? true));
+        fetch("/api/config/reservas").then(r => r.json()).then(d => setReservasActivas(d.activo ?? true));
+    }, []);
+
+    async function togglePedidosActivos() {
+        const next = !pedidosActivos;
+        setPedidosActivos(next);
+        await fetch("/api/config/pedidos", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activos: next }) });
+    }
+
+    async function toggleReservasActivas() {
+        const next = !reservasActivas;
+        setReservasActivas(next);
+        await fetch("/api/config/reservas", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activo: next }) });
+    }
 
     async function abrirCaja() {
         setOpenSaving(true);
@@ -250,7 +271,8 @@ export default function CajaPage() {
     return (
         <div className="min-h-screen bg-gray-50 pb-24">
             {/* Header */}
-            <div className="text-white px-5 py-5 flex items-center justify-between" style={{ background: "linear-gradient(135deg, #0c0c0c 0%, #1c1c1c 100%)" }}>
+            <div className="text-white px-5 py-5" style={{ background: "linear-gradient(135deg, #0c0c0c 0%, #1c1c1c 100%)" }}>
+            <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3.5">
                     <div className={`rounded-2xl p-2.5 ${sesion ? "bg-emerald-500/20" : "bg-red-500/15"}`}>
                         <Wallet size={20} className={sesion ? "text-emerald-400" : "text-red-400"} />
@@ -285,6 +307,25 @@ export default function CajaPage() {
                         </button>
                     )}
                 </div>
+            </div>
+
+            {/* Switches pedidos / reservas */}
+            <div className="flex items-center gap-5 mt-4 pt-4 border-t border-white/10">
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-gray-300">Pedidos</span>
+                    <button onClick={togglePedidosActivos}
+                        className={`relative flex h-5 w-9 shrink-0 cursor-pointer rounded-full items-center transition-colors duration-200 ${pedidosActivos ? "bg-red-500" : "bg-gray-600"}`}>
+                        <span className={`absolute h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-200 ${pedidosActivos ? "translate-x-[18px]" : "translate-x-[2px]"}`} />
+                    </button>
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-gray-300">Reservas</span>
+                    <button onClick={toggleReservasActivas}
+                        className={`relative flex h-5 w-9 shrink-0 cursor-pointer rounded-full items-center transition-colors duration-200 ${reservasActivas ? "bg-red-500" : "bg-gray-600"}`}>
+                        <span className={`absolute h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-200 ${reservasActivas ? "translate-x-[18px]" : "translate-x-[2px]"}`} />
+                    </button>
+                </div>
+            </div>
             </div>
 
             {/* Abrir caja */}
@@ -338,6 +379,17 @@ export default function CajaPage() {
                             {paraCobrar.length > 0 && (
                                 <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${tab === "caja" ? "bg-gray-900 text-white" : "bg-amber-100 text-amber-700"}`}>
                                     {paraCobrar.length}
+                                </span>
+                            )}
+                        </button>
+                        <button onClick={() => setTab("reservas")}
+                            className={`flex-1 py-3.5 text-sm font-black transition flex items-center justify-center gap-2 ${
+                                tab === "reservas" ? "text-gray-900 border-b-2 border-gray-900" : "text-gray-400 hover:text-gray-600"
+                            }`}>
+                            <CalendarDays size={15} /> Reservas
+                            {reservasPendientes > 0 && (
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${tab === "reservas" ? "bg-gray-900 text-white" : "bg-red-100 text-red-600"}`}>
+                                    {reservasPendientes}
                                 </span>
                             )}
                         </button>
@@ -560,6 +612,13 @@ export default function CajaPage() {
                                     </div>
                                 );
                             })}
+                        </div>
+                    )}
+
+                    {/* ── TAB RESERVAS ── */}
+                    {tab === "reservas" && (
+                        <div className="max-w-2xl mx-auto px-4 pt-4">
+                            <ReservasManager onPendingCountChange={setReservasPendientes} />
                         </div>
                     )}
                 </>

@@ -89,8 +89,6 @@ export default function Header() {
 
   const linksCajero = [
     { href: "/caja", label: "Caja", icon: ClipboardList },
-    { href: "/admin/pedidos", label: "Pedidos", icon: Package },
-    { href: "/admin/reservas", label: "Reservas", icon: CalendarDays },
   ];
 
   const linksDelivery = [
