@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
         sort["apellido"] = 1;
     }
 
-    const filter: any = { role: { $in: ["cliente", "clientes"] } };
+    const filter: any = { role: { $in: ["cliente", "clientes", "delivery"] } };
 
     if (q) {
         filter.$or = [
@@ -56,6 +56,7 @@ export async function GET(req: NextRequest) {
             telefono: u.telefono,
             puntos: u.puntos ?? 0,
             qrToken: u.qrToken,
+            role: u.role,
         })),
         total,
     });

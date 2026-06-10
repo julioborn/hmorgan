@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/auth-context";
-import { QrCode, Pencil, Trash2, X, Save } from "lucide-react";
+import { QrCode, Pencil, Trash2, X, Save, Truck } from "lucide-react";
 import Loader from "@/components/Loader";
 
 type Client = {
@@ -13,6 +13,7 @@ type Client = {
     telefono?: string;
     puntos?: number;
     qrToken?: string;
+    role?: string;
 };
 
 const container =
@@ -188,8 +189,15 @@ export default function AdminClientsPage() {
                                 >
                                     {/* Col 1: Cliente */}
                                     <div className="min-w-0">
-                                        <div className="font-semibold truncate text-black">
-                                            {c.apellido}, {c.nombre}
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <div className="font-semibold truncate text-black">
+                                                {c.apellido}, {c.nombre}
+                                            </div>
+                                            {c.role === "delivery" && (
+                                                <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200 shrink-0">
+                                                    <Truck size={10} /> Repartidor
+                                                </span>
+                                            )}
                                         </div>
                                         <div className="text-xs text-gray-600 truncate flex items-center gap-1 mt-0.5">
                                             {c.qrToken ? (
