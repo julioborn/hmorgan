@@ -234,6 +234,46 @@ export default function CajaPage() {
         if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 200); }
     }
 
+    function printComanda(p: Pedido) {
+        const hora = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+        const mesa = p.mesa ? `Mesa ${p.mesa}` : p.tipoEntrega === "envio" ? "Envío a domicilio" : "Retira en barra";
+        const cliente = p.userId?.role === "empleado"
+            ? (p.nombreComanda || p.userId?.nombre || "Mozo")
+            : (p.userId?.nombre || "Cliente");
+        const filas = p.items.map(it =>
+            `<tr>
+                <td style="font-size:22px;font-weight:900;padding:4px 10px 4px 0;white-space:nowrap">${it.cantidad}x</td>
+                <td style="font-size:20px;font-weight:700;padding:4px 0">${it.menuItemId?.nombre ?? "Ítem"}</td>
+            </tr>`
+        ).join("");
+        const nota = p.notaEmpleado || p.notaCliente;
+
+        const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+        <style>
+            * { margin:0; padding:0; box-sizing:border-box; }
+            body { font-family: 'Courier New', monospace; width: 80mm; padding: 8px; }
+            .centro { text-align:center; }
+            .sep { border-top: 2px dashed #000; margin: 8px 0; }
+            .badge { font-size:28px; font-weight:900; text-transform:uppercase; }
+            .meta { font-size:14px; margin:4px 0; }
+            table { width:100%; border-collapse:collapse; }
+            .nota { font-size:14px; margin-top:6px; padding:6px; border:2px solid #000; border-radius:4px; }
+        </style></head><body>
+        <div class="centro"><div class="badge">⬛ COMANDA ⬛</div></div>
+        <div class="sep"></div>
+        <div class="meta"><b>${mesa}</b></div>
+        <div class="meta">Cliente: ${cliente}</div>
+        <div class="meta">Hora: ${hora}</div>
+        <div class="sep"></div>
+        <table>${filas}</table>
+        <div class="sep"></div>
+        ${nota ? `<div class="nota">📝 ${nota}</div>` : ""}
+        </body></html>`;
+
+        const w = window.open("", "_blank", "width=340,height=500,toolbar=0,menubar=0");
+        if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 200); }
+    }
+
     if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-gray-400" size={36} /></div>;
 
     // Pedidos listos para cobrar: estado listo O entregado (ambos estados válidos)
@@ -523,7 +563,10 @@ export default function CajaPage() {
                                                     {p.estado === "pendiente" ? (
                                                         <div className="flex gap-2">
                                                             <button disabled={isUpdating}
-                                                                onClick={() => avanzarEstado(p, "preparando")}
+                                                                onClick={async () => {
+                                                                    await avanzarEstado(p, "preparando");
+                                                                    printComanda(p);
+                                                                }}
                                                                 className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-semibold py-2 rounded-xl transition flex items-center justify-center gap-1">
                                                                 {isUpdating ? <Loader2 size={14} className="animate-spin" /> : null}
                                                                 Aceptar
@@ -565,6 +608,14 @@ export default function CajaPage() {
                                                                 );
                                                             })}
                                                         </div>
+                                                    )}
+
+                                                    {/* Reimprimir comanda (pedido ya aceptado) */}
+                                                    {p.estado !== "pendiente" && (
+                                                        <button onClick={() => printComanda(p)}
+                                                            className="mt-3 w-full flex items-center justify-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-1.5 rounded-xl text-xs transition">
+                                                            <Printer size={12} /> Reimprimir comanda
+                                                        </button>
                                                     )}
 
                                                     {/* Finalizado → botón para ir a cobrar */}
