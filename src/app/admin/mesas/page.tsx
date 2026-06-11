@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { swalBase } from "@/lib/swalConfig";
+import { hoyArgentina } from "@/lib/argentina-time";
 import {
     Plus, Trash2, ToggleLeft, ToggleRight, Move, X,
     Circle, Square, Users, MapPin, Minus,
@@ -115,7 +116,7 @@ export default function SuperAdminMesasPage() {
     const fetchReservadasHoy = useCallback(async () => {
         const d = await fetch("/api/reservas", { credentials: "include" }).then(r => r.json()).catch(() => []);
         if (!Array.isArray(d)) return;
-        const hoy = new Date().toISOString().slice(0, 10);
+        const hoy = hoyArgentina();
         setReservadasHoy(new Set(
             d.filter((r: any) => r.estado !== "cancelada" && r.mesaId && r.fecha?.slice(0, 10) === hoy)
              .map((r: any) => String(r.mesaId?._id || r.mesaId))

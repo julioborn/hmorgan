@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { swalBase } from "@/lib/swalConfig";
+import { hoyArgentina, formatArgDate } from "@/lib/argentina-time";
 import {
     MapPin, MessageCircle, Check, X,
     Loader2, Phone, ChevronDown,
@@ -30,7 +31,7 @@ const ESTADO_COLOR: Record<string, string> = {
 };
 
 function formatFecha(fechaStr: string) {
-    return new Date(fechaStr).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    return formatArgDate(fechaStr, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 }
 
 function buildWhatsApp(r: Reserva) {
@@ -140,7 +141,7 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
         if (Array.isArray(d)) {
             setReservas(d);
             // Actualizar reservadas hoy
-            const hoy = new Date().toISOString().slice(0, 10);
+            const hoy = hoyArgentina();
             setReservadasHoy(new Set(
                 d.filter((r: any) => r.estado !== "cancelada" && r.mesaId && r.fecha?.slice(0, 10) === hoy)
                  .map((r: any) => String(r.mesaId?._id || r.mesaId))
@@ -265,7 +266,7 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
                                 <div className="px-5 pb-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
                                     <div className="bg-gray-50 rounded-xl px-3 py-2">
                                         <p className="text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Fecha</p>
-                                        <p className="text-sm font-bold text-gray-900 leading-tight">{new Date(r.fecha).toLocaleDateString("es-AR", { day:"numeric", month:"short", year:"2-digit" })}</p>
+                                        <p className="text-sm font-bold text-gray-900 leading-tight">{formatArgDate(r.fecha, { day:"numeric", month:"short", year:"2-digit" })}</p>
                                     </div>
                                     <div className="bg-gray-50 rounded-xl px-3 py-2">
                                         <p className="text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Horario</p>

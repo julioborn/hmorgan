@@ -36,7 +36,18 @@
       "Bash(sed 's|/superadmin|/admin|g' C:/PROYECTOS/hmorgan/src/app/superadmin/caja/historial/page.tsx)",
       "Bash(sed 's|/superadmin|/admin|g' C:/PROYECTOS/hmorgan/src/app/superadmin/stock/page.tsx)",
       "Bash(sed 's|/superadmin|/admin|g' C:/PROYECTOS/hmorgan/src/app/superadmin/reservas/page.tsx)",
-      "Bash(sed 's|/superadmin|/admin|g' C:/PROYECTOS/hmorgan/src/app/superadmin/mesas/page.tsx)"
+      "Bash(sed 's|/superadmin|/admin|g' C:/PROYECTOS/hmorgan/src/app/superadmin/mesas/page.tsx)",
+      "Bash(sed -i 's|/api/admin/caja|/api/superadmin/caja|g' C:/PROYECTOS/hmorgan/src/app/admin/caja/page.tsx C:/PROYECTOS/hmorgan/src/app/admin/caja/historial/page.tsx)",
+      "Bash(sed -i 's|/api/admin/stock|/api/superadmin/stock|g' C:/PROYECTOS/hmorgan/src/app/admin/stock/page.tsx)",
+      "Bash(sed -i 's|/api/admin/salon|/api/superadmin/salon|g' C:/PROYECTOS/hmorgan/src/app/admin/reservas/page.tsx)",
+      "PowerShell(echo $PROFILE)",
+      "Bash(grep -n \"ChevronLeft\\\\|href=\\\\\"/\\\\|back\\\\|Back\" C:/PROYECTOS/hmorgan/src/app/admin/reservas/page.tsx)",
+      "Bash(git checkout *)",
+      "Bash(npm run *)",
+      "Bash(echo \"EXIT=$?\")",
+      "Read(//tmp/**)",
+      "Bash(npx next *)",
+      "Bash(powershell *)"
     ]
   }
 }

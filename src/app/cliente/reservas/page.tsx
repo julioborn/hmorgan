@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/auth-context";
 import { CalendarDays, Clock, Users, MapPin, CheckCircle, XCircle, Loader2, Plus, Home, Leaf, HelpCircle } from "lucide-react";
+import { hoyArgentina, formatArgDate } from "@/lib/argentina-time";
 
 type Reserva = {
     _id: string;
@@ -29,12 +30,7 @@ const ESTADO_STYLES: Record<string, { bg: string; text: string; icon: React.Elem
 };
 
 function formatFecha(fechaStr: string) {
-    return new Date(fechaStr).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
-}
-
-function todayISO() {
-    const d = new Date(); d.setHours(0,0,0,0);
-    return d.toISOString().slice(0,10);
+    return formatArgDate(fechaStr, { weekday: "long", day: "numeric", month: "long" });
 }
 
 export default function ClienteReservasPage() {
@@ -48,7 +44,7 @@ export default function ClienteReservasPage() {
     const [error, setError] = useState("");
 
     const [form, setForm] = useState({
-        fecha: todayISO(),
+        fecha: hoyArgentina(),
         hora: "20:00",
         comensales: 2,
         zona: "indiferente" as "adentro" | "afuera" | "indiferente",
@@ -61,7 +57,7 @@ export default function ClienteReservasPage() {
         return () => clearInterval(iv);
     }, []);
 
-    const isToday = form.fecha === todayISO();
+    const isToday = form.fecha === hoyArgentina();
     const horasDisponibles = useMemo(() => {
         if (!isToday) return HORAS;
         return HORAS.filter(h => {
@@ -113,15 +109,15 @@ export default function ClienteReservasPage() {
             setReservas(p => [nueva, ...p]);
             setShowForm(false);
             setSuccess(true);
-            setForm({ fecha: todayISO(), hora: "20:00", comensales: 2, zona: "indiferente", notas: "" });
+            setForm({ fecha: hoyArgentina(), hora: "20:00", comensales: 2, zona: "indiferente", notas: "" });
             setTimeout(() => setSuccess(false), 4000);
         } finally { setSending(false); }
     }
 
     if (loading || loadingData) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-gray-400" size={40} /></div>;
 
-    const proximas = reservas.filter(r => r.estado !== "cancelada" && new Date(r.fecha) >= new Date(todayISO()));
-    const pasadas  = reservas.filter(r => r.estado === "cancelada" || new Date(r.fecha) < new Date(todayISO()));
+    const proximas = reservas.filter(r => r.estado !== "cancelada" && new Date(r.fecha) >= new Date(hoyArgentina()));
+    const pasadas  = reservas.filter(r => r.estado === "cancelada" || new Date(r.fecha) < new Date(hoyArgentina()));
 
     return (
         <div className="min-h-screen bg-white pb-20" style={{ paddingBottom: "max(5rem, env(safe-area-inset-bottom))" }}>
@@ -180,7 +176,7 @@ export default function ClienteReservasPage() {
                                     <CalendarDays size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                                     <input
                                         type="date"
-                                        min={todayISO()}
+                                        min={hoyArgentina()}
                                         value={form.fecha}
                                         onChange={e => setForm(p => ({ ...p, fecha: e.target.value }))}
                                         required
@@ -188,6 +184,11 @@ export default function ClienteReservasPage() {
                                         className="w-full appearance-none px-4 py-2.5 pl-11 border border-gray-200 rounded-xl font-semibold focus:outline-none focus:ring-2 focus:ring-red-400 bg-white box-border"
                                     />
                                 </div>
+                                {form.fecha && (
+                                    <p className="text-xs text-gray-500 mt-1.5 ml-1 font-semibold capitalize">
+                                        {formatArgDate(form.fecha, { weekday: "long", day: "numeric", month: "long" })}
+                                    </p>
+                                )}
                             </div>
 
                             {/* Hora */}

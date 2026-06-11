@@ -7,6 +7,7 @@ import Config from "@/models/Config";
 import jwt from "jsonwebtoken";
 import { sendPushToSubscriptions } from "@/lib/push-server";
 import { enviarNotificacionFCM, isFCMTokenInvalid } from "@/lib/firebase-admin";
+import { hoyArgentina, ahoraArgentina, formatArgDate } from "@/lib/argentina-time";
 
 const SECRET = process.env.NEXTAUTH_SECRET!;
 
@@ -18,8 +19,8 @@ function getPayload(req: NextRequest) {
 
 function isStaff(role: string) { return role === "admin" || role === "superadmin" || role === "cajero"; }
 
-function formatFecha(fecha: Date) {
-    return new Date(fecha).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+function formatFecha(fecha: Date | string) {
+    return formatArgDate(fecha, { weekday: "long", day: "numeric", month: "long" });
 }
 
 async function notificarUsuario(userId: string, title: string, body: string) {
@@ -68,17 +69,16 @@ export async function POST(req: NextRequest) {
     const { fecha, hora, comensales, zona, notas } = await req.json();
     if (!fecha || !hora || !comensales) return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
 
-    // Validar que la fecha no sea pasada (se permite hoy)
-    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-    const fechaReserva = new Date(fecha); fechaReserva.setHours(0, 0, 0, 0);
-    if (fechaReserva < hoy) return NextResponse.json({ error: "No podés reservar en una fecha pasada" }, { status: 400 });
+    // Validar que la fecha no sea pasada (se permite hoy), usando el huso horario de Argentina
+    const fechaStr = String(fecha).slice(0, 10);
+    const hoyStr = hoyArgentina();
+    if (fechaStr < hoyStr) return NextResponse.json({ error: "No podés reservar en una fecha pasada" }, { status: 400 });
 
     // Si la reserva es para hoy, el horario no puede haber pasado ya
-    if (fechaReserva.getTime() === hoy.getTime()) {
+    if (fechaStr === hoyStr) {
         const [h, m] = String(hora).split(":").map(Number);
-        const horaReserva = new Date();
-        horaReserva.setHours(h || 0, m || 0, 0, 0);
-        if (horaReserva < new Date()) {
+        const { h: hNow, m: mNow } = ahoraArgentina();
+        if ((h || 0) * 60 + (m || 0) < hNow * 60 + mNow) {
             return NextResponse.json({ error: "Ese horario ya pasó, elegí otro" }, { status: 400 });
         }
     }

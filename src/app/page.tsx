@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
+import { hoyArgentina } from "@/lib/argentina-time";
 
 const BarMap = dynamic(() => import("@/components/BarMap"), { ssr: false });
 import { QrCode, Users, Bell, PackagePlus, Package, Utensils, Ticket, History, ScanQrCode, ScanText, Settings, Star, BarChart2, ClipboardList, LayoutGrid, Images, CalendarDays, Wallet, MapPin, TrendingUp, UserCog } from "lucide-react";
@@ -405,7 +406,7 @@ function AdminHome() {
         const res = await fetch("/api/reservas", { credentials: "include" });
         if (!res.ok) return;
         const data = await res.json();
-        const hoy = new Date().toISOString().slice(0, 10);
+        const hoy = hoyArgentina();
         setReservasPendientes(data.filter((r: any) => r.estado === "pendiente" && r.fecha?.slice(0, 10) === hoy).length);
       } catch {}
     };

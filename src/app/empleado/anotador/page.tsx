@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, UtensilsCrossed, ChevronRight, Trash2, LockKeyhole, CalendarDays, Clock, Users } from "lucide-react";
 import Loader from "@/components/Loader";
 import { swalBase } from "@/lib/swalConfig";
+import { hoyArgentina } from "@/lib/argentina-time";
 
 type Comanda = {
     _id: string;
@@ -65,7 +66,7 @@ export default function AnotadorPage() {
         const r = await fetch("/api/reservas", { credentials: "include" });
         const d = await r.json().catch(() => []);
         if (!Array.isArray(d)) return;
-        const hoy = new Date().toISOString().slice(0, 10);
+        const hoy = hoyArgentina();
         const hoyFiltradas = d
             .filter((r: Reserva) => r.fecha?.slice(0, 10) === hoy && r.estado !== "cancelada")
             .sort((a: Reserva, b: Reserva) => a.hora.localeCompare(b.hora));
