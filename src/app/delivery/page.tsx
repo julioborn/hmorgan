@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
-import { Truck, MapPin, Phone, Clock, PackageCheck, Loader2 } from "lucide-react";
+import { Truck, MapPin, Phone, Clock, PackageCheck, Loader2, Bell, BellRing } from "lucide-react";
 import Loader from "@/components/Loader";
 import { swalBase } from "@/lib/swalConfig";
 
@@ -17,6 +17,7 @@ type Pedido = {
     notaEmpleado?: string;
     createdAt: string;
     userId?: { nombre: string; apellido: string; telefono?: string };
+    repartidorAfuera?: boolean;
 };
 
 const fmt = (n: number) => new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0 }).format(n);
@@ -27,6 +28,7 @@ export default function DeliveryPage() {
     const [pedidos, setPedidos] = useState<Pedido[]>([]);
     const [loadingData, setLoadingData] = useState(true);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
+    const [avisandoId, setAvisandoId] = useState<string | null>(null);
 
     useEffect(() => {
         if (!loading && user && user.role !== "delivery" && user.role !== "admin" && user.role !== "superadmin") {
@@ -45,6 +47,21 @@ export default function DeliveryPage() {
         const iv = setInterval(fetchPedidos, 8000);
         return () => clearInterval(iv);
     }, [fetchPedidos]);
+
+    async function avisarCliente(p: Pedido) {
+        setAvisandoId(p._id);
+        try {
+            await fetch("/api/pedidos", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ id: p._id, repartidorAfuera: true }),
+            });
+            await fetchPedidos();
+        } finally {
+            setAvisandoId(null);
+        }
+    }
 
     async function marcarEntregado(p: Pedido) {
         const nombreCliente = `${p.userId?.nombre ?? ""} ${p.userId?.apellido ?? ""}`.trim() || "el cliente";
@@ -162,6 +179,17 @@ export default function DeliveryPage() {
                                         <span>TOTAL</span>
                                         <span>${fmt(p.total)}</span>
                                     </div>
+
+                                    {p.tipoEntrega === "envio" && (
+                                        <button
+                                            disabled={avisandoId === p._id || p.repartidorAfuera}
+                                            onClick={() => avisarCliente(p)}
+                                            className="w-full mt-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition active:scale-95"
+                                        >
+                                            {avisandoId === p._id ? <Loader2 size={16} className="animate-spin" /> : p.repartidorAfuera ? <BellRing size={16} /> : <Bell size={16} />}
+                                            {p.repartidorAfuera ? "Cliente avisado" : "Avisar al cliente"}
+                                        </button>
+                                    )}
 
                                     <button
                                         disabled={updatingId === p._id}

@@ -18,6 +18,7 @@ const PedidoSchema = new Schema(
             default: "pendiente",
         },
         cancelableUntil: { type: Date },
+        repartidorAfuera: { type: Boolean, default: false },
         fuente: { type: String, enum: ["cliente", "empleado"], default: "cliente" },
         mesa: { type: String },
         comensales: { type: Number, default: 0 },

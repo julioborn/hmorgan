@@ -7,7 +7,7 @@ import { useAuth } from "@/context/auth-context";
 import { hoyArgentina } from "@/lib/argentina-time";
 
 const BarMap = dynamic(() => import("@/components/BarMap"), { ssr: false });
-import { QrCode, Users, Bell, PackagePlus, Package, Utensils, Ticket, History, ScanQrCode, ScanText, Settings, Star, BarChart2, ClipboardList, LayoutGrid, Images, CalendarDays, Wallet, MapPin, TrendingUp, UserCog } from "lucide-react";
+import { QrCode, Users, Bell, PackagePlus, Package, Utensils, Ticket, History, ScanQrCode, ScanText, Settings, Star, BarChart2, ClipboardList, LayoutGrid, Images, CalendarDays, Wallet, MapPin, TrendingUp, UserCog, Truck } from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 import Loader from "@/components/Loader";
@@ -111,6 +111,7 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
   const [pedidosActivosCount, setPedidosActivosCount] = useState(0);
   const [pedidosActivos, setPedidosActivos] = useState(true);
   const [reservasActivas, setReservasActivas] = useState(true);
+  const [repartidorAfuera, setRepartidorAfuera] = useState(false);
 
   useEffect(() => {
     const fetchRewards = async () => {
@@ -150,6 +151,21 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
       .then(data => { setReservasActivas(data.activo ?? true); });
   }, []);
 
+  // Banner: repartidor afuera del domicilio
+  useEffect(() => {
+    const fetchEnvios = async () => {
+      try {
+        const res = await fetch("/api/pedidos", { credentials: "include", cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        setRepartidorAfuera(Array.isArray(data) && data.some((p: any) => p.tipoEntrega === "envio" && p.estado === "listo" && p.repartidorAfuera));
+      } catch {}
+    };
+    fetchEnvios();
+    const iv = setInterval(fetchEnvios, 8000);
+    return () => clearInterval(iv);
+  }, []);
+
   if (loadingRewards) {
     return (
       <div className={`${container} py-10 flex justify-center`}>
@@ -173,6 +189,17 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
           ★ {puntos} pts
         </span>
       </div>
+
+      {/* Repartidor afuera del domicilio */}
+      {repartidorAfuera && (
+        <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-2xl px-4 py-3">
+          <Truck size={22} className="text-blue-600 shrink-0" />
+          <div>
+            <p className="text-sm font-bold text-blue-800">¡Tu repartidor está afuera!</p>
+            <p className="text-xs text-blue-600">Te está esperando en la puerta con tu pedido 🛵</p>
+          </div>
+        </div>
+      )}
 
       {/* Carrusel de recompensas */}
       {rewards.length > 0 && (

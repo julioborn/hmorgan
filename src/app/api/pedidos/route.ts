@@ -212,7 +212,41 @@ export async function PUT(req: NextRequest) {
             );
 
         await connectMongoDB();
-        const { id, estado } = await req.json();
+        const { id, estado, repartidorAfuera } = await req.json();
+
+        // 🛵 El repartidor avisa al cliente que está afuera de su domicilio
+        if (repartidorAfuera !== undefined && estado === undefined) {
+            const actual = await Pedido.findById(id);
+            if (!actual) return NextResponse.json({ message: "Pedido no encontrado" }, { status: 404 });
+            if (payload.role === "delivery" && (actual.tipoEntrega !== "envio" || actual.estado !== "listo")) {
+                return NextResponse.json({ message: "Sin permiso para este cambio de estado" }, { status: 403 });
+            }
+
+            const pedido = await Pedido.findByIdAndUpdate(id, { repartidorAfuera }, { new: true });
+            if (!pedido) return NextResponse.json({ message: "Pedido no encontrado" }, { status: 404 });
+
+            if (repartidorAfuera) {
+                const cliente = await User.findById(pedido.userId);
+                if (cliente?.pushSubscriptions?.length) {
+                    await sendPushToSubscriptions(cliente.pushSubscriptions, {
+                        title: "¡Tu repartidor está afuera!",
+                        body: "Te está esperando en la puerta con tu pedido 🛵",
+                        url: "/",
+                        icon: "/icon-192.png",
+                        badge: "/icon-badge-96x96.png",
+                    });
+                }
+                if (cliente) {
+                    const fcmTokens = new Set<string>([...(cliente.fcmTokens ?? []), ...(cliente.tokenFCM ? [cliente.tokenFCM] : [])]);
+                    for (const t of fcmTokens) {
+                        try { await enviarNotificacionFCM(t, "¡Tu repartidor está afuera!", "Te está esperando en la puerta con tu pedido 🛵", "/"); }
+                        catch (err) { if (isFCMTokenInvalid(err)) await User.updateOne({ _id: cliente._id }, { $pull: { fcmTokens: t } }); }
+                    }
+                }
+            }
+
+            return NextResponse.json({ ok: true, pedido });
+        }
 
         // 🛵 El rol delivery solo puede marcar como entregado un envío que esté listo
         if (payload.role === "delivery") {
@@ -225,7 +259,9 @@ export async function PUT(req: NextRequest) {
             }
         }
 
-        const pedido = await Pedido.findByIdAndUpdate(id, { estado }, { new: true });
+        const update: Record<string, unknown> = { estado };
+        if (estado === "entregado") update.repartidorAfuera = false;
+        const pedido = await Pedido.findByIdAndUpdate(id, update, { new: true });
         if (!pedido) {
             return NextResponse.json({ message: "Pedido no encontrado" }, { status: 404 });
         }
