@@ -38,6 +38,13 @@ const categoryImages: Record<string, string> = {
     FRITURAS: "/frituras.jpeg",
     BEBIDAS: "/bebidas.jpeg",
     "POSTRE Y CAFE": "/postreycafe.jpeg",
+    CERVEZAS: "/subcategoria-bebidas/cervezas.png",
+    VINOS: "/subcategoria-bebidas/vinos.png",
+    GASEOSAS: "/subcategoria-bebidas/gaseosas.png",
+    JARROS: "/subcategoria-bebidas/jarros.png",
+    COCKTAILS: "/subcategoria-bebidas/cocktails.png",
+    WHISKY: "/subcategoria-bebidas/whisky.png",
+    MEDIDAS: "/subcategoria-bebidas/medidas.png",
 };
 
 const categoryIcons: Record<string, React.ElementType> = {
