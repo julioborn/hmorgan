@@ -8,6 +8,7 @@ import {
     Wallet, X, Printer, CreditCard, Banknote, Send,
     Loader2, CheckCircle, AlertCircle, Clock, Flame,
     Package, Truck, UtensilsCrossed, CalendarDays,
+    Phone, MessageCircle,
 } from "lucide-react";
 import ReservasManager from "@/components/ReservasManager";
 
@@ -455,19 +456,28 @@ export default function CajaPage() {
 
                                                 <div className={`p-4 ${esMozo ? "bg-gray-50" : "bg-white"}`}>
                                                     {/* Header */}
-                                                    <div className="flex justify-between items-start mb-3">
-                                                        <div>
-                                                            <h2 className="font-bold text-gray-900">
+                                                    <div className="flex items-start justify-between gap-3 mb-3">
+                                                        <div className="flex-1 min-w-0">
+                                                            <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border uppercase tracking-wide inline-block mb-1.5 ${COLOR_CLASSES[color] || "border-gray-200 bg-gray-100 text-gray-600"}`}>
+                                                                {p.estado}
+                                                            </span>
+                                                            <h2 className="text-lg font-black text-gray-900 leading-tight">
                                                                 {p.userId?.nombre} {p.userId?.apellido}
                                                             </h2>
                                                             {!esMozo && p.userId?.telefono && (
-                                                                <p className="text-xs text-gray-500 mt-0.5">📱 {p.userId.telefono}</p>
+                                                                <a href={`https://wa.me/${p.userId.telefono.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
+                                                                    className="text-xs text-gray-500 mt-0.5 flex items-center gap-1 w-fit hover:text-emerald-600 transition">
+                                                                    <Phone size={10} />{p.userId.telefono}
+                                                                </a>
                                                             )}
                                                             <p className="text-xs text-gray-400 mt-0.5">{fechaHora}</p>
                                                         </div>
-                                                        <span className={`px-2.5 py-1 rounded-full text-xs border ${COLOR_CLASSES[color] || "border-gray-200 bg-gray-100 text-gray-600"}`}>
-                                                            {p.estado}
-                                                        </span>
+                                                        {!esMozo && p.userId?.telefono && (
+                                                            <a href={`https://wa.me/${p.userId.telefono.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
+                                                                className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-semibold transition shrink-0">
+                                                                <MessageCircle size={13} /> WhatsApp
+                                                            </a>
+                                                        )}
                                                     </div>
 
                                                     {/* Items */}
