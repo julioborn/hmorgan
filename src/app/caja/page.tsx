@@ -18,7 +18,7 @@ type Pedido = {
     nombreComanda?: string;
     comensales?: number;
     fuente: string;
-    items: { _id?: string; menuItemId: { nombre: string; precio: number }; cantidad: number }[];
+    items: { _id?: string; menuItemId: { nombre: string; precio: number; categoria?: string }; cantidad: number }[];
     total: number;
     costoEnvio?: number;
     estado: string;
@@ -30,6 +30,9 @@ type Pedido = {
     userId?: { _id: string; nombre: string; apellido: string; telefono?: string; role?: string };
 };
 type CajaSession = { _id: string; estado: "abierta" | "cerrada"; montoInicial: number; fechaApertura: string };
+
+// Categorías que se imprimen en la comandera de la barra; el resto va a cocina
+const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
 
 const METODOS = ["efectivo", "tarjeta", "transferencia"] as const;
 const METODO_LABEL: Record<string, string> = { efectivo: "Efectivo", tarjeta: "Tarjeta", transferencia: "Transferencia" };
@@ -234,13 +237,13 @@ export default function CajaPage() {
         if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 200); }
     }
 
-    function printComanda(p: Pedido) {
+    function comandaHtml(p: Pedido, titulo: string, items: Pedido["items"]) {
         const hora = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
         const mesa = p.mesa ? `Mesa ${p.mesa}` : p.tipoEntrega === "envio" ? "Envío a domicilio" : "Retira en barra";
         const cliente = p.userId?.role === "empleado"
             ? (p.nombreComanda || p.userId?.nombre || "Mozo")
             : (p.userId?.nombre || "Cliente");
-        const filas = p.items.map(it =>
+        const filas = items.map(it =>
             `<tr>
                 <td style="font-size:22px;font-weight:900;padding:4px 10px 4px 0;white-space:nowrap">${it.cantidad}x</td>
                 <td style="font-size:20px;font-weight:700;padding:4px 0">${it.menuItemId?.nombre ?? "Ítem"}</td>
@@ -248,7 +251,7 @@ export default function CajaPage() {
         ).join("");
         const nota = p.notaEmpleado || p.notaCliente;
 
-        const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+        return `<!DOCTYPE html><html><head><meta charset="utf-8">
         <style>
             * { margin:0; padding:0; box-sizing:border-box; }
             body { font-family: 'Courier New', monospace; width: 80mm; padding: 8px; }
@@ -259,7 +262,7 @@ export default function CajaPage() {
             table { width:100%; border-collapse:collapse; }
             .nota { font-size:14px; margin-top:6px; padding:6px; border:2px solid #000; border-radius:4px; }
         </style></head><body>
-        <div class="centro"><div class="badge">⬛ COMANDA ⬛</div></div>
+        <div class="centro"><div class="badge">⬛ ${titulo} ⬛</div></div>
         <div class="sep"></div>
         <div class="meta"><b>${mesa}</b></div>
         <div class="meta">Cliente: ${cliente}</div>
@@ -269,9 +272,25 @@ export default function CajaPage() {
         <div class="sep"></div>
         ${nota ? `<div class="nota">📝 ${nota}</div>` : ""}
         </body></html>`;
+    }
 
+    function abrirEImprimir(html: string) {
         const w = window.open("", "_blank", "width=340,height=500,toolbar=0,menubar=0");
         if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 200); }
+    }
+
+    function printComanda(p: Pedido) {
+        const bebidas = p.items.filter(it => BEBIDAS_CATS.includes(it.menuItemId?.categoria || ""));
+        const comida = p.items.filter(it => !BEBIDAS_CATS.includes(it.menuItemId?.categoria || ""));
+
+        // Comanda de cocina (todo lo que no sea bebida)
+        if (comida.length > 0) {
+            abrirEImprimir(comandaHtml(p, "COMANDA COCINA", comida));
+        }
+        // Comanda de barra (bebidas), con un pequeño delay para no chocar con la ventana de cocina
+        if (bebidas.length > 0) {
+            setTimeout(() => abrirEImprimir(comandaHtml(p, "COMANDA BARRA", bebidas)), 600);
+        }
     }
 
     if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-gray-400" size={36} /></div>;
