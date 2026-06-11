@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/auth-context";
 import { CalendarDays, Clock, Users, MapPin, CheckCircle, XCircle, Loader2, Plus, Home, Leaf, HelpCircle } from "lucide-react";
 
@@ -54,6 +54,30 @@ export default function ClienteReservasPage() {
         zona: "indiferente" as "adentro" | "afuera" | "indiferente",
         notas: "",
     });
+
+    const [now, setNow] = useState(() => new Date());
+    useEffect(() => {
+        const iv = setInterval(() => setNow(new Date()), 60000);
+        return () => clearInterval(iv);
+    }, []);
+
+    const isToday = form.fecha === todayISO();
+    const horasDisponibles = useMemo(() => {
+        if (!isToday) return HORAS;
+        return HORAS.filter(h => {
+            const [hh, mm] = h.split(":").map(Number);
+            const horaSlot = new Date();
+            horaSlot.setHours(hh, mm, 0, 0);
+            return horaSlot > now;
+        });
+    }, [isToday, now]);
+
+    // Si la hora seleccionada ya pasó (o cambió el día), elegir la primera disponible
+    useEffect(() => {
+        if (horasDisponibles.length > 0 && !horasDisponibles.includes(form.hora)) {
+            setForm(p => ({ ...p, hora: horasDisponibles[0] }));
+        }
+    }, [horasDisponibles]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         if (!user) return;
@@ -152,28 +176,37 @@ export default function ClienteReservasPage() {
                             {/* Fecha */}
                             <div>
                                 <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Fecha</label>
-                                <input
-                                    type="date"
-                                    min={todayISO()}
-                                    value={form.fecha}
-                                    onChange={e => setForm(p => ({ ...p, fecha: e.target.value }))}
-                                    required
-                                    style={{ fontSize: "16px" }}
-                                    className="w-full min-w-0 px-4 py-2.5 border border-gray-200 rounded-xl font-semibold focus:outline-none focus:ring-2 focus:ring-red-400 bg-white box-border"
-                                />
+                                <div className="relative">
+                                    <CalendarDays size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                    <input
+                                        type="date"
+                                        min={todayISO()}
+                                        value={form.fecha}
+                                        onChange={e => setForm(p => ({ ...p, fecha: e.target.value }))}
+                                        required
+                                        style={{ fontSize: "16px" }}
+                                        className="w-full appearance-none px-4 py-2.5 pl-11 border border-gray-200 rounded-xl font-semibold focus:outline-none focus:ring-2 focus:ring-red-400 bg-white box-border"
+                                    />
+                                </div>
                             </div>
 
                             {/* Hora */}
                             <div>
                                 <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Horario <span className="text-gray-400 normal-case font-normal">(19hs–23hs)</span></label>
-                                <div className="grid grid-cols-3 gap-1.5">
-                                    {HORAS.map(h => (
-                                        <button type="button" key={h} onClick={() => setForm(p => ({ ...p, hora: h }))}
-                                            className={`py-2.5 rounded-xl text-sm font-bold border transition ${form.hora === h ? "bg-red-600 text-white border-red-600" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"}`}>
-                                            {h}
-                                        </button>
-                                    ))}
-                                </div>
+                                {horasDisponibles.length === 0 ? (
+                                    <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+                                        No quedan horarios disponibles para hoy. Elegí otra fecha.
+                                    </p>
+                                ) : (
+                                    <div className="grid grid-cols-3 gap-1.5">
+                                        {horasDisponibles.map(h => (
+                                            <button type="button" key={h} onClick={() => setForm(p => ({ ...p, hora: h }))}
+                                                className={`py-2.5 rounded-xl text-sm font-bold border transition ${form.hora === h ? "bg-red-600 text-white border-red-600" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"}`}>
+                                                {h}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Comensales */}
@@ -220,7 +253,7 @@ export default function ClienteReservasPage() {
                         </div>
 
                         <div className="px-5 py-4 border-t border-gray-100">
-                            <button type="submit" disabled={sending}
+                            <button type="submit" disabled={sending || horasDisponibles.length === 0}
                                 className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition">
                                 {sending ? <><Loader2 size={18} className="animate-spin" />Enviando...</> : <><CalendarDays size={18} />Solicitar reserva</>}
                             </button>

@@ -73,6 +73,16 @@ export async function POST(req: NextRequest) {
     const fechaReserva = new Date(fecha); fechaReserva.setHours(0, 0, 0, 0);
     if (fechaReserva < hoy) return NextResponse.json({ error: "No podés reservar en una fecha pasada" }, { status: 400 });
 
+    // Si la reserva es para hoy, el horario no puede haber pasado ya
+    if (fechaReserva.getTime() === hoy.getTime()) {
+        const [h, m] = String(hora).split(":").map(Number);
+        const horaReserva = new Date();
+        horaReserva.setHours(h || 0, m || 0, 0, 0);
+        if (horaReserva < new Date()) {
+            return NextResponse.json({ error: "Ese horario ya pasó, elegí otro" }, { status: 400 });
+        }
+    }
+
     const reserva = await Reserva.create({
         userId: payload.sub,
         fecha: new Date(fecha),
