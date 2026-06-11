@@ -12,6 +12,7 @@ const PedidoSchema = new Schema(
         tipoEntrega: { type: String, enum: ["retira", "envio"], default: "retira" },
         direccion: { type: String },
         total: { type: Number },
+        costoEnvio: { type: Number, default: 0 },
         estado: {
             type: String,
             enum: ["pendiente", "preparando", "listo", "entregado", "cancelado", "cerrado"],

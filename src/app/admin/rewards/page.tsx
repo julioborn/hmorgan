@@ -2,7 +2,7 @@
 import useSWR from "swr";
 import { useState } from "react";
 import Link from "next/link";
-import { Gift, QrCode, ChevronDown, ChevronUp } from "lucide-react";
+import { Gift, QrCode, ChevronDown, ChevronUp, Pencil } from "lucide-react";
 import Loader from "@/components/Loader";
 import { Trash2 } from "lucide-react";
 import { swalBase } from "@/lib/swalConfig";
@@ -28,27 +28,44 @@ export default function AdminRewardsPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [showForm, setShowForm] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
 
-    async function handleCreate(e: React.FormEvent) {
+    function resetForm() {
+        setTitulo("");
+        setDescripcion("");
+        setPuntos(0);
+        setTema("");
+        setEditingId(null);
+        setShowForm(false);
+    }
+
+    function handleEdit(r: Reward) {
+        setEditingId(r._id);
+        setTitulo(r.titulo);
+        setDescripcion(r.descripcion || "");
+        setPuntos(r.puntos);
+        setTema(r.tema || "");
+        setShowForm(true);
+    }
+
+    async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         setLoading(true);
         setError("");
 
         try {
-            const res = await fetch("/api/rewards", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ titulo, descripcion, puntos, tema }),
-            });
+            const res = await fetch(
+                editingId ? `/api/rewards/${editingId}` : "/api/rewards",
+                {
+                    method: editingId ? "PUT" : "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ titulo, descripcion, puntos, tema }),
+                }
+            );
 
-            if (!res.ok) throw new Error("Error creando canje");
+            if (!res.ok) throw new Error(editingId ? "Error actualizando canje" : "Error creando canje");
             await mutate();
-
-            setTitulo("");
-            setDescripcion("");
-            setPuntos(0);
-            setTema("");
-            setShowForm(false);
+            resetForm();
         } catch (e: any) {
             setError(e.message);
         } finally {
@@ -103,15 +120,15 @@ export default function AdminRewardsPage() {
             {/* ➕ Formulario toggleable */}
             <div className="mb-10 bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
                 <button
-                    onClick={() => setShowForm(!showForm)}
+                    onClick={() => (showForm ? resetForm() : setShowForm(true))}
                     className="w-full flex items-center justify-between text-lg font-bold text-red-600 hover:text-red-700 transition"
                 >
-                    <span>Generar Canje</span>
+                    <span>{editingId ? "Editar Canje" : "Generar Canje"}</span>
                     {showForm ? <ChevronUp /> : <ChevronDown />}
                 </button>
 
                 {showForm && (
-                    <form onSubmit={handleCreate} className="mt-6 space-y-4">
+                    <form onSubmit={handleSubmit} className="mt-6 space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <input
                                 value={titulo}
@@ -148,13 +165,22 @@ export default function AdminRewardsPage() {
 
                         {error && <p className="text-sm text-red-600">{error}</p>}
 
-                        <div className="flex justify-end">
+                        <div className="flex justify-end gap-2">
+                            {editingId && (
+                                <button
+                                    type="button"
+                                    onClick={resetForm}
+                                    className="px-6 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300 transition"
+                                >
+                                    Cancelar
+                                </button>
+                            )}
                             <button
                                 type="submit"
                                 disabled={loading}
                                 className="px-6 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-500 transition disabled:opacity-50"
                             >
-                                {loading ? <Loader size={20} /> : "Crear"}
+                                {loading ? <Loader size={20} /> : editingId ? "Guardar cambios" : "Crear"}
                             </button>
                         </div>
                     </form>
@@ -175,7 +201,7 @@ export default function AdminRewardsPage() {
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {rewards.map((r) => (
                     r.tema === "argentina"
-                        ? <ArgentinaCard key={r._id} r={r} onToggle={handleToggle} onDelete={handleDelete} />
+                        ? <ArgentinaCard key={r._id} r={r} onToggle={handleToggle} onDelete={handleDelete} onEdit={handleEdit} />
                         : (
                             <div
                                 key={r._id}
@@ -193,6 +219,10 @@ export default function AdminRewardsPage() {
                                     <button onClick={() => handleToggle(r._id)}
                                         className={`px-2 py-1 rounded-lg text-xs font-semibold transition ${r.activo ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-gray-200 text-gray-500 hover:bg-gray-300"}`}>
                                         {r.activo ? "Activo" : "Inactivo"}
+                                    </button>
+                                    <button onClick={() => handleEdit(r)}
+                                        className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition">
+                                        <Pencil size={16} />
                                     </button>
                                     <button onClick={() => handleDelete(r._id)}
                                         className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition">
@@ -215,7 +245,7 @@ export default function AdminRewardsPage() {
     );
 }
 
-function ArgentinaCard({ r, onToggle, onDelete }: { r: any; onToggle: (id: string) => void; onDelete: (id: string) => void }) {
+function ArgentinaCard({ r, onToggle, onDelete, onEdit }: { r: any; onToggle: (id: string) => void; onDelete: (id: string) => void; onEdit: (r: any) => void }) {
     return (
         <div className={`relative rounded-2xl shadow-xl overflow-visible border-2 border-[#74ACDF] ${!r.activo ? "opacity-60" : ""}`}>
             <div
@@ -236,6 +266,10 @@ function ArgentinaCard({ r, onToggle, onDelete }: { r: any; onToggle: (id: strin
                         <button onClick={() => onToggle(r._id)}
                             className={`px-2 py-1 rounded-lg text-xs font-semibold transition ${r.activo ? "bg-white/80 text-emerald-700" : "bg-white/60 text-gray-500"}`}>
                             {r.activo ? "Activo" : "Inactivo"}
+                        </button>
+                        <button onClick={() => onEdit(r)}
+                            className="p-1.5 rounded-lg bg-white/70 text-blue-600 hover:bg-white transition">
+                            <Pencil size={14} />
                         </button>
                         <button onClick={() => onDelete(r._id)}
                             className="p-1.5 rounded-lg bg-white/70 text-red-600 hover:bg-white transition">

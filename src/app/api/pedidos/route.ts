@@ -101,6 +101,8 @@ export async function POST(req: NextRequest) {
             return acc + (item?.precio || 0) * i.cantidad;
         }, 0);
 
+        const costoEnvio = tipoEntrega === "envio" ? (config.costoEnvio || 0) : 0;
+
         // 🧠 Buscar usuario con seguridad
         const user = await User.findById(payload.sub);
         if (!user)
@@ -149,7 +151,8 @@ export async function POST(req: NextRequest) {
             userId: user._id,
             items,
             tipoEntrega,
-            total,
+            total: total + costoEnvio,
+            costoEnvio,
             direccion: tipoEntrega === "envio" ? direccion : undefined,
             estado: "pendiente",
             cancelableUntil,

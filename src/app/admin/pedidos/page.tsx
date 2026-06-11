@@ -8,6 +8,9 @@ import Link from "next/link";
 import Loader from "@/components/Loader";
 import { swalBase } from "@/lib/swalConfig";
 
+const formatMoney = (n: number) =>
+    new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0 }).format(n);
+
 export default function AdminPedidosPage() {
     const [pedidos, setPedidos] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -484,6 +487,11 @@ export default function AdminPedidosPage() {
                                             {p.tipoEntrega === "envio" && p.direccion && (
                                                 <p className="text-sm text-gray-700 mt-1 flex items-center gap-1">
                                                     📍 <span className="font-medium">{p.direccion}</span>
+                                                </p>
+                                            )}
+                                            {p.tipoEntrega === "envio" && (p.costoEnvio ?? 0) > 0 && (
+                                                <p className="text-sm text-gray-600 mt-1">
+                                                    🛵 Envío: ${formatMoney(p.costoEnvio)}
                                                 </p>
                                             )}
                                             <p className="text-xs text-gray-500 mt-1">{fechaHora}</p>

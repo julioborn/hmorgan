@@ -15,6 +15,10 @@ const ConfigSchema = new Schema(
             type: Boolean,
             default: true,
         },
+        costoEnvio: {
+            type: Number,
+            default: 0,
+        },
     },
     {
         timestamps: true,

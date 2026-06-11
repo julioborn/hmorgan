@@ -20,6 +20,7 @@ type Pedido = {
     fuente: string;
     items: { _id?: string; menuItemId: { nombre: string; precio: number }; cantidad: number }[];
     total: number;
+    costoEnvio?: number;
     estado: string;
     tipoEntrega?: string;
     direccion?: string;
@@ -208,7 +209,8 @@ export default function CajaPage() {
         const hora = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
         const fecha = new Date().toLocaleDateString("es-AR");
         const vuelto = metodo === "efectivo" && montoPagado > pedido.total ? montoPagado - pedido.total : 0;
-        const rows = pedido.items.map(i => `<tr><td>${i.cantidad}x ${i.menuItemId?.nombre || "ítem"}</td><td style="text-align:right">${formatMoney((i.menuItemId?.precio || 0) * i.cantidad)}</td></tr>`).join("");
+        const rows = pedido.items.map(i => `<tr><td>${i.cantidad}x ${i.menuItemId?.nombre || "ítem"}</td><td style="text-align:right">${formatMoney((i.menuItemId?.precio || 0) * i.cantidad)}</td></tr>`).join("")
+            + (pedido.tipoEntrega === "envio" && (pedido.costoEnvio ?? 0) > 0 ? `<tr><td>Envío a domicilio</td><td style="text-align:right">${formatMoney(pedido.costoEnvio ?? 0)}</td></tr>` : "");
         const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Ticket</title><style>
             *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Courier New',monospace;font-size:12px;padding:12px;max-width:280px}
             h2{text-align:center;font-size:15px;letter-spacing:2px;margin-bottom:2px}
@@ -498,7 +500,24 @@ export default function CajaPage() {
                                                     )}
 
                                                     {/* Total */}
-                                                    <p className="text-sm font-bold text-gray-900 mb-3">Total: {formatMoney(p.total)}</p>
+                                                    {p.tipoEntrega === "envio" && (p.costoEnvio ?? 0) > 0 ? (
+                                                        <div className="text-sm text-gray-700 mb-3 space-y-0.5">
+                                                            <div className="flex justify-between">
+                                                                <span>Subtotal</span>
+                                                                <span>{formatMoney(p.total - (p.costoEnvio ?? 0))}</span>
+                                                            </div>
+                                                            <div className="flex justify-between">
+                                                                <span>Envío</span>
+                                                                <span>{formatMoney(p.costoEnvio ?? 0)}</span>
+                                                            </div>
+                                                            <div className="flex justify-between font-bold text-gray-900">
+                                                                <span>Total</span>
+                                                                <span>{formatMoney(p.total)}</span>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-sm font-bold text-gray-900 mb-3">Total: {formatMoney(p.total)}</p>
+                                                    )}
 
                                                     {/* Botones estado pendiente */}
                                                     {p.estado === "pendiente" ? (
@@ -617,6 +636,12 @@ export default function CajaPage() {
                                                     <span className="text-gray-400">{formatMoney((item.menuItemId?.precio || 0) * item.cantidad)}</span>
                                                 </div>
                                             ))}
+                                            {p.tipoEntrega === "envio" && (p.costoEnvio ?? 0) > 0 && (
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-gray-700">Envío a domicilio</span>
+                                                    <span className="text-gray-400">{formatMoney(p.costoEnvio ?? 0)}</span>
+                                                </div>
+                                            )}
                                             {p.notaEmpleado && <p className="text-xs text-amber-600 italic pt-1">📝 {p.notaEmpleado}</p>}
                                         </div>
                                     </div>
@@ -686,6 +711,12 @@ export default function CajaPage() {
                                         <span className="font-semibold text-gray-900">{formatMoney((i.menuItemId?.precio || 0) * i.cantidad)}</span>
                                     </div>
                                 ))}
+                                {cobrarModal.pedido.tipoEntrega === "envio" && (cobrarModal.pedido.costoEnvio ?? 0) > 0 && (
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-700">Envío a domicilio</span>
+                                        <span className="font-semibold text-gray-900">{formatMoney(cobrarModal.pedido.costoEnvio ?? 0)}</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between text-sm font-black text-gray-900 border-t border-gray-200 pt-2 mt-1">
                                     <span>TOTAL</span><span>{formatMoney(cobrarModal.pedido.total)}</span>
                                 </div>

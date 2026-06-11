@@ -14,6 +14,30 @@ export async function PATCH(
     return NextResponse.json(reward);
 }
 
+export async function PUT(
+    req: NextRequest,
+    { params }: { params: { id: string } }
+) {
+    try {
+        await connectMongoDB();
+        const { titulo, descripcion, puntos, tema } = await req.json();
+
+        const updated = await Reward.findByIdAndUpdate(
+            params.id,
+            { titulo, descripcion, puntos, tema },
+            { new: true }
+        );
+
+        if (!updated) {
+            return NextResponse.json({ error: "Canje no encontrado" }, { status: 404 });
+        }
+
+        return NextResponse.json(updated);
+    } catch (error) {
+        return NextResponse.json({ error: "Error actualizando canje" }, { status: 500 });
+    }
+}
+
 export async function DELETE(
     _req: Request,
     { params }: { params: { id: string } }

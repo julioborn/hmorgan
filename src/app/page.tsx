@@ -207,7 +207,13 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
         <div className="relative rounded-2xl bg-gradient-to-b from-gray-50 to-gray-100 shadow-xl p-5 border border-gray-200">
           <>
 
-              {/* Swiper */}
+              {rewards.length === 1 ? (
+                <div className="flex justify-center">
+                  <div className="w-full max-w-xs">
+                    <RewardCard r={rewards[0]} />
+                  </div>
+                </div>
+              ) : (
               <Swiper
                 modules={[Autoplay, Pagination]}
                 autoplay={{
@@ -230,46 +236,11 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
               >
                 {rewards.map((r) => (
                   <SwiperSlide key={r._id}>
-                    {r.tema === "argentina" ? (
-                      <div
-                        className="relative rounded-2xl border-2 border-[#74ACDF] h-44 flex flex-col justify-between overflow-hidden shadow-lg"
-                        style={{ background: "repeating-linear-gradient(90deg,#74ACDF 0px,#74ACDF 26px,white 26px,white 52px)" }}
-                      >
-                        <div className="absolute inset-0 bg-white/55" />
-                        <span className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-[#74ACDF] rounded-full shadow" />
-                        <span className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-[#74ACDF] rounded-full shadow" />
-                        <div className="relative z-10 p-4 flex flex-col h-full justify-between">
-                          <div className="flex items-center justify-between">
-                            <span className="text-yellow-400 text-base drop-shadow">★★★</span>
-                            <span className="text-[9px] font-black text-white bg-[#003DA5] px-2 py-0.5 rounded-full uppercase tracking-widest">Mundial 2026</span>
-                          </div>
-                          <div>
-                            <h3 className="font-extrabold text-base text-[#003DA5] line-clamp-2">{r.titulo}</h3>
-                            {r.descripcion && <p className="text-xs text-[#003DA5]/70 line-clamp-1 mt-0.5">{r.descripcion}</p>}
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-extrabold text-white bg-[#003DA5] px-2.5 py-1 rounded-full">{r.puntos} pts</span>
-                            <span className="text-2xl">⚽</span>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="relative bg-white text-black rounded-2xl shadow-md border border-gray-200 p-5 h-44 flex flex-col justify-between overflow-hidden">
-                        <div className="flex-1 flex flex-col justify-between">
-                          <h3 className="font-extrabold text-base md:text-lg line-clamp-2">{r.titulo}</h3>
-                          <p className="text-sm text-gray-600 line-clamp-2">{r.descripcion || "Canje"}</p>
-                          <span className="text-sm font-semibold text-red-600">{r.puntos} pts</span>
-                        </div>
-                        <div className="absolute bottom-3 right-3">
-                          <img src="/icon-192x192.png" alt="Logo" className="h-8 w-8 object-contain opacity-70" />
-                        </div>
-                        <span className="absolute -left-3 top-1/2 w-6 h-6 bg-gray-100 border border-gray-300 rounded-full shadow-sm" />
-                        <span className="absolute -right-3 top-1/2 w-6 h-6 bg-gray-100 border border-gray-300 rounded-full shadow-sm" />
-                      </div>
-                    )}
+                    <RewardCard r={r} />
                   </SwiperSlide>
                 ))}
               </Swiper>
+              )}
               <div className="mt-4 flex justify-center">
                 <Link
                   href="/cliente/rewards"
@@ -390,6 +361,50 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
           </a>
         </div>
       </section>
+    </div>
+  );
+}
+
+function RewardCard({ r }: { r: Reward }) {
+  if (r.tema === "argentina") {
+    return (
+      <div
+        className="relative rounded-2xl border-2 border-[#74ACDF] h-44 flex flex-col justify-between overflow-hidden shadow-lg"
+        style={{ background: "repeating-linear-gradient(90deg,#74ACDF 0px,#74ACDF 26px,white 26px,white 52px)" }}
+      >
+        <div className="absolute inset-0 bg-white/55" />
+        <span className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-[#74ACDF] rounded-full shadow" />
+        <span className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-[#74ACDF] rounded-full shadow" />
+        <div className="relative z-10 p-4 flex flex-col h-full justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-yellow-400 text-base drop-shadow">★★★</span>
+            <span className="text-[9px] font-black text-white bg-[#003DA5] px-2 py-0.5 rounded-full uppercase tracking-widest">Mundial 2026</span>
+          </div>
+          <div>
+            <h3 className="font-extrabold text-base text-[#003DA5] line-clamp-2">{r.titulo}</h3>
+            {r.descripcion && <p className="text-xs text-[#003DA5]/70 line-clamp-1 mt-0.5">{r.descripcion}</p>}
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-extrabold text-white bg-[#003DA5] px-2.5 py-1 rounded-full">{r.puntos} pts</span>
+            <span className="text-2xl">⚽</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative bg-white text-black rounded-2xl shadow-md border border-gray-200 p-5 h-44 flex flex-col justify-between overflow-hidden">
+      <div className="flex-1 flex flex-col justify-between">
+        <h3 className="font-extrabold text-base md:text-lg line-clamp-2">{r.titulo}</h3>
+        <p className="text-sm text-gray-600 line-clamp-2">{r.descripcion || "Canje"}</p>
+        <span className="text-sm font-semibold text-red-600">{r.puntos} pts</span>
+      </div>
+      <div className="absolute bottom-3 right-3">
+        <img src="/icon-192x192.png" alt="Logo" className="h-8 w-8 object-contain opacity-70" />
+      </div>
+      <span className="absolute -left-3 top-1/2 w-6 h-6 bg-gray-100 border border-gray-300 rounded-full shadow-sm" />
+      <span className="absolute -right-3 top-1/2 w-6 h-6 bg-gray-100 border border-gray-300 rounded-full shadow-sm" />
     </div>
   );
 }

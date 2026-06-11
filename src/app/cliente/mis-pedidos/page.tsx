@@ -9,6 +9,9 @@ import { swalBase } from "@/lib/swalConfig";
 
 type EstadoColor = "yellow" | "orange" | "blue" | "emerald";
 
+const formatPrice = (n: number) =>
+    new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0 }).format(n);
+
 export default function MisPedidosPage() {
     const [pedidos, setPedidos] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -292,6 +295,29 @@ function PedidosLista({
                                     </li>
                                 ))}
                             </ul>
+
+                            {/* Total / costo de envío */}
+                            {p.tipoEntrega === "envio" && p.costoEnvio > 0 ? (
+                                <div className="text-sm text-gray-700 mb-3 space-y-0.5">
+                                    <div className="flex justify-between">
+                                        <span>Subtotal</span>
+                                        <span>${formatPrice(p.total - p.costoEnvio)}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>Envío a domicilio</span>
+                                        <span>${formatPrice(p.costoEnvio)}</span>
+                                    </div>
+                                    <div className="flex justify-between font-bold text-gray-900">
+                                        <span>Total</span>
+                                        <span>${formatPrice(p.total)}</span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex justify-between text-sm font-bold text-gray-900 mb-3">
+                                    <span>Total</span>
+                                    <span>${formatPrice(p.total)}</span>
+                                </div>
+                            )}
 
                             {/* Cancelación (solo si es pendiente y dentro del tiempo límite) */}
                             {p.estado === "pendiente" && p.cancelableUntil && (

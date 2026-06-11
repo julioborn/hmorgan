@@ -64,6 +64,7 @@ interface CartDrawerProps {
     setNota: (v: string) => void;
     enviando: boolean;
     total: number;
+    costoEnvio: number;
     onClose: () => void;
     onVaciar: () => void;
     onEliminar: (id: string) => void;
@@ -75,8 +76,9 @@ function CartDrawer({
     direccionPrincipal, direccionEnvio, setDireccionEnvio,
     usarOtraDireccion, setUsarOtraDireccion,
     nota, setNota,
-    enviando, total, onClose, onVaciar, onEliminar, onEnviar,
+    enviando, total, costoEnvio, onClose, onVaciar, onEliminar, onEnviar,
 }: CartDrawerProps) {
+    const totalFinal = total + (tipoEntrega === "envio" ? costoEnvio : 0);
     return (
         <motion.div
             className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm flex flex-col justify-end"
@@ -155,6 +157,23 @@ function CartDrawer({
                     className="w-full mt-4 border border-gray-300 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-400"
                 />
 
+                {tipoEntrega === "envio" && costoEnvio > 0 && (
+                    <div className="mt-4 space-y-1 border-t border-gray-100 pt-3">
+                        <div className="flex justify-between text-sm text-gray-600">
+                            <span>Subtotal</span>
+                            <span>${formatPrice(total)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm text-gray-600">
+                            <span>Costo de envío</span>
+                            <span>${formatPrice(costoEnvio)}</span>
+                        </div>
+                        <div className="flex justify-between text-base font-bold text-black">
+                            <span>Total</span>
+                            <span>${formatPrice(totalFinal)}</span>
+                        </div>
+                    </div>
+                )}
+
                 <div className="flex gap-3 mt-4">
                     <button
                         onClick={onVaciar}
@@ -167,7 +186,7 @@ function CartDrawer({
                         disabled={enviando}
                         className="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold text-base disabled:opacity-50 hover:bg-red-700 transition"
                     >
-                        {enviando ? "Enviando..." : `Confirmar pedido · $${formatPrice(total)}`}
+                        {enviando ? "Enviando..." : `Confirmar pedido · $${formatPrice(totalFinal)}`}
                     </button>
                 </div>
             </motion.div>
@@ -191,6 +210,7 @@ export default function PedidosClientePage() {
     const [enviando, setEnviando] = useState(false);
     const [nota, setNota] = useState("");
     const [telefono, setTelefono] = useState<string>("");
+    const [costoEnvio, setCostoEnvio] = useState<number>(0);
     const router = useRouter();
 
     useEffect(() => {
@@ -213,6 +233,13 @@ export default function PedidosClientePage() {
                 console.error("Error cargando perfil del usuario:", err);
             }
         })();
+    }, []);
+
+    useEffect(() => {
+        fetch("/api/config/envio", { cache: "no-store" })
+            .then((r) => r.json())
+            .then((d) => setCostoEnvio(d.costoEnvio ?? 0))
+            .catch(() => {});
     }, []);
 
     useEffect(() => {
@@ -320,6 +347,7 @@ export default function PedidosClientePage() {
 
     const totalItems = Object.values(items).reduce((a, b) => a + b, 0);
     const total = menu.reduce((acc, item) => acc + item.precio * (items[item._id] || 0), 0);
+    const totalFinal = total + (tipoEntrega === "envio" ? costoEnvio : 0);
 
     if (cargandoConfig) return <div className="flex justify-center items-center py-12"><Loader size={40} /></div>;
 
@@ -350,7 +378,7 @@ export default function PedidosClientePage() {
         direccionPrincipal, direccionEnvio, setDireccionEnvio,
         usarOtraDireccion, setUsarOtraDireccion,
         nota, setNota,
-        enviando, total,
+        enviando, total, costoEnvio,
         onClose: () => setDrawerOpen(false),
         onVaciar: vaciarCarrito,
         onEliminar: eliminarProducto,
@@ -376,7 +404,7 @@ export default function PedidosClientePage() {
                                     {totalItems}
                                 </motion.span>
                             </div>
-                            <span className="font-extrabold">${formatPrice(total)}</span>
+                            <span className="font-extrabold">${formatPrice(totalFinal)}</span>
                         </motion.button>
                     </div>
                 )}
