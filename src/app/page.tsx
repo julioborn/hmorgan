@@ -511,7 +511,7 @@ function AdminHome() {
       <div className="grid grid-cols-2 gap-3 mb-5">
 
         {/* Pedidos activos */}
-        <div className={`rounded-2xl p-4 opacity-50 cursor-not-allowed ${
+        <Link href="/admin/pedidos" className={`rounded-2xl p-4 transition-all active:scale-[0.97] ${
           pedidosActivosCount > 0
             ? "bg-gradient-to-br from-red-600 to-rose-700 shadow-lg shadow-red-500/25"
             : "bg-white border border-gray-100 shadow-sm"
@@ -526,7 +526,7 @@ function AdminHome() {
           <p className={`text-[11px] mt-1.5 font-semibold ${pedidosActivosCount > 0 ? "text-red-100" : "text-gray-400"}`}>
             Pedidos activos
           </p>
-        </div>
+        </Link>
 
         {/* Reservas hoy */}
         <Link href="/admin/reservas" className={`rounded-2xl p-4 transition-all active:scale-[0.97] ${
@@ -547,7 +547,7 @@ function AdminHome() {
         </Link>
 
         {/* Caja */}
-        <div className={`rounded-2xl p-4 opacity-50 cursor-not-allowed ${
+        <Link href="/admin/caja" className={`rounded-2xl p-4 transition-all active:scale-[0.97] ${
           cajaAbierta === true
             ? "bg-gradient-to-br from-emerald-600 to-green-700 shadow-lg shadow-emerald-500/25"
             : "bg-white border border-gray-100 shadow-sm"
@@ -562,7 +562,7 @@ function AdminHome() {
           <p className={`text-[11px] mt-1.5 font-semibold ${cajaAbierta === true ? "text-emerald-100" : "text-gray-400"}`}>
             Caja
           </p>
-        </div>
+        </Link>
 
         {/* Ingresos hoy */}
         <div className="rounded-2xl p-4 bg-white border border-gray-100 shadow-sm">

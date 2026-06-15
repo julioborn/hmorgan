@@ -59,6 +59,8 @@ export default function Header() {
 
   const linksAdmin = [
     { href: "/", label: "Inicio", icon: Home },
+    { href: "/admin/pedidos", label: "Pedidos", icon: ClipboardList },
+    { href: "/admin/caja", label: "Caja", icon: BarChart2 },
     { href: "/admin/scan", label: "Escanear Puntos", icon: ScanQrCode },
     { href: "/admin/rewards/scan", label: "Escanear Canjes", icon: ScanText },
     { href: "/admin/clientes", label: "Clientes", icon: Users },
