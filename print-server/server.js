@@ -8,8 +8,8 @@ const PORT = 3001;
 // ─── Configuración de impresoras ─────────────────────────────────────────────
 // Deben coincidir EXACTAMENTE con los nombres en Windows:
 // Inicio → Configuración → Bluetooth y dispositivos → Impresoras y escáneres
-const IMPRESORA_COCINA = "Cocina";
-const IMPRESORA_BARRA  = "Barra";
+const IMPRESORA_COCINA = "COCINA";
+const IMPRESORA_BARRA  = "BARRA";
 // ─────────────────────────────────────────────────────────────────────────────
 
 app.use(express.json());
