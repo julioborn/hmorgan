@@ -6,7 +6,17 @@ import jwt from "jsonwebtoken";
 
 const SECRET = process.env.NEXTAUTH_SECRET!;
 
-// PATCH — agrega ítems a una comanda existente (mozo)
+const ROLES_EDITAN_PEDIDO = ["empleado", "cajero", "admin", "superadmin"];
+
+async function recalcularTotal(items: { menuItemId: any; cantidad: number }[]) {
+    const menuItems = await MenuItem.find({ _id: { $in: items.map(i => i.menuItemId) } });
+    return items.reduce((acc, i) => {
+        const item = menuItems.find((m: any) => m._id.toString() === i.menuItemId.toString());
+        return acc + (item?.precio || 0) * i.cantidad;
+    }, 0);
+}
+
+// PATCH — agrega, edita o elimina ítems de una comanda existente (mozo/cajero)
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
     const token = req.cookies.get("session")?.value;
     if (!token) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
@@ -16,7 +26,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    if (!["empleado", "admin", "superadmin"].includes(payload.role)) {
+    if (!ROLES_EDITAN_PEDIDO.includes(payload.role)) {
         return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     }
 
@@ -28,11 +38,32 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         return NextResponse.json({ error: "El pedido ya está cerrado" }, { status: 400 });
     }
 
-    const { items, notaEmpleado } = await req.json();
-    if (!items?.length) return NextResponse.json({ error: "Sin ítems" }, { status: 400 });
+    const body = await req.json();
 
-    // Obtener precios de los nuevos ítems
-    const menuItems = await MenuItem.find({ _id: { $in: items.map((i: any) => i.menuItemId) } });
+    // ── Eliminar un ítem de la comanda ──────────────────────────────────────
+    if (body.accion === "eliminarItem") {
+        const { itemId } = body;
+        const items = (pedido.items as any[]).filter(i => i._id.toString() !== itemId);
+        pedido.items = items;
+        pedido.total = await recalcularTotal(items);
+        await pedido.save();
+        return NextResponse.json({ ok: true, pedido });
+    }
+
+    // ── Reemplazar el producto de un ítem (mismo lugar, otro producto) ─────
+    if (body.accion === "reemplazarItem") {
+        const { itemId, nuevoMenuItemId } = body;
+        const item = (pedido.items as any[]).find(i => i._id.toString() === itemId);
+        if (!item) return NextResponse.json({ error: "Ítem no encontrado" }, { status: 404 });
+        item.menuItemId = nuevoMenuItemId;
+        pedido.total = await recalcularTotal(pedido.items as any[]);
+        await pedido.save();
+        return NextResponse.json({ ok: true, pedido });
+    }
+
+    // ── Agregar ítems nuevos a la comanda (default) ─────────────────────────
+    const { items, notaEmpleado } = body;
+    if (!items?.length) return NextResponse.json({ error: "Sin ítems" }, { status: 400 });
 
     // Merge: si el menuItemId ya existe en la comanda, sumar la cantidad; si no, agregar
     const updatedItems = [...pedido.items] as any[];
@@ -47,15 +78,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         }
     }
 
-    // Recalcular total completo
-    const allMenuItems = await MenuItem.find({ _id: { $in: updatedItems.map((i: any) => i.menuItemId) } });
-    const newTotal = updatedItems.reduce((acc: number, i: any) => {
-        const item = allMenuItems.find((m: any) => m._id.toString() === i.menuItemId.toString());
-        return acc + (item?.precio || 0) * i.cantidad;
-    }, 0);
-
     pedido.items = updatedItems;
-    pedido.total = newTotal;
+    pedido.total = await recalcularTotal(updatedItems);
     if (notaEmpleado) pedido.notaEmpleado = notaEmpleado;
     await pedido.save();
 

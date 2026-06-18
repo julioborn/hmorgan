@@ -5,11 +5,24 @@ import { MenuItem } from "@/models/MenuItem";
 import { User } from "@/models/User";
 import Mensaje from "@/models/Mensaje";
 import { PointTransaction } from "@/models/PointTransaction";
+import { Counter } from "@/models/Counter";
 import jwt from "jsonwebtoken";
 import { sendPushToSubscriptions, sendPushAndCollectInvalid } from "@/lib/push-server";
 import { enviarNotificacionFCM, isFCMTokenInvalid } from "@/lib/firebase-admin";
 import Config from "@/models/Config";
 import { getPointsRatio } from "@/lib/getPointsRatio";
+import { hoyArgentina } from "@/lib/argentina-time";
+
+// Numeración diaria de pedidos de la app (se reinicia cada día, hora Argentina)
+async function siguienteNumeroDelDia(): Promise<number> {
+    const key = `pedidos-${hoyArgentina()}`;
+    const counter = await Counter.findOneAndUpdate(
+        { _id: key },
+        { $inc: { seq: 1 } },
+        { upsert: true, new: true }
+    );
+    return counter.seq;
+}
 
 const TRES_DIAS_MS = 3 * 24 * 60 * 60 * 1000;
 
@@ -146,6 +159,8 @@ export async function POST(req: NextRequest) {
         // 📦 Crear pedido
         const ahora = new Date();
         const cancelableUntil = new Date(ahora.getTime() + 5 * 60 * 1000); // +5 minutos
+        const esPedidoApp = fuente !== "empleado";
+        const numeroDia = esPedidoApp ? await siguienteNumeroDelDia() : undefined;
 
         const pedido = await Pedido.create({
             userId: user._id,
@@ -156,7 +171,8 @@ export async function POST(req: NextRequest) {
             direccion: tipoEntrega === "envio" ? direccion : undefined,
             estado: "pendiente",
             cancelableUntil,
-            fuente: fuente === "empleado" ? "empleado" : "cliente",
+            fuente: esPedidoApp ? "cliente" : "empleado",
+            numeroDia,
             mesa: mesa || undefined,
             comensales: Number(comensales) || 0,
             nombreComanda: nombreComanda || undefined,

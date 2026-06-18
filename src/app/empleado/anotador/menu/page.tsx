@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Loader from "@/components/Loader";
 import { useCategoryConfigs } from "@/hooks/useCategoryConfigs";
+import { swalBase } from "@/lib/swalConfig";
 
 type MenuItem = { _id: string; nombre: string; descripcion?: string; precio: number; categoria: string; imagen?: string; activo: boolean; order?: number };
 type CartItem  = { menuItemId: string; nombre: string; precio: number; cantidad: number };
@@ -76,7 +77,7 @@ function AnotadorMenuContent() {
     const panRef   = useRef<{ x: number; y: number } | null>(null);
 
     useEffect(() => {
-        if (!loading && user && user.role !== "empleado" && user.role !== "admin" && user.role !== "superadmin") router.replace("/");
+        if (!loading && user && !["empleado", "cajero", "admin", "superadmin"].includes(user.role)) router.replace("/");
     }, [user, loading, router]);
 
     useEffect(() => {
@@ -226,6 +227,19 @@ function AnotadorMenuContent() {
 
     async function enviarPedido() {
         if (cart.length === 0) return;
+        const esAgregado = !!(comandaId && comanda);
+        const confirm = await swalBase.fire({
+            title: esAgregado ? "¿Agregar a la comanda?" : "¿Enviar pedido a la caja?",
+            text: esAgregado
+                ? "Se va a agregar directo a la comanda en preparación."
+                : "Se va a enviar directo a la caja y a la cocina/barra. Revisá los ítems antes de confirmar.",
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonText: esAgregado ? "Sí, agregar" : "Sí, enviar",
+            cancelButtonText: "Revisar de nuevo",
+        });
+        if (!confirm.isConfirmed) return;
+
         setEnviando(true); setError("");
         try {
             let res: Response;
@@ -260,7 +274,8 @@ function AnotadorMenuContent() {
             setLastOrder({ items: [...cart], mesa: mesa || comanda?.mesa || "", timestamp: new Date() });
             setCart([]);
             // Volver a comandas después de un momento
-            setTimeout(() => router.replace("/empleado/anotador"), 1800);
+            const destino = user?.role === "cajero" ? "/caja" : "/empleado/anotador";
+            setTimeout(() => router.replace(destino), 1800);
         } catch { setError("Error de conexión"); }
         finally { setEnviando(false); }
     }

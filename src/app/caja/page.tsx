@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { swalBase } from "@/lib/swalConfig";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
@@ -8,7 +9,7 @@ import {
     Wallet, X, Printer, CreditCard, Banknote, Send,
     Loader2, CheckCircle, AlertCircle, Clock, Flame,
     Package, Truck, UtensilsCrossed, CalendarDays,
-    Phone, MessageCircle,
+    Phone, MessageCircle, Plus, Pencil, Trash2,
 } from "lucide-react";
 import ReservasManager from "@/components/ReservasManager";
 
@@ -18,7 +19,8 @@ type Pedido = {
     nombreComanda?: string;
     comensales?: number;
     fuente: string;
-    items: { _id?: string; menuItemId: { nombre: string; precio: number; categoria?: string }; cantidad: number }[];
+    numeroDia?: number;
+    items: { _id?: string; menuItemId: { _id?: string; nombre: string; precio: number; categoria?: string }; cantidad: number }[];
     total: number;
     costoEnvio?: number;
     estado: string;
@@ -29,6 +31,7 @@ type Pedido = {
     notaCliente?: string;
     userId?: { _id: string; nombre: string; apellido: string; telefono?: string; role?: string };
 };
+type MenuItemLite = { _id: string; nombre: string; precio: number; categoria: string };
 type CajaSession = { _id: string; estado: "abierta" | "cerrada"; montoInicial: number; fechaApertura: string };
 
 // Categorías que se imprimen en la comandera de la barra; el resto va a cocina
@@ -62,6 +65,7 @@ const VISTA_MAP: Record<string, Vista> = {
 };
 
 export default function CajaPage() {
+    const router = useRouter();
     const [tab, setTab]                   = useState<"pedidos" | "caja" | "reservas">("pedidos");
     const [sesion, setSesion]             = useState<CajaSession | null | undefined>(undefined);
     const [pedidosActivos, setPedidosActivos]   = useState(true);
@@ -81,6 +85,11 @@ export default function CajaPage() {
     const [closeForm, setCloseForm]       = useState({ montoCierre: "", notas: "" });
     const [closeSaving, setCloseSaving]   = useState(false);
     const [closeError, setCloseError]     = useState("");
+    const [closeStep, setCloseStep]       = useState<"form" | "resumen">("form");
+    const [cierreResumen, setCierreResumen] = useState<Record<string, { ingreso: number; egreso: number }>>({});
+    const [menuItemsAll, setMenuItemsAll] = useState<MenuItemLite[]>([]);
+    const [editItemModal, setEditItemModal] = useState<{ pedidoId: string; itemId: string; nombreActual: string } | null>(null);
+    const [editItemSearch, setEditItemSearch] = useState("");
 
     // Última cantidad conocida por ítem (clave: pedidoId -> itemId -> cantidad), para detectar
     // ítems agregados a una comanda ya aceptada y reimprimir solo esos.
@@ -166,6 +175,48 @@ export default function CajaPage() {
         loadData();
     }
 
+    async function eliminarItemPedido(pedidoId: string, itemId: string, nombre: string) {
+        const r = await swalBase.fire({
+            title: "¿Eliminar producto?",
+            text: `Se quitará "${nombre}" de la comanda.`,
+            icon: "warning", showCancelButton: true,
+            confirmButtonText: "Sí, eliminar", cancelButtonText: "Cancelar",
+        });
+        if (!r.isConfirmed) return;
+        await fetch(`/api/pedidos/${pedidoId}`, {
+            method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
+            body: JSON.stringify({ accion: "eliminarItem", itemId }),
+        });
+        loadData();
+    }
+
+    async function abrirEditarItem(pedidoId: string, itemId: string, nombreActual: string) {
+        if (menuItemsAll.length === 0) {
+            const r = await fetch("/api/menu?activo=true", { credentials: "include" });
+            const d = await r.json().catch(() => []);
+            setMenuItemsAll(Array.isArray(d) ? d : []);
+        }
+        setEditItemSearch("");
+        setEditItemModal({ pedidoId, itemId, nombreActual });
+    }
+
+    async function reemplazarItemPedido(nuevoMenuItemId: string, nuevoNombre: string) {
+        if (!editItemModal) return;
+        const r = await swalBase.fire({
+            title: "¿Cambiar producto?",
+            text: `"${editItemModal.nombreActual}" se reemplazará por "${nuevoNombre}".`,
+            icon: "question", showCancelButton: true,
+            confirmButtonText: "Sí, cambiar", cancelButtonText: "Cancelar",
+        });
+        if (!r.isConfirmed) return;
+        await fetch(`/api/pedidos/${editItemModal.pedidoId}`, {
+            method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
+            body: JSON.stringify({ accion: "reemplazarItem", itemId: editItemModal.itemId, nuevoMenuItemId }),
+        });
+        setEditItemModal(null);
+        loadData();
+    }
+
     async function cerrarCaja() {
         setCloseSaving(true);
         setCloseError("");
@@ -175,8 +226,9 @@ export default function CajaPage() {
                 body: JSON.stringify({ montoCierre: Number(closeForm.montoCierre) || 0, notas: closeForm.notas || undefined }),
             });
             if (res.ok) {
-                setCloseModal(false);
-                setCloseForm({ montoCierre: "", notas: "" });
+                const data = await res.json().catch(() => ({}));
+                setCierreResumen(data.resumen || {});
+                setCloseStep("resumen");
                 await loadData();
             } else {
                 const err = await res.json().catch(() => ({}));
@@ -289,8 +341,9 @@ export default function CajaPage() {
     }
 
     function datosComanda(p: Pedido) {
-        const esEmpleado = p.userId?.role === "empleado";
-        const mesa = p.mesa ? `Mesa ${p.mesa}` : p.tipoEntrega === "envio" ? "Envío a domicilio" : "Retira en barra";
+        const esEmpleado = p.fuente === "empleado";
+        const base = p.mesa ? `Mesa ${p.mesa}` : p.tipoEntrega === "envio" ? "Envío a domicilio" : "Retira en barra";
+        const mesa = !esEmpleado && p.numeroDia ? `Pedido #${p.numeroDia} · ${base}` : base;
         const cliente = esEmpleado
             ? (p.nombreComanda || "-")
             : (p.userId?.nombre ? `${p.userId.nombre}${p.userId.apellido ? " " + p.userId.apellido : ""}` : "-");
@@ -495,7 +548,7 @@ export default function CajaPage() {
                         <span className="text-xs text-gray-500">{new Date().toLocaleDateString("es-AR", { day: "numeric", month: "short" })}</span>
                     )}
                     {sesion && (
-                        <button onClick={() => { setCloseModal(true); setCloseForm({ montoCierre: "", notas: "" }); }}
+                        <button onClick={() => { setCloseModal(true); setCloseForm({ montoCierre: "", notas: "" }); setCloseStep("form"); }}
                             className="text-xs font-black bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl transition shadow-lg shadow-red-600/30">
                             Cerrar caja
                         </button>
@@ -591,7 +644,13 @@ export default function CajaPage() {
 
                     {/* ── TAB PEDIDOS ── */}
                     {tab === "pedidos" && (
-                        <div className="max-w-2xl mx-auto px-4 pt-4">
+                        <div className="max-w-screen-2xl mx-auto px-4 pt-4">
+                            {/* Nueva comanda (cajero actuando como mozo) */}
+                            <button onClick={() => router.push("/empleado/anotador/menu")}
+                                className="w-full mb-4 flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-700 text-white font-bold py-3 rounded-2xl transition shadow-sm active:scale-[0.98]">
+                                <Plus size={18} /> Nueva comanda
+                            </button>
+
                             {/* Sub-tabs estado */}
                             <div className="flex gap-2 mb-5">
                                 {renderTabBtn("pendientes",  "Pendientes",  pendientes.length)}
@@ -600,10 +659,10 @@ export default function CajaPage() {
                                 {renderTabBtn("finalizados","Finalizados", finalizados.length)}
                             </div>
 
-                            <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 items-start">
                                 <AnimatePresence>
                                     {lista.length === 0 ? (
-                                        <p className="text-center text-gray-400 py-12">Sin pedidos en este estado.</p>
+                                        <p className="col-span-full text-center text-gray-400 py-12">Sin pedidos en este estado.</p>
                                     ) : lista.map(p => {
                                         const esMozo   = p.fuente === "empleado" || p.userId?.role === "empleado";
                                         const estadoIdx = getEstadoIdx(p.estado);
@@ -642,7 +701,9 @@ export default function CajaPage() {
                                                 {!esMozo && (
                                                     <div className="bg-gray-100 text-gray-600 px-4 py-2 flex items-center gap-2">
                                                         <Package size={12} />
-                                                        <span className="text-xs font-bold">Pedido App</span>
+                                                        <span className="text-xs font-bold">
+                                                            {p.numeroDia ? `Pedido #${p.numeroDia}` : "Pedido App"}
+                                                        </span>
                                                         {p.tipoEntrega && <span className="text-xs text-gray-400 ml-1 capitalize">· {p.tipoEntrega}</span>}
                                                     </div>
                                                 )}
@@ -676,9 +737,21 @@ export default function CajaPage() {
                                                     {/* Items */}
                                                     <ul className="mb-3 divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
                                                         {p.items.map((it, idx) => (
-                                                            <li key={idx} className="flex justify-between items-center px-3 py-2 bg-gray-50">
-                                                                <span className="text-sm text-gray-800">{it.menuItemId?.nombre}</span>
-                                                                <span className="text-red-600 font-semibold text-sm">×{it.cantidad}</span>
+                                                            <li key={it._id || idx} className="flex justify-between items-center px-3 py-2 bg-gray-50 gap-2">
+                                                                <span className="text-sm text-gray-800 flex-1 min-w-0 truncate">{it.menuItemId?.nombre}</span>
+                                                                <span className="text-red-600 font-semibold text-sm shrink-0">×{it.cantidad}</span>
+                                                                {p.estado !== "cerrado" && p.estado !== "cancelado" && it._id && (
+                                                                    <div className="flex items-center gap-1 shrink-0">
+                                                                        <button onClick={() => abrirEditarItem(p._id, it._id!, it.menuItemId?.nombre || "ítem")}
+                                                                            className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 transition">
+                                                                            <Pencil size={12} />
+                                                                        </button>
+                                                                        <button onClick={() => eliminarItemPedido(p._id, it._id!, it.menuItemId?.nombre || "ítem")}
+                                                                            className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition">
+                                                                            <Trash2 size={12} />
+                                                                        </button>
+                                                                    </div>
+                                                                )}
                                                             </li>
                                                         ))}
                                                     </ul>
@@ -787,15 +860,16 @@ export default function CajaPage() {
 
                     {/* ── TAB COBRAR ── */}
                     {tab === "caja" && (
-                        <div className="max-w-2xl mx-auto px-4 pt-4">
+                        <div className="max-w-screen-2xl mx-auto px-4 pt-4">
                             <div className="flex items-center justify-between mb-4">
                                 <h2 className="font-black text-gray-900 text-lg tracking-tight">Para cobrar</h2>
                                 {paraCobrar.length > 0 && (
                                     <span className="text-xs font-black text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">{paraCobrar.length}</span>
                                 )}
                             </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 items-start">
                             {paraCobrar.length === 0 ? (
-                                <div className="text-center py-20 text-gray-400">
+                                <div className="col-span-full text-center py-20 text-gray-400">
                                     <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
                                         <Wallet size={28} className="text-gray-300" />
                                     </div>
@@ -808,13 +882,17 @@ export default function CajaPage() {
                                     ? (p.mesa ? `Mesa ${p.mesa}` : p.nombreComanda || "Sin mesa")
                                     : (p.userId ? `${p.userId.nombre} ${p.userId.apellido || ""}`.trim() : "Cliente app");
                                 return (
-                                    <div key={p._id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-3">
+                                    <div key={p._id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                                         <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 bg-gray-50">
                                             <div>
                                                 <div className="flex items-center gap-2 flex-wrap">
                                                     <UtensilsCrossed size={14} className="text-gray-400" />
                                                     <p className="font-black text-gray-900">{label}</p>
-                                                    {!esMozo && <span className="text-[10px] bg-gray-200 text-gray-600 font-bold px-1.5 py-0.5 rounded-full">App</span>}
+                                                    {!esMozo && (
+                                                        <span className="text-[10px] bg-gray-200 text-gray-600 font-bold px-1.5 py-0.5 rounded-full">
+                                                            {p.numeroDia ? `#${p.numeroDia}` : "App"}
+                                                        </span>
+                                                    )}
                                                     {p.comensales ? <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full font-semibold">{p.comensales}p</span> : null}
                                                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${p.estado === "entregado" ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"}`}>
                                                         {p.estado === "entregado" ? "Finalizado" : "Listo"}
@@ -833,9 +911,21 @@ export default function CajaPage() {
                                         </div>
                                         <div className="px-4 py-3 space-y-1">
                                             {p.items.map((item, idx) => (
-                                                <div key={idx} className="flex justify-between text-sm">
-                                                    <span className="text-gray-700">{item.cantidad}× {item.menuItemId?.nombre}</span>
-                                                    <span className="text-gray-400">{formatMoney((item.menuItemId?.precio || 0) * item.cantidad)}</span>
+                                                <div key={item._id || idx} className="flex justify-between items-center text-sm gap-2">
+                                                    <span className="text-gray-700 flex-1 min-w-0 truncate">{item.cantidad}× {item.menuItemId?.nombre}</span>
+                                                    <span className="text-gray-400 shrink-0">{formatMoney((item.menuItemId?.precio || 0) * item.cantidad)}</span>
+                                                    {item._id && (
+                                                        <div className="flex items-center gap-1 shrink-0">
+                                                            <button onClick={() => abrirEditarItem(p._id, item._id!, item.menuItemId?.nombre || "ítem")}
+                                                                className="p-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 transition">
+                                                                <Pencil size={11} />
+                                                            </button>
+                                                            <button onClick={() => eliminarItemPedido(p._id, item._id!, item.menuItemId?.nombre || "ítem")}
+                                                                className="p-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition">
+                                                                <Trash2 size={11} />
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ))}
                                             {p.tipoEntrega === "envio" && (p.costoEnvio ?? 0) > 0 && (
@@ -849,6 +939,7 @@ export default function CajaPage() {
                                     </div>
                                 );
                             })}
+                            </div>
                         </div>
                     )}
 
@@ -865,34 +956,73 @@ export default function CajaPage() {
             {closeModal && (
                 <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
                     <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl">
-                        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
-                            <h2 className="font-black text-gray-900 flex-1">Cerrar caja</h2>
-                            <button onClick={() => setCloseModal(false)} className="p-1 text-gray-400 hover:text-gray-700"><X size={18} /></button>
-                        </div>
-                        <div className="px-5 py-4 space-y-3">
-                            <p className="text-sm text-gray-600">
-                                Abierta desde las <strong>{sesion ? new Date(sesion.fechaApertura).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : "—"}</strong>
-                                {sesion && ` · Inicial: ${formatMoney(sesion.montoInicial)}`}
-                            </p>
-                            <div>
-                                <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Monto en caja al cierre</label>
-                                <input type="number" min="0" value={closeForm.montoCierre}
-                                    onChange={e => setCloseForm(p => ({ ...p, montoCierre: e.target.value }))}
-                                    placeholder="$0" style={{ fontSize: "16px" }}
-                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-xl font-black focus:outline-none focus:ring-2 focus:ring-red-400" />
-                            </div>
-                            <input value={closeForm.notas} onChange={e => setCloseForm(p => ({ ...p, notas: e.target.value }))}
-                                placeholder="Notas del cierre (opcional)"
-                                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none" />
-                            {closeError && <p className="text-red-600 text-xs font-semibold">{closeError}</p>}
-                        </div>
-                        <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
-                            <button onClick={() => { setCloseModal(false); setCloseError(""); }} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
-                            <button onClick={cerrarCaja} disabled={closeSaving}
-                                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
-                                {closeSaving ? "Cerrando..." : "Confirmar cierre"}
-                            </button>
-                        </div>
+                        {closeStep === "resumen" ? (
+                            <>
+                                <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+                                    <h2 className="font-black text-gray-900 flex-1">Caja cerrada</h2>
+                                    <CheckCircle size={18} className="text-emerald-500" />
+                                </div>
+                                <div className="px-5 py-4 space-y-2">
+                                    <p className="text-sm text-gray-500 mb-1">Recaudado en esta sesión:</p>
+                                    {METODOS.map(met => {
+                                        const r = cierreResumen[met];
+                                        const neto = (r?.ingreso || 0) - (r?.egreso || 0);
+                                        const Icon = METODO_ICON[met];
+                                        return (
+                                            <div key={met} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
+                                                <span className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                                                    <Icon size={14} />{METODO_LABEL[met]}
+                                                </span>
+                                                <span className="font-black text-gray-900">{formatMoney(neto)}</span>
+                                            </div>
+                                        );
+                                    })}
+                                    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 mt-2">
+                                        <span className="text-sm font-black text-gray-900">Total cobrado</span>
+                                        <span className="text-lg font-black text-gray-900">
+                                            {formatMoney(METODOS.reduce((acc, met) => acc + ((cierreResumen[met]?.ingreso || 0) - (cierreResumen[met]?.egreso || 0)), 0))}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="px-5 py-4 border-t border-gray-100">
+                                    <button onClick={() => { setCloseModal(false); setCloseForm({ montoCierre: "", notas: "" }); }}
+                                        className="w-full py-2.5 bg-gray-900 hover:bg-gray-700 text-white rounded-xl text-sm font-bold transition">
+                                        Listo
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+                                    <h2 className="font-black text-gray-900 flex-1">Cerrar caja</h2>
+                                    <button onClick={() => setCloseModal(false)} className="p-1 text-gray-400 hover:text-gray-700"><X size={18} /></button>
+                                </div>
+                                <div className="px-5 py-4 space-y-3">
+                                    <p className="text-sm text-gray-600">
+                                        Abierta desde las <strong>{sesion ? new Date(sesion.fechaApertura).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : "—"}</strong>
+                                        {sesion && ` · Inicial: ${formatMoney(sesion.montoInicial)}`}
+                                    </p>
+                                    <div>
+                                        <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Monto en caja al cierre</label>
+                                        <input type="number" min="0" value={closeForm.montoCierre}
+                                            onChange={e => setCloseForm(p => ({ ...p, montoCierre: e.target.value }))}
+                                            placeholder="$0" style={{ fontSize: "16px" }}
+                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl text-xl font-black focus:outline-none focus:ring-2 focus:ring-red-400" />
+                                    </div>
+                                    <input value={closeForm.notas} onChange={e => setCloseForm(p => ({ ...p, notas: e.target.value }))}
+                                        placeholder="Notas del cierre (opcional)"
+                                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none" />
+                                    {closeError && <p className="text-red-600 text-xs font-semibold">{closeError}</p>}
+                                </div>
+                                <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
+                                    <button onClick={() => { setCloseModal(false); setCloseError(""); }} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
+                                    <button onClick={cerrarCaja} disabled={closeSaving}
+                                        className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
+                                        {closeSaving ? "Cerrando..." : "Confirmar cierre"}
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             )}
@@ -950,6 +1080,37 @@ export default function CajaPage() {
                                 className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition">
                                 <Printer size={15} />{cobrarSaving ? "..." : "Cobrar e imprimir"}
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal cambiar producto */}
+            {editItemModal && (
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl flex flex-col" style={{ maxHeight: "80vh" }}>
+                        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
+                            <h2 className="font-black text-gray-900 flex-1 truncate">Cambiar "{editItemModal.nombreActual}"</h2>
+                            <button onClick={() => setEditItemModal(null)} className="p-1 text-gray-400"><X size={18} /></button>
+                        </div>
+                        <div className="px-5 py-3 shrink-0">
+                            <input autoFocus value={editItemSearch} onChange={e => setEditItemSearch(e.target.value)}
+                                placeholder="Buscar producto..." style={{ fontSize: "16px" }}
+                                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
+                        </div>
+                        <div className="overflow-y-auto flex-1 min-h-0 px-3 pb-3 space-y-1">
+                            {menuItemsAll
+                                .filter(m => m.nombre.toLowerCase().includes(editItemSearch.toLowerCase()))
+                                .map(m => (
+                                    <button key={m._id} onClick={() => reemplazarItemPedido(m._id, m.nombre)}
+                                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-gray-50 border border-gray-100 text-left transition">
+                                        <span className="text-sm text-gray-800">{m.nombre}</span>
+                                        <span className="text-xs text-gray-400 shrink-0 ml-2">{formatMoney(m.precio)} · {m.categoria}</span>
+                                    </button>
+                                ))}
+                            {menuItemsAll.filter(m => m.nombre.toLowerCase().includes(editItemSearch.toLowerCase())).length === 0 && (
+                                <p className="text-center text-gray-400 py-8 text-sm">Sin resultados</p>
+                            )}
                         </div>
                     </div>
                 </div>

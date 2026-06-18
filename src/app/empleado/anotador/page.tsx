@@ -51,7 +51,7 @@ export default function AnotadorPage() {
     const [loadingData, setLoadingData] = useState(true);
 
     useEffect(() => {
-        if (!loading && user && user.role !== "empleado" && user.role !== "admin" && user.role !== "superadmin") {
+        if (!loading && user && !["empleado", "cajero", "admin", "superadmin"].includes(user.role)) {
             router.replace("/");
         }
     }, [user, loading, router]);
