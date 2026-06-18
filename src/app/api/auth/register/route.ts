@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { username, password, nombre, apellido, email, telefono, dni } = await req.json();
+    const { username, password, nombre, apellido, email, telefono, dni, fechaNacimiento } = await req.json();
 
     const normalizedUsername = String(username).toLowerCase().trim();
 
@@ -38,6 +38,14 @@ export async function POST(req: NextRequest) {
 
     if (!nombre || !apellido) {
       return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
+    }
+
+    if (!fechaNacimiento) {
+      return NextResponse.json({ error: "La fecha de nacimiento es obligatoria" }, { status: 400 });
+    }
+    const fechaNacimientoDate = new Date(fechaNacimiento);
+    if (isNaN(fechaNacimientoDate.getTime()) || fechaNacimientoDate > new Date()) {
+      return NextResponse.json({ error: "Fecha de nacimiento inválida" }, { status: 400 });
     }
 
     await connectMongoDB();
@@ -66,6 +74,7 @@ export async function POST(req: NextRequest) {
       nombre: nombre.trim(),
       apellido: apellido.trim(),
       passwordHash: await bcrypt.hash(password, 10),
+      fechaNacimiento: fechaNacimientoDate,
       role: "cliente",
       qrToken,
       puntos: 0,

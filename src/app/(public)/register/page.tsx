@@ -8,6 +8,7 @@ type RegisterForm = {
   confirmPassword: string;
   nombre: string;
   apellido: string;
+  fechaNacimiento: string;
   dni?: string; // ⬅️ opcional
   telefono?: string;
 };
@@ -20,9 +21,11 @@ export default function RegisterPage() {
     confirmPassword: "",
     nombre: "",
     apellido: "",
+    fechaNacimiento: "",
     dni: "",
     telefono: "",
   });
+  const hoyStr = new Date().toISOString().slice(0, 10);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Errors>({});
   const [loading, setLoading] = useState(false);
@@ -48,6 +51,12 @@ export default function RegisterPage() {
       e.confirmPassword = "Las contraseñas no coinciden";
     if (!f.nombre || f.nombre.trim().length < 2) e.nombre = "Nombre demasiado corto";
     if (!f.apellido || f.apellido.trim().length < 2) e.apellido = "Apellido demasiado corto";
+    if (!f.fechaNacimiento) {
+      e.fechaNacimiento = "La fecha de nacimiento es obligatoria";
+    } else {
+      const d = new Date(f.fechaNacimiento);
+      if (isNaN(d.getTime()) || d > new Date()) e.fechaNacimiento = "Fecha inválida";
+    }
     if (f.dni) {
       const d = onlyDigits(f.dni);
       if (d.length < 7 || d.length > 9) {
@@ -92,6 +101,7 @@ export default function RegisterPage() {
       confirmPassword: true,
       nombre: true,
       apellido: true,
+      fechaNacimiento: true,
       dni: true,
       telefono: true,
     };
@@ -109,6 +119,7 @@ export default function RegisterPage() {
       password: form.password,
       nombre: form.nombre,
       apellido: form.apellido,
+      fechaNacimiento: form.fechaNacimiento,
     };
 
     if (form.telefono) payload.telefono = form.telefono;
@@ -258,7 +269,7 @@ export default function RegisterPage() {
             </label>
           </div>
 
-          {(["nombre", "apellido", "dni", "telefono"] as (keyof RegisterForm)[]).map((field) => (
+          {(["nombre", "apellido", "fechaNacimiento", "dni", "telefono"] as (keyof RegisterForm)[]).map((field) => (
             <div key={field}>
               <label className="block mb-1 text-sm font-semibold text-gray-700">
                 {field === "dni"
@@ -267,10 +278,12 @@ export default function RegisterPage() {
                     ? "Teléfono (opcional)"
                     : field === "nombre"
                       ? "Nombre"
-                      : "Apellido"}
+                      : field === "apellido"
+                        ? "Apellido"
+                        : "Fecha de nacimiento"}
               </label>
               <input
-                type="text"
+                type={field === "fechaNacimiento" ? "date" : "text"}
                 inputMode={field === "dni" || field === "telefono" ? "numeric" : "text"}
                 placeholder={
                   field === "dni"
@@ -279,6 +292,8 @@ export default function RegisterPage() {
                       ? "Teléfono (opcional)"
                       : field.charAt(0).toUpperCase() + field.slice(1)
                 }
+                max={field === "fechaNacimiento" ? hoyStr : undefined}
+                style={field === "fechaNacimiento" ? { fontSize: "16px" } : undefined}
                 enterKeyHint="next"
                 className={inputClass(field)}
                 value={form[field]}

@@ -29,7 +29,10 @@ export default function PerfilPage() {
                 const res = await fetch("/api/cliente/perfil", { cache: "no-store" });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || "Error al cargar perfil");
-                setPerfil(data);
+                setPerfil({
+                    ...data,
+                    fechaNacimiento: data.fechaNacimiento ? String(data.fechaNacimiento).slice(0, 10) : "",
+                });
             } catch (err: any) {
                 swalBase.fire({
                     icon: "error",
@@ -246,6 +249,23 @@ export default function PerfilPage() {
                             value={perfil.apellido}
                             onChange={(e) =>
                                 setPerfil({ ...perfil, apellido: e.target.value })
+                            }
+                            className="w-full h-12 px-3 rounded-xl bg-gray-50 border border-gray-300 focus:ring-2 focus:ring-red-500 focus:outline-none"
+                        />
+                    </div>
+
+                    {/* Fecha de nacimiento */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Fecha de nacimiento
+                        </label>
+                        <input
+                            type="date"
+                            value={perfil.fechaNacimiento || ""}
+                            max={new Date().toISOString().slice(0, 10)}
+                            style={{ fontSize: "16px" }}
+                            onChange={(e) =>
+                                setPerfil({ ...perfil, fechaNacimiento: e.target.value })
                             }
                             className="w-full h-12 px-3 rounded-xl bg-gray-50 border border-gray-300 focus:ring-2 focus:ring-red-500 focus:outline-none"
                         />
