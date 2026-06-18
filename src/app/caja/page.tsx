@@ -208,10 +208,36 @@ export default function CajaPage() {
         } finally { setCobrarSaving(false); }
     }
 
-    function printTicket(pedido: Pedido, metodo: string, montoPagado: number) {
-        const hora = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
-        const fecha = new Date().toLocaleDateString("es-AR");
+    async function printTicket(pedido: Pedido, metodo: string, montoPagado: number) {
+        const hora   = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+        const fecha  = new Date().toLocaleDateString("es-AR");
         const vuelto = metodo === "efectivo" && montoPagado > pedido.total ? montoPagado - pedido.total : 0;
+
+        // Intentar servidor local de impresión
+        try {
+            const res = await fetch("http://localhost:3001/imprimir/ticket", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    mesa:        pedido.mesa || "—",
+                    fecha,
+                    hora,
+                    items:       pedido.items.map(i => ({
+                        cantidad: i.cantidad,
+                        nombre:   i.menuItemId?.nombre || "Ítem",
+                        precio:   i.menuItemId?.precio || 0,
+                    })),
+                    total:       pedido.total,
+                    costoEnvio:  pedido.tipoEntrega === "envio" ? (pedido.costoEnvio ?? 0) : 0,
+                    metodoPago:  metodo,
+                    montoPagado,
+                    vuelto,
+                }),
+            });
+            if (res.ok) return; // impresión exitosa
+        } catch { /* servidor no disponible → fallback */ }
+
+        // Fallback: ventana del navegador
         const rows = pedido.items.map(i => `<tr><td>${i.cantidad}x ${i.menuItemId?.nombre || "ítem"}</td><td style="text-align:right">${formatMoney((i.menuItemId?.precio || 0) * i.cantidad)}</td></tr>`).join("")
             + (pedido.tipoEntrega === "envio" && (pedido.costoEnvio ?? 0) > 0 ? `<tr><td>Envío a domicilio</td><td style="text-align:right">${formatMoney(pedido.costoEnvio ?? 0)}</td></tr>` : "");
         const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Ticket</title><style>
@@ -279,18 +305,51 @@ export default function CajaPage() {
         if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 200); }
     }
 
-    function printComanda(p: Pedido) {
+    async function printComanda(p: Pedido) {
         const bebidas = p.items.filter(it => BEBIDAS_CATS.includes(it.menuItemId?.categoria || ""));
-        const comida = p.items.filter(it => !BEBIDAS_CATS.includes(it.menuItemId?.categoria || ""));
+        const comida  = p.items.filter(it => !BEBIDAS_CATS.includes(it.menuItemId?.categoria || ""));
 
-        // Comanda de cocina (todo lo que no sea bebida)
-        if (comida.length > 0) {
-            abrirEImprimir(comandaHtml(p, "COMANDA COCINA", comida));
-        }
-        // Comanda de barra (bebidas), con un pequeño delay para no chocar con la ventana de cocina
-        if (bebidas.length > 0) {
-            setTimeout(() => abrirEImprimir(comandaHtml(p, "COMANDA BARRA", bebidas)), 600);
-        }
+        const hora    = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+        const mesa    = p.mesa ? `Mesa ${p.mesa}` : p.tipoEntrega === "envio" ? "Envio a domicilio" : "Retira en barra";
+        const cliente = p.userId?.role === "empleado"
+            ? (p.nombreComanda || p.userId?.nombre || "Mozo")
+            : (p.userId?.nombre || "Cliente");
+        const nota    = p.notaEmpleado || p.notaCliente || "";
+
+        // Intentar servidor local de impresión
+        try {
+            const promesas: Promise<Response>[] = [];
+            if (comida.length > 0) promesas.push(
+                fetch("http://localhost:3001/imprimir/comanda", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        impresora: "Cocina",
+                        mesa, cliente, hora, nota,
+                        items: comida.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem" })),
+                    }),
+                })
+            );
+            if (bebidas.length > 0) promesas.push(
+                fetch("http://localhost:3001/imprimir/comanda", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        impresora: "Barra",
+                        mesa, cliente, hora, nota,
+                        items: bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem" })),
+                    }),
+                })
+            );
+            if (promesas.length > 0) {
+                await Promise.all(promesas);
+                return; // impresión exitosa
+            }
+        } catch { /* servidor no disponible → fallback */ }
+
+        // Fallback: ventana del navegador
+        if (comida.length > 0)  abrirEImprimir(comandaHtml(p, "COMANDA COCINA", comida));
+        if (bebidas.length > 0) setTimeout(() => abrirEImprimir(comandaHtml(p, "COMANDA BARRA", bebidas)), 600);
     }
 
     if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-gray-400" size={36} /></div>;

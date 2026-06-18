@@ -1,0 +1,13 @@
+{
+  "name": "hmorgan-print-server",
+  "version": "1.0.0",
+  "description": "Servidor de impresión local para H. Morgan",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "@thiagoelg/node-printer": "^0.4.2"
+  }
+}
