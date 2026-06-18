@@ -67,7 +67,7 @@ function padLine(izq, der, ancho = 32) {
     return izq + " ".repeat(pad) + der;
 }
 
-function buildComanda({ titulo, mesa, cliente, hora, items, nota }) {
+function buildComanda({ titulo, mesa, cliente, direccion, mozo, hora, items, nota }) {
     const SEP = "-".repeat(32);
     const b   = [];
     const add = (...bytes) => b.push(...bytes);
@@ -81,9 +81,19 @@ function buildComanda({ titulo, mesa, cliente, hora, items, nota }) {
     add(ESC, 0x61, 0x00);
 
     txt(SEP); add(LF);
+
+    // Datos del cliente en letra grande: Mesa, Nombre, Dirección
+    add(ESC, 0x21, 0x10);
     txt(norm(mesa)); add(LF);
-    txt("Cliente: " + norm(cliente)); add(LF);
-    txt("Hora:    " + hora); add(LF);
+    txt("Cliente: " + norm(cliente || "-")); add(LF);
+    if (direccion) {
+        txt("Dir: " + norm(direccion)); add(LF);
+    }
+    add(ESC, 0x21, 0x00);
+
+    txt(SEP); add(LF);
+    txt("Mozo: " + norm(mozo || "-")); add(LF);
+    txt("Hora: " + hora); add(LF);
     txt(SEP); add(LF);
 
     add(ESC, 0x21, 0x10);
@@ -187,11 +197,11 @@ function imprimir(buffer, nombreImpresora, res, etiqueta) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 app.post("/imprimir/comanda", (req, res) => {
-    const { impresora, mesa, cliente, hora, items, nota } = req.body;
+    const { impresora, mesa, cliente, direccion, mozo, hora, items, nota, titulo: tituloCustom } = req.body;
     const nombreImpresora = impresora === "Cocina" ? IMPRESORA_COCINA : IMPRESORA_BARRA;
-    const titulo          = impresora === "Cocina" ? "COMANDA COCINA" : "COMANDA BARRA";
+    const titulo           = tituloCustom || (impresora === "Cocina" ? "COMANDA COCINA" : "COMANDA BARRA");
     try {
-        imprimir(buildComanda({ titulo, mesa, cliente, hora, items, nota }), nombreImpresora, res, titulo);
+        imprimir(buildComanda({ titulo, mesa, cliente, direccion, mozo, hora, items, nota }), nombreImpresora, res, titulo);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

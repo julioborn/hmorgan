@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { swalBase } from "@/lib/swalConfig";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
@@ -82,6 +82,29 @@ export default function CajaPage() {
     const [closeSaving, setCloseSaving]   = useState(false);
     const [closeError, setCloseError]     = useState("");
 
+    // Última cantidad conocida por ítem (clave: pedidoId -> itemId -> cantidad), para detectar
+    // ítems agregados a una comanda ya aceptada y reimprimir solo esos.
+    const itemsSnapshotRef = useRef<Map<string, Map<string, number>>>(new Map());
+
+    function detectarAgregados(lista: Pedido[]) {
+        for (const p of lista) {
+            if (!["preparando", "listo"].includes(p.estado)) continue;
+            const actual = new Map(p.items.map(it => [it._id || it.menuItemId?.nombre || "", it.cantidad]));
+            const previo = itemsSnapshotRef.current.get(p._id);
+            if (previo) {
+                const agregados = p.items.filter(it => {
+                    const key = it._id || it.menuItemId?.nombre || "";
+                    return it.cantidad - (previo.get(key) ?? 0) > 0;
+                }).map(it => {
+                    const key = it._id || it.menuItemId?.nombre || "";
+                    return { ...it, cantidad: it.cantidad - (previo.get(key) ?? 0) };
+                });
+                if (agregados.length > 0) printItemsAgregados(p, agregados);
+            }
+            itemsSnapshotRef.current.set(p._id, actual);
+        }
+    }
+
     const loadData = useCallback(async () => {
         try {
             const [cajaRes, pedRes] = await Promise.all([
@@ -92,10 +115,12 @@ export default function CajaPage() {
             setSesion(cajaData.sesion || null);
             if (Array.isArray(pedData)) {
                 // Incluir "cerrado" (cobrado por caja) solo del día de hoy para Finalizados
-                setPedidos(pedData.filter((p: Pedido) =>
+                const filtrados = pedData.filter((p: Pedido) =>
                     p.estado !== "cancelado" &&
                     (p.estado !== "cerrado" || (p as any).createdAt?.slice(0, 10) === hoyStr)
-                ));
+                );
+                setPedidos(filtrados);
+                detectarAgregados(filtrados);
             }
         } finally { setLoading(false); }
     }, []);
@@ -263,12 +288,20 @@ export default function CajaPage() {
         if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 200); }
     }
 
+    function datosComanda(p: Pedido) {
+        const esEmpleado = p.userId?.role === "empleado";
+        const mesa = p.mesa ? `Mesa ${p.mesa}` : p.tipoEntrega === "envio" ? "Envío a domicilio" : "Retira en barra";
+        const cliente = esEmpleado
+            ? (p.nombreComanda || "-")
+            : (p.userId?.nombre ? `${p.userId.nombre}${p.userId.apellido ? " " + p.userId.apellido : ""}` : "-");
+        const mozo = esEmpleado ? (p.userId?.nombre || "-") : "-";
+        const direccion = p.tipoEntrega === "envio" ? (p.direccion || "-") : "";
+        return { mesa, cliente, mozo, direccion };
+    }
+
     function comandaHtml(p: Pedido, titulo: string, items: Pedido["items"]) {
         const hora = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
-        const mesa = p.mesa ? `Mesa ${p.mesa}` : p.tipoEntrega === "envio" ? "Envío a domicilio" : "Retira en barra";
-        const cliente = p.userId?.role === "empleado"
-            ? (p.nombreComanda || p.userId?.nombre || "Mozo")
-            : (p.userId?.nombre || "Cliente");
+        const { mesa, cliente, mozo, direccion } = datosComanda(p);
         const filas = items.map(it =>
             `<tr>
                 <td style="font-size:22px;font-weight:900;padding:4px 10px 4px 0;white-space:nowrap">${it.cantidad}x</td>
@@ -285,13 +318,16 @@ export default function CajaPage() {
             .sep { border-top: 2px dashed #000; margin: 8px 0; }
             .badge { font-size:28px; font-weight:900; text-transform:uppercase; }
             .meta { font-size:14px; margin:4px 0; }
+            .meta-grande { font-size:20px; font-weight:700; margin:4px 0; }
             table { width:100%; border-collapse:collapse; }
             .nota { font-size:14px; margin-top:6px; padding:6px; border:2px solid #000; border-radius:4px; }
         </style></head><body>
         <div class="centro"><div class="badge">⬛ ${titulo} ⬛</div></div>
         <div class="sep"></div>
-        <div class="meta"><b>${mesa}</b></div>
-        <div class="meta">Cliente: ${cliente}</div>
+        <div class="meta-grande">${mesa}</div>
+        <div class="meta-grande">Cliente: ${cliente}</div>
+        ${direccion ? `<div class="meta-grande">Dir: ${direccion}</div>` : ""}
+        <div class="meta">Mozo: ${mozo}</div>
         <div class="meta">Hora: ${hora}</div>
         <div class="sep"></div>
         <table>${filas}</table>
@@ -309,12 +345,9 @@ export default function CajaPage() {
         const bebidas = p.items.filter(it => BEBIDAS_CATS.includes(it.menuItemId?.categoria || ""));
         const comida  = p.items.filter(it => !BEBIDAS_CATS.includes(it.menuItemId?.categoria || ""));
 
-        const hora    = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
-        const mesa    = p.mesa ? `Mesa ${p.mesa}` : p.tipoEntrega === "envio" ? "Envio a domicilio" : "Retira en barra";
-        const cliente = p.userId?.role === "empleado"
-            ? (p.nombreComanda || p.userId?.nombre || "Mozo")
-            : (p.userId?.nombre || "Cliente");
-        const nota    = p.notaEmpleado || p.notaCliente || "";
+        const hora = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+        const { mesa, cliente, mozo, direccion } = datosComanda(p);
+        const nota = p.notaEmpleado || p.notaCliente || "";
 
         // Intentar servidor local de impresión
         try {
@@ -325,7 +358,7 @@ export default function CajaPage() {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         impresora: "Cocina",
-                        mesa, cliente, hora, nota,
+                        mesa, cliente, mozo, direccion, hora, nota,
                         items: comida.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem" })),
                     }),
                 })
@@ -336,7 +369,7 @@ export default function CajaPage() {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         impresora: "Barra",
-                        mesa, cliente, hora, nota,
+                        mesa, cliente, mozo, direccion, hora, nota,
                         items: bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem" })),
                     }),
                 })
@@ -350,6 +383,46 @@ export default function CajaPage() {
         // Fallback: ventana del navegador
         if (comida.length > 0)  abrirEImprimir(comandaHtml(p, "COMANDA COCINA", comida));
         if (bebidas.length > 0) setTimeout(() => abrirEImprimir(comandaHtml(p, "COMANDA BARRA", bebidas)), 600);
+    }
+
+    // Reimpresión automática de ítems agregados a una comanda ya aceptada (sin intervención
+    // del cajero). Solo usa el servidor local: si no está disponible no hay forma de imprimir
+    // sin un gesto del usuario, así que se descarta en silencio.
+    async function printItemsAgregados(p: Pedido, itemsNuevos: Pedido["items"]) {
+        const bebidas = itemsNuevos.filter(it => BEBIDAS_CATS.includes(it.menuItemId?.categoria || ""));
+        const comida  = itemsNuevos.filter(it => !BEBIDAS_CATS.includes(it.menuItemId?.categoria || ""));
+        if (bebidas.length === 0 && comida.length === 0) return;
+
+        const hora = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+        const { mesa, cliente, mozo, direccion } = datosComanda(p);
+        const nota = p.notaEmpleado || p.notaCliente || "";
+
+        try {
+            const promesas: Promise<Response>[] = [];
+            if (comida.length > 0) promesas.push(
+                fetch("http://localhost:3001/imprimir/comanda", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        impresora: "Cocina", titulo: "AGREGADO COCINA",
+                        mesa, cliente, mozo, direccion, hora, nota,
+                        items: comida.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem" })),
+                    }),
+                })
+            );
+            if (bebidas.length > 0) promesas.push(
+                fetch("http://localhost:3001/imprimir/comanda", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        impresora: "Barra", titulo: "AGREGADO BARRA",
+                        mesa, cliente, mozo, direccion, hora, nota,
+                        items: bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem" })),
+                    }),
+                })
+            );
+            await Promise.all(promesas);
+        } catch { /* servidor local no disponible: el agregado no se imprime automáticamente */ }
     }
 
     if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-gray-400" size={36} /></div>;
