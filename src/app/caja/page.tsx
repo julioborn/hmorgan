@@ -9,7 +9,7 @@ import {
     Wallet, X, Printer, CreditCard, Banknote, Send,
     Loader2, CheckCircle, AlertCircle, Clock, Flame,
     Package, Truck, UtensilsCrossed, CalendarDays,
-    Phone, MessageCircle, Plus, Pencil, Trash2,
+    Phone, MessageCircle, Plus, Pencil, Trash2, MapPin, Users,
 } from "lucide-react";
 import ReservasManager from "@/components/ReservasManager";
 
@@ -33,6 +33,8 @@ type Pedido = {
 };
 type MenuItemLite = { _id: string; nombre: string; precio: number; categoria: string };
 type CajaSession = { _id: string; estado: "abierta" | "cerrada"; montoInicial: number; fechaApertura: string };
+type MesaPlano = { _id: string; nombre: string; activa: boolean; x: number; y: number; forma: string; ancho?: number; alto?: number; rotacion?: number; tipo?: string };
+type SalonElPlano = { _id: string; tipo: string; label: string; x: number; y: number; ancho: number; alto: number; color: string };
 
 // Categorías que se imprimen en la comandera de la barra; el resto va a cocina
 const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
@@ -66,7 +68,7 @@ const VISTA_MAP: Record<string, Vista> = {
 
 export default function CajaPage() {
     const router = useRouter();
-    const [tab, setTab]                   = useState<"pedidos" | "caja" | "reservas">("pedidos");
+    const [tab, setTab]                   = useState<"pedidos" | "caja" | "reservas" | "mesas">("pedidos");
     const [sesion, setSesion]             = useState<CajaSession | null | undefined>(undefined);
     const [pedidosActivos, setPedidosActivos]   = useState(true);
     const [reservasActivas, setReservasActivas] = useState(true);
@@ -90,6 +92,10 @@ export default function CajaPage() {
     const [menuItemsAll, setMenuItemsAll] = useState<MenuItemLite[]>([]);
     const [editItemModal, setEditItemModal] = useState<{ pedidoId: string; itemId: string; nombreActual: string } | null>(null);
     const [editItemSearch, setEditItemSearch] = useState("");
+    const [mesasPlano, setMesasPlano]     = useState<MesaPlano[]>([]);
+    const [elementsPlano, setElementsPlano] = useState<SalonElPlano[]>([]);
+    const [mesasLoaded, setMesasLoaded]   = useState(false);
+    const [mesaDetalle, setMesaDetalle]   = useState<{ mesa: MesaPlano; pedido: Pedido } | null>(null);
 
     // Última cantidad conocida por ítem (clave: pedidoId -> itemId -> cantidad), para detectar
     // ítems agregados a una comanda ya aceptada y reimprimir solo esos.
@@ -144,6 +150,24 @@ export default function CajaPage() {
         fetch("/api/config/pedidos").then(r => r.json()).then(d => setPedidosActivos(d.activo ?? true));
         fetch("/api/config/reservas").then(r => r.json()).then(d => setReservasActivas(d.activo ?? true));
     }, []);
+
+    useEffect(() => {
+        if (tab !== "mesas" || mesasLoaded) return;
+        (async () => {
+            const [mRes, elRes] = await Promise.all([
+                fetch("/api/admin/mesas?all=true", { credentials: "include" }),
+                fetch("/api/superadmin/salon", { credentials: "include" }),
+            ]);
+            const [mData, elData] = await Promise.all([mRes.json(), elRes.json()]);
+            setMesasPlano(Array.isArray(mData) ? mData : []);
+            setElementsPlano(Array.isArray(elData) ? elData : []);
+            setMesasLoaded(true);
+        })();
+    }, [tab, mesasLoaded]);
+
+    function pedidoDeMesa(nombreMesa: string): Pedido | undefined {
+        return pedidos.find(p => p.mesa === nombreMesa && !["cerrado", "cancelado"].includes(p.estado));
+    }
 
     async function togglePedidosActivos() {
         const next = !pedidosActivos;
@@ -629,6 +653,12 @@ export default function CajaPage() {
                                 </span>
                             )}
                         </button>
+                        <button onClick={() => setTab("mesas")}
+                            className={`flex-1 py-3.5 text-sm font-black transition flex items-center justify-center gap-2 ${
+                                tab === "mesas" ? "text-gray-900 border-b-2 border-gray-900" : "text-gray-400 hover:text-gray-600"
+                            }`}>
+                            <MapPin size={15} /> Mesas
+                        </button>
                         <button onClick={() => setTab("reservas")}
                             className={`flex-1 py-3.5 text-sm font-black transition flex items-center justify-center gap-2 ${
                                 tab === "reservas" ? "text-gray-900 border-b-2 border-gray-900" : "text-gray-400 hover:text-gray-600"
@@ -943,6 +973,69 @@ export default function CajaPage() {
                         </div>
                     )}
 
+                    {/* ── TAB MESAS ── */}
+                    {tab === "mesas" && (
+                        <div className="max-w-screen-2xl mx-auto px-4 pt-4">
+                            <div className="flex items-center gap-4 mb-4 text-xs text-gray-500 flex-wrap">
+                                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-emerald-500 inline-block" />Libre</span>
+                                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-red-400 inline-block" />Ocupada</span>
+                                <span className="ml-auto text-gray-400">Tocá una mesa ocupada para ver el pedido</span>
+                            </div>
+                            <div className="relative w-full rounded-2xl overflow-hidden border border-gray-200" style={{ height: "clamp(360px, 70vh, 720px)", backgroundColor: "#f9f5ef" }}>
+                                <div className="absolute inset-0" style={{ backgroundImage: "linear-gradient(rgba(0,0,0,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.04) 1px,transparent 1px)", backgroundSize: "30px 30px" }}>
+                                    {elementsPlano.map(el => {
+                                        const isLine = el.tipo === "linea_h" || el.tipo === "linea_v";
+                                        const isBarra = el.tipo === "barra";
+                                        if (isLine) return (
+                                            <div key={el._id} style={{
+                                                position: "absolute", left: `${el.x}%`, top: `${el.y}%`,
+                                                width: el.tipo === "linea_h" ? `${el.ancho}%` : "3px",
+                                                height: el.tipo === "linea_v" ? `${el.alto}%` : "3px",
+                                                backgroundColor: el.color, borderRadius: "2px",
+                                                transform: el.tipo === "linea_h" ? "translateY(-50%)" : "translateX(-50%)",
+                                            }} />
+                                        );
+                                        return (
+                                            <div key={el._id} style={{
+                                                position: "absolute", left: `${el.x}%`, top: `${el.y}%`,
+                                                transform: "translate(-50%,-50%)", width: `${el.ancho}%`, height: `${el.alto}%`,
+                                                minWidth: "32px", minHeight: "14px", display: "flex", alignItems: "center", justifyContent: "center",
+                                                borderRadius: "6px", backgroundColor: isBarra ? "#b45309" : el.color,
+                                                border: isBarra ? "2px solid #92400e" : `1px solid ${el.color === "#fef3c7" ? "#d97706" : "#9ca3af"}60`,
+                                            }}>
+                                                {el.label && <span style={{ fontSize: "clamp(9px,1.1vw,12px)", fontWeight: 700, color: isBarra ? "#fef3c7" : "#374151", whiteSpace: "nowrap" }}>{el.label}</span>}
+                                            </div>
+                                        );
+                                    })}
+                                    {mesasPlano.filter(m => m.activa).map(m => {
+                                        const pedido = pedidoDeMesa(m.nombre);
+                                        const ocupada = !!pedido;
+                                        const isRound = m.forma === "round" || m.forma === "oval";
+                                        const rot = m.rotacion ?? 0;
+                                        const w = m.ancho || (m.forma === "oval" ? 11 : m.forma === "round" ? 5.5 : 7);
+                                        const h = m.alto || (m.forma === "oval" ? 5 : m.forma === "round" ? 5.5 : 5);
+                                        const bg = m.tipo === "banqueta"
+                                            ? "bg-amber-700 border-amber-800 text-amber-100"
+                                            : ocupada ? "bg-red-400 border-red-500 text-white animate-pulse" : "bg-emerald-500 border-emerald-600 text-white";
+                                        return (
+                                            <div key={m._id}
+                                                onClick={() => { if (pedido) setMesaDetalle({ mesa: m, pedido }); }}
+                                                style={{
+                                                    position: "absolute", left: `${m.x ?? 10}%`, top: `${m.y ?? 10}%`,
+                                                    transform: `translate(-50%,-50%) rotate(${rot}deg)`, width: `${w}%`, height: `${h}%`,
+                                                    minWidth: "36px", minHeight: "26px", borderRadius: isRound ? "50%" : "8px",
+                                                    cursor: pedido ? "pointer" : "default", userSelect: "none", zIndex: 2,
+                                                }}
+                                                className={`flex items-center justify-center border-2 ${bg} ${pedido ? "hover:brightness-110 active:scale-95" : ""} transition-all`}>
+                                                <div style={{ transform: `rotate(${-rot}deg)`, fontSize: "clamp(9px,1.1vw,12px)", fontWeight: 900 }}>{m.nombre}</div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* ── TAB RESERVAS ── */}
                     {tab === "reservas" && (
                         <div className="max-w-2xl mx-auto px-4 pt-4">
@@ -1110,6 +1203,72 @@ export default function CajaPage() {
                                 ))}
                             {menuItemsAll.filter(m => m.nombre.toLowerCase().includes(editItemSearch.toLowerCase())).length === 0 && (
                                 <p className="text-center text-gray-400 py-8 text-sm">Sin resultados</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal detalle de mesa */}
+            {mesaDetalle && (
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl flex flex-col" style={{ maxHeight: "85vh" }}>
+                        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
+                            <h2 className="font-black text-gray-900 flex-1">Mesa {mesaDetalle.mesa.nombre}</h2>
+                            <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border uppercase tracking-wide ${COLOR_CLASSES[ESTADOS[getEstadoIdx(mesaDetalle.pedido.estado)]?.color] || "border-gray-200 bg-gray-100 text-gray-600"}`}>
+                                {mesaDetalle.pedido.estado}
+                            </span>
+                            <button onClick={() => setMesaDetalle(null)} className="p-1 text-gray-400 hover:text-gray-700"><X size={18} /></button>
+                        </div>
+                        <div className="px-5 py-4 space-y-3 overflow-y-auto flex-1 min-h-0">
+                            <div className="flex items-center gap-2 text-sm text-gray-600 flex-wrap">
+                                <span className="font-bold text-gray-900">
+                                    {mesaDetalle.pedido.nombreComanda || mesaDetalle.pedido.userId?.nombre || "Sin nombre"}
+                                </span>
+                                {mesaDetalle.pedido.comensales ? (
+                                    <span className="flex items-center gap-1 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-semibold">
+                                        <Users size={11} />{mesaDetalle.pedido.comensales}p
+                                    </span>
+                                ) : null}
+                            </div>
+                            {mesaDetalle.pedido.fuente === "empleado" && mesaDetalle.pedido.userId?.nombre && (
+                                <p className="text-xs text-gray-400">Mozo: {mesaDetalle.pedido.userId.nombre}</p>
+                            )}
+                            <p className="text-xs text-gray-400">{format(new Date(mesaDetalle.pedido.createdAt), "dd/MM HH:mm", { locale: es })}</p>
+
+                            <ul className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
+                                {mesaDetalle.pedido.items.map((it, idx) => (
+                                    <li key={it._id || idx} className="flex justify-between items-center px-3 py-2 bg-gray-50">
+                                        <span className="text-sm text-gray-800">{it.menuItemId?.nombre}</span>
+                                        <span className="text-red-600 font-semibold text-sm">×{it.cantidad}</span>
+                                    </li>
+                                ))}
+                            </ul>
+
+                            {(mesaDetalle.pedido.notaEmpleado || mesaDetalle.pedido.notaCliente) && (
+                                <div className="border-l-2 border-amber-400 pl-3 py-1">
+                                    <p className="text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Nota</p>
+                                    <p className="text-xs text-gray-600 italic">{mesaDetalle.pedido.notaEmpleado || mesaDetalle.pedido.notaCliente}</p>
+                                </div>
+                            )}
+
+                            <p className="text-sm font-bold text-gray-900 pt-1">Total: {formatMoney(mesaDetalle.pedido.total)}</p>
+                        </div>
+                        <div className="px-5 py-4 border-t border-gray-100 flex gap-2 shrink-0">
+                            {(mesaDetalle.pedido.estado === "listo" || mesaDetalle.pedido.estado === "entregado") ? (
+                                <button onClick={() => {
+                                    const p = mesaDetalle.pedido;
+                                    setCobrarModal({ open: true, pedido: p });
+                                    setCobrarForm({ metodoPago: "efectivo", montoPagado: String(p.total) });
+                                    setMesaDetalle(null);
+                                }} className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition">
+                                    Cobrar
+                                </button>
+                            ) : (
+                                <button onClick={() => { setTab("pedidos"); setMesaDetalle(null); }}
+                                    className="flex-1 py-2.5 bg-gray-900 hover:bg-gray-700 text-white rounded-xl text-sm font-bold transition">
+                                    Ver en Pedidos
+                                </button>
                             )}
                         </div>
                     </div>
