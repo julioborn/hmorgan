@@ -979,7 +979,6 @@ export default function CajaPage() {
                             <div className="flex items-center gap-4 mb-4 text-xs text-gray-500 flex-wrap">
                                 <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-emerald-500 inline-block" />Libre</span>
                                 <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-red-400 inline-block" />Ocupada</span>
-                                <span className="ml-auto text-gray-400">Tocá una mesa ocupada para ver el pedido</span>
                             </div>
                             <div className="relative w-full rounded-xl overflow-hidden border border-gray-200" style={{ paddingBottom: "72%" }}>
                                 <div className="absolute inset-0" style={{ backgroundColor: "#f9f5ef", backgroundImage: "linear-gradient(rgba(0,0,0,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.04) 1px,transparent 1px)", backgroundSize: "30px 30px" }}>
