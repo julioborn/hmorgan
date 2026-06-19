@@ -975,35 +975,23 @@ export default function CajaPage() {
 
                     {/* ── TAB MESAS ── */}
                     {tab === "mesas" && (
-                        <div className="max-w-screen-2xl mx-auto px-4 pt-4">
+                        <div className="max-w-4xl mx-auto px-4 pt-4">
                             <div className="flex items-center gap-4 mb-4 text-xs text-gray-500 flex-wrap">
                                 <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-emerald-500 inline-block" />Libre</span>
                                 <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-red-400 inline-block" />Ocupada</span>
                                 <span className="ml-auto text-gray-400">Tocá una mesa ocupada para ver el pedido</span>
                             </div>
-                            <div className="relative w-full rounded-2xl overflow-hidden border border-gray-200" style={{ height: "clamp(360px, 70vh, 720px)", backgroundColor: "#f9f5ef" }}>
-                                <div className="absolute inset-0" style={{ backgroundImage: "linear-gradient(rgba(0,0,0,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.04) 1px,transparent 1px)", backgroundSize: "30px 30px" }}>
+                            <div className="relative w-full rounded-xl overflow-hidden border border-gray-200" style={{ paddingBottom: "72%" }}>
+                                <div className="absolute inset-0" style={{ backgroundColor: "#f9f5ef", backgroundImage: "linear-gradient(rgba(0,0,0,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.04) 1px,transparent 1px)", backgroundSize: "30px 30px" }}>
                                     {elementsPlano.map(el => {
                                         const isLine = el.tipo === "linea_h" || el.tipo === "linea_v";
                                         const isBarra = el.tipo === "barra";
                                         if (isLine) return (
-                                            <div key={el._id} style={{
-                                                position: "absolute", left: `${el.x}%`, top: `${el.y}%`,
-                                                width: el.tipo === "linea_h" ? `${el.ancho}%` : "3px",
-                                                height: el.tipo === "linea_v" ? `${el.alto}%` : "3px",
-                                                backgroundColor: el.color, borderRadius: "2px",
-                                                transform: el.tipo === "linea_h" ? "translateY(-50%)" : "translateX(-50%)",
-                                            }} />
+                                            <div key={el._id} style={{ position: "absolute", left: `${el.x}%`, top: `${el.y}%`, width: el.tipo === "linea_h" ? `${el.ancho}%` : "3px", height: el.tipo === "linea_v" ? `${el.alto}%` : "3px", backgroundColor: el.color, borderRadius: "2px", transform: el.tipo === "linea_h" ? "translateY(-50%)" : "translateX(-50%)" }} />
                                         );
                                         return (
-                                            <div key={el._id} style={{
-                                                position: "absolute", left: `${el.x}%`, top: `${el.y}%`,
-                                                transform: "translate(-50%,-50%)", width: `${el.ancho}%`, height: `${el.alto}%`,
-                                                minWidth: "32px", minHeight: "14px", display: "flex", alignItems: "center", justifyContent: "center",
-                                                borderRadius: "6px", backgroundColor: isBarra ? "#b45309" : el.color,
-                                                border: isBarra ? "2px solid #92400e" : `1px solid ${el.color === "#fef3c7" ? "#d97706" : "#9ca3af"}60`,
-                                            }}>
-                                                {el.label && <span style={{ fontSize: "clamp(9px,1.1vw,12px)", fontWeight: 700, color: isBarra ? "#fef3c7" : "#374151", whiteSpace: "nowrap" }}>{el.label}</span>}
+                                            <div key={el._id} style={{ position: "absolute", left: `${el.x}%`, top: `${el.y}%`, transform: "translate(-50%,-50%)", width: `${el.ancho}%`, height: `${el.alto}%`, minWidth: "32px", minHeight: "14px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "6px", backgroundColor: isBarra ? "#b45309" : el.color, border: isBarra ? "2px solid #92400e" : `1px solid ${el.color === "#fef3c7" ? "#d97706" : "#9ca3af"}60` }}>
+                                                {el.label && <span style={{ fontSize: "clamp(6px,0.9vw,9px)", fontWeight: 700, color: isBarra ? "#fef3c7" : "#374151", whiteSpace: "nowrap" }}>{el.label}</span>}
                                             </div>
                                         );
                                     })}
@@ -1011,23 +999,21 @@ export default function CajaPage() {
                                         const pedido = pedidoDeMesa(m.nombre);
                                         const ocupada = !!pedido;
                                         const isRound = m.forma === "round" || m.forma === "oval";
+                                        const isBanq = m.tipo === "banqueta";
                                         const rot = m.rotacion ?? 0;
                                         const w = m.ancho || (m.forma === "oval" ? 11 : m.forma === "round" ? 5.5 : 7);
                                         const h = m.alto || (m.forma === "oval" ? 5 : m.forma === "round" ? 5.5 : 5);
-                                        const bg = m.tipo === "banqueta"
+                                        const bg = isBanq
                                             ? "bg-amber-700 border-amber-800 text-amber-100"
-                                            : ocupada ? "bg-red-400 border-red-500 text-white animate-pulse" : "bg-emerald-500 border-emerald-600 text-white";
+                                            : ocupada ? "bg-red-500 border-red-600 text-white" : "bg-emerald-500 border-emerald-600 text-white";
                                         return (
                                             <div key={m._id}
                                                 onClick={() => { if (pedido) setMesaDetalle({ mesa: m, pedido }); }}
-                                                style={{
-                                                    position: "absolute", left: `${m.x ?? 10}%`, top: `${m.y ?? 10}%`,
-                                                    transform: `translate(-50%,-50%) rotate(${rot}deg)`, width: `${w}%`, height: `${h}%`,
-                                                    minWidth: "36px", minHeight: "26px", borderRadius: isRound ? "50%" : "8px",
-                                                    cursor: pedido ? "pointer" : "default", userSelect: "none", zIndex: 2,
-                                                }}
-                                                className={`flex items-center justify-center border-2 ${bg} ${pedido ? "hover:brightness-110 active:scale-95" : ""} transition-all`}>
-                                                <div style={{ transform: `rotate(${-rot}deg)`, fontSize: "clamp(9px,1.1vw,12px)", fontWeight: 900 }}>{m.nombre}</div>
+                                                style={{ position: "absolute", left: `${m.x ?? 10}%`, top: `${m.y ?? 10}%`, transform: `translate(-50%,-50%) rotate(${rot}deg)`, width: `min(${w}%,${w * 7}px)`, height: `min(${h}%,${h * 7.5}px)`, minWidth: "22px", minHeight: "16px", borderRadius: isRound ? "50%" : "8px", cursor: pedido ? "pointer" : "default", userSelect: "none", zIndex: 2 }}
+                                                className={`flex items-center justify-center border-2 ${bg} ${pedido ? "hover:brightness-110 active:scale-95 transition-all" : ""}`}>
+                                                <div style={{ transform: `rotate(${-rot}deg)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                    <span style={{ fontSize: "clamp(5px,0.8vw,9px)", fontWeight: 900 }}>{m.nombre}</span>
+                                                </div>
                                             </div>
                                         );
                                     })}
