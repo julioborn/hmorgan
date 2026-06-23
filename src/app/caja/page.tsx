@@ -710,7 +710,7 @@ export default function CajaPage() {
                                         return (
                                             <motion.div key={p._id}
                                                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                                                className={`rounded-2xl border shadow-sm overflow-hidden h-[600px] flex flex-col ${esMozo ? "border-gray-800" : "border-gray-200"}`}>
+                                                className={`rounded-2xl border shadow-sm overflow-hidden aspect-square flex flex-col ${esMozo ? "border-gray-800" : "border-gray-200"}`}>
 
                                                 {/* Banner mozo */}
                                                 {esMozo && (
@@ -912,7 +912,7 @@ export default function CajaPage() {
                                     ? (p.mesa ? `Mesa ${p.mesa}` : p.nombreComanda || "Sin mesa")
                                     : (p.userId ? `${p.userId.nombre} ${p.userId.apellido || ""}`.trim() : "Cliente app");
                                 return (
-                                    <div key={p._id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden h-[420px] flex flex-col">
+                                    <div key={p._id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden aspect-square flex flex-col">
                                         <div className="shrink-0 flex items-center justify-between px-4 py-3.5 border-b border-gray-100 bg-gray-50">
                                             <div>
                                                 <div className="flex items-center gap-2 flex-wrap">
