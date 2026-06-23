@@ -512,6 +512,8 @@ export default function CajaPage() {
     const preparando   = pedidos.filter(p => p.estado === "preparando");
     const listos       = pedidos.filter(p => p.estado === "listo");
     const finalizados  = pedidos.filter(p => p.estado === "entregado" || p.estado === "cerrado");
+    // Pendientes de cobro: la burbuja de Finalizados desaparece apenas se cobra (pasa a "cerrado")
+    const entregadosPendientesCobro = pedidos.filter(p => p.estado === "entregado");
 
     let lista = vista === "pendientes" ? pendientes : vista === "preparando" ? preparando : vista === "listos" ? listos : finalizados;
     // Mozo primero
@@ -531,7 +533,7 @@ export default function CajaPage() {
                     : "bg-gray-100 text-gray-500 hover:bg-gray-200"
             }`}>
             {label}
-            {count > 0 && key !== "finalizados" && vista !== key && (
+            {count > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 min-w-[1.3rem] px-1 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-black text-center leading-tight">
                     {count}
                 </span>
@@ -686,7 +688,7 @@ export default function CajaPage() {
                                 {renderTabBtn("pendientes",  "Pendientes",  pendientes.length)}
                                 {renderTabBtn("preparando", "Preparando",  preparando.length)}
                                 {renderTabBtn("listos",     "Listos",      listos.length)}
-                                {renderTabBtn("finalizados","Finalizados", finalizados.length)}
+                                {renderTabBtn("finalizados","Finalizados", entregadosPendientesCobro.length)}
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 items-start">
