@@ -524,9 +524,9 @@ export default function CajaPage() {
         if (bebidas.length > 0) setTimeout(() => abrirEImprimir(comandaHtml(p, "BARRA", bebidas)), 600);
     }
 
-    // Reimpresión automática de ítems agregados a una comanda ya aceptada (sin intervención
-    // del cajero). Solo usa el servidor local: si no está disponible no hay forma de imprimir
-    // sin un gesto del usuario, así que se descarta en silencio.
+    // Reimpresión automática de ítems agregados a una comanda ya aceptada. Si el servidor
+    // local no está disponible (ej. probando sin impresora conectada), cae a la ventana de
+    // impresión del navegador, igual que printComanda.
     async function printItemsAgregados(p: Pedido, itemsNuevos: Pedido["items"]) {
         const bebidas = itemsNuevos.filter(it => BEBIDAS_CATS.includes(it.menuItemId?.categoria || ""));
         const comida  = itemsNuevos.filter(it => !BEBIDAS_CATS.includes(it.menuItemId?.categoria || ""));
@@ -560,8 +560,15 @@ export default function CajaPage() {
                     }),
                 })
             );
-            await Promise.all(promesas);
-        } catch { /* servidor local no disponible: el agregado no se imprime automáticamente */ }
+            if (promesas.length > 0) {
+                await Promise.all(promesas);
+                return; // impresión exitosa
+            }
+        } catch { /* servidor no disponible → fallback */ }
+
+        // Fallback: ventana del navegador
+        if (comida.length > 0)  abrirEImprimir(comandaHtml(p, "AGREGADO COCINA", comida));
+        if (bebidas.length > 0) setTimeout(() => abrirEImprimir(comandaHtml(p, "AGREGADO BARRA", bebidas)), 600);
     }
 
     if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-gray-400" size={36} /></div>;
