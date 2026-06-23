@@ -199,7 +199,7 @@ function imprimir(buffer, nombreImpresora, res, etiqueta) {
 app.post("/imprimir/comanda", (req, res) => {
     const { impresora, mesa, cliente, direccion, mozo, hora, items, nota, titulo: tituloCustom } = req.body;
     const nombreImpresora = impresora === "Cocina" ? IMPRESORA_COCINA : IMPRESORA_BARRA;
-    const titulo           = tituloCustom || (impresora === "Cocina" ? "COMANDA COCINA" : "COMANDA BARRA");
+    const titulo           = tituloCustom || (impresora === "Cocina" ? "COCINA" : "BARRA");
     try {
         imprimir(buildComanda({ titulo, mesa, cliente, direccion, mozo, hora, items, nota }), nombreImpresora, res, titulo);
     } catch (err) {

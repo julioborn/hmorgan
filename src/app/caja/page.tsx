@@ -90,7 +90,9 @@ export default function CajaPage() {
     const [closeStep, setCloseStep]       = useState<"form" | "resumen">("form");
     const [cierreResumen, setCierreResumen] = useState<Record<string, { ingreso: number; egreso: number }>>({});
     const [menuItemsAll, setMenuItemsAll] = useState<MenuItemLite[]>([]);
-    const [editItemModal, setEditItemModal] = useState<{ pedidoId: string; itemId: string; nombreActual: string } | null>(null);
+    const [editItemModal, setEditItemModal] = useState<
+        { pedido: Pedido; modo: "agregar" } | { pedido: Pedido; modo: "reemplazar"; itemId: string; nombreActual: string } | null
+    >(null);
     const [editItemSearch, setEditItemSearch] = useState("");
     const [mesasPlano, setMesasPlano]     = useState<MesaPlano[]>([]);
     const [elementsPlano, setElementsPlano] = useState<SalonElPlano[]>([]);
@@ -214,18 +216,21 @@ export default function CajaPage() {
         loadData();
     }
 
-    async function abrirEditarItem(pedidoId: string, itemId: string, nombreActual: string) {
+    async function abrirSelectorProducto(
+        pedido: Pedido,
+        opts: { modo: "agregar" } | { modo: "reemplazar"; itemId: string; nombreActual: string }
+    ) {
         if (menuItemsAll.length === 0) {
             const r = await fetch("/api/menu?activo=true", { credentials: "include" });
             const d = await r.json().catch(() => []);
             setMenuItemsAll(Array.isArray(d) ? d : []);
         }
         setEditItemSearch("");
-        setEditItemModal({ pedidoId, itemId, nombreActual });
+        setEditItemModal({ pedido, ...opts } as typeof editItemModal);
     }
 
     async function reemplazarItemPedido(nuevoMenuItemId: string, nuevoNombre: string) {
-        if (!editItemModal) return;
+        if (!editItemModal || editItemModal.modo !== "reemplazar") return;
         const r = await swalBase.fire({
             title: "¿Cambiar producto?",
             text: `"${editItemModal.nombreActual}" se reemplazará por "${nuevoNombre}".`,
@@ -233,11 +238,52 @@ export default function CajaPage() {
             confirmButtonText: "Sí, cambiar", cancelButtonText: "Cancelar",
         });
         if (!r.isConfirmed) return;
-        await fetch(`/api/pedidos/${editItemModal.pedidoId}`, {
+        await fetch(`/api/pedidos/${editItemModal.pedido._id}`, {
             method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
             body: JSON.stringify({ accion: "reemplazarItem", itemId: editItemModal.itemId, nuevoMenuItemId }),
         });
         setEditItemModal(null);
+        loadData();
+    }
+
+    // Agregar un producto nuevo a una comanda ya existente. Si la comanda ya fue aceptada
+    // (no está "pendiente"), imprime ese único producto ya mismo en BARRA o COCINA según
+    // corresponda, sin esperar al poll de 5s — y deja el snapshot al día para que el poll
+    // no lo vuelva a detectar como "agregado" y lo imprima dos veces.
+    async function agregarProductoAPedido(menuItem: MenuItemLite) {
+        if (!editItemModal || editItemModal.modo !== "agregar") return;
+        const pedido = editItemModal.pedido;
+        const impresora = BEBIDAS_CATS.includes(menuItem.categoria) ? "BARRA" : "COCINA";
+        const yaAceptado = pedido.estado !== "pendiente";
+
+        const r = await swalBase.fire({
+            title: "¿Agregar producto?",
+            text: yaAceptado
+                ? `"${menuItem.nombre}" se agrega a la comanda y se imprime directo en ${impresora}.`
+                : `"${menuItem.nombre}" se agrega a la comanda.`,
+            icon: "question", showCancelButton: true,
+            confirmButtonText: "Sí, agregar", cancelButtonText: "Cancelar",
+        });
+        if (!r.isConfirmed) return;
+
+        setEditItemModal(null);
+
+        const res = await fetch(`/api/pedidos/${pedido._id}`, {
+            method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
+            body: JSON.stringify({ items: [{ menuItemId: menuItem._id, cantidad: 1 }] }),
+        });
+
+        if (yaAceptado) {
+            const data = await res.json().catch(() => null);
+            await printItemsAgregados(pedido, [
+                { cantidad: 1, menuItemId: { nombre: menuItem.nombre, categoria: menuItem.categoria } } as Pedido["items"][number],
+            ]);
+            if (data?.pedido?.items) {
+                const snapshot = new Map<string, number>(data.pedido.items.map((it: any) => [String(it._id), it.cantidad]));
+                itemsSnapshotRef.current.set(pedido._id, snapshot);
+            }
+        }
+
         loadData();
     }
 
@@ -458,8 +504,8 @@ export default function CajaPage() {
         } catch { /* servidor no disponible → fallback */ }
 
         // Fallback: ventana del navegador
-        if (comida.length > 0)  abrirEImprimir(comandaHtml(p, "COMANDA COCINA", comida));
-        if (bebidas.length > 0) setTimeout(() => abrirEImprimir(comandaHtml(p, "COMANDA BARRA", bebidas)), 600);
+        if (comida.length > 0)  abrirEImprimir(comandaHtml(p, "COCINA", comida));
+        if (bebidas.length > 0) setTimeout(() => abrirEImprimir(comandaHtml(p, "BARRA", bebidas)), 600);
     }
 
     // Reimpresión automática de ítems agregados a una comanda ya aceptada (sin intervención
@@ -740,23 +786,25 @@ export default function CajaPage() {
                                                     </div>
                                                 )}
 
-                                                <div className={`p-4 flex flex-col flex-1 min-h-0 ${esMozo ? "bg-gray-50" : "bg-white"}`}>
+                                                <div className={`p-3 flex flex-col flex-1 min-h-0 ${esMozo ? "bg-gray-50" : "bg-white"}`}>
                                                     {/* Header */}
-                                                    <div className="shrink-0 flex items-start justify-between gap-3 mb-3">
+                                                    <div className="shrink-0 flex items-start justify-between gap-3 mb-2">
                                                         <div className="flex-1 min-w-0">
-                                                            <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border uppercase tracking-wide inline-block mb-1.5 ${COLOR_CLASSES[color] || "border-gray-200 bg-gray-100 text-gray-600"}`}>
+                                                            <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border uppercase tracking-wide inline-block mb-1 ${COLOR_CLASSES[color] || "border-gray-200 bg-gray-100 text-gray-600"}`}>
                                                                 {p.estado}
                                                             </span>
-                                                            <h2 className="text-lg font-black text-gray-900 leading-tight">
+                                                            <h2 className="text-base font-black text-gray-900 leading-tight">
                                                                 {p.userId?.nombre} {p.userId?.apellido}
                                                             </h2>
-                                                            {!esMozo && p.userId?.telefono && (
-                                                                <a href={`https://wa.me/${p.userId.telefono.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
-                                                                    className="text-xs text-gray-500 mt-0.5 flex items-center gap-1 w-fit hover:text-emerald-600 transition">
-                                                                    <Phone size={10} />{p.userId.telefono}
-                                                                </a>
-                                                            )}
-                                                            <p className="text-xs text-gray-400 mt-0.5">{fechaHora}</p>
+                                                            <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-400">
+                                                                {!esMozo && p.userId?.telefono && (
+                                                                    <a href={`https://wa.me/${p.userId.telefono.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
+                                                                        className="flex items-center gap-1 hover:text-emerald-600 transition">
+                                                                        <Phone size={10} />{p.userId.telefono}
+                                                                    </a>
+                                                                )}
+                                                                <span>{fechaHora}</span>
+                                                            </div>
                                                         </div>
                                                         {!esMozo && p.userId?.telefono && (
                                                             <a href={`https://wa.me/${p.userId.telefono.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
@@ -767,14 +815,14 @@ export default function CajaPage() {
                                                     </div>
 
                                                     {/* Items */}
-                                                    <ul className="mb-3 flex-1 min-h-0 overflow-y-auto divide-y divide-gray-100 border border-gray-100 rounded-xl">
+                                                    <ul className="mb-2 flex-1 min-h-0 overflow-y-auto divide-y divide-gray-100 border border-gray-100 rounded-xl">
                                                         {p.items.map((it, idx) => (
                                                             <li key={it._id || idx} className="flex justify-between items-center px-3 py-2 bg-gray-50 gap-2">
                                                                 <span className="text-sm text-gray-800 flex-1 min-w-0 truncate">{it.menuItemId?.nombre}</span>
                                                                 <span className="text-red-600 font-semibold text-sm shrink-0">×{it.cantidad}</span>
                                                                 {p.estado !== "cerrado" && p.estado !== "cancelado" && it._id && (
                                                                     <div className="flex items-center gap-1 shrink-0">
-                                                                        <button onClick={() => abrirEditarItem(p._id, it._id!, it.menuItemId?.nombre || "ítem")}
+                                                                        <button onClick={() => abrirSelectorProducto(p, { modo: "reemplazar", itemId: it._id!, nombreActual: it.menuItemId?.nombre || "ítem" })}
                                                                             className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 transition">
                                                                             <Pencil size={12} />
                                                                         </button>
@@ -788,8 +836,15 @@ export default function CajaPage() {
                                                         ))}
                                                     </ul>
 
+                                                    {p.estado !== "cerrado" && p.estado !== "cancelado" && (
+                                                        <button onClick={() => abrirSelectorProducto(p, { modo: "agregar" })}
+                                                            className="shrink-0 mb-2 w-full flex items-center justify-center gap-1.5 border border-dashed border-gray-300 hover:border-gray-400 bg-white text-gray-500 hover:text-gray-700 font-semibold py-1.5 rounded-xl text-xs transition">
+                                                            <Plus size={12} /> Agregar producto
+                                                        </button>
+                                                    )}
+
                                                     {(p.notaEmpleado || p.notaCliente) && (
-                                                        <div className="shrink-0 border-l-2 border-amber-400 pl-3 py-1 mb-3">
+                                                        <div className="shrink-0 border-l-2 border-amber-400 pl-3 py-1 mb-2">
                                                             <p className="text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Nota</p>
                                                             <p className="text-xs text-gray-600 italic">{p.notaEmpleado || p.notaCliente}</p>
                                                         </div>
@@ -797,7 +852,7 @@ export default function CajaPage() {
 
                                                     {/* Total */}
                                                     {p.tipoEntrega === "envio" && (p.costoEnvio ?? 0) > 0 ? (
-                                                        <div className="shrink-0 text-sm text-gray-700 mb-3 space-y-0.5">
+                                                        <div className="shrink-0 text-sm text-gray-700 mb-2 space-y-0.5">
                                                             <div className="flex justify-between">
                                                                 <span>Subtotal</span>
                                                                 <span>{formatMoney(p.total - (p.costoEnvio ?? 0))}</span>
@@ -812,7 +867,7 @@ export default function CajaPage() {
                                                             </div>
                                                         </div>
                                                     ) : (
-                                                        <p className="shrink-0 text-sm font-bold text-gray-900 mb-3">Total: {formatMoney(p.total)}</p>
+                                                        <p className="shrink-0 text-sm font-bold text-gray-900 mb-2">Total: {formatMoney(p.total)}</p>
                                                     )}
 
                                                     {/* Botones estado pendiente */}
@@ -834,10 +889,10 @@ export default function CajaPage() {
                                                         </div>
                                                     ) : (
                                                         /* Barra de progreso con estados */
-                                                        <div className="shrink-0 relative w-full flex justify-between items-center mt-4">
-                                                            <div className="absolute top-[18px] left-0 w-full h-[3px] bg-gray-200 rounded-full" />
+                                                        <div className="shrink-0 relative w-full flex justify-between items-center mt-1">
+                                                            <div className="absolute top-[16px] left-0 w-full h-[3px] bg-gray-200 rounded-full" />
                                                             <motion.div
-                                                                className={`absolute top-[18px] left-0 h-[3px] ${BAR_COLORS[color] || "bg-gray-400"} rounded-full`}
+                                                                className={`absolute top-[16px] left-0 h-[3px] ${BAR_COLORS[color] || "bg-gray-400"} rounded-full`}
                                                                 initial={{ width: 0 }}
                                                                 animate={{ width: `${(estadoIdx / (estadosList.length - 1)) * 100}%` }}
                                                                 transition={{ duration: 0.4 }}
@@ -852,12 +907,12 @@ export default function CajaPage() {
                                                                             disabled={!canClick || isUpdating}
                                                                             onClick={() => canClick && avanzarEstado(p, est.key)}
                                                                             whileTap={canClick ? { scale: 0.9 } : undefined}
-                                                                            className={`flex items-center justify-center w-9 h-9 rounded-full border-2 transition-all
+                                                                            className={`flex items-center justify-center w-8 h-8 rounded-full border-2 transition-all
                                                                                 ${isActive ? COLOR_CLASSES[est.color] : "border-gray-300 bg-white text-gray-400"}
                                                                                 ${!canClick ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}`}>
-                                                                            <Icon className="w-4 h-4" />
+                                                                            <Icon className="w-3.5 h-3.5" />
                                                                         </motion.button>
-                                                                        <span className={`mt-2 font-medium ${isActive ? "text-gray-700" : "text-gray-400"}`}>
+                                                                        <span className={`mt-1 font-medium ${isActive ? "text-gray-700" : "text-gray-400"}`}>
                                                                             {est.label}
                                                                         </span>
                                                                     </div>
@@ -869,7 +924,7 @@ export default function CajaPage() {
                                                     {/* Reimprimir comanda (pedido ya aceptado) */}
                                                     {p.estado !== "pendiente" && (
                                                         <button onClick={() => printComanda(p)}
-                                                            className="shrink-0 mt-3 w-full flex items-center justify-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-1.5 rounded-xl text-xs transition">
+                                                            className="shrink-0 mt-2 w-full flex items-center justify-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-1.5 rounded-xl text-xs transition">
                                                             <Printer size={12} /> Reimprimir comanda
                                                         </button>
                                                     )}
@@ -877,7 +932,7 @@ export default function CajaPage() {
                                                     {/* Finalizado → botón para ir a cobrar */}
                                                     {p.estado === "entregado" && (
                                                         <button onClick={() => setTab("caja")}
-                                                            className="shrink-0 mt-4 w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-sm transition">
+                                                            className="shrink-0 mt-2 w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-xl text-sm transition">
                                                             <Wallet size={14} /> Cobrar en caja →
                                                         </button>
                                                     )}
@@ -948,7 +1003,7 @@ export default function CajaPage() {
                                                     <span className="text-gray-400 shrink-0">{formatMoney((item.menuItemId?.precio || 0) * item.cantidad)}</span>
                                                     {item._id && (
                                                         <div className="flex items-center gap-1 shrink-0">
-                                                            <button onClick={() => abrirEditarItem(p._id, item._id!, item.menuItemId?.nombre || "ítem")}
+                                                            <button onClick={() => abrirSelectorProducto(p, { modo: "reemplazar", itemId: item._id!, nombreActual: item.menuItemId?.nombre || "ítem" })}
                                                                 className="p-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 transition">
                                                                 <Pencil size={11} />
                                                             </button>
@@ -967,6 +1022,10 @@ export default function CajaPage() {
                                                 </div>
                                             )}
                                             {p.notaEmpleado && <p className="text-xs text-amber-600 italic pt-1">📝 {p.notaEmpleado}</p>}
+                                            <button onClick={() => abrirSelectorProducto(p, { modo: "agregar" })}
+                                                className="mt-1 w-full flex items-center justify-center gap-1.5 border border-dashed border-gray-300 hover:border-gray-400 bg-white text-gray-500 hover:text-gray-700 font-semibold py-1.5 rounded-xl text-xs transition">
+                                                <Plus size={12} /> Agregar producto
+                                            </button>
                                         </div>
                                     </div>
                                 );
@@ -1165,12 +1224,14 @@ export default function CajaPage() {
                 </div>
             )}
 
-            {/* Modal cambiar producto */}
+            {/* Modal cambiar/agregar producto */}
             {editItemModal && (
                 <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
                     <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl flex flex-col" style={{ maxHeight: "80vh" }}>
                         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
-                            <h2 className="font-black text-gray-900 flex-1 truncate">Cambiar "{editItemModal.nombreActual}"</h2>
+                            <h2 className="font-black text-gray-900 flex-1 truncate">
+                                {editItemModal.modo === "reemplazar" ? `Cambiar "${editItemModal.nombreActual}"` : "Agregar producto"}
+                            </h2>
                             <button onClick={() => setEditItemModal(null)} className="p-1 text-gray-400"><X size={18} /></button>
                         </div>
                         <div className="px-5 py-3 shrink-0">
@@ -1182,7 +1243,7 @@ export default function CajaPage() {
                             {menuItemsAll
                                 .filter(m => m.nombre.toLowerCase().includes(editItemSearch.toLowerCase()))
                                 .map(m => (
-                                    <button key={m._id} onClick={() => reemplazarItemPedido(m._id, m.nombre)}
+                                    <button key={m._id} onClick={() => editItemModal.modo === "reemplazar" ? reemplazarItemPedido(m._id, m.nombre) : agregarProductoAPedido(m)}
                                         className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-gray-50 border border-gray-100 text-left transition">
                                         <span className="text-sm text-gray-800">{m.nombre}</span>
                                         <span className="text-xs text-gray-400 shrink-0 ml-2">{formatMoney(m.precio)} · {m.categoria}</span>
