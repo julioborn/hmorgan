@@ -710,11 +710,11 @@ export default function CajaPage() {
                                         return (
                                             <motion.div key={p._id}
                                                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                                                className={`rounded-2xl border shadow-sm overflow-hidden ${esMozo ? "border-gray-800" : "border-gray-200"}`}>
+                                                className={`rounded-2xl border shadow-sm overflow-hidden h-[600px] flex flex-col ${esMozo ? "border-gray-800" : "border-gray-200"}`}>
 
                                                 {/* Banner mozo */}
                                                 {esMozo && (
-                                                    <div className="text-white px-4 py-2.5 flex items-center gap-2" style={{ background: "linear-gradient(90deg, #1c1c1c 0%, #2a2a2a 100%)" }}>
+                                                    <div className="shrink-0 text-white px-4 py-2.5 flex items-center gap-2" style={{ background: "linear-gradient(90deg, #1c1c1c 0%, #2a2a2a 100%)" }}>
                                                         <UtensilsCrossed size={14} className="text-gray-400" />
                                                         <div className="flex-1 min-w-0">
                                                             <span className="font-black text-sm tracking-tight">
@@ -729,7 +729,7 @@ export default function CajaPage() {
 
                                                 {/* Banner app */}
                                                 {!esMozo && (
-                                                    <div className="bg-gray-100 text-gray-600 px-4 py-2 flex items-center gap-2">
+                                                    <div className="shrink-0 bg-gray-100 text-gray-600 px-4 py-2 flex items-center gap-2">
                                                         <Package size={12} />
                                                         <span className="text-xs font-bold">
                                                             {p.numeroDia ? `Pedido #${p.numeroDia}` : "Pedido App"}
@@ -738,9 +738,9 @@ export default function CajaPage() {
                                                     </div>
                                                 )}
 
-                                                <div className={`p-4 ${esMozo ? "bg-gray-50" : "bg-white"}`}>
+                                                <div className={`p-4 flex flex-col flex-1 min-h-0 ${esMozo ? "bg-gray-50" : "bg-white"}`}>
                                                     {/* Header */}
-                                                    <div className="flex items-start justify-between gap-3 mb-3">
+                                                    <div className="shrink-0 flex items-start justify-between gap-3 mb-3">
                                                         <div className="flex-1 min-w-0">
                                                             <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border uppercase tracking-wide inline-block mb-1.5 ${COLOR_CLASSES[color] || "border-gray-200 bg-gray-100 text-gray-600"}`}>
                                                                 {p.estado}
@@ -765,7 +765,7 @@ export default function CajaPage() {
                                                     </div>
 
                                                     {/* Items */}
-                                                    <ul className="mb-3 divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
+                                                    <ul className="mb-3 flex-1 min-h-0 overflow-y-auto divide-y divide-gray-100 border border-gray-100 rounded-xl">
                                                         {p.items.map((it, idx) => (
                                                             <li key={it._id || idx} className="flex justify-between items-center px-3 py-2 bg-gray-50 gap-2">
                                                                 <span className="text-sm text-gray-800 flex-1 min-w-0 truncate">{it.menuItemId?.nombre}</span>
@@ -787,7 +787,7 @@ export default function CajaPage() {
                                                     </ul>
 
                                                     {(p.notaEmpleado || p.notaCliente) && (
-                                                        <div className="border-l-2 border-amber-400 pl-3 py-1 mb-3">
+                                                        <div className="shrink-0 border-l-2 border-amber-400 pl-3 py-1 mb-3">
                                                             <p className="text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Nota</p>
                                                             <p className="text-xs text-gray-600 italic">{p.notaEmpleado || p.notaCliente}</p>
                                                         </div>
@@ -795,7 +795,7 @@ export default function CajaPage() {
 
                                                     {/* Total */}
                                                     {p.tipoEntrega === "envio" && (p.costoEnvio ?? 0) > 0 ? (
-                                                        <div className="text-sm text-gray-700 mb-3 space-y-0.5">
+                                                        <div className="shrink-0 text-sm text-gray-700 mb-3 space-y-0.5">
                                                             <div className="flex justify-between">
                                                                 <span>Subtotal</span>
                                                                 <span>{formatMoney(p.total - (p.costoEnvio ?? 0))}</span>
@@ -810,12 +810,12 @@ export default function CajaPage() {
                                                             </div>
                                                         </div>
                                                     ) : (
-                                                        <p className="text-sm font-bold text-gray-900 mb-3">Total: {formatMoney(p.total)}</p>
+                                                        <p className="shrink-0 text-sm font-bold text-gray-900 mb-3">Total: {formatMoney(p.total)}</p>
                                                     )}
 
                                                     {/* Botones estado pendiente */}
                                                     {p.estado === "pendiente" ? (
-                                                        <div className="flex gap-2">
+                                                        <div className="shrink-0 flex gap-2">
                                                             <button disabled={isUpdating}
                                                                 onClick={async () => {
                                                                     await avanzarEstado(p, "preparando");
@@ -832,7 +832,7 @@ export default function CajaPage() {
                                                         </div>
                                                     ) : (
                                                         /* Barra de progreso con estados */
-                                                        <div className="relative w-full flex justify-between items-center mt-4">
+                                                        <div className="shrink-0 relative w-full flex justify-between items-center mt-4">
                                                             <div className="absolute top-[18px] left-0 w-full h-[3px] bg-gray-200 rounded-full" />
                                                             <motion.div
                                                                 className={`absolute top-[18px] left-0 h-[3px] ${BAR_COLORS[color] || "bg-gray-400"} rounded-full`}
@@ -867,7 +867,7 @@ export default function CajaPage() {
                                                     {/* Reimprimir comanda (pedido ya aceptado) */}
                                                     {p.estado !== "pendiente" && (
                                                         <button onClick={() => printComanda(p)}
-                                                            className="mt-3 w-full flex items-center justify-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-1.5 rounded-xl text-xs transition">
+                                                            className="shrink-0 mt-3 w-full flex items-center justify-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-1.5 rounded-xl text-xs transition">
                                                             <Printer size={12} /> Reimprimir comanda
                                                         </button>
                                                     )}
@@ -875,7 +875,7 @@ export default function CajaPage() {
                                                     {/* Finalizado → botón para ir a cobrar */}
                                                     {p.estado === "entregado" && (
                                                         <button onClick={() => setTab("caja")}
-                                                            className="mt-4 w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-sm transition">
+                                                            className="shrink-0 mt-4 w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-sm transition">
                                                             <Wallet size={14} /> Cobrar en caja →
                                                         </button>
                                                     )}
@@ -912,8 +912,8 @@ export default function CajaPage() {
                                     ? (p.mesa ? `Mesa ${p.mesa}` : p.nombreComanda || "Sin mesa")
                                     : (p.userId ? `${p.userId.nombre} ${p.userId.apellido || ""}`.trim() : "Cliente app");
                                 return (
-                                    <div key={p._id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                                        <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 bg-gray-50">
+                                    <div key={p._id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden h-[420px] flex flex-col">
+                                        <div className="shrink-0 flex items-center justify-between px-4 py-3.5 border-b border-gray-100 bg-gray-50">
                                             <div>
                                                 <div className="flex items-center gap-2 flex-wrap">
                                                     <UtensilsCrossed size={14} className="text-gray-400" />
@@ -939,7 +939,7 @@ export default function CajaPage() {
                                                 </button>
                                             </div>
                                         </div>
-                                        <div className="px-4 py-3 space-y-1">
+                                        <div className="px-4 py-3 space-y-1 flex-1 min-h-0 overflow-y-auto">
                                             {p.items.map((item, idx) => (
                                                 <div key={item._id || idx} className="flex justify-between items-center text-sm gap-2">
                                                     <span className="text-gray-700 flex-1 min-w-0 truncate">{item.cantidad}× {item.menuItemId?.nombre}</span>
