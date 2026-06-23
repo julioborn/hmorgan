@@ -20,7 +20,7 @@ type Pedido = {
     comensales?: number;
     fuente: string;
     numeroDia?: number;
-    items: { _id?: string; menuItemId: { _id?: string; nombre: string; precio: number; categoria?: string }; cantidad: number }[];
+    items: { _id?: string; menuItemId: { _id?: string; nombre: string; precio: number; categoria?: string }; cantidad: number; impreso?: boolean }[];
     total: number;
     costoEnvio?: number;
     estado: string;
@@ -99,26 +99,33 @@ export default function CajaPage() {
     const [mesasLoaded, setMesasLoaded]   = useState(false);
     const [mesaDetalle, setMesaDetalle]   = useState<{ mesa: MesaPlano; pedido: Pedido } | null>(null);
 
-    // Última cantidad conocida por ítem (clave: pedidoId -> itemId -> cantidad), para detectar
-    // ítems agregados a una comanda ya aceptada y reimprimir solo esos.
-    const itemsSnapshotRef = useRef<Map<string, Map<string, number>>>(new Map());
+    // Ítems cuyo "impreso" ya se está marcando/imprimiendo en este mismo instante,
+    // para no dispararlos dos veces si el poll de 5s cae justo en el medio.
+    const itemsImprimiendoRef = useRef<Set<string>>(new Set());
 
+    async function marcarItemsImpresos(pedidoId: string, itemIds: string[]) {
+        if (itemIds.length === 0) return;
+        try {
+            await fetch(`/api/pedidos/${pedidoId}`, {
+                method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
+                body: JSON.stringify({ accion: "marcarImpreso", itemIds }),
+            });
+        } catch { /* si falla, sigue "impreso: false" y se reintenta en el próximo poll */ }
+    }
+
+    // Detecta ítems agregados a comandas ya aceptadas (impreso: false en la base, no en
+    // memoria del navegador) y los imprime individualmente en BARRA o COCINA. Al venir del
+    // servidor, funciona sin importar recargas de página o desde qué dispositivo se agregó.
     function detectarAgregados(lista: Pedido[]) {
         for (const p of lista) {
             if (!["preparando", "listo"].includes(p.estado)) continue;
-            const actual = new Map(p.items.map(it => [it._id || it.menuItemId?.nombre || "", it.cantidad]));
-            const previo = itemsSnapshotRef.current.get(p._id);
-            if (previo) {
-                const agregados = p.items.filter(it => {
-                    const key = it._id || it.menuItemId?.nombre || "";
-                    return it.cantidad - (previo.get(key) ?? 0) > 0;
-                }).map(it => {
-                    const key = it._id || it.menuItemId?.nombre || "";
-                    return { ...it, cantidad: it.cantidad - (previo.get(key) ?? 0) };
-                });
-                if (agregados.length > 0) printItemsAgregados(p, agregados);
-            }
-            itemsSnapshotRef.current.set(p._id, actual);
+            const pendientes = p.items.filter(it => it.impreso === false && it._id && !itemsImprimiendoRef.current.has(it._id));
+            if (pendientes.length === 0) continue;
+            const ids = pendientes.map(it => it._id!);
+            ids.forEach(id => itemsImprimiendoRef.current.add(id));
+            printItemsAgregados(p, pendientes)
+                .then(() => marcarItemsImpresos(p._id, ids))
+                .finally(() => ids.forEach(id => itemsImprimiendoRef.current.delete(id)));
         }
     }
 
@@ -248,8 +255,8 @@ export default function CajaPage() {
 
     // Agregar un producto nuevo a una comanda ya existente. Si la comanda ya fue aceptada
     // (no está "pendiente"), imprime ese único producto ya mismo en BARRA o COCINA según
-    // corresponda, sin esperar al poll de 5s — y deja el snapshot al día para que el poll
-    // no lo vuelva a detectar como "agregado" y lo imprima dos veces.
+    // corresponda, sin esperar al poll de 5s. El ítem queda marcado "impreso" recién
+    // cuando la impresión termina; si falla, el poll de detectarAgregados lo reintenta.
     async function agregarProductoAPedido(menuItem: MenuItemLite) {
         if (!editItemModal || editItemModal.modo !== "agregar") return;
         const pedido = editItemModal.pedido;
@@ -275,12 +282,16 @@ export default function CajaPage() {
 
         if (yaAceptado) {
             const data = await res.json().catch(() => null);
-            await printItemsAgregados(pedido, [
-                { cantidad: 1, menuItemId: { nombre: menuItem.nombre, categoria: menuItem.categoria } } as Pedido["items"][number],
-            ]);
-            if (data?.pedido?.items) {
-                const snapshot = new Map<string, number>(data.pedido.items.map((it: any) => [String(it._id), it.cantidad]));
-                itemsSnapshotRef.current.set(pedido._id, snapshot);
+            const nuevoItem = data?.pedido?.items?.[data.pedido.items.length - 1];
+            const nuevoItemId = nuevoItem?._id ? String(nuevoItem._id) : undefined;
+            if (nuevoItemId) itemsImprimiendoRef.current.add(nuevoItemId);
+            try {
+                await printItemsAgregados(pedido, [
+                    { cantidad: 1, menuItemId: { nombre: menuItem.nombre, categoria: menuItem.categoria } } as Pedido["items"][number],
+                ]);
+                if (nuevoItemId) await marcarItemsImpresos(pedido._id, [nuevoItemId]);
+            } finally {
+                if (nuevoItemId) itemsImprimiendoRef.current.delete(nuevoItemId);
             }
         }
 
@@ -471,6 +482,11 @@ export default function CajaPage() {
         const hora = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
         const { mesa, cliente, mozo, direccion } = datosComanda(p);
         const nota = p.notaEmpleado || p.notaCliente || "";
+
+        // Se imprime todo de nuevo (comanda completa) → todos los ítems quedan "impresos"
+        // para que el chequeo de agregados no los vuelva a imprimir sueltos después.
+        const itemIds = p.items.map(it => it._id).filter((id): id is string => !!id);
+        await marcarItemsImpresos(p._id, itemIds);
 
         // Intentar servidor local de impresión
         try {
@@ -875,8 +891,11 @@ export default function CajaPage() {
                                                         <div className="shrink-0 flex gap-2">
                                                             <button disabled={isUpdating}
                                                                 onClick={async () => {
+                                                                    // Imprime y marca los ítems como impresos ANTES de pasar a
+                                                                    // "preparando", así el chequeo de agregados no los detecta
+                                                                    // como pendientes y los imprime por segunda vez.
+                                                                    await printComanda(p);
                                                                     await avanzarEstado(p, "preparando");
-                                                                    printComanda(p);
                                                                 }}
                                                                 className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-semibold py-2 rounded-xl transition flex items-center justify-center gap-1">
                                                                 {isUpdating ? <Loader2 size={14} className="animate-spin" /> : null}

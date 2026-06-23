@@ -61,21 +61,26 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         return NextResponse.json({ ok: true, pedido });
     }
 
+    // ── Marcar ítems como ya impresos en BARRA/COCINA ───────────────────────
+    if (body.accion === "marcarImpreso") {
+        const { itemIds } = body;
+        const idSet = new Set<string>(itemIds || []);
+        for (const it of pedido.items as any[]) {
+            if (idSet.has(it._id.toString())) it.impreso = true;
+        }
+        await pedido.save();
+        return NextResponse.json({ ok: true, pedido });
+    }
+
     // ── Agregar ítems nuevos a la comanda (default) ─────────────────────────
     const { items, notaEmpleado } = body;
     if (!items?.length) return NextResponse.json({ error: "Sin ítems" }, { status: 400 });
 
-    // Merge: si el menuItemId ya existe en la comanda, sumar la cantidad; si no, agregar
+    // Cada agregado queda como línea propia (no se fusiona con lo existente) y marcado
+    // como "no impreso" para que la caja lo detecte y lo imprima individual en BARRA/COCINA.
     const updatedItems = [...pedido.items] as any[];
     for (const newItem of items) {
-        const existing = updatedItems.find(
-            (i: any) => i.menuItemId.toString() === newItem.menuItemId
-        );
-        if (existing) {
-            existing.cantidad += newItem.cantidad;
-        } else {
-            updatedItems.push({ menuItemId: newItem.menuItemId, cantidad: newItem.cantidad });
-        }
+        updatedItems.push({ menuItemId: newItem.menuItemId, cantidad: newItem.cantidad, impreso: false });
     }
 
     pedido.items = updatedItems;
