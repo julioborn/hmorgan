@@ -57,6 +57,11 @@ export async function GET(req: NextRequest) {
         const mesaParam = req.nextUrl.searchParams.get("mesa");
         const activosParam = req.nextUrl.searchParams.get("activos");
         const fuenteParam = req.nextUrl.searchParams.get("fuente");
+        const propiasParam = req.nextUrl.searchParams.get("propias");
+
+        // El mozo solo ve sus propias comandas en su listado (no las de otros mozos).
+        // No se aplica al chequeo de mesas ocupadas, que sigue viendo todas para evitar choques.
+        if (propiasParam === "true") query.userId = payload.sub;
 
         if (mesaParam && payload.role !== "cliente") query.mesa = mesaParam;
         if (activosParam === "true") query.estado = { $nin: ["cerrado", "cancelado"] };

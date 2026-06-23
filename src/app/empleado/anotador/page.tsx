@@ -57,10 +57,12 @@ export default function AnotadorPage() {
     }, [user, loading, router]);
 
     const fetchComandas = useCallback(async () => {
-        const r = await fetch("/api/pedidos?activos=true&fuente=empleado", { credentials: "include" });
+        // Cada mozo ve solo sus propias comandas, no las de los demás
+        const propias = user?.role === "empleado" ? "&propias=true" : "";
+        const r = await fetch(`/api/pedidos?activos=true&fuente=empleado${propias}`, { credentials: "include" });
         const d = await r.json().catch(() => []);
         setComandas(Array.isArray(d) ? d : []);
-    }, []);
+    }, [user?.role]);
 
     const fetchReservas = useCallback(async () => {
         const r = await fetch("/api/reservas", { credentials: "include" });

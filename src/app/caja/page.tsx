@@ -758,7 +758,7 @@ export default function CajaPage() {
                                         return (
                                             <motion.div key={p._id}
                                                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                                                className={`rounded-2xl border shadow-sm overflow-hidden aspect-square flex flex-col ${esMozo ? "border-gray-800" : "border-gray-200"}`}>
+                                                className={`rounded-2xl border shadow-sm overflow-hidden aspect-[4/5] flex flex-col ${esMozo ? "border-gray-800" : "border-gray-200"}`}>
 
                                                 {/* Banner mozo */}
                                                 {esMozo && (
@@ -887,8 +887,8 @@ export default function CajaPage() {
                                                                 Rechazar
                                                             </button>
                                                         </div>
-                                                    ) : (
-                                                        /* Barra de progreso con estados */
+                                                    ) : estadoIdx < estadosList.length - 1 ? (
+                                                        /* Barra de progreso con estados (se oculta cuando ya no hay un próximo paso clickeable) */
                                                         <div className="shrink-0 relative w-full flex justify-between items-center mt-1">
                                                             <div className="absolute top-[16px] left-0 w-full h-[3px] bg-gray-200 rounded-full" />
                                                             <motion.div
@@ -919,22 +919,22 @@ export default function CajaPage() {
                                                                 );
                                                             })}
                                                         </div>
-                                                    )}
+                                                    ) : null}
 
-                                                    {/* Reimprimir comanda (pedido ya aceptado) */}
+                                                    {/* Reimprimir / Cobrar (pedido ya aceptado) */}
                                                     {p.estado !== "pendiente" && (
-                                                        <button onClick={() => printComanda(p)}
-                                                            className="shrink-0 mt-2 w-full flex items-center justify-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-1.5 rounded-xl text-xs transition">
-                                                            <Printer size={12} /> Reimprimir comanda
-                                                        </button>
-                                                    )}
-
-                                                    {/* Finalizado → botón para ir a cobrar */}
-                                                    {p.estado === "entregado" && (
-                                                        <button onClick={() => setTab("caja")}
-                                                            className="shrink-0 mt-2 w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-xl text-sm transition">
-                                                            <Wallet size={14} /> Cobrar en caja →
-                                                        </button>
+                                                        <div className="shrink-0 mt-2 flex gap-2">
+                                                            <button onClick={() => printComanda(p)}
+                                                                className="flex-1 flex items-center justify-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-1.5 rounded-xl text-xs transition">
+                                                                <Printer size={12} /> Reimprimir
+                                                            </button>
+                                                            {p.estado === "entregado" && (
+                                                                <button onClick={() => setTab("caja")}
+                                                                    className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 rounded-xl text-xs transition">
+                                                                    <Wallet size={12} /> Cobrar →
+                                                                </button>
+                                                            )}
+                                                        </div>
                                                     )}
                                                 </div>
                                             </motion.div>
@@ -969,7 +969,7 @@ export default function CajaPage() {
                                     ? (p.mesa ? `Mesa ${p.mesa}` : p.nombreComanda || "Sin mesa")
                                     : (p.userId ? `${p.userId.nombre} ${p.userId.apellido || ""}`.trim() : "Cliente app");
                                 return (
-                                    <div key={p._id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden aspect-square flex flex-col">
+                                    <div key={p._id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden aspect-[4/5] flex flex-col">
                                         <div className="shrink-0 flex items-center justify-between px-4 py-3.5 border-b border-gray-100 bg-gray-50">
                                             <div>
                                                 <div className="flex items-center gap-2 flex-wrap">
