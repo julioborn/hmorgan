@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { CajaSession } from "@/models/CajaSession";
 import { CajaMovement } from "@/models/CajaMovement";
+import { Evento } from "@/models/Evento";
 import jwt from "jsonwebtoken";
 
 const SECRET = process.env.NEXTAUTH_SECRET!;
@@ -34,6 +35,9 @@ export async function POST(req: NextRequest) {
     sesion.fechaCierre = new Date();
     if (notas) sesion.notas = notas;
     await sesion.save();
+
+    // Cerrar cualquier evento activo al cerrar la caja
+    await Evento.updateMany({ estado: "activo" }, { $set: { estado: "cerrado" } });
 
     return NextResponse.json({ ok: true, resumen, sesion });
 }
