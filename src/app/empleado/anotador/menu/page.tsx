@@ -8,7 +8,7 @@ import {
     UtensilsCrossed, Pizza, Beef, Sandwich, Salad, Beer,
     CupSoda, Martini, BottleWine, GlassWater, Beaker,
     CakeSlice, Hamburger, Milk, Plus, Minus, ShoppingCart,
-    Send, ChevronLeft, CheckCircle, Printer, X, MapPin, ChevronDown,
+    Send, ChevronLeft, CheckCircle, Printer, X, MapPin, ChevronDown, Star,
 } from "lucide-react";
 import Loader from "@/components/Loader";
 import { useCategoryConfigs } from "@/hooks/useCategoryConfigs";
@@ -63,7 +63,11 @@ function AnotadorMenuContent() {
     const [clienteNombre, setClienteNombre] = useState("");
     const [clienteSearch, setClienteSearch] = useState("");
     const [clienteResults, setClienteResults] = useState<{_id:string;nombre:string;apellido:string;username:string}[]>([]);
+    const [clienteId, setClienteId]     = useState<string | null>(null);
     const clienteInputRef               = useRef<HTMLInputElement>(null);
+
+    // Evento activo
+    const [eventoActivo, setEventoActivo] = useState<{_id:string;nombre:string} | null>(null);
 
     // Mesa picker
     const [mesaPickerOpen, setMesaPickerOpen] = useState(false);
@@ -88,6 +92,13 @@ function AnotadorMenuContent() {
         fetch("/api/menu").then(r => r.json()).then(d => {
             setMenuItems(Array.isArray(d) ? d : []);
         }).catch(() => {}).finally(() => setLoadingMenu(false));
+    }, []);
+
+    useEffect(() => {
+        fetch("/api/eventos?activo=true", { credentials: "include" })
+            .then(r => r.json())
+            .then(d => setEventoActivo(Array.isArray(d) && d.length > 0 ? { _id: d[0]._id, nombre: d[0].nombre } : null))
+            .catch(() => null);
     }, []);
 
     // Cargar comanda existente si hay id
@@ -262,10 +273,12 @@ function AnotadorMenuContent() {
                         items: cart.map(c => ({ menuItemId: c.menuItemId, cantidad: c.cantidad })),
                         tipoEntrega: "retira",
                         fuente: "empleado",
-                        mesa: mesa.trim() || undefined,
-                        comensales: comensales || undefined,
+                        mesa:          eventoActivo ? undefined : (mesa.trim() || undefined),
+                        comensales:    eventoActivo ? undefined : (comensales || undefined),
                         nombreComanda: clienteNombre.trim() || undefined,
-                        notaEmpleado: nota.trim() || undefined,
+                        notaEmpleado:  nota.trim() || undefined,
+                        eventoId:      eventoActivo?._id || undefined,
+                        clienteId:     clienteId || undefined,
                     }),
                 });
             }
@@ -343,10 +356,20 @@ function AnotadorMenuContent() {
                 {/* Resumen mesa/comensales/nombre (solo nueva comanda en step menú) */}
                 {!comandaId && (
                     <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs">
-                        <MapPin className="w-3 h-3 text-gray-400 shrink-0" />
-                        <span className="font-bold text-gray-800">{mesa ? `Mesa ${mesa}` : "Sin mesa"}</span>
-                        <span className="text-gray-400">· {comensales}p</span>
-                        {clienteNombre && <span className="text-gray-500 truncate">· {clienteNombre}</span>}
+                        {eventoActivo ? (
+                            <>
+                                <Star className="w-3 h-3 text-amber-500 shrink-0" />
+                                <span className="font-bold text-amber-700 truncate">Evento: {eventoActivo.nombre}</span>
+                                {clienteNombre && <span className="text-gray-500 truncate">· {clienteNombre}</span>}
+                            </>
+                        ) : (
+                            <>
+                                <MapPin className="w-3 h-3 text-gray-400 shrink-0" />
+                                <span className="font-bold text-gray-800">{mesa ? `Mesa ${mesa}` : "Sin mesa"}</span>
+                                <span className="text-gray-400">· {comensales}p</span>
+                                {clienteNombre && <span className="text-gray-500 truncate">· {clienteNombre}</span>}
+                            </>
+                        )}
                         <button onClick={() => setStep("info")} className="ml-auto text-red-500 font-semibold shrink-0 hover:text-red-700 transition">Cambiar</button>
                     </div>
                 )}
@@ -488,7 +511,7 @@ function AnotadorMenuContent() {
     return (
         <div className="bg-white min-h-screen pb-6">
 
-            {/* ── STEP 1: Selección de mesa, personas y cliente ── */}
+            {/* ── STEP 1: Info de la comanda ── */}
             {step === "info" && (
                 <>
                     <div className="bg-black text-white px-4 py-3 flex items-center gap-3">
@@ -498,67 +521,144 @@ function AnotadorMenuContent() {
 
                     <div className="max-w-md mx-auto px-5 pt-4 space-y-7 pb-10">
 
-                        {/* Mesa */}
-                        <div>
-                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Mesa</p>
-                            <button onClick={openMesaPicker}
-                                className={`w-full flex items-center justify-between px-4 py-4 rounded-2xl border-2 font-bold transition text-sm ${mesa ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-500 border-gray-200 hover:border-gray-400"}`}>
-                                <div className="flex items-center gap-2">
-                                    <MapPin className="w-4 h-4" />
-                                    {mesa ? `Mesa ${mesa}` : "Seleccionar mesa"}
+                        {/* ── Modo evento: solo nombre de cliente ── */}
+                        {eventoActivo ? (
+                            <>
+                                <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                                    <Star size={14} className="text-amber-500 shrink-0" />
+                                    <p className="text-sm font-bold text-amber-700">Evento: {eventoActivo.nombre}</p>
                                 </div>
-                                <ChevronDown className="w-4 h-4 opacity-60" />
-                            </button>
-                        </div>
 
-                        {/* Personas */}
-                        <div>
-                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Personas</p>
-                            <div className="flex items-center gap-5">
-                                <button onClick={() => setComensales(c => Math.max(1, c - 1))}
-                                    className="w-12 h-12 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-2xl font-bold transition active:scale-95">−</button>
-                                <span className="text-4xl font-black text-gray-900 w-12 text-center">{comensales}</span>
-                                <button onClick={() => setComensales(c => Math.min(20, c + 1))}
-                                    className="w-12 h-12 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-2xl font-bold transition active:scale-95">+</button>
-                            </div>
-                        </div>
-
-                        {/* Nombre cliente */}
-                        <div>
-                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Cliente <span className="font-normal normal-case text-gray-300">(opcional)</span></p>
-                            <div className="relative">
-                                <input
-                                    ref={clienteInputRef}
-                                    type="text"
-                                    placeholder="Buscar o escribir nombre..."
-                                    value={clienteNombre}
-                                    onChange={e => { setClienteNombre(e.target.value); setClienteSearch(e.target.value); }}
-                                    className="w-full px-4 py-4 rounded-2xl border-2 border-gray-200 text-sm focus:outline-none focus:border-red-400"
-                                />
-                                {clienteResults.length > 0 && (
-                                    <div className="absolute top-full left-0 right-0 z-20 bg-white border border-gray-200 rounded-2xl shadow-lg mt-1 overflow-hidden">
-                                        {clienteResults.map(c => (
-                                            <button key={c._id} onMouseDown={e => e.preventDefault()} onClick={() => {
-                                                setClienteNombre(`${c.nombre} ${c.apellido}`);
-                                                setClienteSearch("");
-                                                setClienteResults([]);
-                                            }} className="w-full text-left px-4 py-3 hover:bg-gray-50 text-sm transition border-b border-gray-50 last:border-0">
-                                                <span className="font-semibold text-gray-900">{c.nombre} {c.apellido}</span>
-                                                <span className="text-gray-400 ml-2 text-xs">@{c.username}</span>
-                                            </button>
-                                        ))}
+                                <div>
+                                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">
+                                        ¿Para quién es? <span className="font-normal normal-case text-gray-300">(opcional)</span>
+                                    </p>
+                                    <div className="relative">
+                                        <input
+                                            ref={clienteInputRef}
+                                            type="text"
+                                            placeholder="Buscar usuario o escribir nombre..."
+                                            value={clienteNombre}
+                                            onChange={e => {
+                                                setClienteNombre(e.target.value);
+                                                setClienteSearch(e.target.value);
+                                                setClienteId(null);
+                                            }}
+                                            className="w-full px-4 py-4 rounded-2xl border-2 border-gray-200 text-sm focus:outline-none focus:border-red-400"
+                                        />
+                                        {clienteResults.length > 0 && !clienteId && (
+                                            <div className="absolute top-full left-0 right-0 z-20 bg-white border border-gray-200 rounded-2xl shadow-lg mt-1 overflow-hidden">
+                                                {clienteResults.map(c => (
+                                                    <button key={c._id} onMouseDown={e => e.preventDefault()} onClick={() => {
+                                                        setClienteNombre(`${c.nombre} ${c.apellido}`);
+                                                        setClienteId(c._id);
+                                                        setClienteSearch("");
+                                                        setClienteResults([]);
+                                                    }} className="w-full text-left px-4 py-3 hover:bg-gray-50 text-sm transition border-b border-gray-50 last:border-0">
+                                                        <span className="font-semibold text-gray-900">{c.nombre} {c.apellido}</span>
+                                                        <span className="text-gray-400 ml-2 text-xs">@{c.username}</span>
+                                                        <span className="ml-2 text-xs text-emerald-600 font-bold">· suma puntos</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                            </div>
-                        </div>
+                                    {clienteId && (
+                                        <div className="mt-2 flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
+                                            <CheckCircle size={12} className="shrink-0" />
+                                            <span className="font-semibold flex-1">Usuario registrado — acumula puntos al cobrar</span>
+                                            <button onClick={() => { setClienteId(null); setClienteNombre(""); }}
+                                                className="text-emerald-600 font-bold hover:text-red-500 transition">✕</button>
+                                        </div>
+                                    )}
+                                </div>
 
-                        {/* Continuar */}
-                        <button onClick={() => setStep("menu")}
-                            className="w-full bg-red-600 hover:bg-red-700 text-white font-extrabold py-4 rounded-2xl flex items-center justify-center gap-2 transition active:scale-[0.98] text-base shadow-lg shadow-red-600/20 mt-2">
-                            Continuar al menú →
-                        </button>
-                        {!mesa && (
-                            <p className="text-center text-xs text-gray-400 -mt-4">Podés continuar sin elegir mesa</p>
+                                <button onClick={() => setStep("menu")}
+                                    className="w-full bg-red-600 hover:bg-red-700 text-white font-extrabold py-4 rounded-2xl flex items-center justify-center gap-2 transition active:scale-[0.98] text-base shadow-lg shadow-red-600/20 mt-2">
+                                    Continuar al menú →
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                {/* ── Modo normal: mesa + personas + cliente ── */}
+
+                                {/* Mesa */}
+                                <div>
+                                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Mesa</p>
+                                    <button onClick={openMesaPicker}
+                                        className={`w-full flex items-center justify-between px-4 py-4 rounded-2xl border-2 font-bold transition text-sm ${mesa ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-500 border-gray-200 hover:border-gray-400"}`}>
+                                        <div className="flex items-center gap-2">
+                                            <MapPin className="w-4 h-4" />
+                                            {mesa ? `Mesa ${mesa}` : "Seleccionar mesa"}
+                                        </div>
+                                        <ChevronDown className="w-4 h-4 opacity-60" />
+                                    </button>
+                                </div>
+
+                                {/* Personas */}
+                                <div>
+                                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Personas</p>
+                                    <div className="flex items-center gap-5">
+                                        <button onClick={() => setComensales(c => Math.max(1, c - 1))}
+                                            className="w-12 h-12 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-2xl font-bold transition active:scale-95">−</button>
+                                        <span className="text-4xl font-black text-gray-900 w-12 text-center">{comensales}</span>
+                                        <button onClick={() => setComensales(c => Math.min(20, c + 1))}
+                                            className="w-12 h-12 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-2xl font-bold transition active:scale-95">+</button>
+                                    </div>
+                                </div>
+
+                                {/* Nombre cliente */}
+                                <div>
+                                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Cliente <span className="font-normal normal-case text-gray-300">(opcional)</span></p>
+                                    <div className="relative">
+                                        <input
+                                            ref={clienteInputRef}
+                                            type="text"
+                                            placeholder="Buscar o escribir nombre..."
+                                            value={clienteNombre}
+                                            onChange={e => {
+                                                setClienteNombre(e.target.value);
+                                                setClienteSearch(e.target.value);
+                                                setClienteId(null);
+                                            }}
+                                            className="w-full px-4 py-4 rounded-2xl border-2 border-gray-200 text-sm focus:outline-none focus:border-red-400"
+                                        />
+                                        {clienteResults.length > 0 && !clienteId && (
+                                            <div className="absolute top-full left-0 right-0 z-20 bg-white border border-gray-200 rounded-2xl shadow-lg mt-1 overflow-hidden">
+                                                {clienteResults.map(c => (
+                                                    <button key={c._id} onMouseDown={e => e.preventDefault()} onClick={() => {
+                                                        setClienteNombre(`${c.nombre} ${c.apellido}`);
+                                                        setClienteId(c._id);
+                                                        setClienteSearch("");
+                                                        setClienteResults([]);
+                                                    }} className="w-full text-left px-4 py-3 hover:bg-gray-50 text-sm transition border-b border-gray-50 last:border-0">
+                                                        <span className="font-semibold text-gray-900">{c.nombre} {c.apellido}</span>
+                                                        <span className="text-gray-400 ml-2 text-xs">@{c.username}</span>
+                                                        <span className="ml-2 text-xs text-emerald-600 font-bold">· suma puntos</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                    {clienteId && (
+                                        <div className="mt-2 flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
+                                            <CheckCircle size={12} className="shrink-0" />
+                                            <span className="font-semibold flex-1">Usuario registrado — acumula puntos al cobrar</span>
+                                            <button onClick={() => { setClienteId(null); setClienteNombre(""); }}
+                                                className="text-emerald-600 font-bold hover:text-red-500 transition">✕</button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Continuar */}
+                                <button onClick={() => setStep("menu")}
+                                    className="w-full bg-red-600 hover:bg-red-700 text-white font-extrabold py-4 rounded-2xl flex items-center justify-center gap-2 transition active:scale-[0.98] text-base shadow-lg shadow-red-600/20 mt-2">
+                                    Continuar al menú →
+                                </button>
+                                {!mesa && (
+                                    <p className="text-center text-xs text-gray-400 -mt-4">Podés continuar sin elegir mesa</p>
+                                )}
+                            </>
                         )}
                     </div>
                 </>

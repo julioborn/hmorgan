@@ -3,6 +3,9 @@ import { connectMongoDB } from "@/lib/mongodb";
 import { Pedido } from "@/models/Pedido";
 import { CajaSession } from "@/models/CajaSession";
 import { CajaMovement } from "@/models/CajaMovement";
+import { User } from "@/models/User";
+import { PointTransaction } from "@/models/PointTransaction";
+import { getPointsRatio } from "@/lib/getPointsRatio";
 import jwt from "jsonwebtoken";
 
 const SECRET = process.env.NEXTAUTH_SECRET!;
@@ -45,6 +48,37 @@ export async function POST(req: NextRequest) {
             pedidoId: pedido._id,
             userId: payload.sub,
         });
+    }
+
+    // Acreditar puntos al cliente identificado (una sola vez)
+    if (!pedido.puntosAcreditados && pedido.total > 0) {
+        // clienteId = usuario registrado explícito (evento/empleado)
+        // Para pedidos de la app (fuente "cliente"), el userId ya es el cliente
+        const clienteRef = (pedido as any).clienteId
+            ? (pedido as any).clienteId
+            : pedido.fuente === "cliente" ? pedido.userId : null;
+
+        if (clienteRef) {
+            const clienteDoc = await User.findById(clienteRef);
+            if (clienteDoc && clienteDoc.role === "cliente") {
+                const ratio = await getPointsRatio();
+                const puntos = Math.floor(pedido.total * ratio);
+                if (puntos > 0) {
+                    await PointTransaction.create({
+                        userId: clienteDoc._id,
+                        source: "consumo",
+                        amount: puntos,
+                        notes: `Cobrado en caja${pedido.fuente === "empleado" ? " (comanda)" : " (pedido app)"}`,
+                        meta: { pedidoId: pedido._id, consumoARS: pedido.total },
+                        pendingReview: true,
+                    });
+                    clienteDoc.puntos = (clienteDoc.puntos || 0) + puntos;
+                    clienteDoc.needsReview = true;
+                    await clienteDoc.save();
+                    await Pedido.findByIdAndUpdate(pedidoId, { puntosAcreditados: true });
+                }
+            }
+        }
     }
 
     return NextResponse.json({ ok: true, pedido });
