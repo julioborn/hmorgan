@@ -168,14 +168,22 @@ export async function POST(req: NextRequest) {
         const esPedidoApp = fuente !== "empleado";
         const numeroDia = esPedidoApp ? await siguienteNumeroDelDia() : undefined;
 
+        // Pedidos de mozo con solo bebidas → salta directo a "listo" y se auto-imprime en BARRA
+        const BEBIDAS_CATS_SET = new Set(["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"]);
+        const esSoloBebidas = !esPedidoApp && menuItems.length > 0 &&
+            menuItems.every(m => BEBIDAS_CATS_SET.has((m.categoria as string).toUpperCase()));
+
         const pedido = await Pedido.create({
             userId: user._id,
-            items,
+            // impreso: false en bebidas → caja detecta y auto-imprime en BARRA
+            items: esSoloBebidas
+                ? items.map((i: any) => ({ ...i, impreso: false }))
+                : items,
             tipoEntrega,
             total: total + costoEnvio,
             costoEnvio,
             direccion: tipoEntrega === "envio" ? direccion : undefined,
-            estado: "pendiente",
+            estado: esSoloBebidas ? "listo" : "pendiente",
             cancelableUntil,
             fuente: esPedidoApp ? "cliente" : "empleado",
             numeroDia,
