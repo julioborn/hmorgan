@@ -12,7 +12,7 @@ export async function GET(
         await connectMongoDB();
 
         const user = await User.findOne({ qrToken: params.qrToken }).select(
-            "nombre apellido dni puntos"
+            "nombre apellido dni puntos username"
         );
 
         if (!user) {

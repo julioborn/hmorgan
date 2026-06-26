@@ -11,9 +11,10 @@ const VentaSchema = new Schema(
                 cantidad:   { type: Number, required: true },
             },
         ],
-        total:      { type: Number, required: true },
-        metodoPago: { type: String, enum: ["efectivo", "transferencia", "tarjeta"], required: true },
-        nota:       { type: String },
+        total:         { type: Number, required: true },
+        metodoPago:    { type: String, enum: ["efectivo", "transferencia", "tarjeta"], required: true },
+        nota:          { type: String },
+        comensalesIds: [{ type: Schema.Types.ObjectId, ref: "User" }],
     },
     { timestamps: true }
 );

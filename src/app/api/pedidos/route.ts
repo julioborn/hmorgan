@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const { items, tipoEntrega, direccion, fuente, mesa, comensales, nombreComanda, notaEmpleado, notaCliente, clienteId, eventoId } = await req.json();
+        const { items, tipoEntrega, direccion, fuente, mesa, comensales, nombreComanda, notaEmpleado, notaCliente, clienteId, eventoId, comensalesIds } = await req.json();
         if (!items?.length)
             return NextResponse.json({ message: "Sin items" }, { status: 400 });
 
@@ -183,8 +183,9 @@ export async function POST(req: NextRequest) {
             nombreComanda: nombreComanda || undefined,
             notaEmpleado: notaEmpleado || undefined,
             notaCliente: notaCliente || undefined,
-            clienteId: clienteId || undefined,
-            eventoId:  eventoId  || undefined,
+            clienteId:     clienteId || undefined,
+            eventoId:      eventoId  || undefined,
+            comensalesIds: Array.isArray(comensalesIds) && comensalesIds.length > 0 ? comensalesIds : undefined,
         });
 
         // Pedidos de mozo no generan notificación al admin (ya está en el local)

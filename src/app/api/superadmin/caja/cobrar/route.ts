@@ -50,27 +50,40 @@ export async function POST(req: NextRequest) {
         });
     }
 
-    // Acreditar puntos al cliente identificado (una sola vez)
+    // Acreditar puntos (una sola vez)
     if (!pedido.puntosAcreditados && pedido.total > 0) {
-        // clienteId = usuario registrado explícito (evento/empleado)
-        // Para pedidos de la app (fuente "cliente"), el userId ya es el cliente
-        const clienteRef = (pedido as any).clienteId
-            ? (pedido as any).clienteId
-            : pedido.fuente === "cliente" ? pedido.userId : null;
+        const ratio = await getPointsRatio();
+        const puntos = Math.floor(pedido.total * ratio);
+        const comensalesIds: string[] = (pedido as any).comensalesIds ?? [];
 
-        if (clienteRef) {
-            const clienteDoc = await User.findById(clienteRef);
-            if (clienteDoc && clienteDoc.role === "cliente") {
-                const ratio = await getPointsRatio();
-                const puntos = Math.floor(pedido.total * ratio);
-                if (puntos > 0) {
+        if (comensalesIds.length > 0 && puntos > 0) {
+            // Acreditar a cada comensal identificado
+            for (const uid of comensalesIds) {
+                const cliente = await User.findById(uid);
+                if (cliente && cliente.role === "cliente") {
                     await PointTransaction.create({
-                        userId: clienteDoc._id,
-                        source: "consumo",
-                        amount: puntos,
+                        userId: cliente._id, source: "consumo", amount: puntos,
+                        notes: `Cobrado en caja (comensal)`,
+                        meta: { pedidoId: pedido._id, consumoARS: pedido.total }, pendingReview: true,
+                    });
+                    cliente.puntos = (cliente.puntos || 0) + puntos;
+                    cliente.needsReview = true;
+                    await cliente.save();
+                }
+            }
+            await Pedido.findByIdAndUpdate(pedidoId, { puntosAcreditados: true });
+        } else {
+            // Fallback: clienteId único o pedido de la app
+            const clienteRef = (pedido as any).clienteId
+                ? (pedido as any).clienteId
+                : pedido.fuente === "cliente" ? pedido.userId : null;
+            if (clienteRef && puntos > 0) {
+                const clienteDoc = await User.findById(clienteRef);
+                if (clienteDoc && clienteDoc.role === "cliente") {
+                    await PointTransaction.create({
+                        userId: clienteDoc._id, source: "consumo", amount: puntos,
                         notes: `Cobrado en caja${pedido.fuente === "empleado" ? " (comanda)" : " (pedido app)"}`,
-                        meta: { pedidoId: pedido._id, consumoARS: pedido.total },
-                        pendingReview: true,
+                        meta: { pedidoId: pedido._id, consumoARS: pedido.total }, pendingReview: true,
                     });
                     clienteDoc.puntos = (clienteDoc.puntos || 0) + puntos;
                     clienteDoc.needsReview = true;

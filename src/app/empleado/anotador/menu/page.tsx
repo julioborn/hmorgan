@@ -8,7 +8,7 @@ import {
     UtensilsCrossed, Pizza, Beef, Sandwich, Salad, Beer,
     CupSoda, Martini, BottleWine, GlassWater, Beaker,
     CakeSlice, Hamburger, Milk, Plus, Minus, ShoppingCart,
-    Send, ChevronLeft, CheckCircle, Printer, X, MapPin, ChevronDown, Star,
+    Send, ChevronLeft, CheckCircle, Printer, X, MapPin, ChevronDown, Star, QrCode,
 } from "lucide-react";
 import Loader from "@/components/Loader";
 import { useCategoryConfigs } from "@/hooks/useCategoryConfigs";
@@ -35,6 +35,73 @@ const PICAR_CATS   = ["PICADAS", "FRITURAS"];
 const MAIN_ORDER   = ["PARRILLA","PIZZAS","HAMBURGUESAS","SANDWICHES","PICADAS Y FRITURAS","ENSALADAS","BEBIDAS","POSTRE Y CAFE"];
 const categoryImages: Record<string, string> = { PARRILLA:"/parrilla.jpg", PIZZAS:"/pizzas.jpg", HAMBURGUESAS:"/hamburguesas.jpg", SANDWICHES:"/sandwiches.jpg", "PICADAS Y FRITURAS":"/picada.jpg", ENSALADAS:"/ensaladas.jpg", BEBIDAS:"/bebidas.jpeg","POSTRE Y CAFE":"/postreycafe.jpeg", CERVEZAS:"/subcategoria-bebidas/cervezas.png", VINOS:"/subcategoria-bebidas/vinos.png", GASEOSAS:"/subcategoria-bebidas/gaseosas.png", JARROS:"/subcategoria-bebidas/jarros.png", COCKTAILS:"/subcategoria-bebidas/cocktails.png", WHISKY:"/subcategoria-bebidas/whisky.png", MEDIDAS:"/subcategoria-bebidas/medidas.png" };
 const categoryIcons: Record<string, React.ElementType> = { PARRILLA:Beef, PIZZAS:Pizza, HAMBURGUESAS:Hamburger, SANDWICHES:Sandwich, PICADAS:UtensilsCrossed, ENSALADAS:Salad, FRITURAS:UtensilsCrossed, BEBIDAS:Beer, CERVEZAS:Beer, VINOS:BottleWine, GASEOSAS:Milk, JARROS:CupSoda, COCKTAILS:Martini, WHISKY:GlassWater, MEDIDAS:Beaker, "POSTRE Y CAFE":CakeSlice };
+
+type Comensal = { _id: string; nombre: string; apellido: string; username: string };
+
+function ComensalesSelector({
+    clienteSearch, setClienteSearch, clienteResults, setClienteResults,
+    comensalesSeleccionados, setComensalesSeleccionados, onScanQr,
+}: {
+    clienteSearch: string;
+    setClienteSearch: (v: string) => void;
+    clienteResults: Comensal[];
+    setClienteResults: (v: Comensal[]) => void;
+    comensalesSeleccionados: Comensal[];
+    setComensalesSeleccionados: (fn: (prev: Comensal[]) => Comensal[]) => void;
+    onScanQr: () => void;
+}) {
+    const remaining = clienteResults.filter(c => !comensalesSeleccionados.some(s => s._id === c._id));
+    return (
+        <div>
+            <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">
+                Comensales <span className="font-normal normal-case text-gray-300">(suman puntos al cobrar)</span>
+            </p>
+            <div className="flex gap-2">
+                <div className="relative flex-1">
+                    <input
+                        type="text"
+                        placeholder="Buscar por nombre o usuario..."
+                        value={clienteSearch}
+                        onChange={e => setClienteSearch(e.target.value)}
+                        className="w-full px-4 py-3.5 rounded-2xl border-2 border-gray-200 text-sm focus:outline-none focus:border-red-400"
+                    />
+                    {remaining.length > 0 && clienteSearch.length >= 2 && (
+                        <div className="absolute top-full left-0 right-0 z-20 bg-white border border-gray-200 rounded-2xl shadow-lg mt-1 overflow-hidden">
+                            {remaining.map(c => (
+                                <button key={c._id} onMouseDown={e => e.preventDefault()} onClick={() => {
+                                    setComensalesSeleccionados(prev => [...prev, c]);
+                                    setClienteSearch("");
+                                    setClienteResults([]);
+                                }} className="w-full text-left px-4 py-3 hover:bg-gray-50 text-sm transition border-b border-gray-50 last:border-0">
+                                    <span className="font-semibold text-gray-900">{c.nombre} {c.apellido}</span>
+                                    <span className="text-gray-400 ml-2 text-xs">@{c.username}</span>
+                                    <span className="ml-2 text-xs text-emerald-600 font-bold">· suma puntos</span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+                <button onClick={onScanQr} title="Escanear QR del cliente"
+                    className="w-12 h-12 rounded-2xl bg-gray-900 text-white flex items-center justify-center shrink-0 hover:bg-gray-700 transition active:scale-95">
+                    <QrCode size={20} />
+                </button>
+            </div>
+            {comensalesSeleccionados.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                    {comensalesSeleccionados.map(c => (
+                        <div key={c._id} className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-full px-3 py-1.5 text-xs font-semibold">
+                            <CheckCircle size={11} className="shrink-0 text-emerald-600" />
+                            <span>{c.nombre} {c.apellido}</span>
+                            {c.username && <span className="text-emerald-500 text-[10px]">@{c.username}</span>}
+                            <button onClick={() => setComensalesSeleccionados(prev => prev.filter(s => s._id !== c._id))}
+                                className="ml-0.5 text-emerald-500 hover:text-red-500 transition font-bold leading-none">×</button>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
 
 function AnotadorMenuContent() {
     const categoryConfigMap = useCategoryConfigs();
@@ -63,8 +130,16 @@ function AnotadorMenuContent() {
     const [clienteNombre, setClienteNombre] = useState("");
     const [clienteSearch, setClienteSearch] = useState("");
     const [clienteResults, setClienteResults] = useState<{_id:string;nombre:string;apellido:string;username:string}[]>([]);
-    const [clienteId, setClienteId]     = useState<string | null>(null);
+    const [comensalesSeleccionados, setComensalesSeleccionados] = useState<{_id:string;nombre:string;apellido:string;username:string}[]>([]);
     const clienteInputRef               = useRef<HTMLInputElement>(null);
+
+    // QR scan
+    const [qrScanOpen, setQrScanOpen]   = useState(false);
+    const [qrScanError, setQrScanError] = useState("");
+    const [qrTokenManual, setQrTokenManual] = useState("");
+    const [qrLookingUp, setQrLookingUp] = useState(false);
+    const videoRef  = useRef<HTMLVideoElement>(null);
+    const streamRef = useRef<MediaStream | null>(null);
 
     // Evento activo
     const [eventoActivo, setEventoActivo] = useState<{_id:string;nombre:string} | null>(null);
@@ -124,23 +199,24 @@ function AnotadorMenuContent() {
         try {
             const saved = sessionStorage.getItem(CART_KEY);
             if (!saved) return;
-            const { cart: sc, mesa: sm, comensales: scm, clienteNombre: sn, nota: sno } = JSON.parse(saved);
+            const { cart: sc, mesa: sm, comensales: scm, clienteNombre: sn, nota: sno, comensalesSeleccionados: scs } = JSON.parse(saved);
             if (Array.isArray(sc) && sc.length > 0) setCart(sc);
             if (sm && !comandaId) setMesa(sm);
             if (scm && !comandaId) setComensales(scm);
             if (sn) setClienteNombre(sn);
             if (sno) setNota(sno);
+            if (Array.isArray(scs) && scs.length > 0) setComensalesSeleccionados(scs);
         } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
     // Guardar cuando cambia el cart
     useEffect(() => {
         if (cart.length > 0) {
-            sessionStorage.setItem(CART_KEY, JSON.stringify({ cart, mesa, comensales, clienteNombre, nota }));
+            sessionStorage.setItem(CART_KEY, JSON.stringify({ cart, mesa, comensales, clienteNombre, nota, comensalesSeleccionados }));
         } else {
             sessionStorage.removeItem(CART_KEY);
         }
-    }, [cart, mesa, comensales, clienteNombre, nota, CART_KEY]);
+    }, [cart, mesa, comensales, clienteNombre, nota, comensalesSeleccionados, CART_KEY]);
 
     // Reset zoom al abrir el picker
     useEffect(() => {
@@ -157,6 +233,75 @@ function AnotadorMenuContent() {
         }, 400);
         return () => clearTimeout(t);
     }, [clienteSearch]);
+
+    // QR scan: abrir cámara y escanear con BarcodeDetector
+    useEffect(() => {
+        if (!qrScanOpen) {
+            streamRef.current?.getTracks().forEach(t => t.stop());
+            streamRef.current = null;
+            setQrScanError("");
+            setQrTokenManual("");
+            return;
+        }
+        let active = true;
+        (async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                if (!active) { stream.getTracks().forEach(t => t.stop()); return; }
+                streamRef.current = stream;
+                if (videoRef.current) videoRef.current.srcObject = stream;
+
+                const detector = typeof (window as any).BarcodeDetector !== "undefined"
+                    ? new (window as any).BarcodeDetector({ formats: ["qr_code"] })
+                    : null;
+                if (!detector) { setQrScanError("Usá el campo manual o Chrome/Edge en Android para escanear"); return; }
+
+                const scan = async () => {
+                    if (!active || !videoRef.current) return;
+                    try {
+                        const barcodes = await detector.detect(videoRef.current);
+                        if (barcodes.length > 0) {
+                            const raw = barcodes[0].rawValue as string;
+                            await lookupQrRaw(raw);
+                            return;
+                        }
+                    } catch { /* ignorar frames inválidos */ }
+                    if (active) requestAnimationFrame(scan);
+                };
+                videoRef.current?.addEventListener("loadeddata", () => { if (active) requestAnimationFrame(scan); }, { once: true });
+            } catch {
+                setQrScanError("No se pudo acceder a la cámara");
+            }
+        })();
+        return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [qrScanOpen]);
+
+    async function lookupQrRaw(raw: string) {
+        try {
+            const parsed = JSON.parse(raw);
+            const token = parsed.qrToken as string;
+            if (!token) { setQrScanError("QR inválido"); return; }
+            await lookupByQrToken(token);
+        } catch {
+            setQrScanError("QR inválido — no es un código de H. Morgan");
+        }
+    }
+
+    async function lookupByQrToken(token: string) {
+        setQrLookingUp(true);
+        setQrScanError("");
+        try {
+            const r = await fetch(`/api/usuarios/qr/${encodeURIComponent(token)}`, { credentials: "include" });
+            if (!r.ok) { setQrScanError("Usuario no encontrado"); return; }
+            const u = await r.json();
+            const nuevo = { _id: u._id, nombre: u.nombre, apellido: u.apellido ?? "", username: u.username ?? "" };
+            setComensalesSeleccionados(prev => prev.some(c => c._id === u._id) ? prev : [...prev, nuevo]);
+            setQrScanOpen(false);
+        } catch {
+            setQrScanError("Error al buscar usuario");
+        } finally { setQrLookingUp(false); }
+    }
 
     function onMapTouchStart(e: React.TouchEvent) {
         if (e.touches.length === 2) {
@@ -278,7 +423,7 @@ function AnotadorMenuContent() {
                         nombreComanda: clienteNombre.trim() || undefined,
                         notaEmpleado:  nota.trim() || undefined,
                         eventoId:      eventoActivo?._id || undefined,
-                        clienteId:     clienteId || undefined,
+                        comensalesIds: comensalesSeleccionados.length > 0 ? comensalesSeleccionados.map(c => c._id) : undefined,
                     }),
                 });
             }
@@ -361,6 +506,7 @@ function AnotadorMenuContent() {
                                 <Star className="w-3 h-3 text-amber-500 shrink-0" />
                                 <span className="font-bold text-amber-700 truncate">Evento: {eventoActivo.nombre}</span>
                                 {clienteNombre && <span className="text-gray-500 truncate">· {clienteNombre}</span>}
+                                {comensalesSeleccionados.length > 0 && <span className="text-emerald-600 text-[10px] font-bold shrink-0">· {comensalesSeleccionados.length}p puntos</span>}
                             </>
                         ) : (
                             <>
@@ -368,6 +514,7 @@ function AnotadorMenuContent() {
                                 <span className="font-bold text-gray-800">{mesa ? `Mesa ${mesa}` : "Sin mesa"}</span>
                                 <span className="text-gray-400">· {comensales}p</span>
                                 {clienteNombre && <span className="text-gray-500 truncate">· {clienteNombre}</span>}
+                                {comensalesSeleccionados.length > 0 && <span className="text-emerald-600 text-[10px] font-bold shrink-0">· {comensalesSeleccionados.length} reg.</span>}
                             </>
                         )}
                         <button onClick={() => setStep("info")} className="ml-auto text-red-500 font-semibold shrink-0 hover:text-red-700 transition">Cambiar</button>
@@ -521,7 +668,7 @@ function AnotadorMenuContent() {
 
                     <div className="max-w-md mx-auto px-5 pt-4 space-y-7 pb-10">
 
-                        {/* ── Modo evento: solo nombre de cliente ── */}
+                        {/* ── Modo evento: nombre libre + comensales ── */}
                         {eventoActivo ? (
                             <>
                                 <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
@@ -529,49 +676,30 @@ function AnotadorMenuContent() {
                                     <p className="text-sm font-bold text-amber-700">Evento: {eventoActivo.nombre}</p>
                                 </div>
 
+                                {/* Nombre libre */}
                                 <div>
                                     <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">
-                                        ¿Para quién es? <span className="font-normal normal-case text-gray-300">(opcional)</span>
+                                        Nombre <span className="font-normal normal-case text-gray-300">(opcional)</span>
                                     </p>
-                                    <div className="relative">
-                                        <input
-                                            ref={clienteInputRef}
-                                            type="text"
-                                            placeholder="Buscar usuario o escribir nombre..."
-                                            value={clienteNombre}
-                                            onChange={e => {
-                                                setClienteNombre(e.target.value);
-                                                setClienteSearch(e.target.value);
-                                                setClienteId(null);
-                                            }}
-                                            className="w-full px-4 py-4 rounded-2xl border-2 border-gray-200 text-sm focus:outline-none focus:border-red-400"
-                                        />
-                                        {clienteResults.length > 0 && !clienteId && (
-                                            <div className="absolute top-full left-0 right-0 z-20 bg-white border border-gray-200 rounded-2xl shadow-lg mt-1 overflow-hidden">
-                                                {clienteResults.map(c => (
-                                                    <button key={c._id} onMouseDown={e => e.preventDefault()} onClick={() => {
-                                                        setClienteNombre(`${c.nombre} ${c.apellido}`);
-                                                        setClienteId(c._id);
-                                                        setClienteSearch("");
-                                                        setClienteResults([]);
-                                                    }} className="w-full text-left px-4 py-3 hover:bg-gray-50 text-sm transition border-b border-gray-50 last:border-0">
-                                                        <span className="font-semibold text-gray-900">{c.nombre} {c.apellido}</span>
-                                                        <span className="text-gray-400 ml-2 text-xs">@{c.username}</span>
-                                                        <span className="ml-2 text-xs text-emerald-600 font-bold">· suma puntos</span>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                    {clienteId && (
-                                        <div className="mt-2 flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
-                                            <CheckCircle size={12} className="shrink-0" />
-                                            <span className="font-semibold flex-1">Usuario registrado — acumula puntos al cobrar</span>
-                                            <button onClick={() => { setClienteId(null); setClienteNombre(""); }}
-                                                className="text-emerald-600 font-bold hover:text-red-500 transition">✕</button>
-                                        </div>
-                                    )}
+                                    <input
+                                        type="text"
+                                        placeholder="Ej: Juan, Mesa 3, Cumpleaños..."
+                                        value={clienteNombre}
+                                        onChange={e => setClienteNombre(e.target.value)}
+                                        className="w-full px-4 py-4 rounded-2xl border-2 border-gray-200 text-sm focus:outline-none focus:border-red-400"
+                                    />
                                 </div>
+
+                                {/* Comensales registrados */}
+                                <ComensalesSelector
+                                    clienteSearch={clienteSearch}
+                                    setClienteSearch={setClienteSearch}
+                                    clienteResults={clienteResults}
+                                    setClienteResults={setClienteResults}
+                                    comensalesSeleccionados={comensalesSeleccionados}
+                                    setComensalesSeleccionados={setComensalesSeleccionados}
+                                    onScanQr={() => setQrScanOpen(true)}
+                                />
 
                                 <button onClick={() => setStep("menu")}
                                     className="w-full bg-red-600 hover:bg-red-700 text-white font-extrabold py-4 rounded-2xl flex items-center justify-center gap-2 transition active:scale-[0.98] text-base shadow-lg shadow-red-600/20 mt-2">
@@ -580,7 +708,7 @@ function AnotadorMenuContent() {
                             </>
                         ) : (
                             <>
-                                {/* ── Modo normal: mesa + personas + cliente ── */}
+                                {/* ── Modo normal: mesa + personas + nombre + comensales ── */}
 
                                 {/* Mesa */}
                                 <div>
@@ -607,48 +735,31 @@ function AnotadorMenuContent() {
                                     </div>
                                 </div>
 
-                                {/* Nombre cliente */}
+                                {/* Nombre libre */}
                                 <div>
-                                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Cliente <span className="font-normal normal-case text-gray-300">(opcional)</span></p>
-                                    <div className="relative">
-                                        <input
-                                            ref={clienteInputRef}
-                                            type="text"
-                                            placeholder="Buscar o escribir nombre..."
-                                            value={clienteNombre}
-                                            onChange={e => {
-                                                setClienteNombre(e.target.value);
-                                                setClienteSearch(e.target.value);
-                                                setClienteId(null);
-                                            }}
-                                            className="w-full px-4 py-4 rounded-2xl border-2 border-gray-200 text-sm focus:outline-none focus:border-red-400"
-                                        />
-                                        {clienteResults.length > 0 && !clienteId && (
-                                            <div className="absolute top-full left-0 right-0 z-20 bg-white border border-gray-200 rounded-2xl shadow-lg mt-1 overflow-hidden">
-                                                {clienteResults.map(c => (
-                                                    <button key={c._id} onMouseDown={e => e.preventDefault()} onClick={() => {
-                                                        setClienteNombre(`${c.nombre} ${c.apellido}`);
-                                                        setClienteId(c._id);
-                                                        setClienteSearch("");
-                                                        setClienteResults([]);
-                                                    }} className="w-full text-left px-4 py-3 hover:bg-gray-50 text-sm transition border-b border-gray-50 last:border-0">
-                                                        <span className="font-semibold text-gray-900">{c.nombre} {c.apellido}</span>
-                                                        <span className="text-gray-400 ml-2 text-xs">@{c.username}</span>
-                                                        <span className="ml-2 text-xs text-emerald-600 font-bold">· suma puntos</span>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                    {clienteId && (
-                                        <div className="mt-2 flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
-                                            <CheckCircle size={12} className="shrink-0" />
-                                            <span className="font-semibold flex-1">Usuario registrado — acumula puntos al cobrar</span>
-                                            <button onClick={() => { setClienteId(null); setClienteNombre(""); }}
-                                                className="text-emerald-600 font-bold hover:text-red-500 transition">✕</button>
-                                        </div>
-                                    )}
+                                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">
+                                        Nombre / etiqueta <span className="font-normal normal-case text-gray-300">(opcional)</span>
+                                    </p>
+                                    <input
+                                        ref={clienteInputRef}
+                                        type="text"
+                                        placeholder="Ej: Cumpleaños, Familia García..."
+                                        value={clienteNombre}
+                                        onChange={e => setClienteNombre(e.target.value)}
+                                        className="w-full px-4 py-4 rounded-2xl border-2 border-gray-200 text-sm focus:outline-none focus:border-red-400"
+                                    />
                                 </div>
+
+                                {/* Comensales registrados */}
+                                <ComensalesSelector
+                                    clienteSearch={clienteSearch}
+                                    setClienteSearch={setClienteSearch}
+                                    clienteResults={clienteResults}
+                                    setClienteResults={setClienteResults}
+                                    comensalesSeleccionados={comensalesSeleccionados}
+                                    setComensalesSeleccionados={setComensalesSeleccionados}
+                                    onScanQr={() => setQrScanOpen(true)}
+                                />
 
                                 {/* Continuar */}
                                 <button onClick={() => setStep("menu")}
@@ -780,6 +891,47 @@ function AnotadorMenuContent() {
                         <div className="px-5 py-4 border-t border-gray-100 flex gap-2 shrink-0">
                             <button onClick={() => { setMesa(""); setMesaPickerOpen(false); }} className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50">Sin mesa</button>
                             <button onClick={() => setMesaPickerOpen(false)} className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold transition">{mesa ? `Confirmar Mesa ${mesa}` : "Cerrar"}</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* QR Scan modal */}
+            {qrScanOpen && (
+                <div className="fixed inset-0 z-50 bg-black flex flex-col">
+                    <div className="flex items-center gap-3 px-4 py-3 text-white shrink-0">
+                        <button onClick={() => setQrScanOpen(false)} className="p-1 -ml-1"><X className="w-6 h-6" /></button>
+                        <h2 className="font-bold text-base flex-1">Escanear QR del cliente</h2>
+                        {qrLookingUp && <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
+                    </div>
+                    <div className="relative flex-1 overflow-hidden">
+                        <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover" />
+                        {/* Visor */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="w-56 h-56 border-4 border-white/60 rounded-2xl relative">
+                                <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white rounded-tl-lg -translate-x-1 -translate-y-1" />
+                                <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-white rounded-tr-lg translate-x-1 -translate-y-1" />
+                                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white rounded-bl-lg -translate-x-1 translate-y-1" />
+                                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-white rounded-br-lg translate-x-1 translate-y-1" />
+                            </div>
+                        </div>
+                    </div>
+                    <div className="px-5 pb-8 pt-4 space-y-3 shrink-0 bg-black/90">
+                        {qrScanError && <p className="text-red-400 text-sm text-center font-semibold">{qrScanError}</p>}
+                        <p className="text-white/60 text-xs text-center">O ingresá el token manualmente</p>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                placeholder="Token del QR..."
+                                value={qrTokenManual}
+                                onChange={e => setQrTokenManual(e.target.value)}
+                                className="flex-1 bg-white/10 text-white placeholder-white/40 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:bg-white/20"
+                            />
+                            <button onClick={() => { if (qrTokenManual.trim()) lookupByQrToken(qrTokenManual.trim()); }}
+                                disabled={!qrTokenManual.trim() || qrLookingUp}
+                                className="bg-red-600 text-white px-5 py-3 rounded-2xl font-bold text-sm disabled:opacity-50 transition">
+                                Buscar
+                            </button>
                         </div>
                     </div>
                 </div>

@@ -38,6 +38,7 @@ type SalonElPlano = { _id: string; tipo: string; label: string; x: number; y: nu
 type VentaEvento = { _id: string; items: { nombre: string; precio: number; categoria: string; cantidad: number }[]; total: number; metodoPago: string; createdAt: string };
 type Evento = { _id: string; nombre: string; estado: "activo" | "cerrado"; ventas: VentaEvento[]; createdAt: string };
 type CartItem = { menuItemId: string; nombre: string; precio: number; categoria: string; cantidad: number };
+type Comensal = { _id: string; nombre: string; apellido: string; username: string };
 
 // Categorías que se imprimen en la comandera de la barra; el resto va a cocina
 const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
@@ -112,6 +113,15 @@ export default function CajaPage() {
     const [ventaMetodo, setVentaMetodo]           = useState<typeof METODOS[number]>("efectivo");
     const [ventaSearch, setVentaSearch]           = useState("");
     const [ventaSaving, setVentaSaving]           = useState(false);
+    const [ventaComensalesSearch, setVentaComensalesSearch] = useState("");
+    const [ventaComensalesResults, setVentaComensalesResults] = useState<Comensal[]>([]);
+    const [ventaComensales, setVentaComensales]   = useState<Comensal[]>([]);
+    const [ventaQrOpen, setVentaQrOpen]           = useState(false);
+    const [ventaQrError, setVentaQrError]         = useState("");
+    const [ventaQrToken, setVentaQrToken]         = useState("");
+    const [ventaQrLooking, setVentaQrLooking]     = useState(false);
+    const ventaVideoRef  = useRef<HTMLVideoElement>(null);
+    const ventaStreamRef = useRef<MediaStream | null>(null);
 
     // Ítems cuyo "impreso" ya se está marcando/imprimiendo en este mismo instante,
     // para no dispararlos dos veces si el poll de 5s cae justo en el medio.
@@ -182,6 +192,74 @@ export default function CajaPage() {
         fetch("/api/config/pedidos").then(r => r.json()).then(d => setPedidosActivos(d.activo ?? true));
         fetch("/api/config/reservas").then(r => r.json()).then(d => setReservasActivas(d.activo ?? true));
     }, []);
+
+    // Búsqueda de comensales en modal de venta de evento
+    useEffect(() => {
+        if (ventaComensalesSearch.length < 2) { setVentaComensalesResults([]); return; }
+        const t = setTimeout(async () => {
+            const r = await fetch(`/api/empleado/buscar-cliente?q=${encodeURIComponent(ventaComensalesSearch)}`, { credentials: "include" });
+            const d = await r.json().catch(() => []);
+            setVentaComensalesResults(Array.isArray(d) ? d : []);
+        }, 400);
+        return () => clearTimeout(t);
+    }, [ventaComensalesSearch]);
+
+    // QR scan para modal de venta de evento
+    useEffect(() => {
+        if (!ventaQrOpen) {
+            ventaStreamRef.current?.getTracks().forEach(t => t.stop());
+            ventaStreamRef.current = null;
+            setVentaQrError("");
+            setVentaQrToken("");
+            return;
+        }
+        let active = true;
+        (async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                if (!active) { stream.getTracks().forEach(t => t.stop()); return; }
+                ventaStreamRef.current = stream;
+                if (ventaVideoRef.current) ventaVideoRef.current.srcObject = stream;
+                const detector = typeof (window as any).BarcodeDetector !== "undefined"
+                    ? new (window as any).BarcodeDetector({ formats: ["qr_code"] })
+                    : null;
+                if (!detector) { setVentaQrError("Usá el campo manual o Chrome/Edge en Android"); return; }
+                const scan = async () => {
+                    if (!active || !ventaVideoRef.current) return;
+                    try {
+                        const codes = await detector.detect(ventaVideoRef.current);
+                        if (codes.length > 0) { await lookupVentaQrRaw(codes[0].rawValue); return; }
+                    } catch { /* ignorar */ }
+                    if (active) requestAnimationFrame(scan);
+                };
+                ventaVideoRef.current?.addEventListener("loadeddata", () => { if (active) requestAnimationFrame(scan); }, { once: true });
+            } catch { setVentaQrError("No se pudo acceder a la cámara"); }
+        })();
+        return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [ventaQrOpen]);
+
+    async function lookupVentaQrRaw(raw: string) {
+        try {
+            const parsed = JSON.parse(raw);
+            const token = parsed.qrToken as string;
+            if (!token) { setVentaQrError("QR inválido"); return; }
+            await lookupVentaQrToken(token);
+        } catch { setVentaQrError("QR inválido — no es un código de H. Morgan"); }
+    }
+
+    async function lookupVentaQrToken(token: string) {
+        setVentaQrLooking(true); setVentaQrError("");
+        try {
+            const r = await fetch(`/api/usuarios/qr/${encodeURIComponent(token)}`, { credentials: "include" });
+            if (!r.ok) { setVentaQrError("Usuario no encontrado"); return; }
+            const u = await r.json();
+            const nuevo: Comensal = { _id: u._id, nombre: u.nombre, apellido: u.apellido ?? "", username: u.username ?? "" };
+            setVentaComensales(prev => prev.some(c => c._id === u._id) ? prev : [...prev, nuevo]);
+            setVentaQrOpen(false);
+        } catch { setVentaQrError("Error al buscar usuario"); }
+        finally { setVentaQrLooking(false); }
+    }
 
     useEffect(() => {
         if (tab === "eventos") loadEvento();
@@ -708,6 +786,9 @@ export default function CajaPage() {
         setVentaCart([]);
         setVentaMetodo("efectivo");
         setVentaSearch("");
+        setVentaComensales([]);
+        setVentaComensalesSearch("");
+        setVentaComensalesResults([]);
         setVentaModal(true);
     }
 
@@ -721,7 +802,10 @@ export default function CajaPage() {
             }));
             const res = await fetch(`/api/eventos/${eventoActivo._id}`, {
                 method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
-                body: JSON.stringify({ accion: "agregarVenta", items, metodoPago: ventaMetodo }),
+                body: JSON.stringify({
+                    accion: "agregarVenta", items, metodoPago: ventaMetodo,
+                    comensalesIds: ventaComensales.length > 0 ? ventaComensales.map(c => c._id) : undefined,
+                }),
             });
             if (res.ok) {
                 const data = await res.json();
@@ -1573,7 +1657,7 @@ export default function CajaPage() {
                                 <input autoFocus value={nuevoEventoNombre}
                                     onChange={e => setNuevoEventoNombre(e.target.value)}
                                     onKeyDown={e => e.key === "Enter" && crearEvento()}
-                                    placeholder="Ej: Cumpleaños Julio" style={{ fontSize: "16px" }}
+                                    placeholder="Ej: Cumpleaños" style={{ fontSize: "16px" }}
                                     className="w-full px-4 py-3 border border-gray-200 rounded-xl text-base font-semibold focus:outline-none focus:ring-2 focus:ring-red-400" />
                             </div>
                         </div>
@@ -1650,6 +1734,54 @@ export default function CajaPage() {
                             </div>
                         )}
 
+                        {/* Comensales registrados (suman puntos al guardar) */}
+                        <div className="px-4 py-3 border-t border-gray-100 shrink-0">
+                            <p className="text-[10px] font-black text-gray-400 uppercase mb-2">
+                                Comensales <span className="font-normal normal-case text-gray-300">(suman puntos)</span>
+                            </p>
+                            <div className="flex gap-2 relative">
+                                <div className="relative flex-1">
+                                    <input
+                                        type="text"
+                                        placeholder="Buscar usuario..."
+                                        value={ventaComensalesSearch}
+                                        onChange={e => setVentaComensalesSearch(e.target.value)}
+                                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                                    />
+                                    {ventaComensalesResults.filter(c => !ventaComensales.some(s => s._id === c._id)).length > 0 && ventaComensalesSearch.length >= 2 && (
+                                        <div className="absolute top-full left-0 right-0 z-30 bg-white border border-gray-200 rounded-xl shadow-lg mt-1 overflow-hidden">
+                                            {ventaComensalesResults.filter(c => !ventaComensales.some(s => s._id === c._id)).map(c => (
+                                                <button key={c._id} onMouseDown={e => e.preventDefault()} onClick={() => {
+                                                    setVentaComensales(prev => [...prev, c]);
+                                                    setVentaComensalesSearch("");
+                                                    setVentaComensalesResults([]);
+                                                }} className="w-full text-left px-3 py-2.5 hover:bg-gray-50 text-xs transition border-b border-gray-50 last:border-0">
+                                                    <span className="font-semibold text-gray-900">{c.nombre} {c.apellido}</span>
+                                                    <span className="text-gray-400 ml-1">@{c.username}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                <button onClick={() => setVentaQrOpen(true)} title="Escanear QR"
+                                    className="w-9 h-9 rounded-xl bg-gray-900 text-white flex items-center justify-center shrink-0 hover:bg-gray-700 transition">
+                                    <Plus size={16} />
+                                </button>
+                            </div>
+                            {ventaComensales.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                    {ventaComensales.map(c => (
+                                        <div key={c._id} className="flex items-center gap-1 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-full px-2.5 py-1 text-[11px] font-semibold">
+                                            <CheckCircle size={10} className="text-emerald-600 shrink-0" />
+                                            <span>{c.nombre}</span>
+                                            <button onClick={() => setVentaComensales(prev => prev.filter(s => s._id !== c._id))}
+                                                className="ml-0.5 text-emerald-500 hover:text-red-500 font-bold leading-none">×</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
                         {/* Método de pago + confirmar */}
                         <div className="px-5 py-4 border-t border-gray-100 shrink-0 space-y-3">
                             <div className="flex gap-2">
@@ -1672,6 +1804,42 @@ export default function CajaPage() {
                             <button onClick={registrarVenta} disabled={ventaCart.length === 0 || ventaSaving}
                                 className="w-full py-3.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-black rounded-2xl transition flex items-center justify-center gap-2 shadow-lg shadow-red-600/20">
                                 <Printer size={16} /> {ventaSaving ? "Registrando..." : "Confirmar y cobrar"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* QR Scan modal para evento */}
+            {ventaQrOpen && (
+                <div className="fixed inset-0 z-[60] bg-black flex flex-col">
+                    <div className="flex items-center gap-3 px-4 py-3 text-white shrink-0">
+                        <button onClick={() => setVentaQrOpen(false)} className="p-1 -ml-1"><X size={24} /></button>
+                        <h2 className="font-bold text-base flex-1">Escanear QR del cliente</h2>
+                        {ventaQrLooking && <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
+                    </div>
+                    <div className="relative flex-1 overflow-hidden">
+                        <video ref={ventaVideoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover" />
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="w-52 h-52 border-4 border-white/60 rounded-2xl relative">
+                                <div className="absolute top-0 left-0 w-7 h-7 border-t-4 border-l-4 border-white rounded-tl-lg -translate-x-1 -translate-y-1" />
+                                <div className="absolute top-0 right-0 w-7 h-7 border-t-4 border-r-4 border-white rounded-tr-lg translate-x-1 -translate-y-1" />
+                                <div className="absolute bottom-0 left-0 w-7 h-7 border-b-4 border-l-4 border-white rounded-bl-lg -translate-x-1 translate-y-1" />
+                                <div className="absolute bottom-0 right-0 w-7 h-7 border-b-4 border-r-4 border-white rounded-br-lg translate-x-1 translate-y-1" />
+                            </div>
+                        </div>
+                    </div>
+                    <div className="px-5 pb-8 pt-4 space-y-3 shrink-0 bg-black/90">
+                        {ventaQrError && <p className="text-red-400 text-sm text-center font-semibold">{ventaQrError}</p>}
+                        <p className="text-white/60 text-xs text-center">O ingresá el token manualmente</p>
+                        <div className="flex gap-2">
+                            <input type="text" placeholder="Token del QR..."
+                                value={ventaQrToken} onChange={e => setVentaQrToken(e.target.value)}
+                                className="flex-1 bg-white/10 text-white placeholder-white/40 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:bg-white/20" />
+                            <button onClick={() => { if (ventaQrToken.trim()) lookupVentaQrToken(ventaQrToken.trim()); }}
+                                disabled={!ventaQrToken.trim() || ventaQrLooking}
+                                className="bg-red-600 text-white px-5 py-3 rounded-2xl font-bold text-sm disabled:opacity-50 transition">
+                                Buscar
                             </button>
                         </div>
                     </div>
