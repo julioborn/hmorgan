@@ -5,6 +5,7 @@ import { CajaSession } from "@/models/CajaSession";
 import { CajaMovement } from "@/models/CajaMovement";
 import { User } from "@/models/User";
 import { PointTransaction } from "@/models/PointTransaction";
+import { Evento } from "@/models/Evento";
 import { getPointsRatio } from "@/lib/getPointsRatio";
 import { sendPushAndCollectInvalid } from "@/lib/push-server";
 import { enviarNotificacionFCM, isFCMTokenInvalid } from "@/lib/firebase-admin";
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
     if (!pedidoId || !metodoPago) return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
 
     const pedido = await Pedido.findById(pedidoId)
-        .populate("items.menuItemId", "nombre precio");
+        .populate("items.menuItemId", "nombre precio categoria");
     if (!pedido) return NextResponse.json({ error: "Pedido no encontrado" }, { status: 404 });
     if (pedido.estado === "cerrado") return NextResponse.json({ error: "Ya cerrado" }, { status: 400 });
 
@@ -37,6 +38,29 @@ export async function POST(req: NextRequest) {
     pedido.metodoPago = metodoPago;
     pedido.montoPagado = Number(montoPagado) || pedido.total || 0;
     await pedido.save();
+
+    // Si el pedido pertenece a un evento, registrarlo también en Evento.ventas
+    const eventoId = (pedido as any).eventoId;
+    if (eventoId) {
+        const evento = await Evento.findById(eventoId);
+        if (evento) {
+            const ventaItems = (pedido.items as any[]).map(it => ({
+                menuItemId: it.menuItemId?._id ?? it.menuItemId,
+                nombre:    it.menuItemId?.nombre    ?? "Ítem",
+                precio:    it.menuItemId?.precio    ?? 0,
+                categoria: it.menuItemId?.categoria ?? "",
+                cantidad:  it.cantidad,
+            }));
+            evento.ventas.push({
+                items: ventaItems,
+                total: pedido.total ?? 0,
+                metodoPago,
+                nota: (pedido as any).notaEmpleado || undefined,
+                comensalesIds: (pedido as any).comensalesIds ?? [],
+            });
+            await evento.save();
+        }
+    }
 
     // Registrar ingreso en caja si hay sesión abierta
     const sesion = await CajaSession.findOne({ estado: "abierta" });
