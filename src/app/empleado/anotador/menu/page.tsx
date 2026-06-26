@@ -75,7 +75,6 @@ function ComensalesSelector({
                                 }} className="w-full text-left px-4 py-3 hover:bg-gray-50 text-sm transition border-b border-gray-50 last:border-0">
                                     <span className="font-semibold text-gray-900">{c.nombre} {c.apellido}</span>
                                     <span className="text-gray-400 ml-2 text-xs">@{c.username}</span>
-                                    <span className="ml-2 text-xs text-emerald-600 font-bold">· suma puntos</span>
                                 </button>
                             ))}
                         </div>
@@ -677,7 +676,7 @@ function AnotadorMenuContent() {
                                 </div>
 
                                 {/* Nombre libre */}
-                                <div>
+                                {/* <div>
                                     <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">
                                         Nombre <span className="font-normal normal-case text-gray-300">(opcional)</span>
                                     </p>
@@ -688,7 +687,7 @@ function AnotadorMenuContent() {
                                         onChange={e => setClienteNombre(e.target.value)}
                                         className="w-full px-4 py-4 rounded-2xl border-2 border-gray-200 text-sm focus:outline-none focus:border-red-400"
                                     />
-                                </div>
+                                </div> */}
 
                                 {/* Comensales registrados */}
                                 <ComensalesSelector
@@ -743,7 +742,7 @@ function AnotadorMenuContent() {
                                     <input
                                         ref={clienteInputRef}
                                         type="text"
-                                        placeholder="Ej: Cumpleaños, Familia García..."
+                                        placeholder="Ej: Cumpleaños"
                                         value={clienteNombre}
                                         onChange={e => setClienteNombre(e.target.value)}
                                         className="w-full px-4 py-4 rounded-2xl border-2 border-gray-200 text-sm focus:outline-none focus:border-red-400"
