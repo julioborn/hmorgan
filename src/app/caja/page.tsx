@@ -9,7 +9,7 @@ import {
     Wallet, X, Printer, CreditCard, Banknote, Send,
     Loader2, CheckCircle, AlertCircle, Clock, Flame,
     Package, Truck, UtensilsCrossed, CalendarDays,
-    Phone, MessageCircle, Plus, Pencil, Trash2, MapPin, Users,
+    Phone, MessageCircle, Plus, Pencil, Trash2, MapPin, Users, Star,
 } from "lucide-react";
 import ReservasManager from "@/components/ReservasManager";
 
@@ -35,6 +35,9 @@ type MenuItemLite = { _id: string; nombre: string; precio: number; categoria: st
 type CajaSession = { _id: string; estado: "abierta" | "cerrada"; montoInicial: number; fechaApertura: string };
 type MesaPlano = { _id: string; nombre: string; activa: boolean; x: number; y: number; forma: string; ancho?: number; alto?: number; rotacion?: number; tipo?: string };
 type SalonElPlano = { _id: string; tipo: string; label: string; x: number; y: number; ancho: number; alto: number; color: string };
+type VentaEvento = { _id: string; items: { nombre: string; precio: number; categoria: string; cantidad: number }[]; total: number; metodoPago: string; createdAt: string };
+type Evento = { _id: string; nombre: string; estado: "activo" | "cerrado"; ventas: VentaEvento[]; createdAt: string };
+type CartItem = { menuItemId: string; nombre: string; precio: number; categoria: string; cantidad: number };
 
 // Categorías que se imprimen en la comandera de la barra; el resto va a cocina
 const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
@@ -68,7 +71,7 @@ const VISTA_MAP: Record<string, Vista> = {
 
 export default function CajaPage() {
     const router = useRouter();
-    const [tab, setTab]                   = useState<"pedidos" | "caja" | "reservas" | "mesas">("pedidos");
+    const [tab, setTab]                   = useState<"pedidos" | "caja" | "reservas" | "mesas" | "eventos">("pedidos");
     const [sesion, setSesion]             = useState<CajaSession | null | undefined>(undefined);
     const [pedidosActivos, setPedidosActivos]   = useState(true);
     const [reservasActivas, setReservasActivas] = useState(true);
@@ -98,6 +101,17 @@ export default function CajaPage() {
     const [elementsPlano, setElementsPlano] = useState<SalonElPlano[]>([]);
     const [mesasLoaded, setMesasLoaded]   = useState(false);
     const [mesaDetalle, setMesaDetalle]   = useState<{ mesa: MesaPlano; pedido: Pedido } | null>(null);
+
+    // Eventos
+    const [eventoActivo, setEventoActivo]         = useState<Evento | null | undefined>(undefined);
+    const [crearEventoModal, setCrearEventoModal] = useState(false);
+    const [nuevoEventoNombre, setNuevoEventoNombre] = useState("");
+    const [crearEventoSaving, setCrearEventoSaving] = useState(false);
+    const [ventaModal, setVentaModal]             = useState(false);
+    const [ventaCart, setVentaCart]               = useState<CartItem[]>([]);
+    const [ventaMetodo, setVentaMetodo]           = useState<typeof METODOS[number]>("efectivo");
+    const [ventaSearch, setVentaSearch]           = useState("");
+    const [ventaSaving, setVentaSaving]           = useState(false);
 
     // Ítems cuyo "impreso" ya se está marcando/imprimiendo en este mismo instante,
     // para no dispararlos dos veces si el poll de 5s cae justo en el medio.
@@ -129,6 +143,14 @@ export default function CajaPage() {
         }
     }
 
+    const loadEvento = useCallback(async () => {
+        try {
+            const res = await fetch("/api/eventos?activo=true", { credentials: "include" });
+            const data = await res.json();
+            setEventoActivo(Array.isArray(data) && data.length > 0 ? data[0] : null);
+        } catch { setEventoActivo(null); }
+    }, []);
+
     const loadData = useCallback(async () => {
         try {
             const [cajaRes, pedRes] = await Promise.all([
@@ -151,14 +173,19 @@ export default function CajaPage() {
 
     useEffect(() => {
         loadData();
+        loadEvento();
         const iv = setInterval(loadData, 5000);
         return () => clearInterval(iv);
-    }, [loadData]);
+    }, [loadData, loadEvento]);
 
     useEffect(() => {
         fetch("/api/config/pedidos").then(r => r.json()).then(d => setPedidosActivos(d.activo ?? true));
         fetch("/api/config/reservas").then(r => r.json()).then(d => setReservasActivas(d.activo ?? true));
     }, []);
+
+    useEffect(() => {
+        if (tab === "eventos") loadEvento();
+    }, [tab, loadEvento]);
 
     useEffect(() => {
         if (tab !== "mesas" || mesasLoaded) return;
@@ -571,6 +598,143 @@ export default function CajaPage() {
         if (bebidas.length > 0) setTimeout(() => abrirEImprimir(comandaHtml(p, "AGREGADO BARRA", bebidas)), 600);
     }
 
+    async function crearEvento() {
+        if (!nuevoEventoNombre.trim()) return;
+        setCrearEventoSaving(true);
+        try {
+            const res = await fetch("/api/eventos", {
+                method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
+                body: JSON.stringify({ nombre: nuevoEventoNombre.trim() }),
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setEventoActivo(data);
+                setCrearEventoModal(false);
+                setNuevoEventoNombre("");
+            }
+        } finally { setCrearEventoSaving(false); }
+    }
+
+    async function cerrarEvento() {
+        if (!eventoActivo) return;
+        const r = await swalBase.fire({
+            title: "¿Cerrar evento?",
+            text: `Se cerrará "${eventoActivo.nombre}". No se podrán agregar más ventas.`,
+            icon: "warning", showCancelButton: true,
+            confirmButtonText: "Sí, cerrar", cancelButtonText: "Cancelar",
+        });
+        if (!r.isConfirmed) return;
+        const res = await fetch(`/api/eventos/${eventoActivo._id}`, {
+            method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
+            body: JSON.stringify({ accion: "cerrar" }),
+        });
+        if (res.ok) setEventoActivo(null);
+    }
+
+    function ventaEventoHtml(titulo: string, items: CartItem[], cliente: string, hora: string) {
+        const filas = items.map(it =>
+            `<tr>
+                <td style="font-size:22px;font-weight:900;padding:4px 10px 4px 0;white-space:nowrap">${it.cantidad}x</td>
+                <td style="font-size:20px;font-weight:700;padding:4px 0">${it.nombre}</td>
+            </tr>`
+        ).join("");
+        return `<!DOCTYPE html><html><head><meta charset="utf-8">
+        <style>
+            * { margin:0; padding:0; box-sizing:border-box; }
+            body { font-family: 'Courier New', monospace; width: 80mm; padding: 8px; }
+            .centro { text-align:center; }
+            .sep { border-top: 2px dashed #000; margin: 8px 0; }
+            .badge { font-size:26px; font-weight:900; text-transform:uppercase; }
+            .meta { font-size:14px; margin:4px 0; }
+            .meta-grande { font-size:18px; font-weight:700; margin:4px 0; }
+            table { width:100%; border-collapse:collapse; }
+        </style></head><body>
+        <div class="centro"><div class="badge">⬛ ${titulo} ⬛</div></div>
+        <div class="sep"></div>
+        <div class="meta-grande">Evento: ${titulo}</div>
+        <div class="meta-grande">Pago: ${cliente}</div>
+        <div class="meta">Hora: ${hora}</div>
+        <div class="sep"></div>
+        <table>${filas}</table>
+        <div class="sep"></div>
+        </body></html>`;
+    }
+
+    async function printVentaEvento(evento: Evento, cart: CartItem[], metodoPago: string) {
+        const bebidas = cart.filter(it => BEBIDAS_CATS.includes(it.categoria));
+        const comida  = cart.filter(it => !BEBIDAS_CATS.includes(it.categoria));
+        if (bebidas.length === 0 && comida.length === 0) return;
+
+        const hora   = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+        const total  = cart.reduce((acc, it) => acc + it.precio * it.cantidad, 0);
+        const cliente = `${METODO_LABEL[metodoPago]} · ${formatMoney(total)}`;
+        const titulo  = evento.nombre.toUpperCase();
+
+        try {
+            const promesas: Promise<Response>[] = [];
+            if (comida.length > 0) promesas.push(
+                fetch("http://localhost:3001/imprimir/comanda", {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        impresora: "Cocina", titulo,
+                        mesa: evento.nombre, cliente, mozo: "-", hora, nota: "",
+                        items: comida.map(it => ({ cantidad: it.cantidad, nombre: it.nombre })),
+                    }),
+                })
+            );
+            if (bebidas.length > 0) promesas.push(
+                fetch("http://localhost:3001/imprimir/comanda", {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        impresora: "Barra", titulo,
+                        mesa: evento.nombre, cliente, mozo: "-", hora, nota: "",
+                        items: bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.nombre })),
+                    }),
+                })
+            );
+            if (promesas.length > 0) { await Promise.all(promesas); return; }
+        } catch { /* fallback */ }
+
+        if (comida.length > 0)  abrirEImprimir(ventaEventoHtml(titulo, comida, cliente, hora));
+        if (bebidas.length > 0) setTimeout(() => abrirEImprimir(ventaEventoHtml(titulo, bebidas, cliente, hora)), 600);
+    }
+
+    async function abrirVentaModal() {
+        if (menuItemsAll.length === 0) {
+            const r = await fetch("/api/menu?activo=true", { credentials: "include" });
+            const d = await r.json().catch(() => []);
+            setMenuItemsAll(Array.isArray(d) ? d : []);
+        }
+        setVentaCart([]);
+        setVentaMetodo("efectivo");
+        setVentaSearch("");
+        setVentaModal(true);
+    }
+
+    async function registrarVenta() {
+        if (!eventoActivo || ventaCart.length === 0) return;
+        setVentaSaving(true);
+        try {
+            const items = ventaCart.map(it => ({
+                menuItemId: it.menuItemId, nombre: it.nombre,
+                precio: it.precio, categoria: it.categoria, cantidad: it.cantidad,
+            }));
+            const res = await fetch(`/api/eventos/${eventoActivo._id}`, {
+                method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
+                body: JSON.stringify({ accion: "agregarVenta", items, metodoPago: ventaMetodo }),
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setEventoActivo(data.evento);
+                await printVentaEvento(eventoActivo, ventaCart, ventaMetodo);
+                setVentaModal(false);
+                setVentaCart([]);
+                setVentaMetodo("efectivo");
+                setVentaSearch("");
+            }
+        } finally { setVentaSaving(false); }
+    }
+
     if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-gray-400" size={36} /></div>;
 
     // Pedidos listos para cobrar: estado listo O entregado (ambos estados válidos)
@@ -738,6 +902,17 @@ export default function CajaPage() {
                             {reservasPendientes > 0 && (
                                 <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${tab === "reservas" ? "bg-gray-900 text-white" : "bg-red-100 text-red-600"}`}>
                                     {reservasPendientes}
+                                </span>
+                            )}
+                        </button>
+                        <button onClick={() => setTab("eventos")}
+                            className={`flex-1 py-3.5 text-sm font-black transition flex items-center justify-center gap-2 ${
+                                tab === "eventos" ? "text-gray-900 border-b-2 border-gray-900" : "text-gray-400 hover:text-gray-600"
+                            }`}>
+                            <Star size={15} /> Eventos
+                            {eventoActivo && (
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${tab === "eventos" ? "bg-gray-900 text-white" : "bg-amber-100 text-amber-700"}`}>
+                                    1
                                 </span>
                             )}
                         </button>
@@ -1114,6 +1289,107 @@ export default function CajaPage() {
                             <ReservasManager onPendingCountChange={setReservasPendientes} />
                         </div>
                     )}
+
+                    {/* ── TAB EVENTOS ── */}
+                    {tab === "eventos" && (
+                        <div className="max-w-2xl mx-auto px-4 pt-4">
+                            {eventoActivo === undefined ? (
+                                <div className="flex justify-center py-16">
+                                    <Loader2 className="animate-spin text-gray-300" size={28} />
+                                </div>
+                            ) : eventoActivo === null ? (
+                                <div className="text-center py-20">
+                                    <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                                        <Star size={28} className="text-gray-300" />
+                                    </div>
+                                    <p className="font-bold text-gray-400 mb-2">Sin evento activo</p>
+                                    <p className="text-sm text-gray-300 mb-6">Creá un evento para registrar ventas individuales durante la noche</p>
+                                    <button onClick={() => { setCrearEventoModal(true); setNuevoEventoNombre(""); }}
+                                        className="bg-gray-900 hover:bg-gray-700 text-white font-bold px-6 py-3 rounded-2xl transition active:scale-95">
+                                        + Crear evento
+                                    </button>
+                                </div>
+                            ) : (
+                                <>
+                                    {/* Cabecera del evento */}
+                                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-4">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block" />
+                                                    <span className="text-xs font-bold text-emerald-600 uppercase tracking-wide">Evento activo</span>
+                                                </div>
+                                                <h2 className="font-black text-gray-900 text-xl">{eventoActivo.nombre}</h2>
+                                                <p className="text-xs text-gray-400 mt-0.5">
+                                                    {eventoActivo.ventas.length} venta{eventoActivo.ventas.length !== 1 ? "s" : ""} · Total: {formatMoney(eventoActivo.ventas.reduce((acc, v) => acc + v.total, 0))}
+                                                </p>
+                                            </div>
+                                            <button onClick={cerrarEvento}
+                                                className="text-xs font-bold text-red-600 hover:bg-red-50 border border-red-200 px-3 py-2 rounded-xl transition shrink-0">
+                                                Cerrar evento
+                                            </button>
+                                        </div>
+                                        {eventoActivo.ventas.length > 0 && (
+                                            <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-3 gap-2">
+                                                {METODOS.map(met => {
+                                                    const tot = eventoActivo.ventas.filter(v => v.metodoPago === met).reduce((acc, v) => acc + v.total, 0);
+                                                    const Icon = METODO_ICON[met];
+                                                    return tot > 0 ? (
+                                                        <div key={met} className="bg-gray-50 rounded-xl px-3 py-2 text-center">
+                                                            <div className="flex items-center justify-center gap-1 text-gray-500 mb-1">
+                                                                <Icon size={11} />
+                                                                <span className="text-[10px] font-semibold uppercase">{METODO_LABEL[met]}</span>
+                                                            </div>
+                                                            <p className="font-black text-gray-900 text-sm">{formatMoney(tot)}</p>
+                                                        </div>
+                                                    ) : null;
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Botón registrar venta */}
+                                    <button onClick={abrirVentaModal}
+                                        className="w-full mb-4 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 rounded-2xl transition shadow-sm active:scale-[0.98] text-base">
+                                        <Plus size={20} /> Registrar venta
+                                    </button>
+
+                                    {/* Lista de ventas */}
+                                    {eventoActivo.ventas.length === 0 ? (
+                                        <p className="text-center text-gray-400 text-sm py-8">Sin ventas registradas todavía</p>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            {[...eventoActivo.ventas].reverse().map(v => {
+                                                const Icon = METODO_ICON[v.metodoPago] || Banknote;
+                                                return (
+                                                    <div key={v._id} className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="flex items-center gap-1 text-xs font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                                                                    <Icon size={10} /> {METODO_LABEL[v.metodoPago]}
+                                                                </span>
+                                                                <span className="text-xs text-gray-400">
+                                                                    {new Date(v.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                                                                </span>
+                                                            </div>
+                                                            <span className="font-black text-gray-900">{formatMoney(v.total)}</span>
+                                                        </div>
+                                                        <ul className="space-y-0.5">
+                                                            {v.items.map((it, idx) => (
+                                                                <li key={idx} className="text-sm text-gray-600">
+                                                                    <span className="font-bold text-gray-400 mr-1">{it.cantidad}×</span>{it.nombre}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    )}
                 </>
             )}
 
@@ -1278,6 +1554,125 @@ export default function CajaPage() {
                             {menuItemsAll.filter(m => m.nombre.toLowerCase().includes(editItemSearch.toLowerCase())).length === 0 && (
                                 <p className="text-center text-gray-400 py-8 text-sm">Sin resultados</p>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal crear evento */}
+            {crearEventoModal && (
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl">
+                        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+                            <h2 className="font-black text-gray-900 flex-1">Crear evento</h2>
+                            <button onClick={() => setCrearEventoModal(false)} className="p-1 text-gray-400"><X size={18} /></button>
+                        </div>
+                        <div className="px-5 py-4 space-y-3">
+                            <div>
+                                <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Nombre del evento</label>
+                                <input autoFocus value={nuevoEventoNombre}
+                                    onChange={e => setNuevoEventoNombre(e.target.value)}
+                                    onKeyDown={e => e.key === "Enter" && crearEvento()}
+                                    placeholder="Ej: Cumpleaños Julio" style={{ fontSize: "16px" }}
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-base font-semibold focus:outline-none focus:ring-2 focus:ring-red-400" />
+                            </div>
+                        </div>
+                        <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
+                            <button onClick={() => setCrearEventoModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
+                            <button onClick={crearEvento} disabled={!nuevoEventoNombre.trim() || crearEventoSaving}
+                                className="flex-1 py-2.5 bg-gray-900 hover:bg-gray-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
+                                {crearEventoSaving ? "Creando..." : "Crear evento"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal registrar venta en evento */}
+            {ventaModal && eventoActivo && (
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl flex flex-col" style={{ maxHeight: "92vh" }}>
+                        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
+                            <div className="flex-1 min-w-0">
+                                <h2 className="font-black text-gray-900">Registrar venta</h2>
+                                <p className="text-xs text-gray-400 truncate">{eventoActivo.nombre}</p>
+                            </div>
+                            <button onClick={() => setVentaModal(false)} className="p-1 text-gray-400"><X size={18} /></button>
+                        </div>
+
+                        {/* Buscador + lista de productos */}
+                        <div className="px-4 pt-3 pb-2 shrink-0">
+                            <input autoFocus value={ventaSearch} onChange={e => setVentaSearch(e.target.value)}
+                                placeholder="Buscar producto..." style={{ fontSize: "16px" }}
+                                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
+                        </div>
+                        <div className="overflow-y-auto px-3 space-y-1 pb-2" style={{ maxHeight: "35vh" }}>
+                            {menuItemsAll
+                                .filter(m => m.nombre.toLowerCase().includes(ventaSearch.toLowerCase()))
+                                .map(m => (
+                                    <button key={m._id}
+                                        onClick={() => setVentaCart(prev => {
+                                            const ex = prev.find(it => it.menuItemId === m._id);
+                                            if (ex) return prev.map(it => it.menuItemId === m._id ? { ...it, cantidad: it.cantidad + 1 } : it);
+                                            return [...prev, { menuItemId: m._id, nombre: m.nombre, precio: m.precio, categoria: m.categoria, cantidad: 1 }];
+                                        })}
+                                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-gray-50 active:bg-gray-100 border border-gray-100 text-left transition">
+                                        <span className="text-sm text-gray-800">{m.nombre}</span>
+                                        <span className="text-xs text-gray-400 shrink-0 ml-2">{formatMoney(m.precio)}</span>
+                                    </button>
+                                ))}
+                            {menuItemsAll.filter(m => m.nombre.toLowerCase().includes(ventaSearch.toLowerCase())).length === 0 && (
+                                <p className="text-center text-gray-400 py-6 text-sm">Sin resultados</p>
+                            )}
+                        </div>
+
+                        {/* Carrito */}
+                        {ventaCart.length > 0 && (
+                            <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 shrink-0">
+                                <p className="text-[10px] font-black text-gray-400 uppercase mb-2">Carrito</p>
+                                <div className="space-y-2">
+                                    {ventaCart.map(it => (
+                                        <div key={it.menuItemId} className="flex items-center gap-2">
+                                            <button onClick={() => setVentaCart(prev => prev.map(x => x.menuItemId === it.menuItemId ? { ...x, cantidad: Math.max(1, x.cantidad - 1) } : x))}
+                                                className="w-7 h-7 rounded-lg bg-white border border-gray-200 text-gray-700 font-bold flex items-center justify-center shrink-0">−</button>
+                                            <span className="text-sm font-bold w-5 text-center shrink-0">{it.cantidad}</span>
+                                            <button onClick={() => setVentaCart(prev => prev.map(x => x.menuItemId === it.menuItemId ? { ...x, cantidad: x.cantidad + 1 } : x))}
+                                                className="w-7 h-7 rounded-lg bg-white border border-gray-200 text-gray-700 font-bold flex items-center justify-center shrink-0">+</button>
+                                            <span className="text-sm text-gray-700 flex-1 min-w-0 truncate">{it.nombre}</span>
+                                            <span className="text-xs text-gray-400 shrink-0">{formatMoney(it.precio * it.cantidad)}</span>
+                                            <button onClick={() => setVentaCart(prev => prev.filter(x => x.menuItemId !== it.menuItemId))}
+                                                className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 shrink-0 transition">
+                                                <Trash2 size={12} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Método de pago + confirmar */}
+                        <div className="px-5 py-4 border-t border-gray-100 shrink-0 space-y-3">
+                            <div className="flex gap-2">
+                                {METODOS.map(met => {
+                                    const Icon = METODO_ICON[met];
+                                    return (
+                                        <button key={met} onClick={() => setVentaMetodo(met)}
+                                            className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 border transition ${ventaMetodo === met ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-500 border-gray-200"}`}>
+                                            <Icon size={12} /> {METODO_LABEL[met]}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            {ventaCart.length > 0 && (
+                                <div className="flex justify-between items-center font-black text-gray-900 px-1">
+                                    <span>TOTAL</span>
+                                    <span className="text-lg">{formatMoney(ventaCart.reduce((acc, it) => acc + it.precio * it.cantidad, 0))}</span>
+                                </div>
+                            )}
+                            <button onClick={registrarVenta} disabled={ventaCart.length === 0 || ventaSaving}
+                                className="w-full py-3.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-black rounded-2xl transition flex items-center justify-center gap-2 shadow-lg shadow-red-600/20">
+                                <Printer size={16} /> {ventaSaving ? "Registrando..." : "Confirmar y cobrar"}
+                            </button>
                         </div>
                     </div>
                 </div>

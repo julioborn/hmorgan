@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
-import { Plus, UtensilsCrossed, ChevronRight, Trash2, LockKeyhole, CalendarDays, Clock, Users } from "lucide-react";
+import { Plus, UtensilsCrossed, ChevronRight, Trash2, LockKeyhole, CalendarDays, Clock, Users, Star } from "lucide-react";
 import Loader from "@/components/Loader";
 import { swalBase } from "@/lib/swalConfig";
 import { hoyArgentina } from "@/lib/argentina-time";
@@ -49,6 +49,7 @@ export default function AnotadorPage() {
     const [reservas, setReservas] = useState<Reserva[]>([]);
     const [cajaAbierta, setCajaAbierta] = useState<boolean | null>(null);
     const [loadingData, setLoadingData] = useState(true);
+    const [eventoActivo, setEventoActivo] = useState<string | null>(null);
 
     useEffect(() => {
         if (!loading && user && !["empleado", "cajero", "admin", "superadmin"].includes(user.role)) {
@@ -83,6 +84,10 @@ export default function AnotadorPage() {
                 .then(r => r.json())
                 .then(d => setCajaAbierta(!!d.abierta))
                 .catch(() => setCajaAbierta(false)),
+            fetch("/api/eventos?activo=true", { credentials: "include" })
+                .then(r => r.json())
+                .then(d => setEventoActivo(Array.isArray(d) && d.length > 0 ? d[0].nombre : null))
+                .catch(() => null),
         ]).finally(() => setLoadingData(false));
 
         const iv = setInterval(fetchComandas, 8000);
@@ -123,6 +128,12 @@ export default function AnotadorPage() {
                 {/* ── COMANDAS ── */}
                 {tab === "comandas" && (
                     <>
+                        {eventoActivo && (
+                            <div className="mb-4 flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                                <Star size={14} className="text-amber-500 shrink-0" />
+                                <p className="text-sm font-bold text-amber-700 truncate">Evento activo: {eventoActivo}</p>
+                            </div>
+                        )}
                         <div className="flex items-center justify-between mb-4">
                             <p className="text-sm text-gray-400">
                                 {comandas.length === 0 ? "Sin comandas activas" : `${comandas.length} activa${comandas.length !== 1 ? "s" : ""}`}
