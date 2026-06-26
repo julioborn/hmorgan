@@ -30,6 +30,7 @@ type Pedido = {
     notaEmpleado?: string;
     notaCliente?: string;
     userId?: { _id: string; nombre: string; apellido: string; telefono?: string; role?: string };
+    comensalesIds?: { _id: string; nombre: string; apellido: string; username?: string }[];
 };
 type MenuItemLite = { _id: string; nombre: string; precio: number; categoria: string };
 type CajaSession = { _id: string; estado: "abierta" | "cerrada"; montoInicial: number; fechaApertura: string };
@@ -530,8 +531,11 @@ export default function CajaPage() {
         const esEmpleado = p.fuente === "empleado";
         const base = p.mesa ? `Mesa ${p.mesa}` : p.tipoEntrega === "envio" ? "Envío a domicilio" : "Retira en barra";
         const mesa = !esEmpleado && p.numeroDia ? `Pedido #${p.numeroDia} · ${base}` : base;
+        const comensalesStr = p.comensalesIds?.length
+            ? p.comensalesIds.map(c => `${c.nombre} ${c.apellido}`.trim()).join(", ")
+            : "";
         const cliente = esEmpleado
-            ? (p.nombreComanda || "-")
+            ? [p.nombreComanda, comensalesStr].filter(Boolean).join(" / ") || "-"
             : (p.userId?.nombre ? `${p.userId.nombre}${p.userId.apellido ? " " + p.userId.apellido : ""}` : "-");
         const mozo = esEmpleado ? (p.userId?.nombre || "-") : "-";
         const direccion = p.tipoEntrega === "envio" ? (p.direccion || "-") : "";
@@ -648,7 +652,7 @@ export default function CajaPage() {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        impresora: "Cocina", titulo: "AGREGADO COCINA",
+                        impresora: "Cocina", titulo: "COCINA",
                         mesa, cliente, mozo, direccion, hora, nota,
                         items: comida.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem" })),
                     }),
@@ -659,7 +663,7 @@ export default function CajaPage() {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        impresora: "Barra", titulo: "AGREGADO BARRA",
+                        impresora: "Barra", titulo: "BARRA",
                         mesa, cliente, mozo, direccion, hora, nota,
                         items: bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem" })),
                     }),
@@ -672,8 +676,8 @@ export default function CajaPage() {
         } catch { /* servidor no disponible → fallback */ }
 
         // Fallback: ventana del navegador
-        if (comida.length > 0)  abrirEImprimir(comandaHtml(p, "AGREGADO COCINA", comida));
-        if (bebidas.length > 0) setTimeout(() => abrirEImprimir(comandaHtml(p, "AGREGADO BARRA", bebidas)), 600);
+        if (comida.length > 0)  abrirEImprimir(comandaHtml(p, "COCINA", comida));
+        if (bebidas.length > 0) setTimeout(() => abrirEImprimir(comandaHtml(p, "BARRA", bebidas)), 600);
     }
 
     async function crearEvento() {
@@ -1213,10 +1217,10 @@ export default function CajaPage() {
                                                                 className="flex-1 flex items-center justify-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-1.5 rounded-xl text-xs transition">
                                                                 <Printer size={12} /> Reimprimir
                                                             </button>
-                                                            {p.estado === "entregado" && (
-                                                                <button onClick={() => setTab("caja")}
+                                                            {(p.estado === "listo" || p.estado === "entregado") && (
+                                                                <button onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ metodoPago: "efectivo", montoPagado: "" }); }}
                                                                     className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 rounded-xl text-xs transition">
-                                                                    <Wallet size={12} /> Cobrar →
+                                                                    <Wallet size={12} /> Cobrar
                                                                 </button>
                                                             )}
                                                         </div>

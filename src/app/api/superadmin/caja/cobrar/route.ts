@@ -6,6 +6,8 @@ import { CajaMovement } from "@/models/CajaMovement";
 import { User } from "@/models/User";
 import { PointTransaction } from "@/models/PointTransaction";
 import { getPointsRatio } from "@/lib/getPointsRatio";
+import { sendPushAndCollectInvalid } from "@/lib/push-server";
+import { enviarNotificacionFCM, isFCMTokenInvalid } from "@/lib/firebase-admin";
 import jwt from "jsonwebtoken";
 
 const SECRET = process.env.NEXTAUTH_SECRET!;
@@ -57,7 +59,7 @@ export async function POST(req: NextRequest) {
         const comensalesIds: string[] = (pedido as any).comensalesIds ?? [];
 
         if (comensalesIds.length > 0 && puntos > 0) {
-            // Acreditar a cada comensal identificado
+            // Acreditar y notificar a cada comensal identificado
             for (const uid of comensalesIds) {
                 const cliente = await User.findById(uid);
                 if (cliente && cliente.role === "cliente") {
@@ -69,6 +71,23 @@ export async function POST(req: NextRequest) {
                     cliente.puntos = (cliente.puntos || 0) + puntos;
                     cliente.needsReview = true;
                     await cliente.save();
+                    // Notificación push al comensal
+                    if (Array.isArray(cliente.pushSubscriptions) && cliente.pushSubscriptions.length) {
+                        const invalid = await sendPushAndCollectInvalid(cliente.pushSubscriptions, {
+                            title: "¡Puntos sumados!",
+                            body: `Se acreditaron ${puntos} puntos por tu consumo en H. Morgan 🎉`,
+                            url: "/cliente/qr",
+                        });
+                        if (invalid.length) await User.updateOne({ _id: cliente._id }, { $pull: { pushSubscriptions: { endpoint: { $in: invalid } } } });
+                    }
+                    const fcmTokens = new Set<string>([...(cliente.fcmTokens ?? []), ...(cliente.tokenFCM ? [cliente.tokenFCM] : [])]);
+                    for (const fcmToken of fcmTokens) {
+                        try {
+                            await enviarNotificacionFCM(fcmToken, "¡Puntos sumados!", `Se acreditaron ${puntos} puntos por tu consumo en H. Morgan 🎉`, "/cliente/qr");
+                        } catch (err) {
+                            if (isFCMTokenInvalid(err)) await User.updateOne({ _id: cliente._id }, { $pull: { fcmTokens: fcmToken } });
+                        }
+                    }
                 }
             }
             await Pedido.findByIdAndUpdate(pedidoId, { puntosAcreditados: true });
@@ -89,6 +108,23 @@ export async function POST(req: NextRequest) {
                     clienteDoc.needsReview = true;
                     await clienteDoc.save();
                     await Pedido.findByIdAndUpdate(pedidoId, { puntosAcreditados: true });
+                    // Notificación push al cliente
+                    if (Array.isArray(clienteDoc.pushSubscriptions) && clienteDoc.pushSubscriptions.length) {
+                        const invalid = await sendPushAndCollectInvalid(clienteDoc.pushSubscriptions, {
+                            title: "¡Puntos sumados!",
+                            body: `Se acreditaron ${puntos} puntos por tu consumo en H. Morgan 🎉`,
+                            url: "/cliente/qr",
+                        });
+                        if (invalid.length) await User.updateOne({ _id: clienteDoc._id }, { $pull: { pushSubscriptions: { endpoint: { $in: invalid } } } });
+                    }
+                    const fcmTokens = new Set<string>([...(clienteDoc.fcmTokens ?? []), ...(clienteDoc.tokenFCM ? [clienteDoc.tokenFCM] : [])]);
+                    for (const fcmToken of fcmTokens) {
+                        try {
+                            await enviarNotificacionFCM(fcmToken, "¡Puntos sumados!", `Se acreditaron ${puntos} puntos por tu consumo en H. Morgan 🎉`, "/cliente/qr");
+                        } catch (err) {
+                            if (isFCMTokenInvalid(err)) await User.updateOne({ _id: clienteDoc._id }, { $pull: { fcmTokens: fcmToken } });
+                        }
+                    }
                 }
             }
         }

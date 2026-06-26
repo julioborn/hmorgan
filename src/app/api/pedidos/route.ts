@@ -70,6 +70,7 @@ export async function GET(req: NextRequest) {
         const pedidos = await Pedido.find(query)
             .populate("userId", "nombre apellido role telefono")
             .populate("items.menuItemId", "nombre precio categoria")
+            .populate("comensalesIds", "nombre apellido username")
             .sort({ createdAt: -1 })
             .lean();
 
