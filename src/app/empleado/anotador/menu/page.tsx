@@ -198,7 +198,10 @@ function AnotadorMenuContent() {
             const saved = sessionStorage.getItem(CART_KEY);
             if (!saved) return;
             const { cart: sc, mesa: sm, comensales: scm, clienteNombre: sn, comensalesSeleccionados: scs } = JSON.parse(saved);
-            if (Array.isArray(sc) && sc.length > 0) setCart(sc);
+            if (Array.isArray(sc) && sc.length > 0) {
+                setCart(sc);
+                if (!comandaId) setStep("menu"); // borrador existente → saltar info
+            }
             if (sm && !comandaId) setMesa(sm);
             if (scm && !comandaId) setComensales(scm);
             if (sn) setClienteNombre(sn);
