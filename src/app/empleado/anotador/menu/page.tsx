@@ -148,7 +148,9 @@ function AnotadorMenuContent() {
     const [mesaPickerOpen, setMesaPickerOpen] = useState(false);
     const [mesasPlano, setMesasPlano]         = useState<MesaPlano[]>([]);
     const [elementsPlano, setElementsPlano]   = useState<SalonElPlano[]>([]);
-    const [ocupadasPlano, setOcupadasPlano]   = useState<Set<string>>(new Set());
+    const [ocupadasPlano, setOcupadasPlano]     = useState<Set<string>>(new Set());
+    const [reservadasPlano, setReservadasPlano] = useState<Set<string>>(new Set());
+    const [eventosPlano, setEventosPlano]       = useState<string[]>([]); // nombres de mesas con evento
     // Zoom del plano
     const [mapScale, setMapScale]   = useState(1);
     const [mapOffset, setMapOffset] = useState({ x: 0, y: 0 });
@@ -352,15 +354,31 @@ function AnotadorMenuContent() {
 
     async function openMesaPicker() {
         setMesaPickerOpen(true);
-        const [mRes, elRes, pRes] = await Promise.all([
+        const [mRes, elRes, pRes, evRes, resRes] = await Promise.all([
             fetch("/api/admin/mesas?all=true", { credentials: "include" }),
             fetch("/api/superadmin/salon", { credentials: "include" }),
-            fetch("/api/pedidos?activos=true&fuente=empleado", { credentials: "include" }),
+            fetch("/api/pedidos?activos=true", { credentials: "include" }),
+            fetch("/api/eventos?activo=true", { credentials: "include" }),
+            fetch("/api/reservas", { credentials: "include" }),
         ]);
-        const [mData, elData, pData] = await Promise.all([mRes.json(), elRes.json(), pRes.json()]);
+        const [mData, elData, pData, evData, resData] = await Promise.all([
+            mRes.json(), elRes.json(), pRes.json(), evRes.json(), resRes.json(),
+        ]);
         setMesasPlano(Array.isArray(mData) ? mData : []);
         setElementsPlano(Array.isArray(elData) ? elData : []);
-        if (Array.isArray(pData)) setOcupadasPlano(new Set(pData.filter((p: any) => p.mesa).map((p: any) => String(p.mesa))));
+        if (Array.isArray(pData))
+            setOcupadasPlano(new Set(pData.filter((p: any) => p.mesa).map((p: any) => String(p.mesa))));
+        if (Array.isArray(evData))
+            setEventosPlano(evData.flatMap((e: any) => e.mesas ?? []));
+        if (Array.isArray(resData)) {
+            const hoy = new Date().toLocaleDateString("sv-SE");
+            setReservadasPlano(new Set(
+                resData
+                    .filter((r: any) => r.mesaId && r.estado !== "cancelada" && String(r.fecha).slice(0, 10) === hoy)
+                    .map((r: any) => typeof r.mesaId === "object" ? r.mesaId.nombre : "")
+                    .filter(Boolean)
+            ));
+        }
     }
 
     function addToCart(item: MenuItem) {
@@ -856,10 +874,21 @@ function AnotadorMenuContent() {
                                         return <div key={el._id} style={{ position:"absolute", left:`${el.x}%`, top:`${el.y}%`, transform:"translate(-50%,-50%)", width:`${el.ancho}%`, height:`${el.alto}%`, minWidth:"32px", minHeight:"14px", display:"flex", alignItems:"center", justifyContent:"center", borderRadius:"6px", backgroundColor:isBarra?"#b45309":el.color, border:isBarra?"2px solid #92400e":`1px solid ${el.color==="#fef3c7"?"#d97706":"#9ca3af"}60` }}>{el.label&&<span style={{ fontSize:"clamp(6px,0.9vw,9px)", fontWeight:700, color:isBarra?"#fef3c7":"#374151", whiteSpace:"nowrap" }}>{el.label}</span>}</div>;
                                     })}
                                     {mesasPlano.filter(m => m.activa).map(m => {
-                                        const isOcupada=ocupadasPlano.has(m.nombre); const isSel=m.nombre===mesa; const isRound=m.forma==="round"||m.forma==="oval";
+                                        const isOcupada  = ocupadasPlano.has(m.nombre);
+                                        const isReservada = !isOcupada && reservadasPlano.has(m.nombre);
+                                        const isEvento   = !isOcupada && !isReservada && eventosPlano.includes(m.nombre);
+                                        const isBanq     = m.tipo === "banqueta";
+                                        const isSel      = m.nombre === mesa;
+                                        const bloqueada  = isBanq || isOcupada || isReservada || isEvento;
+                                        const isRound    = m.forma === "round" || m.forma === "oval";
                                         const rot=m.rotacion??0; const w=m.ancho||(m.forma==="oval"?11:m.forma==="round"?5.5:7); const h=m.alto||(m.forma==="oval"?5:m.forma==="round"?5.5:5);
-                                        const bg=isSel?"bg-blue-500 border-blue-600 text-white":m.tipo==="banqueta"?"bg-amber-700 border-amber-800 text-amber-100":isOcupada?"bg-red-400 border-red-500 text-white":"bg-emerald-500 border-emerald-600 text-white";
-                                        return <div key={m._id} onClick={() => { setMesa(m.nombre); setMesaPickerOpen(false); }} style={{ position:"absolute", left:`${m.x??10}%`, top:`${m.y??10}%`, transform:`translate(-50%,-50%) rotate(${rot}deg)`, width:`min(${w}%,${w*7}px)`, height:`min(${h}%,${h*7.5}px)`, minWidth:"24px", minHeight:"18px", borderRadius:isRound?"50%":"8px", cursor:"pointer", userSelect:"none", zIndex:2 }} className={`flex items-center justify-center border-2 ${bg} hover:brightness-110 active:scale-95 transition-all`}><div style={{ transform:`rotate(${-rot}deg)`, fontSize:"clamp(6px,0.8vw,9px)", fontWeight:900 }}>{m.nombre}</div></div>;
+                                        const bg = isBanq      ? "bg-amber-700 border-amber-800 text-amber-100"
+                                            : isOcupada         ? "bg-red-500 border-red-600 text-white opacity-70"
+                                            : isReservada       ? "bg-yellow-400 border-yellow-500 text-gray-900 opacity-80"
+                                            : isEvento          ? "bg-blue-500 border-blue-600 text-white opacity-80"
+                                            : isSel             ? "bg-gray-900 border-gray-700 text-white ring-2 ring-gray-500"
+                                            :                     "bg-emerald-500 border-emerald-600 text-white";
+                                        return <div key={m._id} onClick={() => { if (!bloqueada) { setMesa(m.nombre); setMesaPickerOpen(false); } }} style={{ position:"absolute", left:`${m.x??10}%`, top:`${m.y??10}%`, transform:`translate(-50%,-50%) rotate(${rot}deg)`, width:`min(${w}%,${w*7}px)`, height:`min(${h}%,${h*7.5}px)`, minWidth:"24px", minHeight:"18px", borderRadius:isRound?"50%":"8px", cursor:bloqueada?"not-allowed":"pointer", userSelect:"none", zIndex:2 }} className={`flex items-center justify-center border-2 ${bg} ${!bloqueada?"active:scale-95 transition-all":""}`}><div style={{ transform:`rotate(${-rot}deg)`, fontSize:"clamp(6px,0.8vw,9px)", fontWeight:900 }}>{m.nombre}</div></div>;
                                     })}
                                 </div>
                                 </div>{/* end scale wrapper */}
@@ -867,8 +896,10 @@ function AnotadorMenuContent() {
                             </div>
                             <div className="flex items-center gap-3 mt-2 text-xs text-gray-500 flex-wrap">
                                 <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-emerald-500 inline-block"/>Libre</span>
-                                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-400 inline-block"/>Ocupada</span>
-                                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-500 inline-block"/>Seleccionada</span>
+                                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-500 inline-block"/>Ocupada</span>
+                                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-400 inline-block"/>Reservada</span>
+                                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-500 inline-block"/>Evento</span>
+                                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-gray-900 inline-block"/>Seleccionada</span>
                                 {mapScale > 1 && (
                                     <button onClick={() => { setMapScale(1); setMapOffset({ x:0, y:0 }); }}
                                         className="ml-auto text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 rounded-lg transition">
