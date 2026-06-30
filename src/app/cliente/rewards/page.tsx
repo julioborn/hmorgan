@@ -44,25 +44,15 @@ export default function RewardsClientePage() {
             return;
         }
 
-        const paso1 = await swalBase.fire({
+        const confirm = await swalBase.fire({
             title: `Canjear "${r.titulo}"`,
-            text: `Usarás ${r.puntos} puntos. ¿Continuás?`,
+            text: `Usarás ${r.puntos} puntos. La solicitud quedará pendiente hasta que la acepten en caja.`,
             icon: "question",
             showCancelButton: true,
-            confirmButtonText: "Sí, continuar",
+            confirmButtonText: "Solicitar canje",
             cancelButtonText: "Cancelar",
         });
-        if (!paso1.isConfirmed) return;
-
-        const paso2 = await swalBase.fire({
-            title: "Confirmación final",
-            text: "La solicitud quedará pendiente hasta que la acepten en caja. ¿Confirmás?",
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonText: "Confirmar canje",
-            cancelButtonText: "Cancelar",
-        });
-        if (!paso2.isConfirmed) return;
+        if (!confirm.isConfirmed) return;
 
         setSolicitando(r._id);
         try {

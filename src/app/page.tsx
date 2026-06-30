@@ -123,10 +123,8 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
       await swalBase.fire({ title: "Puntos insuficientes", text: `Necesitás ${r.puntos} pts y tenés ${puntos} pts.`, icon: "warning" });
       return;
     }
-    const p1 = await swalBase.fire({ title: `Canjear "${r.titulo}"`, text: `Usarás ${r.puntos} puntos. ¿Continuás?`, icon: "question", showCancelButton: true, confirmButtonText: "Sí, continuar", cancelButtonText: "Cancelar" });
-    if (!p1.isConfirmed) return;
-    const p2 = await swalBase.fire({ title: "Confirmación final", text: "La solicitud quedará pendiente hasta que la acepten en caja. ¿Confirmás?", icon: "warning", showCancelButton: true, confirmButtonText: "Confirmar canje", cancelButtonText: "Cancelar" });
-    if (!p2.isConfirmed) return;
+    const confirm = await swalBase.fire({ title: `Canjear "${r.titulo}"`, text: `Usarás ${r.puntos} puntos. La solicitud quedará pendiente hasta que la acepten en caja.`, icon: "question", showCancelButton: true, confirmButtonText: "Solicitar canje", cancelButtonText: "Cancelar" });
+    if (!confirm.isConfirmed) return;
     setCanjeSolicitando(true);
     try {
       const res = await fetch("/api/canjes", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ rewardId: r._id }) });
