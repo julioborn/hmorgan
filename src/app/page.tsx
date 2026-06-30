@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -766,6 +766,47 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
   const [asignarForm, setAsignarForm]   = useState({ mesa: "", comensales: "2", nombre: "" });
   const [asignarSaving, setAsignarSaving] = useState(false);
 
+  // Zoom / pan del plano
+  const planoRef  = useRef<HTMLDivElement>(null);
+  const [planoTransform, setPlanoTransform] = useState({ scale: 1, x: 0, y: 0 });
+  const planoTr   = useRef({ scale: 1, x: 0, y: 0 });
+  const gesture   = useRef<{ type: "pinch" | "pan"; startDist: number; startScale: number; startX: number; startY: number; startOx: number; startOy: number } | null>(null);
+
+  useEffect(() => {
+    const el = planoRef.current;
+    if (!el) return;
+    function dist(t: TouchList) { return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); }
+    function onStart(e: TouchEvent) {
+      e.preventDefault();
+      const tr = planoTr.current;
+      if (e.touches.length === 2) {
+        gesture.current = { type: "pinch", startDist: dist(e.touches), startScale: tr.scale, startX: 0, startY: 0, startOx: tr.x, startOy: tr.y };
+      } else if (e.touches.length === 1) {
+        gesture.current = { type: "pan", startDist: 0, startScale: tr.scale, startX: e.touches[0].clientX, startY: e.touches[0].clientY, startOx: tr.x, startOy: tr.y };
+      }
+    }
+    function onMove(e: TouchEvent) {
+      e.preventDefault();
+      const g = gesture.current;
+      if (!g) return;
+      if (g.type === "pinch" && e.touches.length === 2) {
+        const s = Math.min(5, Math.max(1, g.startScale * dist(e.touches) / g.startDist));
+        planoTr.current = { ...planoTr.current, scale: s };
+        setPlanoTransform({ ...planoTr.current });
+      } else if (g.type === "pan" && e.touches.length === 1) {
+        const nx = g.startOx + e.touches[0].clientX - g.startX;
+        const ny = g.startOy + e.touches[0].clientY - g.startY;
+        planoTr.current = { ...planoTr.current, x: nx, y: ny };
+        setPlanoTransform({ ...planoTr.current });
+      }
+    }
+    function onEnd() { gesture.current = null; }
+    el.addEventListener("touchstart", onStart, { passive: false });
+    el.addEventListener("touchmove",  onMove,  { passive: false });
+    el.addEventListener("touchend",   onEnd);
+    return () => { el.removeEventListener("touchstart", onStart); el.removeEventListener("touchmove", onMove); el.removeEventListener("touchend", onEnd); };
+  }, [asignarModal]);
+
   useEffect(() => {
     const tick = setInterval(() => setHora(new Date().getHours()), 60000);
     return () => clearInterval(tick);
@@ -792,6 +833,8 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
     );
     setOcupadas(mesasOcupadas);
     setAsignarForm({ mesa: "", comensales: "2", nombre: "" });
+    planoTr.current = { scale: 1, x: 0, y: 0 };
+    setPlanoTransform({ scale: 1, x: 0, y: 0 });
     setAsignarModal(true);
   }
 
@@ -876,8 +919,8 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
 
     {/* ── Modal asignar mesa (plano) ── */}
     {asignarModal && (
-      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center" style={{ paddingTop: "calc(env(safe-area-inset-top) + 60px)" }}>
-        <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl max-h-[85vh] flex flex-col mx-3">
+      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center" style={{ paddingTop: "calc(env(safe-area-inset-top) + 80px)" }}>
+        <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl max-h-[82vh] flex flex-col mx-3">
 
           <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
             <h2 className="font-black text-gray-900 flex-1">Seleccioná una mesa</h2>
@@ -893,48 +936,70 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
               {asignarForm.mesa && <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-gray-900 inline-block" />Seleccionada</span>}
             </div>
 
-            {/* Plano */}
-            <div className="relative w-full rounded-xl overflow-hidden border border-gray-200" style={{ paddingBottom: "72%" }}>
-              <div className="absolute inset-0" style={{ backgroundColor: "#f9f5ef", backgroundImage: "linear-gradient(rgba(0,0,0,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.04) 1px,transparent 1px)", backgroundSize: "30px 30px" }}>
-                {elementsPlano.map(el => {
-                  const isLine = el.tipo === "linea_h" || el.tipo === "linea_v";
-                  const isBarra = el.tipo === "barra";
-                  if (isLine) return (
-                    <div key={el._id} style={{ position: "absolute", left: `${el.x}%`, top: `${el.y}%`, width: el.tipo === "linea_h" ? `${el.ancho}%` : "3px", height: el.tipo === "linea_v" ? `${el.alto}%` : "3px", backgroundColor: el.color, borderRadius: "2px", transform: el.tipo === "linea_h" ? "translateY(-50%)" : "translateX(-50%)" }} />
-                  );
-                  return (
-                    <div key={el._id} style={{ position: "absolute", left: `${el.x}%`, top: `${el.y}%`, transform: "translate(-50%,-50%)", width: `${el.ancho}%`, height: `${el.alto}%`, minWidth: "32px", minHeight: "14px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "6px", backgroundColor: isBarra ? "#b45309" : el.color, border: isBarra ? "2px solid #92400e" : `1px solid ${el.color === "#fef3c7" ? "#d97706" : "#9ca3af"}60` }}>
-                      {el.label && <span style={{ fontSize: "clamp(6px,0.9vw,9px)", fontWeight: 700, color: isBarra ? "#fef3c7" : "#374151", whiteSpace: "nowrap" }}>{el.label}</span>}
-                    </div>
-                  );
-                })}
-                {mesasPlano.filter(m => m.activa).map(m => {
-                  const ocupada = ocupadas.has(m.nombre);
-                  const seleccionada = asignarForm.mesa === m.nombre;
-                  const isRound = m.forma === "round" || m.forma === "oval";
-                  const isBanq  = m.tipo === "banqueta";
-                  const rot = m.rotacion ?? 0;
-                  const w = m.ancho || (m.forma === "oval" ? 11 : m.forma === "round" ? 5.5 : 7);
-                  const h = m.alto  || (m.forma === "oval" ? 5  : m.forma === "round" ? 5.5 : 5);
-                  const bg = isBanq
-                    ? "bg-amber-700 border-amber-800 text-amber-100"
-                    : ocupada
-                    ? "bg-red-400 border-red-500 text-white opacity-60"
-                    : seleccionada
-                    ? "bg-gray-900 border-gray-700 text-white ring-2 ring-offset-1 ring-gray-900"
-                    : "bg-emerald-500 border-emerald-600 text-white";
-                  return (
-                    <div key={m._id}
-                      onClick={() => { if (!ocupada && !isBanq) setAsignarForm(p => ({ ...p, mesa: m.nombre })); }}
-                      style={{ position: "absolute", left: `${m.x ?? 10}%`, top: `${m.y ?? 10}%`, transform: `translate(-50%,-50%) rotate(${rot}deg)`, width: `min(${w}%,${w * 7}px)`, height: `min(${h}%,${h * 7.5}px)`, minWidth: "22px", minHeight: "16px", borderRadius: isRound ? "50%" : "8px", cursor: ocupada || isBanq ? "not-allowed" : "pointer", userSelect: "none", zIndex: 2 }}
-                      className={`flex items-center justify-center border-2 transition-all ${bg} ${!ocupada && !isBanq ? "active:scale-95" : ""}`}>
-                      <div style={{ transform: `rotate(${-rot}deg)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <span style={{ fontSize: "clamp(5px,0.8vw,9px)", fontWeight: 900 }}>{m.nombre}</span>
-                      </div>
-                    </div>
-                  );
-                })}
+            {/* Plano con zoom/pan */}
+            <div className="relative">
+              <div
+                ref={planoRef}
+                className="relative w-full rounded-xl overflow-hidden border border-gray-200 select-none"
+                style={{ paddingBottom: "72%", touchAction: "none" }}
+              >
+                <div className="absolute inset-0" style={{ overflow: "hidden" }}>
+                  <div style={{
+                    position: "absolute", inset: 0,
+                    transform: `translate(${planoTransform.x}px, ${planoTransform.y}px) scale(${planoTransform.scale})`,
+                    transformOrigin: "center center",
+                    backgroundColor: "#f9f5ef",
+                    backgroundImage: "linear-gradient(rgba(0,0,0,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.04) 1px,transparent 1px)",
+                    backgroundSize: "30px 30px",
+                  }}>
+                    {elementsPlano.map(el => {
+                      const isLine = el.tipo === "linea_h" || el.tipo === "linea_v";
+                      const isBarra = el.tipo === "barra";
+                      if (isLine) return (
+                        <div key={el._id} style={{ position: "absolute", left: `${el.x}%`, top: `${el.y}%`, width: el.tipo === "linea_h" ? `${el.ancho}%` : "3px", height: el.tipo === "linea_v" ? `${el.alto}%` : "3px", backgroundColor: el.color, borderRadius: "2px", transform: el.tipo === "linea_h" ? "translateY(-50%)" : "translateX(-50%)" }} />
+                      );
+                      return (
+                        <div key={el._id} style={{ position: "absolute", left: `${el.x}%`, top: `${el.y}%`, transform: "translate(-50%,-50%)", width: `${el.ancho}%`, height: `${el.alto}%`, minWidth: "32px", minHeight: "14px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "6px", backgroundColor: isBarra ? "#b45309" : el.color, border: isBarra ? "2px solid #92400e" : `1px solid ${el.color === "#fef3c7" ? "#d97706" : "#9ca3af"}60` }}>
+                          {el.label && <span style={{ fontSize: "clamp(6px,0.9vw,9px)", fontWeight: 700, color: isBarra ? "#fef3c7" : "#374151", whiteSpace: "nowrap" }}>{el.label}</span>}
+                        </div>
+                      );
+                    })}
+                    {mesasPlano.filter(m => m.activa).map(m => {
+                      const ocupada = ocupadas.has(m.nombre);
+                      const seleccionada = asignarForm.mesa === m.nombre;
+                      const isRound = m.forma === "round" || m.forma === "oval";
+                      const isBanq  = m.tipo === "banqueta";
+                      const rot = m.rotacion ?? 0;
+                      const w = m.ancho || (m.forma === "oval" ? 11 : m.forma === "round" ? 5.5 : 7);
+                      const h = m.alto  || (m.forma === "oval" ? 5  : m.forma === "round" ? 5.5 : 5);
+                      const bg = isBanq
+                        ? "bg-amber-700 border-amber-800 text-amber-100"
+                        : ocupada
+                        ? "bg-red-400 border-red-500 text-white opacity-60"
+                        : seleccionada
+                        ? "bg-gray-900 border-gray-700 text-white ring-2 ring-offset-1 ring-gray-900"
+                        : "bg-emerald-500 border-emerald-600 text-white";
+                      return (
+                        <div key={m._id}
+                          onClick={() => { if (!ocupada && !isBanq) setAsignarForm(p => ({ ...p, mesa: m.nombre })); }}
+                          style={{ position: "absolute", left: `${m.x ?? 10}%`, top: `${m.y ?? 10}%`, transform: `translate(-50%,-50%) rotate(${rot}deg)`, width: `min(${w}%,${w * 7}px)`, height: `min(${h}%,${h * 7.5}px)`, minWidth: "22px", minHeight: "16px", borderRadius: isRound ? "50%" : "8px", cursor: ocupada || isBanq ? "not-allowed" : "pointer", userSelect: "none", zIndex: 2 }}
+                          className={`flex items-center justify-center border-2 transition-all ${bg} ${!ocupada && !isBanq ? "active:scale-95" : ""}`}>
+                          <div style={{ transform: `rotate(${-rot}deg)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <span style={{ fontSize: "clamp(5px,0.8vw,9px)", fontWeight: 900 }}>{m.nombre}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
+              {planoTransform.scale > 1 && (
+                <button
+                  onClick={() => { planoTr.current = { scale: 1, x: 0, y: 0 }; setPlanoTransform({ scale: 1, x: 0, y: 0 }); }}
+                  className="absolute top-2 right-2 z-10 bg-white text-xs font-bold px-2.5 py-1 rounded-lg shadow border border-gray-200 text-gray-700">
+                  Resetear zoom
+                </button>
+              )}
             </div>
 
             {/* Campos */}
