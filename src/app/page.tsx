@@ -876,8 +876,8 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
 
     {/* ── Modal asignar mesa (plano) ── */}
     {asignarModal && (
-      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end justify-center">
-        <div className="bg-white rounded-t-3xl w-full max-w-lg shadow-2xl max-h-[92vh] flex flex-col">
+      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center">
+        <div className="bg-white rounded-b-3xl w-full max-w-lg shadow-2xl max-h-[92vh] flex flex-col">
 
           <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
             <h2 className="font-black text-gray-900 flex-1">Seleccioná una mesa</h2>
