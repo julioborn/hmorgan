@@ -843,7 +843,7 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
     setEventosActivosPlano(Array.isArray(evData) ? evData : []);
     if (Array.isArray(resData)) {
       // Usar nombre de mesa como clave (más fiable que ObjectId)
-      const hoy = new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD en cualquier TZ
+      const hoy = hoyArgentina();
       setReservadasPlano(new Set<string>(
         resData
           .filter((r: any) => r.mesaId && r.estado !== "cancelada" && String(r.fecha).slice(0, 10) === hoy)
