@@ -2,10 +2,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
-import { Plus, UtensilsCrossed, ChevronRight, Trash2, LockKeyhole, CalendarDays, Clock, Users, Star } from "lucide-react";
+import { Plus, UtensilsCrossed, ChevronRight, Trash2, LockKeyhole, Star } from "lucide-react";
 import Loader from "@/components/Loader";
 import { swalBase } from "@/lib/swalConfig";
-import { hoyArgentina } from "@/lib/argentina-time";
 
 type Comanda = {
     _id: string;
@@ -19,34 +18,12 @@ type Comanda = {
     notaEmpleado?: string;
 };
 
-type Reserva = {
-    _id: string;
-    userId: { nombre: string; apellido: string; telefono?: string };
-    fecha: string;
-    hora: string;
-    comensales: number;
-    zona: "adentro" | "afuera" | "indiferente";
-    mesaId?: { nombre: string };
-    estado: "pendiente" | "confirmada" | "cancelada";
-    notas?: string;
-};
-
 const fmt = (n: number) => new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0 }).format(n);
-
-const ZONA_LABEL: Record<string, string> = { adentro: "Adentro", afuera: "Afuera", indiferente: "Sin preferencia" };
-
-const ESTADO_COLOR: Record<string, string> = {
-    pendiente:  "bg-amber-100 text-amber-700 border border-amber-200",
-    confirmada: "bg-emerald-100 text-emerald-700 border border-emerald-200",
-    cancelada:  "bg-gray-100 text-gray-400 border border-gray-200",
-};
 
 export default function AnotadorPage() {
     const { user, loading } = useAuth();
     const router = useRouter();
-    const [tab, setTab] = useState<"comandas" | "reservas">("comandas");
     const [comandas, setComandas] = useState<Comanda[]>([]);
-    const [reservas, setReservas] = useState<Reserva[]>([]);
     const [cajaAbierta, setCajaAbierta] = useState<boolean | null>(null);
     const [loadingData, setLoadingData] = useState(true);
     const [eventoActivo, setEventoActivo] = useState<string | null>(null);
@@ -65,21 +42,9 @@ export default function AnotadorPage() {
         setComandas(Array.isArray(d) ? d : []);
     }, [user?.role]);
 
-    const fetchReservas = useCallback(async () => {
-        const r = await fetch("/api/reservas", { credentials: "include" });
-        const d = await r.json().catch(() => []);
-        if (!Array.isArray(d)) return;
-        const hoy = hoyArgentina();
-        const hoyFiltradas = d
-            .filter((r: Reserva) => r.fecha?.slice(0, 10) === hoy && r.estado !== "cancelada")
-            .sort((a: Reserva, b: Reserva) => a.hora.localeCompare(b.hora));
-        setReservas(hoyFiltradas);
-    }, []);
-
     useEffect(() => {
         Promise.all([
             fetchComandas(),
-            fetchReservas(),
             fetch("/api/caja/status", { credentials: "include" })
                 .then(r => r.json())
                 .then(d => setCajaAbierta(!!d.abierta))
@@ -92,7 +57,7 @@ export default function AnotadorPage() {
 
         const iv = setInterval(fetchComandas, 8000);
         return () => clearInterval(iv);
-    }, [fetchComandas, fetchReservas]);
+    }, [fetchComandas]);
 
     async function eliminarComanda(id: string) {
         const r = await swalBase.fire({
@@ -115,20 +80,7 @@ export default function AnotadorPage() {
         <div className="min-h-screen bg-white pb-24">
             <div className="max-w-2xl mx-auto px-4">
 
-                {/* Tabs */}
-                <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-5">
-                    {(["comandas", "reservas"] as const).map(t => (
-                        <button key={t} onClick={() => setTab(t)}
-                            className={`flex-1 py-2 rounded-lg text-sm font-bold transition capitalize ${tab === t ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}>
-                            {t === "comandas" ? `Comandas${comandas.length > 0 ? ` (${comandas.length})` : ""}` : `Reservas hoy${reservas.length > 0 ? ` (${reservas.length})` : ""}`}
-                        </button>
-                    ))}
-                </div>
-
-                {/* ── COMANDAS ── */}
-                {tab === "comandas" && (
-                    <>
-                        {eventoActivo && (
+                {eventoActivo && (
                             <div className="mb-4 flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
                                 <Star size={14} className="text-amber-500 shrink-0" />
                                 <p className="text-sm font-bold text-amber-700 truncate">Evento activo: {eventoActivo}</p>
@@ -227,66 +179,6 @@ export default function AnotadorPage() {
                                 ))}
                             </div>
                         )}
-                    </>
-                )}
-
-                {/* ── RESERVAS ── */}
-                {tab === "reservas" && (
-                    <>
-                        <p className="text-sm text-gray-400 mb-4">
-                            {reservas.length === 0 ? "Sin reservas para hoy" : `${reservas.length} reserva${reservas.length !== 1 ? "s" : ""} para hoy`}
-                        </p>
-
-                        {reservas.length === 0 ? (
-                            <div className="text-center py-20">
-                                <CalendarDays size={56} className="mx-auto text-gray-100 mb-4" />
-                                <p className="font-bold text-gray-400">Sin reservas para hoy</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-3">
-                                {reservas.map(r => (
-                                    <div key={r._id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                                        <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
-                                            <div className="flex items-center gap-3">
-                                                <div className="bg-black rounded-xl p-2">
-                                                    <Clock size={15} className="text-white" />
-                                                </div>
-                                                <div>
-                                                    <p className="font-black text-gray-900 text-lg leading-none">{r.hora}hs</p>
-                                                    <p className="text-xs text-gray-400 mt-0.5">
-                                                        {r.userId.nombre} {r.userId.apellido}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <span className={`text-xs font-bold px-2.5 py-1 rounded-full capitalize ${ESTADO_COLOR[r.estado]}`}>
-                                                {r.estado}
-                                            </span>
-                                        </div>
-
-                                        <div className="px-4 py-3 space-y-2">
-                                            <div className="flex items-center gap-4 text-sm text-gray-600">
-                                                <span className="flex items-center gap-1.5">
-                                                    <Users size={13} className="text-gray-400" />
-                                                    {r.comensales} {r.comensales === 1 ? "persona" : "personas"}
-                                                </span>
-                                                <span className="text-gray-300">·</span>
-                                                <span className="text-gray-600">{ZONA_LABEL[r.zona]}</span>
-                                            </div>
-                                            {r.mesaId && (
-                                                <p className="text-sm font-semibold text-gray-700">
-                                                    Mesa asignada: <span className="text-black">{r.mesaId.nombre}</span>
-                                                </p>
-                                            )}
-                                            {r.notas && (
-                                                <p className="text-xs text-amber-600 italic">📝 {r.notas}</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </>
-                )}
             </div>
         </div>
     );

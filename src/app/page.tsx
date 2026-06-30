@@ -728,9 +728,7 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
       <section className="space-y-3">
         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Acciones</p>
         <div className="grid grid-cols-2 gap-3">
-          <AdminCard href="/admin/scan" title="Escanear Puntos" Icon={ScanQrCode} />
           <AdminCard href="/admin/rewards/scan" title="Escanear Canjes" Icon={ScanText} />
-          <AdminCard href="/admin/rewards" title="Canjes" Icon={Ticket} />
           <AdminCard href="/menu" title="Menú" Icon={Utensils} />
         </div>
       </section>

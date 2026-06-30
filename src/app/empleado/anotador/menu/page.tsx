@@ -734,21 +734,6 @@ function AnotadorMenuContent() {
                                     </div>
                                 </div>
 
-                                {/* Nombre libre */}
-                                <div>
-                                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">
-                                        Nombre / etiqueta <span className="font-normal normal-case text-gray-300">(opcional)</span>
-                                    </p>
-                                    <input
-                                        ref={clienteInputRef}
-                                        type="text"
-                                        placeholder="Ej: Cumpleaños"
-                                        value={clienteNombre}
-                                        onChange={e => setClienteNombre(e.target.value)}
-                                        className="w-full px-4 py-4 rounded-2xl border-2 border-gray-200 text-sm focus:outline-none focus:border-red-400"
-                                    />
-                                </div>
-
                                 {/* Comensales registrados */}
                                 <ComensalesSelector
                                     clienteSearch={clienteSearch}
