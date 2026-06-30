@@ -753,57 +753,161 @@ function AdminCard({
   HOME EMPLEADO
    ========================= */
 function EmployeeHome({ nombre }: { nombre?: string }) {
+  const router = useRouter();
   const [hora, setHora] = useState(() => new Date().getHours());
+  const [cajaAbierta, setCajaAbierta] = useState<boolean | null>(null);
+  const [asignarModal, setAsignarModal] = useState(false);
+  const [asignarMesas, setAsignarMesas] = useState<{ _id: string; nombre: string; activa: boolean }[]>([]);
+  const [asignarForm, setAsignarForm] = useState({ mesa: "", comensales: "2", nombre: "" });
+  const [asignarSaving, setAsignarSaving] = useState(false);
 
   useEffect(() => {
     const tick = setInterval(() => setHora(new Date().getHours()), 60000);
     return () => clearInterval(tick);
   }, []);
 
+  useEffect(() => {
+    fetch("/api/caja/status", { credentials: "include" })
+      .then(r => r.json())
+      .then(d => setCajaAbierta(!!d.abierta))
+      .catch(() => setCajaAbierta(false));
+  }, []);
+
+  async function abrirAsignar() {
+    const r = await fetch("/api/admin/mesas?all=true", { credentials: "include" });
+    const data = await r.json().catch(() => []);
+    setAsignarMesas(Array.isArray(data) ? data.filter((m: any) => m.activa) : []);
+    setAsignarForm({ mesa: "", comensales: "2", nombre: "" });
+    setAsignarModal(true);
+  }
+
+  async function confirmarAsignar() {
+    if (!asignarForm.mesa) return;
+    setAsignarSaving(true);
+    try {
+      await fetch("/api/pedidos", {
+        method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
+        body: JSON.stringify({
+          items: [], fuente: "empleado", mesa: asignarForm.mesa,
+          comensales: Number(asignarForm.comensales) || 0,
+          nombreComanda: asignarForm.nombre.trim() || undefined,
+          tipoEntrega: "retira",
+        }),
+      });
+      setAsignarModal(false);
+    } finally { setAsignarSaving(false); }
+  }
+
   const saludo = hora < 12 ? "Buenos días" : hora < 20 ? "Buenas tardes" : "Buenas noches";
   const fechaHoy = new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
 
   return (
-    <div
-      className={`${container} pb-10 space-y-6`}
-      style={{ paddingBottom: "max(2.5rem, env(safe-area-inset-bottom))" }}
-    >
+    <>
+    <div className={`${container} pb-10 space-y-5`} style={{ paddingBottom: "max(2.5rem, env(safe-area-inset-bottom))" }}>
+
       {/* ── Header ── */}
       <div className="rounded-2xl bg-black text-white px-5 py-6 flex items-center justify-between shadow-lg">
         <div>
           <p className="text-sm text-gray-400 capitalize">{fechaHoy}</p>
-          <h1 className="text-2xl font-extrabold mt-0.5">
-            {saludo}{nombre ? `, ${nombre}` : ""}
-          </h1>
+          <h1 className="text-2xl font-extrabold mt-0.5">{saludo}{nombre ? `, ${nombre}` : ""}</h1>
           <p className="text-sm text-gray-400 mt-1">Panel de Empleado</p>
         </div>
         <img src="/morganwhite.png" alt="Logo" className="h-14 w-14 object-contain opacity-90" />
       </div>
 
-      {/* ── Acción principal ── */}
-      <Link
-        href="/empleado/anotador"
-        className="block rounded-2xl bg-red-600 text-white px-5 py-5 shadow-lg hover:bg-red-700 transition-all active:scale-[0.98]"
-      >
-        <div className="flex items-center gap-3">
-          <div className="bg-white/20 rounded-xl p-2.5">
+      {/* ── Acciones principales ── */}
+      <div className="space-y-3">
+        <button
+          onClick={abrirAsignar}
+          disabled={!cajaAbierta}
+          className="w-full flex items-center gap-4 bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white rounded-2xl px-6 py-5 transition shadow-sm active:scale-[0.98]"
+        >
+          <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+            <MapPin className="h-6 w-6" />
+          </div>
+          <div className="text-left">
+            <p className="font-extrabold text-lg leading-tight">Asignar mesa</p>
+            <p className="text-red-200 text-sm">Marcar una mesa como ocupada</p>
+          </div>
+        </button>
+
+        <Link
+          href="/empleado/anotador"
+          className="w-full flex items-center gap-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl px-6 py-5 transition shadow-sm active:scale-[0.98] block"
+        >
+          <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
             <ClipboardList className="h-6 w-6" />
           </div>
           <div>
             <p className="font-extrabold text-lg leading-tight">Anotador de Pedidos</p>
-            <p className="text-red-100 text-sm">Tomá pedidos de las mesas</p>
+            <p className="text-red-200 text-sm">Tomá y gestioná las comandas</p>
+          </div>
+        </Link>
+
+        <Link
+          href="/menu"
+          className="w-full flex items-center gap-4 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl px-6 py-5 transition shadow-sm active:scale-[0.98] block"
+        >
+          <div className="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+            <Utensils className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="font-extrabold text-lg leading-tight">Menú</p>
+            <p className="text-gray-400 text-sm">Ver la carta del restaurante</p>
+          </div>
+        </Link>
+      </div>
+
+    </div>
+
+    {/* ── Modal asignar mesa ── */}
+    {asignarModal && (
+      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end justify-center p-4">
+        <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl max-h-[90vh] flex flex-col">
+          <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
+            <h2 className="font-black text-gray-900 flex-1">Asignar mesa</h2>
+            <button onClick={() => setAsignarModal(false)} className="p-1 text-gray-400"><X size={18} /></button>
+          </div>
+          <div className="px-5 py-4 space-y-4 overflow-y-auto flex-1 min-h-0">
+            <div>
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2 block">Mesa</label>
+              <div className="grid grid-cols-4 gap-2">
+                {asignarMesas.map(m => (
+                  <button key={m._id}
+                    onClick={() => setAsignarForm(p => ({ ...p, mesa: m.nombre }))}
+                    className={`py-2 rounded-xl text-xs font-bold border transition ${asignarForm.mesa === m.nombre ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"}`}>
+                    {m.nombre}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2 block">Comensales</label>
+              <input type="number" min="1" value={asignarForm.comensales}
+                onChange={e => setAsignarForm(p => ({ ...p, comensales: e.target.value }))}
+                style={{ fontSize: "16px" }}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-base font-bold focus:outline-none focus:ring-2 focus:ring-red-400" />
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2 block">Nombre (opcional)</label>
+              <input type="text" value={asignarForm.nombre}
+                onChange={e => setAsignarForm(p => ({ ...p, nombre: e.target.value }))}
+                placeholder="Ej: García, cumpleaños..."
+                style={{ fontSize: "16px" }}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
+            </div>
+          </div>
+          <div className="px-5 py-4 border-t border-gray-100 flex gap-2 shrink-0">
+            <button onClick={() => setAsignarModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
+            <button onClick={confirmarAsignar} disabled={!asignarForm.mesa || asignarSaving}
+              className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
+              {asignarSaving ? "Asignando..." : "Asignar"}
+            </button>
           </div>
         </div>
-      </Link>
-
-      {/* ── Acciones ── */}
-      <section className="space-y-3">
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Acciones</p>
-        <div className="grid grid-cols-2 gap-3">
-          <AdminCard href="/menu" title="Menú" Icon={Utensils} />
-        </div>
-      </section>
-    </div>
+      </div>
+    )}
+    </>
   );
 }
 
