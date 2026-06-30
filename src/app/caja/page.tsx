@@ -9,7 +9,7 @@ import {
     Wallet, X, Printer, CreditCard, Banknote, Send,
     Loader2, CheckCircle, AlertCircle, Clock, Flame,
     Package, Truck, UtensilsCrossed, CalendarDays,
-    Phone, MessageCircle, Plus, Pencil, Trash2, MapPin, Users, Star,
+    Phone, MessageCircle, Plus, Pencil, Trash2, MapPin, Users, Star, Gift, XCircle,
 } from "lucide-react";
 import ReservasManager from "@/components/ReservasManager";
 
@@ -40,6 +40,13 @@ type VentaEvento = { _id: string; items: { nombre: string; precio: number; categ
 type Evento = { _id: string; nombre: string; estado: "activo" | "cerrado"; ventas: VentaEvento[]; createdAt: string };
 type CartItem = { menuItemId: string; nombre: string; precio: number; categoria: string; cantidad: number };
 type Comensal = { _id: string; nombre: string; apellido: string; username: string };
+type CanjePendiente = {
+    _id: string;
+    userId: { _id: string; nombre: string; apellido: string; puntos: number };
+    rewardId: { _id: string; titulo: string; descripcion?: string; puntos: number };
+    puntosGastados: number;
+    createdAt: string;
+};
 
 // Categorías que se imprimen en la comandera de la barra; el resto va a cocina
 const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
@@ -73,7 +80,9 @@ const VISTA_MAP: Record<string, Vista> = {
 
 export default function CajaPage() {
     const router = useRouter();
-    const [tab, setTab]                   = useState<"pedidos" | "caja" | "reservas" | "mesas" | "eventos">("pedidos");
+    const [tab, setTab]                   = useState<"pedidos" | "caja" | "reservas" | "mesas" | "eventos" | "canjes">("pedidos");
+    const [canjesPendientes, setCanjesPendientes] = useState<CanjePendiente[]>([]);
+    const [canjeProcessing, setCanjeProcessing]   = useState<string | null>(null);
     const [sesion, setSesion]             = useState<CajaSession | null | undefined>(undefined);
     const [pedidosActivos, setPedidosActivos]   = useState(true);
     const [reservasActivas, setReservasActivas] = useState(true);
@@ -162,6 +171,15 @@ export default function CajaPage() {
         } catch { setEventoActivo(null); }
     }, []);
 
+    const loadCanjes = useCallback(async () => {
+        try {
+            const res = await fetch("/api/canjes", { credentials: "include" });
+            if (!res.ok) return;
+            const data = await res.json();
+            setCanjesPendientes(Array.isArray(data) ? data : []);
+        } catch { /* silencioso */ }
+    }, []);
+
     const loadData = useCallback(async () => {
         try {
             const [cajaRes, pedRes] = await Promise.all([
@@ -185,9 +203,10 @@ export default function CajaPage() {
     useEffect(() => {
         loadData();
         loadEvento();
-        const iv = setInterval(loadData, 5000);
+        loadCanjes();
+        const iv = setInterval(() => { loadData(); loadCanjes(); }, 5000);
         return () => clearInterval(iv);
-    }, [loadData, loadEvento]);
+    }, [loadData, loadEvento, loadCanjes]);
 
     useEffect(() => {
         fetch("/api/config/pedidos").then(r => r.json()).then(d => setPedidosActivos(d.activo ?? true));
@@ -264,7 +283,8 @@ export default function CajaPage() {
 
     useEffect(() => {
         if (tab === "eventos") loadEvento();
-    }, [tab, loadEvento]);
+        if (tab === "canjes") loadCanjes();
+    }, [tab, loadEvento, loadCanjes]);
 
     useEffect(() => {
         if (tab !== "mesas" || mesasLoaded) return;
@@ -697,6 +717,22 @@ export default function CajaPage() {
         } finally { setCrearEventoSaving(false); }
     }
 
+    async function procesarCanje(canjeId: string, accion: "aceptar" | "rechazar") {
+        setCanjeProcessing(canjeId);
+        try {
+            const res = await fetch(`/api/canjes/${canjeId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ accion }),
+            });
+            const data = await res.json();
+            if (!res.ok) { await swalBase.fire({ title: "Error", text: data.message || "No se pudo procesar", icon: "error" }); return; }
+            setCanjesPendientes(prev => prev.filter(c => c._id !== canjeId));
+        } catch { await swalBase.fire({ title: "Error de conexión", icon: "error" }); }
+        finally { setCanjeProcessing(null); }
+    }
+
     async function cerrarEvento() {
         if (!eventoActivo) return;
         const r = await swalBase.fire({
@@ -1001,6 +1037,17 @@ export default function CajaPage() {
                             {eventoActivo && (
                                 <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${tab === "eventos" ? "bg-gray-900 text-white" : "bg-amber-100 text-amber-700"}`}>
                                     1
+                                </span>
+                            )}
+                        </button>
+                        <button onClick={() => setTab("canjes")}
+                            className={`flex-1 py-3.5 text-sm font-black transition flex items-center justify-center gap-2 ${
+                                tab === "canjes" ? "text-gray-900 border-b-2 border-gray-900" : "text-gray-400 hover:text-gray-600"
+                            }`}>
+                            <Gift size={15} /> Canjes
+                            {canjesPendientes.length > 0 && (
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${tab === "canjes" ? "bg-gray-900 text-white" : "bg-emerald-100 text-emerald-700"}`}>
+                                    {canjesPendientes.length}
                                 </span>
                             )}
                         </button>
@@ -1481,6 +1528,60 @@ export default function CajaPage() {
                                         </div>
                                     )}
                                 </>
+                            )}
+                        </div>
+                    )}
+                    {/* ── TAB CANJES ── */}
+                    {tab === "canjes" && (
+                        <div className="max-w-2xl mx-auto px-4 pt-4 pb-10">
+                            {canjesPendientes.length === 0 ? (
+                                <div className="text-center py-20">
+                                    <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                                        <Gift size={28} className="text-gray-300" />
+                                    </div>
+                                    <p className="font-bold text-gray-400">Sin canjes pendientes</p>
+                                    <p className="text-sm text-gray-300 mt-1">Los clientes pueden solicitar canjes desde la app</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {canjesPendientes.map(c => (
+                                        <div key={c._id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                                            <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
+                                                <div>
+                                                    <p className="font-black text-gray-900">{c.userId?.nombre} {c.userId?.apellido}</p>
+                                                    <p className="text-xs text-gray-400">{c.userId?.puntos ?? 0} pts disponibles</p>
+                                                </div>
+                                                <p className="text-xs text-gray-400">
+                                                    {new Date(c.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                                                </p>
+                                            </div>
+                                            <div className="px-4 py-3">
+                                                <div className="flex items-start gap-3">
+                                                    <Gift size={18} className="text-emerald-600 shrink-0 mt-0.5" />
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-bold text-gray-900">{c.rewardId?.titulo}</p>
+                                                        {c.rewardId?.descripcion && <p className="text-sm text-gray-500 mt-0.5">{c.rewardId.descripcion}</p>}
+                                                        <p className="text-sm font-black text-emerald-600 mt-1">{c.puntosGastados} pts</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="px-4 pb-4 flex gap-2">
+                                                <button
+                                                    onClick={() => procesarCanje(c._id, "rechazar")}
+                                                    disabled={canjeProcessing === c._id}
+                                                    className="flex-1 flex items-center justify-center gap-2 border border-red-200 text-red-600 hover:bg-red-50 font-bold py-2.5 rounded-xl text-sm transition active:scale-95 disabled:opacity-50">
+                                                    <XCircle size={15} /> Rechazar
+                                                </button>
+                                                <button
+                                                    onClick={() => procesarCanje(c._id, "aceptar")}
+                                                    disabled={canjeProcessing === c._id}
+                                                    className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-sm transition active:scale-95 disabled:opacity-50">
+                                                    <CheckCircle size={15} /> Aceptar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             )}
                         </div>
                     )}

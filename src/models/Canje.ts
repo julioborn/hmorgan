@@ -6,7 +6,7 @@ export interface ICanje {
     rewardId: mongoose.Types.ObjectId;
     puntosGastados: number;
     fecha: Date;
-    estado: "pendiente" | "completado";
+    estado: "pendiente" | "completado" | "rechazado";
 }
 
 const canjeSchema = new Schema<ICanje>(
@@ -15,7 +15,7 @@ const canjeSchema = new Schema<ICanje>(
         rewardId: { type: Schema.Types.ObjectId, ref: "Reward", required: true },
         puntosGastados: { type: Number, required: true },
         fecha: { type: Date, default: Date.now },
-        estado: { type: String, enum: ["pendiente", "completado"], default: "completado" },
+        estado: { type: String, enum: ["pendiente", "completado", "rechazado"], default: "pendiente" },
     },
     { timestamps: true }
 );
