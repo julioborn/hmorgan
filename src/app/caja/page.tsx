@@ -205,10 +205,16 @@ export default function CajaPage() {
             const [cajaData, pedData] = await Promise.all([cajaRes.json(), pedRes.json()]);
             setSesion(cajaData.sesion || null);
             if (Array.isArray(pedData)) {
-                // Incluir "cerrado" (cobrado por caja) solo del día de hoy para Finalizados
+                // Solo mostrar "cerrado" si fue cobrado durante la sesión actual de caja
+                const sesionApertura = cajaData.sesion?.fechaApertura
+                    ? new Date(cajaData.sesion.fechaApertura)
+                    : null;
                 const filtrados = pedData.filter((p: Pedido) =>
                     p.estado !== "cancelado" &&
-                    (p.estado !== "cerrado" || (p as any).createdAt?.slice(0, 10) === hoyStr)
+                    (p.estado !== "cerrado" || (
+                        sesionApertura !== null &&
+                        new Date((p as any).updatedAt || (p as any).createdAt) >= sesionApertura
+                    ))
                 );
                 setPedidos(filtrados);
                 detectarAgregados(filtrados);

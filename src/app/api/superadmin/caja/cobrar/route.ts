@@ -65,18 +65,31 @@ export async function POST(req: NextRequest) {
         }
     }
 
-    // Registrar ingreso en caja si hay sesión abierta
+    // Registrar ingreso(s) en caja — un movimiento por método de pago
     const sesion = await CajaSession.findOne({ estado: "abierta" });
     if (sesion) {
-        await CajaMovement.create({
-            sesionId: sesion._id,
-            tipo: "ingreso",
-            concepto: `Cobro Mesa ${pedido.mesa || "—"} (Pedido #${pedido._id.toString().slice(-6)})`,
-            monto: totalConDescuento || 0,
-            metodoPago,
-            pedidoId: pedido._id,
-            userId: payload.sub,
-        });
+        const concepto = `Cobro Mesa ${pedido.mesa || "—"} (Pedido #${pedido._id.toString().slice(-6)})`;
+        const pagosArr: { metodo: string; monto: number }[] = Array.isArray(pagos) && pagos.length > 0
+            ? pagos
+            : [{ metodo: metodoPago, monto: totalConDescuento }];
+        const totalPagadoArr = pagosArr.reduce((a: number, p: any) => a + (Number(p.monto) || 0), 0);
+        const hayEfectivoArr = pagosArr.some((p: any) => p.metodo === "efectivo");
+        const vueltoArr = hayEfectivoArr && totalPagadoArr > totalConDescuento ? totalPagadoArr - totalConDescuento : 0;
+        for (const pago of pagosArr) {
+            const montoNet = pago.metodo === "efectivo"
+                ? Math.max(0, (Number(pago.monto) || 0) - vueltoArr)
+                : (Number(pago.monto) || 0);
+            if (montoNet <= 0) continue;
+            await CajaMovement.create({
+                sesionId: sesion._id,
+                tipo: "ingreso",
+                concepto,
+                monto: montoNet,
+                metodoPago: pago.metodo,
+                pedidoId: pedido._id,
+                userId: payload.sub,
+            });
+        }
     }
 
     // Acreditar puntos (una sola vez, sobre el total con descuento)

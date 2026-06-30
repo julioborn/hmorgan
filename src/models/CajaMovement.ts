@@ -5,7 +5,7 @@ const CajaMovementSchema = new Schema({
     tipo: { type: String, enum: ["ingreso", "egreso"], required: true },
     concepto: { type: String, required: true },
     monto: { type: Number, required: true },
-    metodoPago: { type: String, enum: ["efectivo", "tarjeta", "transferencia"], default: "efectivo" },
+    metodoPago: { type: String, default: "efectivo" },
     pedidoId: { type: Schema.Types.ObjectId, ref: "Pedido" },
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
 }, { timestamps: true });
