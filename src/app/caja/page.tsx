@@ -133,13 +133,14 @@ export default function CajaPage() {
     const [nuevoEventoNombre, setNuevoEventoNombre]   = useState("");
     const [nuevoEventoPrecio, setNuevoEventoPrecio]   = useState("");
     const [nuevoEventoMesas, setNuevoEventoMesas]     = useState<string[]>([]);
-    const [nuevoEventoMesasOpts, setNuevoEventoMesasOpts] = useState<string[]>([]);
     const [crearEventoSaving, setCrearEventoSaving]   = useState(false);
     const [editMesasModal, setEditMesasModal]     = useState(false);
     const [editMesasEventoId, setEditMesasEventoId] = useState<string | null>(null);
     const [editMesasList, setEditMesasList]       = useState<string[]>([]);
-    const [editMesasOpciones, setEditMesasOpciones] = useState<string[]>([]);
     const [editMesasSaving, setEditMesasSaving]   = useState(false);
+    // Plano compartido para modales de evento (crear + editar mesas)
+    const [eventoModalMesasPlano, setEventoModalMesasPlano] = useState<MesaPlano[]>([]);
+    const [eventoModalElementos, setEventoModalElementos]   = useState<SalonElPlano[]>([]);
     const [ventaEventoId, setVentaEventoId]       = useState<string | null>(null);
     const [tarjetasModal, setTarjetasModal]       = useState(false);
     const [tarjetasEventoId, setTarjetasEventoId] = useState<string | null>(null);
@@ -837,10 +838,18 @@ export default function CajaPage() {
         finally { setCanjeProcessing(null); }
     }
 
+    async function cargarPlanoParaEvento() {
+        const [mRes, elRes] = await Promise.all([
+            fetch("/api/admin/mesas?all=true", { credentials: "include" }),
+            fetch("/api/superadmin/salon", { credentials: "include" }),
+        ]);
+        const [mData, elData] = await Promise.all([mRes.json().catch(() => []), elRes.json().catch(() => [])]);
+        setEventoModalMesasPlano(Array.isArray(mData) ? mData.filter((m: any) => m.activa) : []);
+        setEventoModalElementos(Array.isArray(elData) ? elData : []);
+    }
+
     async function abrirCrearEvento() {
-        const res = await fetch("/api/admin/mesas?all=true", { credentials: "include" });
-        const data = await res.json().catch(() => []);
-        setNuevoEventoMesasOpts(Array.isArray(data) ? data.filter((m: any) => m.activa).map((m: any) => m.nombre) : []);
+        await cargarPlanoParaEvento();
         setNuevoEventoNombre("");
         setNuevoEventoPrecio("");
         setNuevoEventoMesas([]);
@@ -850,9 +859,7 @@ export default function CajaPage() {
     async function abrirEditMesas(eventoId: string) {
         const ev = eventosActivos.find(e => e._id === eventoId);
         if (!ev) return;
-        const res = await fetch("/api/admin/mesas?all=true", { credentials: "include" });
-        const data = await res.json().catch(() => []);
-        setEditMesasOpciones(Array.isArray(data) ? data.filter((m: any) => m.activa).map((m: any) => m.nombre) : []);
+        await cargarPlanoParaEvento();
         setEditMesasList(ev.mesas ?? []);
         setEditMesasEventoId(eventoId);
         setEditMesasModal(true);
@@ -1022,6 +1029,50 @@ export default function CajaPage() {
                 setVentaSearch("");
             }
         } finally { setVentaSaving(false); }
+    }
+
+    function renderPlanoSelector(seleccionadas: string[], toggle: (nombre: string) => void) {
+        return (
+            <div className="relative w-full rounded-xl overflow-hidden border border-gray-200" style={{ paddingBottom: "72%" }}>
+                <div className="absolute inset-0" style={{ backgroundColor: "#f9f5ef", backgroundImage: "linear-gradient(rgba(0,0,0,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.04) 1px,transparent 1px)", backgroundSize: "30px 30px" }}>
+                    {eventoModalElementos.map(el => {
+                        const isLine = el.tipo === "linea_h" || el.tipo === "linea_v";
+                        const isBarra = el.tipo === "barra";
+                        if (isLine) return (
+                            <div key={el._id} style={{ position: "absolute", left: `${el.x}%`, top: `${el.y}%`, width: el.tipo === "linea_h" ? `${el.ancho}%` : "3px", height: el.tipo === "linea_v" ? `${el.alto}%` : "3px", backgroundColor: el.color, borderRadius: "2px", transform: el.tipo === "linea_h" ? "translateY(-50%)" : "translateX(-50%)" }} />
+                        );
+                        return (
+                            <div key={el._id} style={{ position: "absolute", left: `${el.x}%`, top: `${el.y}%`, transform: "translate(-50%,-50%)", width: `${el.ancho}%`, height: `${el.alto}%`, minWidth: "32px", minHeight: "14px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "6px", backgroundColor: isBarra ? "#b45309" : el.color, border: isBarra ? "2px solid #92400e" : `1px solid ${el.color === "#fef3c7" ? "#d97706" : "#9ca3af"}60` }}>
+                                {el.label && <span style={{ fontSize: "clamp(6px,0.9vw,9px)", fontWeight: 700, color: isBarra ? "#fef3c7" : "#374151", whiteSpace: "nowrap" }}>{el.label}</span>}
+                            </div>
+                        );
+                    })}
+                    {eventoModalMesasPlano.map(m => {
+                        const sel = seleccionadas.includes(m.nombre);
+                        const isRound = m.forma === "round" || m.forma === "oval";
+                        const isBanq = m.tipo === "banqueta";
+                        const rot = m.rotacion ?? 0;
+                        const w = m.ancho || (m.forma === "oval" ? 11 : m.forma === "round" ? 5.5 : 7);
+                        const h = m.alto || (m.forma === "oval" ? 5 : m.forma === "round" ? 5.5 : 5);
+                        const bg = isBanq
+                            ? "bg-amber-700 border-amber-800 text-amber-100"
+                            : sel
+                            ? "bg-blue-500 border-blue-600 text-white ring-2 ring-blue-300"
+                            : "bg-emerald-500 border-emerald-600 text-white";
+                        return (
+                            <div key={m._id}
+                                onClick={() => !isBanq && toggle(m.nombre)}
+                                style={{ position: "absolute", left: `${m.x ?? 10}%`, top: `${m.y ?? 10}%`, transform: `translate(-50%,-50%) rotate(${rot}deg)`, width: `min(${w}%,${w * 7}px)`, height: `min(${h}%,${h * 7.5}px)`, minWidth: "22px", minHeight: "16px", borderRadius: isRound ? "50%" : "8px", cursor: isBanq ? "default" : "pointer", userSelect: "none", zIndex: 2 }}
+                                className={`flex items-center justify-center border-2 ${bg} transition-all active:scale-95`}>
+                                <div style={{ transform: `rotate(${-rot}deg)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                    <span style={{ fontSize: "clamp(5px,0.8vw,9px)", fontWeight: 900 }}>{m.nombre}</span>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
     }
 
     if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-gray-400" size={36} /></div>;
@@ -2128,46 +2179,40 @@ export default function CajaPage() {
 
             {/* Modal crear evento */}
             {crearEventoModal && (
-                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl max-h-[90vh] flex flex-col">
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-6 p-3">
+                    <div className="bg-white rounded-3xl w-full sm:max-w-3xl shadow-2xl max-h-[92vh] flex flex-col">
                         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
                             <h2 className="font-black text-gray-900 flex-1">Nuevo evento</h2>
                             <button onClick={() => setCrearEventoModal(false)} className="p-1 text-gray-400"><X size={18} /></button>
                         </div>
                         <div className="px-5 py-4 space-y-4 overflow-y-auto flex-1 min-h-0">
-                            <div>
-                                <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Nombre del evento</label>
-                                <input autoFocus value={nuevoEventoNombre}
-                                    onChange={e => setNuevoEventoNombre(e.target.value)}
-                                    placeholder="Ej: Cumpleaños" style={{ fontSize: "16px" }}
-                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-base font-semibold focus:outline-none focus:ring-2 focus:ring-red-400" />
-                            </div>
-                            <div>
-                                <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Precio tarjeta (ARS)</label>
-                                <input type="number" inputMode="numeric" value={nuevoEventoPrecio}
-                                    onChange={e => setNuevoEventoPrecio(e.target.value)}
-                                    placeholder="0" style={{ fontSize: "16px" }}
-                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-base font-semibold focus:outline-none focus:ring-2 focus:ring-red-400" />
-                            </div>
-                            {nuevoEventoMesasOpts.length > 0 && (
+                            <div className="grid sm:grid-cols-2 gap-3">
                                 <div>
-                                    <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">
-                                        Mesas del evento <span className="font-normal normal-case text-gray-300">({nuevoEventoMesas.length} seleccionadas)</span>
-                                    </label>
-                                    <div className="grid grid-cols-4 gap-2">
-                                        {nuevoEventoMesasOpts.map(m => {
-                                            const sel = nuevoEventoMesas.includes(m);
-                                            return (
-                                                <button key={m}
-                                                    onClick={() => setNuevoEventoMesas(prev => sel ? prev.filter(x => x !== m) : [...prev, m])}
-                                                    className={`py-2.5 rounded-xl text-xs font-bold border transition ${sel ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:border-blue-400"}`}>
-                                                    {m}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
+                                    <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Nombre del evento</label>
+                                    <input autoFocus value={nuevoEventoNombre}
+                                        onChange={e => setNuevoEventoNombre(e.target.value)}
+                                        placeholder="Ej: Cumpleaños" style={{ fontSize: "16px" }}
+                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-base font-semibold focus:outline-none focus:ring-2 focus:ring-red-400" />
                                 </div>
-                            )}
+                                <div>
+                                    <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Precio tarjeta (ARS)</label>
+                                    <input type="number" inputMode="numeric" value={nuevoEventoPrecio}
+                                        onChange={e => setNuevoEventoPrecio(e.target.value)}
+                                        placeholder="0" style={{ fontSize: "16px" }}
+                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-base font-semibold focus:outline-none focus:ring-2 focus:ring-red-400" />
+                                </div>
+                            </div>
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="text-xs font-semibold text-gray-500 uppercase">Mesas del evento</label>
+                                    {nuevoEventoMesas.length > 0 && (
+                                        <span className="text-xs font-bold text-blue-600">{nuevoEventoMesas.length} seleccionada{nuevoEventoMesas.length !== 1 ? "s" : ""}</span>
+                                    )}
+                                </div>
+                                {renderPlanoSelector(nuevoEventoMesas, (nombre) =>
+                                    setNuevoEventoMesas(prev => prev.includes(nombre) ? prev.filter(x => x !== nombre) : [...prev, nombre])
+                                )}
+                            </div>
                         </div>
                         <div className="px-5 py-4 border-t border-gray-100 flex gap-2 shrink-0">
                             <button onClick={() => setCrearEventoModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
@@ -2182,26 +2227,20 @@ export default function CajaPage() {
 
             {/* Modal editar mesas del evento */}
             {editMesasModal && (
-                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl max-h-[80vh] flex flex-col">
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-6 p-3">
+                    <div className="bg-white rounded-3xl w-full sm:max-w-3xl shadow-2xl max-h-[92vh] flex flex-col">
                         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
-                            <h2 className="font-black text-gray-900 flex-1">Mesas del evento</h2>
+                            <div className="flex-1">
+                                <h2 className="font-black text-gray-900">Mesas del evento</h2>
+                                {editMesasList.length > 0 && <p className="text-xs text-blue-600 font-bold mt-0.5">{editMesasList.length} seleccionada{editMesasList.length !== 1 ? "s" : ""}</p>}
+                            </div>
                             <button onClick={() => setEditMesasModal(false)} className="p-1 text-gray-400"><X size={18} /></button>
                         </div>
                         <div className="px-5 py-4 overflow-y-auto flex-1 min-h-0">
-                            <p className="text-xs text-gray-400 mb-3">Seleccioná las mesas que pertenecen a este evento. Aparecerán en azul en el plano.</p>
-                            <div className="grid grid-cols-4 gap-2">
-                                {editMesasOpciones.map(m => {
-                                    const sel = editMesasList.includes(m);
-                                    return (
-                                        <button key={m}
-                                            onClick={() => setEditMesasList(prev => sel ? prev.filter(x => x !== m) : [...prev, m])}
-                                            className={`py-2.5 rounded-xl text-xs font-bold border transition ${sel ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:border-blue-400"}`}>
-                                            {m}
-                                        </button>
-                                    );
-                                })}
-                            </div>
+                            <p className="text-xs text-gray-400 mb-3">Tocá las mesas para seleccionarlas. Aparecerán en azul en el plano principal.</p>
+                            {renderPlanoSelector(editMesasList, (nombre) =>
+                                setEditMesasList(prev => prev.includes(nombre) ? prev.filter(x => x !== nombre) : [...prev, nombre])
+                            )}
                         </div>
                         <div className="px-5 py-4 border-t border-gray-100 flex gap-2 shrink-0">
                             <button onClick={() => setEditMesasModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
