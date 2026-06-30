@@ -2,9 +2,11 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
-import { Plus, UtensilsCrossed, ChevronRight, Trash2, LockKeyhole, Star } from "lucide-react";
+import { Plus, UtensilsCrossed, ChevronRight, Trash2, LockKeyhole, Star, X, MapPin } from "lucide-react";
 import Loader from "@/components/Loader";
 import { swalBase } from "@/lib/swalConfig";
+
+type MesaSimple = { _id: string; nombre: string; activa: boolean };
 
 type Comanda = {
     _id: string;
@@ -27,6 +29,10 @@ export default function AnotadorPage() {
     const [cajaAbierta, setCajaAbierta] = useState<boolean | null>(null);
     const [loadingData, setLoadingData] = useState(true);
     const [eventoActivo, setEventoActivo] = useState<string | null>(null);
+    const [asignarModal, setAsignarModal] = useState(false);
+    const [asignarMesas, setAsignarMesas] = useState<MesaSimple[]>([]);
+    const [asignarForm, setAsignarForm] = useState({ mesa: "", comensales: "2", nombre: "" });
+    const [asignarSaving, setAsignarSaving] = useState(false);
 
     useEffect(() => {
         if (!loading && user && !["empleado", "cajero", "admin", "superadmin"].includes(user.role)) {
@@ -73,10 +79,36 @@ export default function AnotadorPage() {
         setComandas(prev => prev.filter(c => c._id !== id));
     }
 
+    async function abrirAsignar() {
+        const r = await fetch("/api/admin/mesas?all=true", { credentials: "include" });
+        const data = await r.json().catch(() => []);
+        setAsignarMesas(Array.isArray(data) ? data.filter((m: MesaSimple) => m.activa) : []);
+        setAsignarForm({ mesa: "", comensales: "2", nombre: "" });
+        setAsignarModal(true);
+    }
+
+    async function confirmarAsignar() {
+        if (!asignarForm.mesa) return;
+        setAsignarSaving(true);
+        try {
+            const res = await fetch("/api/pedidos", {
+                method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
+                body: JSON.stringify({
+                    items: [], fuente: "empleado", mesa: asignarForm.mesa,
+                    comensales: Number(asignarForm.comensales) || 0,
+                    nombreComanda: asignarForm.nombre.trim() || undefined,
+                    tipoEntrega: "retira",
+                }),
+            });
+            if (res.ok) { setAsignarModal(false); fetchComandas(); }
+        } finally { setAsignarSaving(false); }
+    }
+
     if (loading || loadingData) return <div className="flex justify-center py-20"><Loader size={64} /></div>;
     if (!user) return null;
 
     return (
+        <>
         <div className="min-h-screen bg-white pb-24">
             <div className="max-w-2xl mx-auto px-4">
 
@@ -96,11 +128,18 @@ export default function AnotadorPage() {
                                     Caja cerrada — solo lectura
                                 </div>
                             ) : (
-                                <button
-                                    onClick={() => router.push("/empleado/anotador/menu")}
-                                    className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2.5 rounded-xl transition shadow-sm active:scale-95">
-                                    <Plus size={18} /> Nueva comanda
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={abrirAsignar}
+                                        className="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-3 py-2.5 rounded-xl transition shadow-sm active:scale-95 text-sm">
+                                        <MapPin size={15} /> Asignar mesa
+                                    </button>
+                                    <button
+                                        onClick={() => router.push("/empleado/anotador/menu")}
+                                        className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2.5 rounded-xl transition shadow-sm active:scale-95">
+                                        <Plus size={18} /> Nueva comanda
+                                    </button>
+                                </div>
                             )}
                         </div>
 
@@ -181,5 +220,54 @@ export default function AnotadorPage() {
                         )}
             </div>
         </div>
+
+        {/* Modal asignar mesa */}
+        {asignarModal && (
+            <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end justify-center p-4">
+                <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl max-h-[90vh] flex flex-col">
+                    <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
+                        <h2 className="font-black text-gray-900 flex-1">Asignar mesa</h2>
+                        <button onClick={() => setAsignarModal(false)} className="p-1 text-gray-400"><X size={18} /></button>
+                    </div>
+                    <div className="px-5 py-4 space-y-4 overflow-y-auto flex-1 min-h-0">
+                        <div>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2 block">Mesa</label>
+                            <div className="grid grid-cols-4 gap-2">
+                                {asignarMesas.map(m => (
+                                    <button key={m._id}
+                                        onClick={() => setAsignarForm(p => ({ ...p, mesa: m.nombre }))}
+                                        className={`py-2 rounded-xl text-xs font-bold border transition ${asignarForm.mesa === m.nombre ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"}`}>
+                                        {m.nombre}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2 block">Comensales</label>
+                            <input type="number" min="1" value={asignarForm.comensales}
+                                onChange={e => setAsignarForm(p => ({ ...p, comensales: e.target.value }))}
+                                style={{ fontSize: "16px" }}
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-base font-bold focus:outline-none focus:ring-2 focus:ring-red-400" />
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2 block">Nombre (opcional)</label>
+                            <input type="text" value={asignarForm.nombre}
+                                onChange={e => setAsignarForm(p => ({ ...p, nombre: e.target.value }))}
+                                placeholder="Ej: García, cumpleaños..."
+                                style={{ fontSize: "16px" }}
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
+                        </div>
+                    </div>
+                    <div className="px-5 py-4 border-t border-gray-100 flex gap-2 shrink-0">
+                        <button onClick={() => setAsignarModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
+                        <button onClick={confirmarAsignar} disabled={!asignarForm.mesa || asignarSaving}
+                            className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
+                            {asignarSaving ? "Asignando..." : "Asignar"}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+        </>
     );
 }

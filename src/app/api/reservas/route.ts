@@ -74,6 +74,12 @@ export async function POST(req: NextRequest) {
     const hoyStr = hoyArgentina();
     if (fechaStr < hoyStr) return NextResponse.json({ error: "No podés reservar en una fecha pasada" }, { status: 400 });
 
+    // Las reservas solo se aceptan hasta las 22:00
+    const [horaH] = String(hora).split(":").map(Number);
+    if (horaH > 22 || String(hora) > "22:00") {
+        return NextResponse.json({ error: "Las reservas se aceptan hasta las 22:00" }, { status: 400 });
+    }
+
     // Si la reserva es para hoy, el horario no puede haber pasado ya
     if (fechaStr === hoyStr) {
         const [h, m] = String(hora).split(":").map(Number);

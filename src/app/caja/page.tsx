@@ -12,6 +12,7 @@ import {
     Phone, MessageCircle, Plus, Pencil, Trash2, MapPin, Users, Star, Gift, XCircle,
 } from "lucide-react";
 import ReservasManager from "@/components/ReservasManager";
+import { hoyArgentina } from "@/lib/argentina-time";
 
 type Pedido = {
     _id: string;
@@ -48,6 +49,7 @@ type CanjePendiente = {
     createdAt: string;
 };
 type RewardItem = { _id: string; titulo: string; descripcion?: string; puntos: number; activo: boolean; tema?: string };
+type ReservaHoy = { _id: string; mesaId: { _id: string; nombre: string }; hora: string; comensales: number; estado: string; userId?: { nombre: string; apellido: string }; notas?: string };
 
 // Categorías que se imprimen en la comandera de la barra; el resto va a cocina
 const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
@@ -119,6 +121,8 @@ export default function CajaPage() {
     const [elementsPlano, setElementsPlano] = useState<SalonElPlano[]>([]);
     const [mesasLoaded, setMesasLoaded]   = useState(false);
     const [mesaDetalle, setMesaDetalle]   = useState<{ mesa: MesaPlano; pedido: Pedido } | null>(null);
+    const [reservasHoy, setReservasHoy]   = useState<ReservaHoy[]>([]);
+    const [reservaDetalle, setReservaDetalle] = useState<ReservaHoy | null>(null);
 
     // Eventos
     const [eventoActivo, setEventoActivo]         = useState<Evento | null | undefined>(undefined);
@@ -308,6 +312,22 @@ export default function CajaPage() {
         if (tab === "eventos") loadEvento();
         if (tab === "canjes") { loadCanjes(); loadRewards(); }
     }, [tab, loadEvento, loadCanjes, loadRewards]);
+
+    useEffect(() => {
+        if (tab !== "mesas") return;
+        // Cargar reservas de hoy cada vez que se entra al tab de mesas
+        fetch("/api/reservas", { credentials: "include" })
+            .then(r => r.json())
+            .then(data => {
+                if (!Array.isArray(data)) return;
+                const hoy = hoyArgentina();
+                setReservasHoy(data.filter((r: any) =>
+                    r.mesaId && r.estado !== "cancelada" &&
+                    String(r.fecha).slice(0, 10) === hoy
+                ));
+            })
+            .catch(() => {});
+    }, [tab]);
 
     useEffect(() => {
         if (tab !== "mesas" || mesasLoaded) return;
@@ -1446,6 +1466,7 @@ export default function CajaPage() {
                             <div className="flex items-center gap-4 mb-4 text-xs text-gray-500 flex-wrap">
                                 <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-emerald-500 inline-block" />Libre</span>
                                 <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-red-400 inline-block" />Ocupada</span>
+                                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-yellow-400 inline-block" />Reservada hoy</span>
                             </div>
                             <div className="relative w-full rounded-xl overflow-hidden border border-gray-200" style={{ paddingBottom: "72%" }}>
                                 <div className="absolute inset-0" style={{ backgroundColor: "#f9f5ef", backgroundImage: "linear-gradient(rgba(0,0,0,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.04) 1px,transparent 1px)", backgroundSize: "30px 30px" }}>
@@ -1464,6 +1485,8 @@ export default function CajaPage() {
                                     {mesasPlano.filter(m => m.activa).map(m => {
                                         const pedido = pedidoDeMesa(m.nombre);
                                         const ocupada = !!pedido;
+                                        const reserva = !ocupada ? reservasHoy.find(r => r.mesaId?._id === m._id) : undefined;
+                                        const reservada = !!reserva;
                                         const isRound = m.forma === "round" || m.forma === "oval";
                                         const isBanq = m.tipo === "banqueta";
                                         const rot = m.rotacion ?? 0;
@@ -1471,12 +1494,18 @@ export default function CajaPage() {
                                         const h = m.alto || (m.forma === "oval" ? 5 : m.forma === "round" ? 5.5 : 5);
                                         const bg = isBanq
                                             ? "bg-amber-700 border-amber-800 text-amber-100"
-                                            : ocupada ? "bg-red-500 border-red-600 text-white" : "bg-emerald-500 border-emerald-600 text-white";
+                                            : ocupada ? "bg-red-500 border-red-600 text-white"
+                                            : reservada ? "bg-yellow-400 border-yellow-500 text-gray-900"
+                                            : "bg-emerald-500 border-emerald-600 text-white";
+                                        const clickeable = ocupada || reservada;
                                         return (
                                             <div key={m._id}
-                                                onClick={() => { if (pedido) setMesaDetalle({ mesa: m, pedido }); }}
-                                                style={{ position: "absolute", left: `${m.x ?? 10}%`, top: `${m.y ?? 10}%`, transform: `translate(-50%,-50%) rotate(${rot}deg)`, width: `min(${w}%,${w * 7}px)`, height: `min(${h}%,${h * 7.5}px)`, minWidth: "22px", minHeight: "16px", borderRadius: isRound ? "50%" : "8px", cursor: pedido ? "pointer" : "default", userSelect: "none", zIndex: 2 }}
-                                                className={`flex items-center justify-center border-2 ${bg} ${pedido ? "hover:brightness-110 active:scale-95 transition-all" : ""}`}>
+                                                onClick={() => {
+                                                    if (pedido) setMesaDetalle({ mesa: m, pedido });
+                                                    else if (reserva) setReservaDetalle(reserva);
+                                                }}
+                                                style={{ position: "absolute", left: `${m.x ?? 10}%`, top: `${m.y ?? 10}%`, transform: `translate(-50%,-50%) rotate(${rot}deg)`, width: `min(${w}%,${w * 7}px)`, height: `min(${h}%,${h * 7.5}px)`, minWidth: "22px", minHeight: "16px", borderRadius: isRound ? "50%" : "8px", cursor: clickeable ? "pointer" : "default", userSelect: "none", zIndex: 2 }}
+                                                className={`flex items-center justify-center border-2 ${bg} ${clickeable ? "hover:brightness-110 active:scale-95 transition-all" : ""}`}>
                                                 <div style={{ transform: `rotate(${-rot}deg)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
                                                     <span style={{ fontSize: "clamp(5px,0.8vw,9px)", fontWeight: 900 }}>{m.nombre}</span>
                                                 </div>
@@ -2244,6 +2273,54 @@ export default function CajaPage() {
                                     Ver en Pedidos
                                 </button>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal detalle de reserva */}
+            {reservaDetalle && (
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl">
+                        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+                            <div className="w-3 h-3 rounded-full bg-yellow-400 shrink-0" />
+                            <h2 className="font-black text-gray-900 flex-1">Mesa reservada</h2>
+                            <button onClick={() => setReservaDetalle(null)} className="p-1 text-gray-400 hover:text-gray-700"><X size={18} /></button>
+                        </div>
+                        <div className="px-5 py-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-500">Mesa</span>
+                                <span className="font-bold text-gray-900">{reservaDetalle.mesaId?.nombre}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-500">Hora</span>
+                                <span className="font-bold text-gray-900">{reservaDetalle.hora}hs</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-500">Comensales</span>
+                                <span className="font-bold text-gray-900">{reservaDetalle.comensales}</span>
+                            </div>
+                            {reservaDetalle.userId && (
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-gray-500">Cliente</span>
+                                    <span className="font-bold text-gray-900">{reservaDetalle.userId.nombre} {reservaDetalle.userId.apellido}</span>
+                                </div>
+                            )}
+                            {reservaDetalle.notas && (
+                                <div className="border-l-2 border-amber-400 pl-3 py-1">
+                                    <p className="text-xs text-gray-400 mb-0.5 font-semibold uppercase">Nota</p>
+                                    <p className="text-sm text-gray-600 italic">{reservaDetalle.notas}</p>
+                                </div>
+                            )}
+                            <span className={`inline-block text-xs font-bold px-2.5 py-1 rounded-full ${reservaDetalle.estado === "confirmada" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                                {reservaDetalle.estado === "confirmada" ? "Confirmada" : "Pendiente"}
+                            </span>
+                        </div>
+                        <div className="px-5 py-4 border-t border-gray-100">
+                            <button onClick={() => setReservaDetalle(null)}
+                                className="w-full py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">
+                                Cerrar
+                            </button>
                         </div>
                     </div>
                 </div>

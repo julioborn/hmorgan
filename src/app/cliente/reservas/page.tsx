@@ -21,7 +21,7 @@ const ZONA_OPTIONS = [
     { value: "indiferente", label: "Sin preferencia",  icon: HelpCircle },
 ] as const;
 
-const HORAS = ["19:00","19:30","20:00","20:30","21:00","21:30","22:00","22:30","23:00"];
+const HORAS = ["19:00","19:30","20:00","20:30","21:00","21:30","22:00"];
 
 const ESTADO_STYLES: Record<string, { bg: string; text: string; icon: React.ElementType; label: string }> = {
     pendiente:  { bg: "bg-amber-50 border-amber-200",  text: "text-amber-700",   icon: Clock,         label: "Pendiente"  },

@@ -108,17 +108,21 @@ export async function POST(req: NextRequest) {
         }
 
         const { items, tipoEntrega, direccion, fuente, mesa, comensales, nombreComanda, notaEmpleado, notaCliente, clienteId, eventoId, comensalesIds } = await req.json();
-        if (!items?.length)
+        const esEmpleado = ["empleado", "cajero", "admin", "superadmin"].includes(payload.role);
+        // Clientes siempre necesitan ítems; empleados pueden crear pedidos sin ítems (asignación de mesa)
+        if (!items?.length && !esEmpleado)
             return NextResponse.json({ message: "Sin items" }, { status: 400 });
 
-        const menuItems = await MenuItem.find({
-            _id: { $in: items.map((i: any) => i.menuItemId) },
-        });
+        const menuItems = items?.length
+            ? await MenuItem.find({ _id: { $in: items.map((i: any) => i.menuItemId) } })
+            : [];
 
-        const total = items.reduce((acc: number, i: any) => {
-            const item = menuItems.find((m: any) => m._id.toString() === i.menuItemId);
-            return acc + (item?.precio || 0) * i.cantidad;
-        }, 0);
+        const total = items?.length
+            ? items.reduce((acc: number, i: any) => {
+                const item = menuItems.find((m: any) => m._id.toString() === i.menuItemId);
+                return acc + (item?.precio || 0) * i.cantidad;
+            }, 0)
+            : 0;
 
         const costoEnvio = tipoEntrega === "envio" ? (config.costoEnvio || 0) : 0;
 
@@ -170,7 +174,7 @@ export async function POST(req: NextRequest) {
 
         // Pedidos de mozo con solo bebidas → salta directo a "listo" y se auto-imprime en BARRA
         const BEBIDAS_CATS_SET = new Set(["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"]);
-        const esSoloBebidas = !esPedidoApp && menuItems.length > 0 &&
+        const esSoloBebidas = !esPedidoApp && (items?.length ?? 0) > 0 && menuItems.length > 0 &&
             menuItems.every(m => BEBIDAS_CATS_SET.has((m.categoria as string).toUpperCase()));
 
         const pedido = await Pedido.create({
