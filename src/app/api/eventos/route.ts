@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     await connectMongoDB();
     const soloActivo = req.nextUrl.searchParams.get("activo") === "true";
     const query = soloActivo ? { estado: "activo" } : {};
-    const eventos = await Evento.find(query).sort({ createdAt: -1 }).limit(soloActivo ? 1 : 30).lean();
+    const eventos = await Evento.find(query).sort({ createdAt: -1 }).limit(30).lean();
     return NextResponse.json(eventos);
 }
 
@@ -32,9 +32,14 @@ export async function POST(req: NextRequest) {
     }
 
     await connectMongoDB();
-    const { nombre, mesas } = await req.json();
+    const { nombre, mesas, precioTarjeta } = await req.json();
     if (!nombre?.trim()) return NextResponse.json({ error: "Nombre requerido" }, { status: 400 });
 
-    const evento = await Evento.create({ nombre: nombre.trim(), mesas: Array.isArray(mesas) ? mesas : [], creadoPor: payload.sub });
+    const evento = await Evento.create({
+        nombre: nombre.trim(),
+        mesas: Array.isArray(mesas) ? mesas : [],
+        precioTarjeta: Number(precioTarjeta) || 0,
+        creadoPor: payload.sub,
+    });
     return NextResponse.json(evento, { status: 201 });
 }

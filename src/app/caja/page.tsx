@@ -126,14 +126,24 @@ export default function CajaPage() {
     const [reservaDetalle, setReservaDetalle] = useState<ReservaHoy | null>(null);
 
     // Eventos
-    const [eventoActivo, setEventoActivo]         = useState<Evento | null | undefined>(undefined);
+    const [eventosActivos, setEventosActivos]     = useState<Evento[]>([]);
+    const [eventosLoaded, setEventosLoaded]       = useState(false);
     const [crearEventoModal, setCrearEventoModal] = useState(false);
-    const [nuevoEventoNombre, setNuevoEventoNombre] = useState("");
-    const [crearEventoSaving, setCrearEventoSaving] = useState(false);
+    const [nuevoEventoNombre, setNuevoEventoNombre]   = useState("");
+    const [nuevoEventoPrecio, setNuevoEventoPrecio]   = useState("");
+    const [nuevoEventoMesas, setNuevoEventoMesas]     = useState<string[]>([]);
+    const [nuevoEventoMesasOpts, setNuevoEventoMesasOpts] = useState<string[]>([]);
+    const [crearEventoSaving, setCrearEventoSaving]   = useState(false);
     const [editMesasModal, setEditMesasModal]     = useState(false);
+    const [editMesasEventoId, setEditMesasEventoId] = useState<string | null>(null);
     const [editMesasList, setEditMesasList]       = useState<string[]>([]);
     const [editMesasOpciones, setEditMesasOpciones] = useState<string[]>([]);
     const [editMesasSaving, setEditMesasSaving]   = useState(false);
+    const [ventaEventoId, setVentaEventoId]       = useState<string | null>(null);
+    const [tarjetasModal, setTarjetasModal]       = useState(false);
+    const [tarjetasEventoId, setTarjetasEventoId] = useState<string | null>(null);
+    const [tarjetasCantidad, setTarjetasCantidad] = useState("1");
+    const [tarjetasSaving, setTarjetasSaving]     = useState(false);
     const [ventaModal, setVentaModal]             = useState(false);
     const [ventaCart, setVentaCart]               = useState<CartItem[]>([]);
     const [ventaMetodo, setVentaMetodo]           = useState<typeof METODOS[number]>("efectivo");
@@ -183,8 +193,9 @@ export default function CajaPage() {
         try {
             const res = await fetch("/api/eventos?activo=true", { credentials: "include" });
             const data = await res.json();
-            setEventoActivo(Array.isArray(data) && data.length > 0 ? data[0] : null);
-        } catch { setEventoActivo(null); }
+            setEventosActivos(Array.isArray(data) ? data : []);
+        } catch { setEventosActivos([]); }
+        finally { setEventosLoaded(true); }
     }, []);
 
     const loadCanjes = useCallback(async () => {
@@ -751,13 +762,16 @@ export default function CajaPage() {
         try {
             const res = await fetch("/api/eventos", {
                 method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
-                body: JSON.stringify({ nombre: nuevoEventoNombre.trim() }),
+                body: JSON.stringify({
+                    nombre: nuevoEventoNombre.trim(),
+                    mesas: nuevoEventoMesas,
+                    precioTarjeta: Number(nuevoEventoPrecio) || 0,
+                }),
             });
             if (res.ok) {
                 const data = await res.json();
-                setEventoActivo(data);
+                setEventosActivos(prev => [data, ...prev]);
                 setCrearEventoModal(false);
-                setNuevoEventoNombre("");
             }
         } finally { setCrearEventoSaving(false); }
     }
@@ -822,44 +836,79 @@ export default function CajaPage() {
         finally { setCanjeProcessing(null); }
     }
 
-    async function abrirEditMesas() {
-        if (!eventoActivo) return;
+    async function abrirCrearEvento() {
+        const res = await fetch("/api/admin/mesas?all=true", { credentials: "include" });
+        const data = await res.json().catch(() => []);
+        setNuevoEventoMesasOpts(Array.isArray(data) ? data.filter((m: any) => m.activa).map((m: any) => m.nombre) : []);
+        setNuevoEventoNombre("");
+        setNuevoEventoPrecio("");
+        setNuevoEventoMesas([]);
+        setCrearEventoModal(true);
+    }
+
+    async function abrirEditMesas(eventoId: string) {
+        const ev = eventosActivos.find(e => e._id === eventoId);
+        if (!ev) return;
         const res = await fetch("/api/admin/mesas?all=true", { credentials: "include" });
         const data = await res.json().catch(() => []);
         setEditMesasOpciones(Array.isArray(data) ? data.filter((m: any) => m.activa).map((m: any) => m.nombre) : []);
-        setEditMesasList(eventoActivo.mesas ?? []);
+        setEditMesasList(ev.mesas ?? []);
+        setEditMesasEventoId(eventoId);
         setEditMesasModal(true);
     }
 
     async function guardarMesasEvento() {
-        if (!eventoActivo) return;
+        if (!editMesasEventoId) return;
         setEditMesasSaving(true);
         try {
-            const res = await fetch(`/api/eventos/${eventoActivo._id}`, {
+            const res = await fetch(`/api/eventos/${editMesasEventoId}`, {
                 method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
                 body: JSON.stringify({ accion: "updateMesas", mesas: editMesasList }),
             });
             if (res.ok) {
-                setEventoActivo(prev => prev ? { ...prev, mesas: editMesasList } : prev);
+                setEventosActivos(prev => prev.map(e => e._id === editMesasEventoId ? { ...e, mesas: editMesasList } : e));
                 setEditMesasModal(false);
             }
         } finally { setEditMesasSaving(false); }
     }
 
-    async function cerrarEvento() {
-        if (!eventoActivo) return;
+    async function cerrarEvento(eventoId: string) {
+        const ev = eventosActivos.find(e => e._id === eventoId);
+        if (!ev) return;
         const r = await swalBase.fire({
             title: "¿Cerrar evento?",
-            text: `Se cerrará "${eventoActivo.nombre}". No se podrán agregar más ventas.`,
+            text: `Se cerrará "${ev.nombre}". No se podrán agregar más ventas.`,
             icon: "warning", showCancelButton: true,
             confirmButtonText: "Sí, cerrar", cancelButtonText: "Cancelar",
         });
         if (!r.isConfirmed) return;
-        const res = await fetch(`/api/eventos/${eventoActivo._id}`, {
+        const res = await fetch(`/api/eventos/${eventoId}`, {
             method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
             body: JSON.stringify({ accion: "cerrar" }),
         });
-        if (res.ok) setEventoActivo(null);
+        if (res.ok) setEventosActivos(prev => prev.filter(e => e._id !== eventoId));
+    }
+
+    async function abrirTarjetasModal(eventoId: string) {
+        setTarjetasEventoId(eventoId);
+        setTarjetasCantidad("1");
+        setTarjetasModal(true);
+    }
+
+    async function guardarTarjetas() {
+        if (!tarjetasEventoId || !tarjetasCantidad) return;
+        setTarjetasSaving(true);
+        try {
+            const res = await fetch(`/api/eventos/${tarjetasEventoId}`, {
+                method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
+                body: JSON.stringify({ accion: "agregarTarjetas", cantidad: Number(tarjetasCantidad) }),
+            });
+            if (res.ok) {
+                const { evento } = await res.json();
+                setEventosActivos(prev => prev.map(e => e._id === tarjetasEventoId ? evento : e));
+                setTarjetasModal(false);
+            }
+        } finally { setTarjetasSaving(false); }
     }
 
     function ventaEventoHtml(titulo: string, items: CartItem[], cliente: string, hora: string) {
@@ -930,12 +979,13 @@ export default function CajaPage() {
         if (bebidas.length > 0) setTimeout(() => abrirEImprimir(ventaEventoHtml(titulo, bebidas, cliente, hora)), 600);
     }
 
-    async function abrirVentaModal() {
+    async function abrirVentaModal(eventoId: string) {
         if (menuItemsAll.length === 0) {
             const r = await fetch("/api/menu?activo=true", { credentials: "include" });
             const d = await r.json().catch(() => []);
             setMenuItemsAll(Array.isArray(d) ? d : []);
         }
+        setVentaEventoId(eventoId);
         setVentaCart([]);
         setVentaMetodo("efectivo");
         setVentaSearch("");
@@ -946,6 +996,7 @@ export default function CajaPage() {
     }
 
     async function registrarVenta() {
+        const eventoActivo = eventosActivos.find(e => e._id === ventaEventoId);
         if (!eventoActivo || ventaCart.length === 0) return;
         setVentaSaving(true);
         try {
@@ -962,8 +1013,8 @@ export default function CajaPage() {
             });
             if (res.ok) {
                 const data = await res.json();
-                setEventoActivo(data.evento);
-                await printVentaEvento(eventoActivo, ventaCart, ventaMetodo);
+                setEventosActivos(prev => prev.map(e => e._id === data.evento._id ? data.evento : e));
+                await printVentaEvento(data.evento, ventaCart, ventaMetodo);
                 setVentaModal(false);
                 setVentaCart([]);
                 setVentaMetodo("efectivo");
@@ -1147,9 +1198,9 @@ export default function CajaPage() {
                                 tab === "eventos" ? "text-gray-900 border-b-2 border-gray-900" : "text-gray-400 hover:text-gray-600"
                             }`}>
                             <Star size={15} /> Eventos
-                            {eventoActivo && (
+                            {eventosActivos.length > 0 && (
                                 <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${tab === "eventos" ? "bg-gray-900 text-white" : "bg-amber-100 text-amber-700"}`}>
-                                    1
+                                    {eventosActivos.length}
                                 </span>
                             )}
                         </button>
@@ -1496,7 +1547,7 @@ export default function CajaPage() {
                                 <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-emerald-500 inline-block" />Libre</span>
                                 <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-red-400 inline-block" />Ocupada</span>
                                 <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-yellow-400 inline-block" />Reservada hoy</span>
-                                {eventoActivo && <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-blue-500 inline-block" />Evento: {eventoActivo.nombre}</span>}
+                                {eventosActivos.length > 0 && <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-blue-500 inline-block" />Evento</span>}
                             </div>
                             <div className="relative w-full rounded-xl overflow-hidden border border-gray-200" style={{ paddingBottom: "72%" }}>
                                 <div className="absolute inset-0" style={{ backgroundColor: "#f9f5ef", backgroundImage: "linear-gradient(rgba(0,0,0,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.04) 1px,transparent 1px)", backgroundSize: "30px 30px" }}>
@@ -1517,7 +1568,8 @@ export default function CajaPage() {
                                         const ocupada = !!pedido;
                                         const reserva = !ocupada ? reservasHoy.find(r => r.mesaId?._id === m._id) : undefined;
                                         const reservada = !!reserva;
-                                        const esEvento = !ocupada && !reservada && !!eventoActivo && (eventoActivo.mesas ?? []).includes(m.nombre);
+                                        const mesasDeEventos = new Set(eventosActivos.flatMap(e => e.mesas ?? []));
+                                        const esEvento = !ocupada && !reservada && mesasDeEventos.has(m.nombre);
                                         const isRound = m.forma === "round" || m.forma === "oval";
                                         const isBanq = m.tipo === "banqueta";
                                         const rot = m.rotacion ?? 0;
@@ -1558,147 +1610,134 @@ export default function CajaPage() {
 
                     {/* ── TAB EVENTOS ── */}
                     {tab === "eventos" && (
-                        <div className="max-w-2xl mx-auto px-4 pt-4">
-                            {eventoActivo === undefined ? (
-                                <div className="flex justify-center py-16">
-                                    <Loader2 className="animate-spin text-gray-300" size={28} />
+                        <div className="max-w-2xl mx-auto px-4 pt-4 pb-10 space-y-4">
+
+                            {/* Botón crear siempre visible */}
+                            <button onClick={abrirCrearEvento}
+                                className="w-full flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-700 text-white font-bold py-3 rounded-2xl transition active:scale-95">
+                                <Plus size={18} /> Nuevo evento
+                            </button>
+
+                            {!eventosLoaded ? (
+                                <div className="flex justify-center py-10"><Loader2 className="animate-spin text-gray-300" size={28} /></div>
+                            ) : eventosActivos.length === 0 ? (
+                                <div className="text-center py-12">
+                                    <Star size={32} className="mx-auto text-gray-200 mb-3" />
+                                    <p className="font-bold text-gray-400">Sin eventos activos</p>
                                 </div>
-                            ) : eventoActivo === null ? (
-                                <div className="text-center py-20">
-                                    <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
-                                        <Star size={28} className="text-gray-300" />
-                                    </div>
-                                    <p className="font-bold text-gray-400 mb-2">Sin evento activo</p>
-                                    <p className="text-sm text-gray-300 mb-6">Creá un evento para registrar ventas individuales durante la noche</p>
-                                    <button onClick={() => { setCrearEventoModal(true); setNuevoEventoNombre(""); }}
-                                        className="bg-gray-900 hover:bg-gray-700 text-white font-bold px-6 py-3 rounded-2xl transition active:scale-95">
-                                        + Crear evento
-                                    </button>
-                                </div>
-                            ) : (
-                                <>
-                                    {/* Cabecera del evento */}
-                                    {(() => {
-                                        const pedidosEvento = pedidos.filter(p => p.eventoId && p.eventoId === eventoActivo._id);
-                                        const totalPedidosEvento = pedidosEvento.reduce((acc, p) => acc + (p.total || 0), 0);
-                                        const totalVentas = eventoActivo.ventas.reduce((acc, v) => acc + v.total, 0);
-                                        return (
-                                        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-4 space-y-3">
-                                            <div className="flex items-start justify-between gap-3">
-                                                <div>
-                                                    <div className="flex items-center gap-2 mb-1">
-                                                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block" />
-                                                        <span className="text-xs font-bold text-emerald-600 uppercase tracking-wide">Evento activo</span>
-                                                    </div>
-                                                    <h2 className="font-black text-gray-900 text-xl">{eventoActivo.nombre}</h2>
-                                                    <p className="text-xs text-gray-400 mt-0.5">
-                                                        Total: {formatMoney(totalVentas + totalPedidosEvento)}
-                                                        {pedidosEvento.length > 0 && ` · ${pedidosEvento.length} comanda${pedidosEvento.length !== 1 ? "s" : ""} + ${eventoActivo.ventas.length} venta${eventoActivo.ventas.length !== 1 ? "s" : ""} directas`}
-                                                    </p>
-                                                </div>
-                                                <button onClick={cerrarEvento}
-                                                    className="text-xs font-bold text-red-600 hover:bg-red-50 border border-red-200 px-3 py-2 rounded-xl transition shrink-0">
-                                                    Cerrar evento
-                                                </button>
+                            ) : eventosActivos.map(ev => {
+                                const pedidosEv = pedidos.filter(p => p.eventoId === ev._id);
+                                const totalPedidos = pedidosEv.reduce((a, p) => a + (p.total || 0), 0);
+                                const totalVentas  = ev.ventas.reduce((a, v) => a + v.total, 0);
+                                const totalTarjetas = (ev as any).tarjetas?.reduce((a: number, t: any) => a + t.cantidad, 0) ?? 0;
+                                const precioTarjeta = (ev as any).precioTarjeta ?? 0;
+                                return (
+                                <div key={ev._id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+
+                                    {/* Header del evento */}
+                                    <div className="flex items-start justify-between gap-3 px-4 py-4">
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-0.5">
+                                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block" />
+                                                <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wide">Activo</span>
                                             </div>
-
-                                            {/* Mesas del evento */}
-                                            <div className="pt-2 border-t border-gray-100">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Mesas del evento</p>
-                                                    <button onClick={abrirEditMesas} className="text-[10px] font-bold text-blue-600 hover:underline">Editar</button>
-                                                </div>
-                                                {(eventoActivo.mesas ?? []).length === 0 ? (
-                                                    <button onClick={abrirEditMesas} className="text-xs text-gray-400 hover:text-blue-600 transition">+ Asignar mesas al evento</button>
-                                                ) : (
-                                                    <div className="flex flex-wrap gap-1.5">
-                                                        {eventoActivo.mesas.map(m => (
-                                                            <span key={m} className="bg-blue-100 text-blue-700 text-xs font-bold px-2.5 py-1 rounded-full">{m}</span>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* Totales por método */}
-                                            {(eventoActivo.ventas.length > 0 || pedidosEvento.length > 0) && (
-                                                <div className="pt-2 border-t border-gray-100 grid grid-cols-3 gap-2">
-                                                    {METODOS.map(met => {
-                                                        const tot = eventoActivo.ventas.filter(v => v.metodoPago === met).reduce((acc, v) => acc + v.total, 0);
-                                                        const Icon = METODO_ICON[met];
-                                                        return tot > 0 ? (
-                                                            <div key={met} className="bg-gray-50 rounded-xl px-3 py-2 text-center">
-                                                                <div className="flex items-center justify-center gap-1 text-gray-500 mb-1">
-                                                                    <Icon size={11} />
-                                                                    <span className="text-[10px] font-semibold uppercase">{METODO_LABEL[met]}</span>
-                                                                </div>
-                                                                <p className="font-black text-gray-900 text-sm">{formatMoney(tot)}</p>
-                                                            </div>
-                                                        ) : null;
-                                                    })}
-                                                </div>
-                                            )}
-
-                                            {/* Comandas del evento */}
-                                            {pedidosEvento.length > 0 && (
-                                                <div className="pt-2 border-t border-gray-100">
-                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">Comandas vinculadas</p>
-                                                    <div className="space-y-1.5">
-                                                        {pedidosEvento.map(p => (
-                                                            <div key={p._id} className="flex items-center justify-between bg-blue-50 rounded-xl px-3 py-2 text-sm">
-                                                                <span className="font-bold text-blue-900">{p.mesa ? `Mesa ${p.mesa}` : p.nombreComanda || "Comanda"}</span>
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="text-xs text-blue-600 capitalize">{p.estado}</span>
-                                                                    <span className="font-black text-blue-900">{formatMoney(p.total)}</span>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
+                                            <h2 className="font-black text-gray-900 text-lg">{ev.nombre}</h2>
+                                            <p className="text-xs text-gray-400">Total: {formatMoney(totalVentas + totalPedidos + totalTarjetas * precioTarjeta)}</p>
                                         </div>
-                                        );
-                                    })()}
+                                        <button onClick={() => cerrarEvento(ev._id)}
+                                            className="text-xs font-bold text-red-600 hover:bg-red-50 border border-red-200 px-3 py-1.5 rounded-xl transition shrink-0">
+                                            Cerrar
+                                        </button>
+                                    </div>
 
-                                    {/* Botón registrar venta */}
-                                    <button onClick={abrirVentaModal}
-                                        className="w-full mb-4 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 rounded-2xl transition shadow-sm active:scale-[0.98] text-base">
-                                        <Plus size={20} /> Registrar venta
-                                    </button>
+                                    {/* Mesas */}
+                                    <div className="px-4 pb-3 border-b border-gray-100">
+                                        <div className="flex items-center justify-between mb-1.5">
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Mesas del evento</p>
+                                            <button onClick={() => abrirEditMesas(ev._id)} className="text-[10px] font-bold text-blue-600 hover:underline">Editar</button>
+                                        </div>
+                                        {(ev.mesas ?? []).length === 0 ? (
+                                            <button onClick={() => abrirEditMesas(ev._id)} className="text-xs text-gray-400 hover:text-blue-600 transition">+ Asignar mesas</button>
+                                        ) : (
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {ev.mesas.map(m => <span key={m} className="bg-blue-100 text-blue-700 text-xs font-bold px-2.5 py-0.5 rounded-full">{m}</span>)}
+                                            </div>
+                                        )}
+                                    </div>
 
-                                    {/* Lista de ventas */}
-                                    {eventoActivo.ventas.length === 0 ? (
-                                        <p className="text-center text-gray-400 text-sm py-8">Sin ventas registradas todavía</p>
-                                    ) : (
-                                        <div className="space-y-2">
-                                            {[...eventoActivo.ventas].reverse().map(v => {
-                                                const Icon = METODO_ICON[v.metodoPago] || Banknote;
-                                                return (
-                                                    <div key={v._id} className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3">
-                                                        <div className="flex items-center justify-between mb-2">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="flex items-center gap-1 text-xs font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                                                                    <Icon size={10} /> {METODO_LABEL[v.metodoPago]}
-                                                                </span>
-                                                                <span className="text-xs text-gray-400">
-                                                                    {new Date(v.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
-                                                                </span>
-                                                            </div>
-                                                            <span className="font-black text-gray-900">{formatMoney(v.total)}</span>
-                                                        </div>
-                                                        <ul className="space-y-0.5">
-                                                            {v.items.map((it, idx) => (
-                                                                <li key={idx} className="text-sm text-gray-600">
-                                                                    <span className="font-bold text-gray-400 mr-1">{it.cantidad}×</span>{it.nombre}
-                                                                </li>
-                                                            ))}
-                                                        </ul>
+                                    {/* Tarjetas */}
+                                    <div className="px-4 py-3 border-b border-gray-100">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <div>
+                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Tarjetas</p>
+                                                {precioTarjeta > 0 && <p className="text-xs text-gray-500">{totalTarjetas} tarjetas · {formatMoney(precioTarjeta)} c/u = <span className="font-black text-gray-900">{formatMoney(totalTarjetas * precioTarjeta)}</span></p>}
+                                                {precioTarjeta === 0 && <p className="text-xs text-gray-400">Precio no configurado</p>}
+                                            </div>
+                                            <button onClick={() => abrirTarjetasModal(ev._id)}
+                                                className="text-xs font-bold text-white bg-gray-900 hover:bg-gray-700 px-3 py-1.5 rounded-xl transition">
+                                                + Registrar
+                                            </button>
+                                        </div>
+                                        {(ev as any).tarjetas?.length > 0 && (
+                                            <div className="flex flex-wrap gap-1.5 mt-2">
+                                                {[...(ev as any).tarjetas].reverse().slice(0, 8).map((t: any, i: number) => (
+                                                    <span key={i} className="bg-gray-100 text-gray-700 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                                                        {t.cantidad}× · {new Date(t.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Comandas vinculadas */}
+                                    {pedidosEv.length > 0 && (
+                                        <div className="px-4 py-3 border-b border-gray-100">
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">Comandas ({pedidosEv.length})</p>
+                                            <div className="space-y-1">
+                                                {pedidosEv.map(p => (
+                                                    <div key={p._id} className="flex items-center justify-between bg-blue-50 rounded-xl px-3 py-1.5 text-sm">
+                                                        <span className="font-bold text-blue-900">{p.mesa ? `Mesa ${p.mesa}` : p.nombreComanda || "Comanda"}</span>
+                                                        <span className="font-black text-blue-900">{formatMoney(p.total)}</span>
                                                     </div>
-                                                );
-                                            })}
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
-                                </>
-                            )}
+
+                                    {/* Ventas directas */}
+                                    <div className="px-4 py-3">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Ventas directas ({ev.ventas.length})</p>
+                                            <button onClick={() => abrirVentaModal(ev._id)}
+                                                className="text-xs font-bold text-white bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-xl transition">
+                                                + Registrar venta
+                                            </button>
+                                        </div>
+                                        {ev.ventas.length === 0 ? (
+                                            <p className="text-xs text-gray-300 py-2">Sin ventas registradas</p>
+                                        ) : (
+                                            <div className="space-y-1.5">
+                                                {[...ev.ventas].reverse().map(v => {
+                                                    const Icon = METODO_ICON[v.metodoPago] || Banknote;
+                                                    return (
+                                                        <div key={v._id} className="bg-gray-50 rounded-xl px-3 py-2">
+                                                            <div className="flex items-center justify-between mb-1">
+                                                                <span className="flex items-center gap-1 text-[10px] font-bold text-gray-500">
+                                                                    <Icon size={9} /> {METODO_LABEL[v.metodoPago]}
+                                                                    <span className="text-gray-300 font-normal ml-1">{new Date(v.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</span>
+                                                                </span>
+                                                                <span className="font-black text-gray-900 text-sm">{formatMoney(v.total)}</span>
+                                                            </div>
+                                                            <p className="text-xs text-gray-500">{v.items.map(it => `${it.cantidad}× ${it.nombre}`).join(", ")}</p>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                );
+                            })}
                         </div>
                     )}
                     {/* ── TAB CANJES ── */}
@@ -2089,22 +2128,47 @@ export default function CajaPage() {
             {/* Modal crear evento */}
             {crearEventoModal && (
                 <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl">
-                        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
-                            <h2 className="font-black text-gray-900 flex-1">Crear evento</h2>
+                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl max-h-[90vh] flex flex-col">
+                        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
+                            <h2 className="font-black text-gray-900 flex-1">Nuevo evento</h2>
                             <button onClick={() => setCrearEventoModal(false)} className="p-1 text-gray-400"><X size={18} /></button>
                         </div>
-                        <div className="px-5 py-4 space-y-3">
+                        <div className="px-5 py-4 space-y-4 overflow-y-auto flex-1 min-h-0">
                             <div>
                                 <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Nombre del evento</label>
                                 <input autoFocus value={nuevoEventoNombre}
                                     onChange={e => setNuevoEventoNombre(e.target.value)}
-                                    onKeyDown={e => e.key === "Enter" && crearEvento()}
                                     placeholder="Ej: Cumpleaños" style={{ fontSize: "16px" }}
                                     className="w-full px-4 py-3 border border-gray-200 rounded-xl text-base font-semibold focus:outline-none focus:ring-2 focus:ring-red-400" />
                             </div>
+                            <div>
+                                <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Precio tarjeta (ARS)</label>
+                                <input type="number" inputMode="numeric" value={nuevoEventoPrecio}
+                                    onChange={e => setNuevoEventoPrecio(e.target.value)}
+                                    placeholder="0" style={{ fontSize: "16px" }}
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-base font-semibold focus:outline-none focus:ring-2 focus:ring-red-400" />
+                            </div>
+                            {nuevoEventoMesasOpts.length > 0 && (
+                                <div>
+                                    <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">
+                                        Mesas del evento <span className="font-normal normal-case text-gray-300">({nuevoEventoMesas.length} seleccionadas)</span>
+                                    </label>
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {nuevoEventoMesasOpts.map(m => {
+                                            const sel = nuevoEventoMesas.includes(m);
+                                            return (
+                                                <button key={m}
+                                                    onClick={() => setNuevoEventoMesas(prev => sel ? prev.filter(x => x !== m) : [...prev, m])}
+                                                    className={`py-2.5 rounded-xl text-xs font-bold border transition ${sel ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:border-blue-400"}`}>
+                                                    {m}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                        <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
+                        <div className="px-5 py-4 border-t border-gray-100 flex gap-2 shrink-0">
                             <button onClick={() => setCrearEventoModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
                             <button onClick={crearEvento} disabled={!nuevoEventoNombre.trim() || crearEventoSaving}
                                 className="flex-1 py-2.5 bg-gray-900 hover:bg-gray-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
@@ -2149,14 +2213,58 @@ export default function CajaPage() {
                 </div>
             )}
 
+            {/* Modal registrar tarjetas */}
+            {tarjetasModal && (() => {
+                const ev = eventosActivos.find(e => e._id === tarjetasEventoId);
+                if (!ev) return null;
+                const precio = (ev as any).precioTarjeta ?? 0;
+                const cant = Number(tarjetasCantidad) || 0;
+                return (
+                    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+                        <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl">
+                            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+                                <div className="flex-1">
+                                    <h2 className="font-black text-gray-900">Registrar tarjetas</h2>
+                                    <p className="text-xs text-gray-400">{ev.nombre} · {formatMoney(precio)} c/u</p>
+                                </div>
+                                <button onClick={() => setTarjetasModal(false)} className="p-1 text-gray-400"><X size={18} /></button>
+                            </div>
+                            <div className="px-5 py-5 space-y-4">
+                                <div>
+                                    <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Cantidad de tarjetas</label>
+                                    <input autoFocus type="number" inputMode="numeric" min="1"
+                                        value={tarjetasCantidad}
+                                        onChange={e => setTarjetasCantidad(e.target.value)}
+                                        style={{ fontSize: "16px" }}
+                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-base font-semibold focus:outline-none focus:ring-2 focus:ring-gray-900 text-center" />
+                                </div>
+                                {precio > 0 && cant > 0 && (
+                                    <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
+                                        <span className="text-sm text-gray-500">{cant} × {formatMoney(precio)}</span>
+                                        <span className="font-black text-gray-900 text-lg">{formatMoney(cant * precio)}</span>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
+                                <button onClick={() => setTarjetasModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
+                                <button onClick={guardarTarjetas} disabled={!tarjetasCantidad || Number(tarjetasCantidad) < 1 || tarjetasSaving}
+                                    className="flex-1 py-2.5 bg-gray-900 hover:bg-gray-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
+                                    {tarjetasSaving ? "Registrando..." : "Registrar"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
+
             {/* Modal registrar venta en evento */}
-            {ventaModal && eventoActivo && (
+            {ventaModal && eventosActivos.find(e => e._id === ventaEventoId) && (
                 <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
                     <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl flex flex-col" style={{ maxHeight: "92vh" }}>
                         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
                             <div className="flex-1 min-w-0">
                                 <h2 className="font-black text-gray-900">Registrar venta</h2>
-                                <p className="text-xs text-gray-400 truncate">{eventoActivo.nombre}</p>
+                                <p className="text-xs text-gray-400 truncate">{eventosActivos.find(e => e._id === ventaEventoId)?.nombre}</p>
                             </div>
                             <button onClick={() => setVentaModal(false)} className="p-1 text-gray-400"><X size={18} /></button>
                         </div>

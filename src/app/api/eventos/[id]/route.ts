@@ -45,6 +45,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         return NextResponse.json({ ok: true, evento });
     }
 
+    if (body.accion === "agregarTarjetas") {
+        const cantidad = Number(body.cantidad);
+        if (!cantidad || cantidad < 1) return NextResponse.json({ error: "Cantidad inválida" }, { status: 400 });
+        evento.tarjetas.push({ cantidad });
+        await evento.save();
+        return NextResponse.json({ ok: true, evento });
+    }
+
     if (body.accion === "cerrar") {
         if (evento.estado === "cerrado") {
             return NextResponse.json({ error: "El evento ya está cerrado" }, { status: 400 });

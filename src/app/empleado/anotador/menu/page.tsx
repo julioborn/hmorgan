@@ -108,7 +108,8 @@ function AnotadorMenuContent() {
     const { user, loading }   = useAuth();
     const router              = useRouter();
     const searchParams        = useSearchParams();
-    const comandaId           = searchParams.get("id"); // null = nueva comanda
+    const comandaId           = searchParams.get("id");      // null = nueva comanda
+    const eventoIdParam       = searchParams.get("eventoId"); // null = comanda normal
     const [step, setStep]    = useState<"info"|"menu">(comandaId ? "menu" : "info");
 
     const [menuItems, setMenuItems]     = useState<MenuItem[]>([]);
@@ -169,11 +170,12 @@ function AnotadorMenuContent() {
     }, []);
 
     useEffect(() => {
-        fetch("/api/eventos?activo=true", { credentials: "include" })
+        if (!eventoIdParam) { setEventoActivo(null); return; }
+        fetch(`/api/eventos/${eventoIdParam}`, { credentials: "include" })
             .then(r => r.json())
-            .then(d => setEventoActivo(Array.isArray(d) && d.length > 0 ? { _id: d[0]._id, nombre: d[0].nombre } : null))
-            .catch(() => null);
-    }, []);
+            .then(d => d._id ? setEventoActivo({ _id: d._id, nombre: d.nombre }) : setEventoActivo(null))
+            .catch(() => setEventoActivo(null));
+    }, [eventoIdParam]);
 
     // Cargar comanda existente si hay id
     useEffect(() => {

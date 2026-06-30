@@ -19,13 +19,20 @@ const VentaSchema = new Schema(
     { timestamps: true }
 );
 
+const TarjetaSchema = new Schema(
+    { cantidad: { type: Number, required: true } },
+    { timestamps: true }
+);
+
 const EventoSchema = new Schema(
     {
-        nombre:    { type: String, required: true },
-        estado:    { type: String, enum: ["activo", "cerrado"], default: "activo" },
-        ventas:    [VentaSchema],
-        mesas:     [{ type: String }],
-        creadoPor: { type: Schema.Types.ObjectId, ref: "User" },
+        nombre:         { type: String, required: true },
+        estado:         { type: String, enum: ["activo", "cerrado"], default: "activo" },
+        ventas:         [VentaSchema],
+        mesas:          [{ type: String }],
+        precioTarjeta:  { type: Number, default: 0 },
+        tarjetas:       [TarjetaSchema],
+        creadoPor:      { type: Schema.Types.ObjectId, ref: "User" },
     },
     { timestamps: true }
 );

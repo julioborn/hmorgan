@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
-import { Plus, UtensilsCrossed, ChevronRight, Trash2, LockKeyhole, Star } from "lucide-react";
+import { Plus, UtensilsCrossed, ChevronRight, Trash2, LockKeyhole, Star, X } from "lucide-react";
 import Loader from "@/components/Loader";
 import { swalBase } from "@/lib/swalConfig";
 
@@ -18,6 +18,8 @@ type Comanda = {
     notaEmpleado?: string;
 };
 
+type EventoActivo = { _id: string; nombre: string };
+
 const fmt = (n: number) => new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0 }).format(n);
 
 export default function AnotadorPage() {
@@ -26,7 +28,8 @@ export default function AnotadorPage() {
     const [comandas, setComandas] = useState<Comanda[]>([]);
     const [cajaAbierta, setCajaAbierta] = useState<boolean | null>(null);
     const [loadingData, setLoadingData] = useState(true);
-    const [eventoActivo, setEventoActivo] = useState<string | null>(null);
+    const [eventosActivos, setEventosActivos] = useState<EventoActivo[]>([]);
+    const [eventoPickerModal, setEventoPickerModal] = useState(false);
 
     useEffect(() => {
         if (!loading && user && !["empleado", "cajero", "admin", "superadmin"].includes(user.role)) {
@@ -50,7 +53,7 @@ export default function AnotadorPage() {
                 .catch(() => setCajaAbierta(false)),
             fetch("/api/eventos?activo=true", { credentials: "include" })
                 .then(r => r.json())
-                .then(d => setEventoActivo(Array.isArray(d) && d.length > 0 ? d[0].nombre : null))
+                .then(d => setEventosActivos(Array.isArray(d) ? d.map((e: any) => ({ _id: e._id, nombre: e.nombre })) : []))
                 .catch(() => null),
         ]).finally(() => setLoadingData(false));
 
@@ -72,6 +75,22 @@ export default function AnotadorPage() {
         setComandas(prev => prev.filter(c => c._id !== id));
     }
 
+    function handleNuevaComanda() {
+        if (eventosActivos.length > 0) {
+            setEventoPickerModal(true);
+        } else {
+            router.push("/empleado/anotador/menu");
+        }
+    }
+
+    function irAMenu(eventoId?: string) {
+        setEventoPickerModal(false);
+        const url = eventoId
+            ? `/empleado/anotador/menu?eventoId=${eventoId}`
+            : "/empleado/anotador/menu";
+        router.push(url);
+    }
+
     if (loading || loadingData) return <div className="flex justify-center py-20"><Loader size={64} /></div>;
     if (!user) return null;
 
@@ -79,10 +98,14 @@ export default function AnotadorPage() {
         <div className="min-h-screen bg-white pb-24">
             <div className="max-w-2xl mx-auto px-4 pt-4 space-y-5">
 
-                {eventoActivo && (
+                {eventosActivos.length > 0 && (
                     <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
                         <Star size={14} className="text-amber-500 shrink-0" />
-                        <p className="text-sm font-bold text-amber-700 truncate">Evento activo: {eventoActivo}</p>
+                        <p className="text-sm font-bold text-amber-700 truncate">
+                            {eventosActivos.length === 1
+                                ? `Evento activo: ${eventosActivos[0].nombre}`
+                                : `${eventosActivos.length} eventos activos`}
+                        </p>
                     </div>
                 )}
 
@@ -107,7 +130,7 @@ export default function AnotadorPage() {
                         </div>
                         {cajaAbierta !== false && (
                             <button
-                                onClick={() => router.push("/empleado/anotador/menu")}
+                                onClick={handleNuevaComanda}
                                 className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-2 rounded-xl transition text-sm active:scale-95">
                                 <Plus size={15} /> Nueva comanda
                             </button>
@@ -196,6 +219,50 @@ export default function AnotadorPage() {
                 </div>
 
             </div>
+
+            {/* Modal selector de evento */}
+            {eventoPickerModal && (
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl">
+                        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+                            <h2 className="font-black text-gray-900 flex-1">¿Para quién es la comanda?</h2>
+                            <button onClick={() => setEventoPickerModal(false)} className="p-1 text-gray-400"><X size={18} /></button>
+                        </div>
+                        <div className="px-4 py-4 space-y-2.5">
+                            {/* Opción cliente normal */}
+                            <button onClick={() => irAMenu()}
+                                className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border-2 border-gray-200 hover:border-gray-400 bg-white transition active:scale-95 text-left">
+                                <div>
+                                    <p className="font-black text-gray-900">Cliente normal</p>
+                                    <p className="text-xs text-gray-400 mt-0.5">Comanda estándar sin evento</p>
+                                </div>
+                                <ChevronRight size={18} className="text-gray-300 shrink-0" />
+                            </button>
+
+                            {/* Un botón por cada evento activo */}
+                            {eventosActivos.map(ev => (
+                                <button key={ev._id} onClick={() => irAMenu(ev._id)}
+                                    className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border-2 border-amber-300 hover:border-amber-500 bg-amber-50 transition active:scale-95 text-left">
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-0.5">
+                                            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse inline-block" />
+                                            <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wide">Evento</span>
+                                        </div>
+                                        <p className="font-black text-amber-900">{ev.nombre}</p>
+                                    </div>
+                                    <ChevronRight size={18} className="text-amber-400 shrink-0" />
+                                </button>
+                            ))}
+                        </div>
+                        <div className="px-4 pb-4">
+                            <button onClick={() => setEventoPickerModal(false)}
+                                className="w-full py-2.5 text-sm text-gray-500 font-semibold hover:text-gray-700 transition">
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
