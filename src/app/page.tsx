@@ -752,13 +752,18 @@ function AdminCard({
 /* =========================
   HOME EMPLEADO
    ========================= */
+type MesaPlanoEmp = { _id: string; nombre: string; activa: boolean; x: number; y: number; forma: string; ancho?: number; alto?: number; rotacion?: number; tipo?: string };
+type ElPlanoEmp   = { _id: string; tipo: string; label: string; x: number; y: number; ancho: number; alto: number; color: string };
+
 function EmployeeHome({ nombre }: { nombre?: string }) {
   const router = useRouter();
   const [hora, setHora] = useState(() => new Date().getHours());
   const [cajaAbierta, setCajaAbierta] = useState<boolean | null>(null);
   const [asignarModal, setAsignarModal] = useState(false);
-  const [asignarMesas, setAsignarMesas] = useState<{ _id: string; nombre: string; activa: boolean }[]>([]);
-  const [asignarForm, setAsignarForm] = useState({ mesa: "", comensales: "2", nombre: "" });
+  const [mesasPlano, setMesasPlano]     = useState<MesaPlanoEmp[]>([]);
+  const [elementsPlano, setElementsPlano] = useState<ElPlanoEmp[]>([]);
+  const [ocupadas, setOcupadas]         = useState<Set<string>>(new Set());
+  const [asignarForm, setAsignarForm]   = useState({ mesa: "", comensales: "2", nombre: "" });
   const [asignarSaving, setAsignarSaving] = useState(false);
 
   useEffect(() => {
@@ -774,9 +779,18 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
   }, []);
 
   async function abrirAsignar() {
-    const r = await fetch("/api/admin/mesas?all=true", { credentials: "include" });
-    const data = await r.json().catch(() => []);
-    setAsignarMesas(Array.isArray(data) ? data.filter((m: any) => m.activa) : []);
+    const [mRes, elRes, pRes] = await Promise.all([
+      fetch("/api/admin/mesas?all=true", { credentials: "include" }),
+      fetch("/api/superadmin/salon", { credentials: "include" }),
+      fetch("/api/pedidos?activos=true&fuente=empleado", { credentials: "include" }),
+    ]);
+    const [mData, elData, pData] = await Promise.all([mRes.json(), elRes.json(), pRes.json()]);
+    setMesasPlano(Array.isArray(mData) ? mData : []);
+    setElementsPlano(Array.isArray(elData) ? elData : []);
+    const mesasOcupadas = new Set<string>(
+      Array.isArray(pData) ? pData.map((p: any) => p.mesa).filter(Boolean) : []
+    );
+    setOcupadas(mesasOcupadas);
     setAsignarForm({ mesa: "", comensales: "2", nombre: "" });
     setAsignarModal(true);
   }
@@ -860,48 +874,98 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
 
     </div>
 
-    {/* ── Modal asignar mesa ── */}
+    {/* ── Modal asignar mesa (plano) ── */}
     {asignarModal && (
-      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end justify-center p-4">
-        <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl max-h-[90vh] flex flex-col">
+      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end justify-center">
+        <div className="bg-white rounded-t-3xl w-full max-w-lg shadow-2xl max-h-[92vh] flex flex-col">
+
           <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
-            <h2 className="font-black text-gray-900 flex-1">Asignar mesa</h2>
+            <h2 className="font-black text-gray-900 flex-1">Seleccioná una mesa</h2>
             <button onClick={() => setAsignarModal(false)} className="p-1 text-gray-400"><X size={18} /></button>
           </div>
-          <div className="px-5 py-4 space-y-4 overflow-y-auto flex-1 min-h-0">
-            <div>
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2 block">Mesa</label>
-              <div className="grid grid-cols-4 gap-2">
-                {asignarMesas.map(m => (
-                  <button key={m._id}
-                    onClick={() => setAsignarForm(p => ({ ...p, mesa: m.nombre }))}
-                    className={`py-2 rounded-xl text-xs font-bold border transition ${asignarForm.mesa === m.nombre ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"}`}>
-                    {m.nombre}
-                  </button>
-                ))}
+
+          <div className="overflow-y-auto flex-1 min-h-0 px-4 py-4 space-y-4">
+
+            {/* Leyenda */}
+            <div className="flex items-center gap-4 text-xs text-gray-500 flex-wrap">
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-emerald-500 inline-block" />Libre</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-red-400 inline-block" />Ocupada</span>
+              {asignarForm.mesa && <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-gray-900 inline-block" />Seleccionada</span>}
+            </div>
+
+            {/* Plano */}
+            <div className="relative w-full rounded-xl overflow-hidden border border-gray-200" style={{ paddingBottom: "72%" }}>
+              <div className="absolute inset-0" style={{ backgroundColor: "#f9f5ef", backgroundImage: "linear-gradient(rgba(0,0,0,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.04) 1px,transparent 1px)", backgroundSize: "30px 30px" }}>
+                {elementsPlano.map(el => {
+                  const isLine = el.tipo === "linea_h" || el.tipo === "linea_v";
+                  const isBarra = el.tipo === "barra";
+                  if (isLine) return (
+                    <div key={el._id} style={{ position: "absolute", left: `${el.x}%`, top: `${el.y}%`, width: el.tipo === "linea_h" ? `${el.ancho}%` : "3px", height: el.tipo === "linea_v" ? `${el.alto}%` : "3px", backgroundColor: el.color, borderRadius: "2px", transform: el.tipo === "linea_h" ? "translateY(-50%)" : "translateX(-50%)" }} />
+                  );
+                  return (
+                    <div key={el._id} style={{ position: "absolute", left: `${el.x}%`, top: `${el.y}%`, transform: "translate(-50%,-50%)", width: `${el.ancho}%`, height: `${el.alto}%`, minWidth: "32px", minHeight: "14px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "6px", backgroundColor: isBarra ? "#b45309" : el.color, border: isBarra ? "2px solid #92400e" : `1px solid ${el.color === "#fef3c7" ? "#d97706" : "#9ca3af"}60` }}>
+                      {el.label && <span style={{ fontSize: "clamp(6px,0.9vw,9px)", fontWeight: 700, color: isBarra ? "#fef3c7" : "#374151", whiteSpace: "nowrap" }}>{el.label}</span>}
+                    </div>
+                  );
+                })}
+                {mesasPlano.filter(m => m.activa).map(m => {
+                  const ocupada = ocupadas.has(m.nombre);
+                  const seleccionada = asignarForm.mesa === m.nombre;
+                  const isRound = m.forma === "round" || m.forma === "oval";
+                  const isBanq  = m.tipo === "banqueta";
+                  const rot = m.rotacion ?? 0;
+                  const w = m.ancho || (m.forma === "oval" ? 11 : m.forma === "round" ? 5.5 : 7);
+                  const h = m.alto  || (m.forma === "oval" ? 5  : m.forma === "round" ? 5.5 : 5);
+                  const bg = isBanq
+                    ? "bg-amber-700 border-amber-800 text-amber-100"
+                    : ocupada
+                    ? "bg-red-400 border-red-500 text-white opacity-60"
+                    : seleccionada
+                    ? "bg-gray-900 border-gray-700 text-white ring-2 ring-offset-1 ring-gray-900"
+                    : "bg-emerald-500 border-emerald-600 text-white";
+                  return (
+                    <div key={m._id}
+                      onClick={() => { if (!ocupada && !isBanq) setAsignarForm(p => ({ ...p, mesa: m.nombre })); }}
+                      style={{ position: "absolute", left: `${m.x ?? 10}%`, top: `${m.y ?? 10}%`, transform: `translate(-50%,-50%) rotate(${rot}deg)`, width: `min(${w}%,${w * 7}px)`, height: `min(${h}%,${h * 7.5}px)`, minWidth: "22px", minHeight: "16px", borderRadius: isRound ? "50%" : "8px", cursor: ocupada || isBanq ? "not-allowed" : "pointer", userSelect: "none", zIndex: 2 }}
+                      className={`flex items-center justify-center border-2 transition-all ${bg} ${!ocupada && !isBanq ? "active:scale-95" : ""}`}>
+                      <div style={{ transform: `rotate(${-rot}deg)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <span style={{ fontSize: "clamp(5px,0.8vw,9px)", fontWeight: 900 }}>{m.nombre}</span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-            <div>
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2 block">Comensales</label>
-              <input type="number" min="1" value={asignarForm.comensales}
-                onChange={e => setAsignarForm(p => ({ ...p, comensales: e.target.value }))}
-                style={{ fontSize: "16px" }}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-base font-bold focus:outline-none focus:ring-2 focus:ring-red-400" />
-            </div>
-            <div>
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2 block">Nombre (opcional)</label>
-              <input type="text" value={asignarForm.nombre}
-                onChange={e => setAsignarForm(p => ({ ...p, nombre: e.target.value }))}
-                placeholder="Ej: García, cumpleaños..."
-                style={{ fontSize: "16px" }}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
-            </div>
+
+            {/* Campos */}
+            {asignarForm.mesa && (
+              <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
+                <p className="text-sm font-black text-gray-900">Mesa {asignarForm.mesa} seleccionada</p>
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1.5 block">Comensales</label>
+                  <input type="number" min="1" value={asignarForm.comensales}
+                    onChange={e => setAsignarForm(p => ({ ...p, comensales: e.target.value }))}
+                    style={{ fontSize: "16px" }}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-base font-bold bg-white focus:outline-none focus:ring-2 focus:ring-red-400" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1.5 block">Nombre (opcional)</label>
+                  <input type="text" value={asignarForm.nombre}
+                    onChange={e => setAsignarForm(p => ({ ...p, nombre: e.target.value }))}
+                    placeholder="Ej: García, cumpleaños..."
+                    style={{ fontSize: "16px" }}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-400" />
+                </div>
+              </div>
+            )}
+
           </div>
-          <div className="px-5 py-4 border-t border-gray-100 flex gap-2 shrink-0">
-            <button onClick={() => setAsignarModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
+
+          <div className="px-4 py-4 border-t border-gray-100 flex gap-2 shrink-0">
+            <button onClick={() => setAsignarModal(false)} className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
             <button onClick={confirmarAsignar} disabled={!asignarForm.mesa || asignarSaving}
-              className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
-              {asignarSaving ? "Asignando..." : "Asignar"}
+              className="flex-1 py-3 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
+              {asignarSaving ? "Asignando..." : "Asignar mesa"}
             </button>
           </div>
         </div>
