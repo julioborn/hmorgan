@@ -47,6 +47,7 @@ type CanjePendiente = {
     puntosGastados: number;
     createdAt: string;
 };
+type RewardItem = { _id: string; titulo: string; descripcion?: string; puntos: number; activo: boolean; tema?: string };
 
 // Categorías que se imprimen en la comandera de la barra; el resto va a cocina
 const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
@@ -83,6 +84,12 @@ export default function CajaPage() {
     const [tab, setTab]                   = useState<"pedidos" | "caja" | "reservas" | "mesas" | "eventos" | "canjes">("pedidos");
     const [canjesPendientes, setCanjesPendientes] = useState<CanjePendiente[]>([]);
     const [canjeProcessing, setCanjeProcessing]   = useState<string | null>(null);
+    // Gestión de rewards en tab Canjes
+    const [rewards, setRewards]                   = useState<RewardItem[]>([]);
+    const [rewardForm, setRewardForm]             = useState({ titulo: "", descripcion: "", puntos: 0, tema: "" });
+    const [rewardEditId, setRewardEditId]         = useState<string | null>(null);
+    const [rewardFormOpen, setRewardFormOpen]     = useState(false);
+    const [rewardSaving, setRewardSaving]         = useState(false);
     const [sesion, setSesion]             = useState<CajaSession | null | undefined>(undefined);
     const [pedidosActivos, setPedidosActivos]   = useState(true);
     const [reservasActivas, setReservasActivas] = useState(true);
@@ -180,6 +187,15 @@ export default function CajaPage() {
         } catch { /* silencioso */ }
     }, []);
 
+    const loadRewards = useCallback(async () => {
+        try {
+            const res = await fetch("/api/rewards?all=true", { credentials: "include" });
+            if (!res.ok) return;
+            const data = await res.json();
+            setRewards(Array.isArray(data) ? data : []);
+        } catch { /* silencioso */ }
+    }, []);
+
     const loadData = useCallback(async () => {
         try {
             const [cajaRes, pedRes] = await Promise.all([
@@ -204,9 +220,10 @@ export default function CajaPage() {
         loadData();
         loadEvento();
         loadCanjes();
+        loadRewards();
         const iv = setInterval(() => { loadData(); loadCanjes(); }, 5000);
         return () => clearInterval(iv);
-    }, [loadData, loadEvento, loadCanjes]);
+    }, [loadData, loadEvento, loadCanjes, loadRewards]);
 
     useEffect(() => {
         fetch("/api/config/pedidos").then(r => r.json()).then(d => setPedidosActivos(d.activo ?? true));
@@ -283,8 +300,8 @@ export default function CajaPage() {
 
     useEffect(() => {
         if (tab === "eventos") loadEvento();
-        if (tab === "canjes") loadCanjes();
-    }, [tab, loadEvento, loadCanjes]);
+        if (tab === "canjes") { loadCanjes(); loadRewards(); }
+    }, [tab, loadEvento, loadCanjes, loadRewards]);
 
     useEffect(() => {
         if (tab !== "mesas" || mesasLoaded) return;
@@ -715,6 +732,50 @@ export default function CajaPage() {
                 setNuevoEventoNombre("");
             }
         } finally { setCrearEventoSaving(false); }
+    }
+
+    function abrirRewardForm(r?: RewardItem) {
+        if (r) {
+            setRewardForm({ titulo: r.titulo, descripcion: r.descripcion ?? "", puntos: r.puntos, tema: r.tema ?? "" });
+            setRewardEditId(r._id);
+        } else {
+            setRewardForm({ titulo: "", descripcion: "", puntos: 0, tema: "" });
+            setRewardEditId(null);
+        }
+        setRewardFormOpen(true);
+    }
+
+    async function guardarReward() {
+        if (!rewardForm.titulo.trim() || rewardForm.puntos <= 0) return;
+        setRewardSaving(true);
+        try {
+            const url = rewardEditId ? `/api/rewards/${rewardEditId}` : "/api/rewards";
+            const method = rewardEditId ? "PUT" : "POST";
+            const res = await fetch(url, {
+                method, headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(rewardForm),
+            });
+            if (res.ok) { await loadRewards(); setRewardFormOpen(false); setRewardEditId(null); }
+            else { const d = await res.json(); await swalBase.fire({ title: "Error", text: d.error || "No se pudo guardar", icon: "error" }); }
+        } catch { await swalBase.fire({ title: "Error de conexión", icon: "error" }); }
+        finally { setRewardSaving(false); }
+    }
+
+    async function toggleReward(id: string) {
+        await fetch(`/api/rewards/${id}`, { method: "PATCH" });
+        await loadRewards();
+    }
+
+    async function eliminarReward(id: string) {
+        const r = await swalBase.fire({
+            title: "¿Eliminar canje?", text: "Esta acción no se puede deshacer.",
+            icon: "warning", showCancelButton: true,
+            confirmButtonText: "Eliminar", cancelButtonText: "Cancelar",
+        });
+        if (!r.isConfirmed) return;
+        const res = await fetch(`/api/rewards/${id}`, { method: "DELETE" });
+        if (res.ok) await loadRewards();
+        else await swalBase.fire({ title: "Error", text: "No se pudo eliminar", icon: "error" });
     }
 
     async function procesarCanje(canjeId: string, accion: "aceptar" | "rechazar") {
@@ -1533,56 +1594,142 @@ export default function CajaPage() {
                     )}
                     {/* ── TAB CANJES ── */}
                     {tab === "canjes" && (
-                        <div className="max-w-2xl mx-auto px-4 pt-4 pb-10">
-                            {canjesPendientes.length === 0 ? (
-                                <div className="text-center py-20">
-                                    <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
-                                        <Gift size={28} className="text-gray-300" />
+                        <div className="max-w-2xl mx-auto px-4 pt-4 pb-10 space-y-6">
+
+                            {/* ── Solicitudes pendientes ── */}
+                            <section>
+                                <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Solicitudes pendientes</p>
+                                {canjesPendientes.length === 0 ? (
+                                    <div className="bg-gray-50 rounded-2xl border border-gray-100 py-8 text-center">
+                                        <Gift size={24} className="mx-auto text-gray-300 mb-2" />
+                                        <p className="text-sm text-gray-400">Sin solicitudes pendientes</p>
                                     </div>
-                                    <p className="font-bold text-gray-400">Sin canjes pendientes</p>
-                                    <p className="text-sm text-gray-300 mt-1">Los clientes pueden solicitar canjes desde la app</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    {canjesPendientes.map(c => (
-                                        <div key={c._id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                                            <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
-                                                <div>
-                                                    <p className="font-black text-gray-900">{c.userId?.nombre} {c.userId?.apellido}</p>
-                                                    <p className="text-xs text-gray-400">{c.userId?.puntos ?? 0} pts disponibles</p>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {canjesPendientes.map(c => (
+                                            <div key={c._id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                                                <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
+                                                    <div>
+                                                        <p className="font-black text-gray-900">{c.userId?.nombre} {c.userId?.apellido}</p>
+                                                        <p className="text-xs text-gray-400">{c.userId?.puntos ?? 0} pts disponibles</p>
+                                                    </div>
+                                                    <p className="text-xs text-gray-400">
+                                                        {new Date(c.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                                                    </p>
                                                 </div>
-                                                <p className="text-xs text-gray-400">
-                                                    {new Date(c.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
-                                                </p>
-                                            </div>
-                                            <div className="px-4 py-3">
-                                                <div className="flex items-start gap-3">
-                                                    <Gift size={18} className="text-emerald-600 shrink-0 mt-0.5" />
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="font-bold text-gray-900">{c.rewardId?.titulo}</p>
-                                                        {c.rewardId?.descripcion && <p className="text-sm text-gray-500 mt-0.5">{c.rewardId.descripcion}</p>}
-                                                        <p className="text-sm font-black text-emerald-600 mt-1">{c.puntosGastados} pts</p>
+                                                <div className="px-4 py-3">
+                                                    <div className="flex items-start gap-3">
+                                                        <Gift size={18} className="text-emerald-600 shrink-0 mt-0.5" />
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="font-bold text-gray-900">{c.rewardId?.titulo}</p>
+                                                            {c.rewardId?.descripcion && <p className="text-sm text-gray-500 mt-0.5">{c.rewardId.descripcion}</p>}
+                                                            <p className="text-sm font-black text-emerald-600 mt-1">{c.puntosGastados} pts</p>
+                                                        </div>
                                                     </div>
                                                 </div>
+                                                <div className="px-4 pb-4 flex gap-2">
+                                                    <button onClick={() => procesarCanje(c._id, "rechazar")} disabled={canjeProcessing === c._id}
+                                                        className="flex-1 flex items-center justify-center gap-2 border border-red-200 text-red-600 hover:bg-red-50 font-bold py-2.5 rounded-xl text-sm transition active:scale-95 disabled:opacity-50">
+                                                        <XCircle size={15} /> Rechazar
+                                                    </button>
+                                                    <button onClick={() => procesarCanje(c._id, "aceptar")} disabled={canjeProcessing === c._id}
+                                                        className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-sm transition active:scale-95 disabled:opacity-50">
+                                                        <CheckCircle size={15} /> Aceptar
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <div className="px-4 pb-4 flex gap-2">
-                                                <button
-                                                    onClick={() => procesarCanje(c._id, "rechazar")}
-                                                    disabled={canjeProcessing === c._id}
-                                                    className="flex-1 flex items-center justify-center gap-2 border border-red-200 text-red-600 hover:bg-red-50 font-bold py-2.5 rounded-xl text-sm transition active:scale-95 disabled:opacity-50">
-                                                    <XCircle size={15} /> Rechazar
-                                                </button>
-                                                <button
-                                                    onClick={() => procesarCanje(c._id, "aceptar")}
-                                                    disabled={canjeProcessing === c._id}
-                                                    className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-sm transition active:scale-95 disabled:opacity-50">
-                                                    <CheckCircle size={15} /> Aceptar
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
+                                )}
+                            </section>
+
+                            {/* ── Gestión de canjes disponibles ── */}
+                            <section>
+                                <div className="flex items-center justify-between mb-3">
+                                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Canjes disponibles</p>
+                                    <button onClick={() => abrirRewardForm()}
+                                        className="flex items-center gap-1.5 bg-gray-900 hover:bg-gray-700 text-white font-bold px-3 py-2 rounded-xl text-xs transition active:scale-95">
+                                        <Plus size={13} /> Nuevo
+                                    </button>
                                 </div>
-                            )}
+
+                                {/* Formulario crear/editar */}
+                                {rewardFormOpen && (
+                                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-4 space-y-3">
+                                        <p className="font-bold text-gray-900 text-sm">{rewardEditId ? "Editar canje" : "Nuevo canje"}</p>
+                                        <input
+                                            value={rewardForm.titulo}
+                                            onChange={e => setRewardForm(p => ({ ...p, titulo: e.target.value }))}
+                                            placeholder="Título *"
+                                            className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-gray-400"
+                                        />
+                                        <input
+                                            type="number" min="1"
+                                            value={rewardForm.puntos || ""}
+                                            onChange={e => setRewardForm(p => ({ ...p, puntos: Number(e.target.value) }))}
+                                            placeholder="Puntos *"
+                                            className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-gray-400"
+                                        />
+                                        <textarea
+                                            value={rewardForm.descripcion}
+                                            onChange={e => setRewardForm(p => ({ ...p, descripcion: e.target.value }))}
+                                            placeholder="Descripción (opcional)"
+                                            rows={2}
+                                            className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-gray-400 resize-none"
+                                        />
+                                        <select value={rewardForm.tema} onChange={e => setRewardForm(p => ({ ...p, tema: e.target.value }))}
+                                            className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-gray-400 bg-white">
+                                            <option value="">Tarjeta estándar</option>
+                                            <option value="argentina">🇦🇷 Especial Argentina — Mundial 2026</option>
+                                        </select>
+                                        <div className="flex gap-2 pt-1">
+                                            <button onClick={() => { setRewardFormOpen(false); setRewardEditId(null); }}
+                                                className="flex-1 py-2.5 border border-gray-200 text-gray-600 font-bold rounded-xl text-sm transition hover:bg-gray-50">
+                                                Cancelar
+                                            </button>
+                                            <button onClick={guardarReward} disabled={rewardSaving || !rewardForm.titulo.trim() || rewardForm.puntos <= 0}
+                                                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-sm transition disabled:opacity-50">
+                                                {rewardSaving ? "Guardando..." : rewardEditId ? "Guardar" : "Crear"}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {rewards.length === 0 ? (
+                                    <div className="bg-gray-50 rounded-2xl border border-gray-100 py-8 text-center">
+                                        <p className="text-sm text-gray-400">No hay canjes creados</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {rewards.map(r => (
+                                            <div key={r._id} className={`bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-start justify-between gap-3 ${!r.activo ? "opacity-50" : ""}`}>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <p className="font-bold text-gray-900 text-sm">{r.titulo}</p>
+                                                        {r.tema === "argentina" && <span className="text-[10px] bg-blue-100 text-blue-700 font-bold px-1.5 py-0.5 rounded-full">🇦🇷 Mundial</span>}
+                                                    </div>
+                                                    {r.descripcion && <p className="text-xs text-gray-500 mt-0.5 truncate">{r.descripcion}</p>}
+                                                    <p className="text-xs font-black text-red-600 mt-1">{r.puntos} pts</p>
+                                                </div>
+                                                <div className="flex items-center gap-1.5 shrink-0">
+                                                    <button onClick={() => toggleReward(r._id)}
+                                                        className={`text-xs font-bold px-2 py-1 rounded-lg transition ${r.activo ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+                                                        {r.activo ? "Activo" : "Inactivo"}
+                                                    </button>
+                                                    <button onClick={() => abrirRewardForm(r)}
+                                                        className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition">
+                                                        <Pencil size={13} />
+                                                    </button>
+                                                    <button onClick={() => eliminarReward(r._id)}
+                                                        className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition">
+                                                        <Trash2 size={13} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </section>
                         </div>
                     )}
                 </>
