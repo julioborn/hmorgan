@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 
     await connectMongoDB();
 
-    const { pedidoId, metodoPago, montoPagado, notas } = await req.json();
+    const { pedidoId, metodoPago, montoPagado, descuento, pagos, notas } = await req.json();
     if (!pedidoId || !metodoPago) return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
 
     const pedido = await Pedido.findById(pedidoId)
@@ -33,10 +33,13 @@ export async function POST(req: NextRequest) {
     if (!pedido) return NextResponse.json({ error: "Pedido no encontrado" }, { status: 404 });
     if (pedido.estado === "cerrado") return NextResponse.json({ error: "Ya cerrado" }, { status: 400 });
 
+    const descuentoNum = Math.max(0, Number(descuento) || 0);
+    const totalConDescuento = Math.max(0, (pedido.total || 0) - descuentoNum);
+
     // Cerrar el pedido
     pedido.estado = "cerrado";
     pedido.metodoPago = metodoPago;
-    pedido.montoPagado = Number(montoPagado) || pedido.total || 0;
+    pedido.montoPagado = Number(montoPagado) || totalConDescuento || 0;
     await pedido.save();
 
     // Si el pedido pertenece a un evento, registrarlo también en Evento.ventas
@@ -69,17 +72,17 @@ export async function POST(req: NextRequest) {
             sesionId: sesion._id,
             tipo: "ingreso",
             concepto: `Cobro Mesa ${pedido.mesa || "—"} (Pedido #${pedido._id.toString().slice(-6)})`,
-            monto: pedido.total || 0,
+            monto: totalConDescuento || 0,
             metodoPago,
             pedidoId: pedido._id,
             userId: payload.sub,
         });
     }
 
-    // Acreditar puntos (una sola vez)
-    if (!pedido.puntosAcreditados && pedido.total > 0) {
+    // Acreditar puntos (una sola vez, sobre el total con descuento)
+    if (!pedido.puntosAcreditados && totalConDescuento > 0) {
         const ratio = await getPointsRatio();
-        const puntos = Math.floor(pedido.total * ratio);
+        const puntos = Math.floor(totalConDescuento * ratio);
         const comensalesIds: string[] = (pedido as any).comensalesIds ?? [];
 
         if (comensalesIds.length > 0 && puntos > 0) {

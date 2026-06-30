@@ -119,12 +119,20 @@ function buildComanda({ titulo, mesa, cliente, direccion, mozo, hora, items, not
     return Buffer.from(b);
 }
 
-function buildTicket({ mesa, fecha, hora, items, total, costoEnvio, metodoPago, montoPagado, vuelto }) {
+function buildTicket({ mesa, fecha, hora, items, total, costoEnvio, metodoPago, montoPagado, descuento, pagos, vuelto }) {
     const SEP      = "-".repeat(32);
     const b        = [];
     const add      = (...bytes) => b.push(...bytes);
     const txt      = (s) => b.push(...Buffer.from(norm(s), "ascii"));
     const metLabel = { efectivo: "Efectivo", tarjeta: "Tarjeta", transferencia: "Transf." };
+
+    const descuentoNum = Number(descuento) || 0;
+    const totalConDescuento = Math.max(0, total - descuentoNum);
+    // Soporte formato nuevo (pagos array) y viejo (metodoPago/montoPagado)
+    const pagosArr = Array.isArray(pagos) && pagos.length > 0
+        ? pagos
+        : [{ metodo: metodoPago || "efectivo", monto: Number(montoPagado) || total }];
+    const vueltoNum = Number(vuelto) || 0;
 
     add(ESC, 0x40);
     add(ESC, 0x61, 0x01);
@@ -151,9 +159,18 @@ function buildTicket({ mesa, fecha, hora, items, total, costoEnvio, metodoPago, 
     add(ESC, 0x45, 0x00);
     add(ESC, 0x21, 0x00);
 
-    txt(padLine(metLabel[metodoPago] || metodoPago, $$(montoPagado))); add(LF);
-    if (vuelto > 0) {
-        txt(padLine("Vuelto", $$(vuelto))); add(LF);
+    if (descuentoNum > 0) {
+        txt(padLine("Descuento", "- " + $$(descuentoNum))); add(LF);
+        add(ESC, 0x21, 0x10);
+        txt(padLine("A COBRAR", $$(totalConDescuento))); add(LF);
+        add(ESC, 0x21, 0x00);
+    }
+
+    for (const pago of pagosArr) {
+        txt(padLine(metLabel[pago.metodo] || norm(pago.metodo), $$(pago.monto))); add(LF);
+    }
+    if (vueltoNum > 0) {
+        txt(padLine("Vuelto", $$(vueltoNum))); add(LF);
     }
 
     txt(SEP); add(LF);
@@ -213,9 +230,9 @@ app.post("/imprimir/comanda", (req, res) => {
 });
 
 app.post("/imprimir/ticket", (req, res) => {
-    const { mesa, fecha, hora, items, total, costoEnvio, metodoPago, montoPagado, vuelto } = req.body;
+    const { mesa, fecha, hora, items, total, costoEnvio, metodoPago, montoPagado, descuento, pagos, vuelto } = req.body;
     try {
-        imprimir(buildTicket({ mesa, fecha, hora, items, total, costoEnvio: costoEnvio || 0, metodoPago, montoPagado, vuelto: vuelto || 0 }), IMPRESORA_BARRA, res, "Ticket");
+        imprimir(buildTicket({ mesa, fecha, hora, items, total, costoEnvio: costoEnvio || 0, metodoPago, montoPagado, descuento: descuento || 0, pagos, vuelto: vuelto || 0 }), IMPRESORA_BARRA, res, "Ticket");
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
