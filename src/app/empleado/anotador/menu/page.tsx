@@ -16,7 +16,7 @@ import { useCategoryConfigs } from "@/hooks/useCategoryConfigs";
 import { swalBase } from "@/lib/swalConfig";
 
 type MenuItem = { _id: string; nombre: string; descripcion?: string; precio: number; categoria: string; imagen?: string; activo: boolean; order?: number };
-type CartItem  = { menuItemId: string; nombre: string; precio: number; cantidad: number };
+type CartItem  = { menuItemId: string; nombre: string; precio: number; cantidad: number; nota?: string };
 type ActiveOrder = {
     _id: string;
     items: { menuItemId: { _id: string; nombre: string; precio: number }; cantidad: number }[];
@@ -126,7 +126,6 @@ function AnotadorMenuContent() {
     // Campos del panel
     const [mesa, setMesa]               = useState("");
     const [comensales, setComensales]   = useState(2);
-    const [nota, setNota]               = useState("");
     const [clienteNombre, setClienteNombre] = useState("");
     const [clienteSearch, setClienteSearch] = useState("");
     const [clienteResults, setClienteResults] = useState<{_id:string;nombre:string;apellido:string;username:string}[]>([]);
@@ -186,7 +185,6 @@ function AnotadorMenuContent() {
                 if (d.mesa) setMesa(d.mesa);
                 if (d.comensales) setComensales(d.comensales);
                 if (d.nombreComanda) setClienteNombre(d.nombreComanda);
-                if (d.notaEmpleado) setNota(d.notaEmpleado);
             })
             .catch(() => {})
             .finally(() => setLoadingComanda(false));
@@ -199,12 +197,11 @@ function AnotadorMenuContent() {
         try {
             const saved = sessionStorage.getItem(CART_KEY);
             if (!saved) return;
-            const { cart: sc, mesa: sm, comensales: scm, clienteNombre: sn, nota: sno, comensalesSeleccionados: scs } = JSON.parse(saved);
+            const { cart: sc, mesa: sm, comensales: scm, clienteNombre: sn, comensalesSeleccionados: scs } = JSON.parse(saved);
             if (Array.isArray(sc) && sc.length > 0) setCart(sc);
             if (sm && !comandaId) setMesa(sm);
             if (scm && !comandaId) setComensales(scm);
             if (sn) setClienteNombre(sn);
-            if (sno) setNota(sno);
             if (Array.isArray(scs) && scs.length > 0) setComensalesSeleccionados(scs);
         } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -212,11 +209,11 @@ function AnotadorMenuContent() {
     // Guardar cuando cambia el cart
     useEffect(() => {
         if (cart.length > 0) {
-            sessionStorage.setItem(CART_KEY, JSON.stringify({ cart, mesa, comensales, clienteNombre, nota, comensalesSeleccionados }));
+            sessionStorage.setItem(CART_KEY, JSON.stringify({ cart, mesa, comensales, clienteNombre, comensalesSeleccionados }));
         } else {
             sessionStorage.removeItem(CART_KEY);
         }
-    }, [cart, mesa, comensales, clienteNombre, nota, comensalesSeleccionados, CART_KEY]);
+    }, [cart, mesa, comensales, clienteNombre, comensalesSeleccionados, CART_KEY]);
 
     // Reset zoom al abrir el picker
     useEffect(() => {
@@ -405,8 +402,7 @@ function AnotadorMenuContent() {
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
                     body: JSON.stringify({
-                        items: cart.map(c => ({ menuItemId: c.menuItemId, cantidad: c.cantidad })),
-                        notaEmpleado: nota.trim() || undefined,
+                        items: cart.map(c => ({ menuItemId: c.menuItemId, cantidad: c.cantidad, nota: c.nota?.trim() || undefined })),
                     }),
                 });
             } else {
@@ -415,13 +411,12 @@ function AnotadorMenuContent() {
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
                     body: JSON.stringify({
-                        items: cart.map(c => ({ menuItemId: c.menuItemId, cantidad: c.cantidad })),
+                        items: cart.map(c => ({ menuItemId: c.menuItemId, cantidad: c.cantidad, nota: c.nota?.trim() || undefined })),
                         tipoEntrega: "retira",
                         fuente: "empleado",
                         mesa:          eventoActivo ? undefined : (mesa.trim() || undefined),
                         comensales:    eventoActivo ? undefined : (comensales || undefined),
                         nombreComanda: clienteNombre.trim() || undefined,
-                        notaEmpleado:  nota.trim() || undefined,
                         eventoId:      eventoActivo?._id || undefined,
                         comensalesIds: comensalesSeleccionados.length > 0 ? comensalesSeleccionados.map(c => c._id) : undefined,
                     }),
@@ -532,10 +527,6 @@ function AnotadorMenuContent() {
                     </div>
                 )}
 
-                {/* Nota */}
-                <input type="text" placeholder="Nota para el bar..." value={nota} onChange={e => setNota(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
-
                 {/* Items del carrito — ticket style */}
                 {cart.length > 0 && (
                     <div className="rounded-xl border border-gray-200 overflow-hidden">
@@ -544,18 +535,27 @@ function AnotadorMenuContent() {
                                 {comandaId ? "Agregar a comanda" : "Nuevo pedido"}
                             </p>
                         </div>
-                        <div className="bg-white px-3 py-2 space-y-0.5">
+                        <div className="bg-white px-3 py-2 space-y-1.5">
                             {cart.map(c => (
-                                <div key={c.menuItemId} className="flex items-center justify-between py-0.5">
-                                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                                        <div className="flex items-center gap-1 shrink-0">
-                                            <button onClick={() => removeFromCart(c.menuItemId)} className="w-5 h-5 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-xs transition">−</button>
-                                            <span className="text-sm font-bold text-gray-900 w-5 text-center">{c.cantidad}</span>
-                                            <button onClick={() => setCart(prev => prev.map(x => x.menuItemId === c.menuItemId ? { ...x, cantidad: x.cantidad + 1 } : x))} className="w-5 h-5 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-xs transition">+</button>
+                                <div key={c.menuItemId} className="space-y-1">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                                            <div className="flex items-center gap-1 shrink-0">
+                                                <button onClick={() => removeFromCart(c.menuItemId)} className="w-5 h-5 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-xs transition">−</button>
+                                                <span className="text-sm font-bold text-gray-900 w-5 text-center">{c.cantidad}</span>
+                                                <button onClick={() => setCart(prev => prev.map(x => x.menuItemId === c.menuItemId ? { ...x, cantidad: x.cantidad + 1 } : x))} className="w-5 h-5 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-xs transition">+</button>
+                                            </div>
+                                            <span className="text-sm text-gray-800 truncate">{c.nombre}</span>
                                         </div>
-                                        <span className="text-sm text-gray-800 truncate">{c.nombre}</span>
+                                        <span className="text-xs text-gray-500 shrink-0 ml-2">${formatPrice(c.precio * c.cantidad)}</span>
                                     </div>
-                                    <span className="text-xs text-gray-500 shrink-0 ml-2">${formatPrice(c.precio * c.cantidad)}</span>
+                                    <input
+                                        type="text"
+                                        placeholder="Nota (ej: jugoso, sin sal...)"
+                                        value={c.nota || ""}
+                                        onChange={e => setCart(prev => prev.map(x => x.menuItemId === c.menuItemId ? { ...x, nota: e.target.value } : x))}
+                                        className="w-full text-xs px-2 py-1 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-red-400 text-gray-700 placeholder:text-gray-300"
+                                    />
                                 </div>
                             ))}
                             <div className="flex justify-between items-center pt-1.5 border-t border-gray-200 mt-1">

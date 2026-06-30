@@ -78,7 +78,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     // Push directo al DocumentArray de Mongoose para garantizar impreso: false en MongoDB
     for (const newItem of items) {
-        (pedido.items as any[]).push({ menuItemId: newItem.menuItemId, cantidad: newItem.cantidad, impreso: false });
+        (pedido.items as any[]).push({ menuItemId: newItem.menuItemId, cantidad: newItem.cantidad, nota: newItem.nota || undefined, impreso: false });
     }
 
     pedido.total = await recalcularTotal(pedido.items as any[]);

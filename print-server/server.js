@@ -99,6 +99,11 @@ function buildComanda({ titulo, mesa, cliente, direccion, mozo, hora, items, not
     add(ESC, 0x21, 0x10);
     for (const item of items) {
         txt(item.cantidad + "x " + norm(item.nombre)); add(LF);
+        if (item.nota) {
+            add(ESC, 0x21, 0x00);
+            txt("   -> " + norm(item.nota)); add(LF);
+            add(ESC, 0x21, 0x10);
+        }
     }
     add(ESC, 0x21, 0x00);
 

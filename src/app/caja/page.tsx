@@ -20,7 +20,7 @@ type Pedido = {
     comensales?: number;
     fuente: string;
     numeroDia?: number;
-    items: { _id?: string; menuItemId: { _id?: string; nombre: string; precio: number; categoria?: string }; cantidad: number; impreso?: boolean }[];
+    items: { _id?: string; menuItemId: { _id?: string; nombre: string; precio: number; categoria?: string }; cantidad: number; nota?: string; impreso?: boolean }[];
     total: number;
     costoEnvio?: number;
     estado: string;
@@ -644,7 +644,7 @@ export default function CajaPage() {
                     body: JSON.stringify({
                         impresora: "Cocina",
                         mesa, cliente, mozo, direccion, hora, nota,
-                        items: comida.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem" })),
+                        items: comida.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined })),
                     }),
                 })
             );
@@ -655,7 +655,7 @@ export default function CajaPage() {
                     body: JSON.stringify({
                         impresora: "Barra",
                         mesa, cliente, mozo, direccion, hora,
-                        items: bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem" })),
+                        items: bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined })),
                     }),
                 })
             );
@@ -691,7 +691,7 @@ export default function CajaPage() {
                     body: JSON.stringify({
                         impresora: "Cocina", titulo: "COCINA",
                         mesa, cliente, mozo, direccion, hora, nota,
-                        items: comida.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem" })),
+                        items: comida.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined })),
                     }),
                 })
             );
@@ -702,7 +702,7 @@ export default function CajaPage() {
                     body: JSON.stringify({
                         impresora: "Barra", titulo: "BARRA",
                         mesa, cliente, mozo, direccion, hora,
-                        items: bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem" })),
+                        items: bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined })),
                     }),
                 })
             );
