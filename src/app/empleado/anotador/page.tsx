@@ -222,7 +222,7 @@ export default function AnotadorPage() {
 
             {/* Modal selector de evento */}
             {eventoPickerModal && (
-                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center px-4" style={{ paddingTop: "calc(env(safe-area-inset-top) + 70px)" }}>
                     <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl">
                         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
                             <h2 className="font-black text-gray-900 flex-1">¿Para quién es la comanda?</h2>
