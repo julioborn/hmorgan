@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Gift, Clock, CheckCircle, XCircle } from "lucide-react";
 import Loader from "@/components/Loader";
 
@@ -128,9 +129,9 @@ export default function CanjesClientePage() {
                 </section>
             )}
 
-            {/* Voucher modal */}
-            {voucherOpen && (
-                <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-6"
+            {/* Voucher modal — portal para evitar will-change:transform */}
+            {voucherOpen && createPortal(
+                <div className="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center p-6"
                     onClick={() => setVoucherOpen(null)}>
                     <div className="w-full max-w-sm bg-white text-black rounded-3xl overflow-hidden shadow-2xl"
                         onClick={e => e.stopPropagation()}>
@@ -159,7 +160,8 @@ export default function CanjesClientePage() {
                             Cerrar
                         </button>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

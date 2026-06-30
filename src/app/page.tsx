@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -387,9 +388,9 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
         </div>
       </section>
 
-      {/* Modal de canje desde carrusel */}
-      {canjeModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center p-4"
+      {/* Modal de canje desde carrusel — renderizado en document.body para evitar will-change:transform */}
+      {canjeModal && createPortal(
+        <div className="fixed inset-0 z-[200] bg-black/60 flex items-end justify-center p-4"
           onClick={() => setCanjeModal(null)}>
           <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden"
             onClick={e => e.stopPropagation()}>
@@ -430,7 +431,8 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
