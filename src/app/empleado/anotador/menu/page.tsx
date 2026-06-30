@@ -11,6 +11,7 @@ import {
     Send, ChevronLeft, CheckCircle, Printer, X, MapPin, ChevronDown, Star, QrCode,
 } from "lucide-react";
 import Loader from "@/components/Loader";
+import MenuImg from "@/components/MenuImg";
 import { useCategoryConfigs } from "@/hooks/useCategoryConfigs";
 import { swalBase } from "@/lib/swalConfig";
 
@@ -612,7 +613,7 @@ function AnotadorMenuContent() {
         return (
             <motion.button onClick={onClick} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.04 }}
                 className="relative w-full h-36 rounded-2xl overflow-hidden shadow-md active:scale-[0.97] transition-transform">
-                {bg ? <img src={bg} alt={cat} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: pos }} /> : <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-600" />}
+                {bg ? <MenuImg src={bg} alt={cat} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: pos }} /> : <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-600" />}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/10" />
                 <div className="absolute bottom-3 left-0 right-0 px-2 text-center">
                     <p className="text-white font-black text-sm tracking-tight leading-tight">{cat}</p>

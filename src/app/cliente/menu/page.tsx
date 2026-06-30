@@ -8,6 +8,7 @@ import {
     CakeSlice, Hamburger, Milk, ChevronLeft,
 } from "lucide-react";
 import Loader from "@/components/Loader";
+import MenuImg from "@/components/MenuImg";
 import { useCategoryConfigs } from "@/hooks/useCategoryConfigs";
 
 type MenuItem = {
@@ -120,7 +121,7 @@ export default function ClienteMenuPage() {
                 className="relative w-full h-36 rounded-2xl overflow-hidden shadow-md active:scale-[0.97] transition-transform"
             >
                 {bg ? (
-                    <img src={bg} alt={cat} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: imagePosition }} />
+                    <MenuImg src={bg} alt={cat} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: imagePosition }} />
                 ) : (
                     <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-600" />
                 )}
@@ -218,10 +219,10 @@ export default function ClienteMenuPage() {
                             >
                                 {i.imagen && (
                                     <div className="relative h-44 w-full overflow-hidden">
-                                        <img
+                                        <MenuImg
                                             src={i.imagen}
                                             alt={i.nombre}
-                                            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                         />
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
                                     </div>
