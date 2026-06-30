@@ -839,13 +839,18 @@ export default function CajaPage() {
     }
 
     async function cargarPlanoParaEvento() {
-        const [mRes, elRes] = await Promise.all([
+        const [mRes, elRes, resRes] = await Promise.all([
             fetch("/api/admin/mesas?all=true", { credentials: "include" }),
             fetch("/api/superadmin/salon", { credentials: "include" }),
+            fetch("/api/reservas", { credentials: "include" }),
         ]);
-        const [mData, elData] = await Promise.all([mRes.json().catch(() => []), elRes.json().catch(() => [])]);
+        const [mData, elData, resData] = await Promise.all([mRes.json().catch(() => []), elRes.json().catch(() => []), resRes.json().catch(() => [])]);
         setEventoModalMesasPlano(Array.isArray(mData) ? mData.filter((m: any) => m.activa) : []);
         setEventoModalElementos(Array.isArray(elData) ? elData : []);
+        if (Array.isArray(resData)) {
+            const hoy = hoyArgentina();
+            setReservasHoy(resData.filter((r: any) => r.mesaId && r.estado !== "cancelada" && String(r.fecha).slice(0, 10) === hoy));
+        }
     }
 
     async function abrirCrearEvento() {
@@ -1031,7 +1036,7 @@ export default function CajaPage() {
         } finally { setVentaSaving(false); }
     }
 
-    function renderPlanoSelector(seleccionadas: string[], toggle: (nombre: string) => void) {
+    function renderPlanoSelector(seleccionadas: string[], toggle: (nombre: string) => void, eventoActualId?: string | null) {
         return (
             <div className="relative w-full rounded-xl overflow-hidden border border-gray-200" style={{ paddingBottom: "72%" }}>
                 <div className="absolute inset-0" style={{ backgroundColor: "#f9f5ef", backgroundImage: "linear-gradient(rgba(0,0,0,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.04) 1px,transparent 1px)", backgroundSize: "30px 30px" }}>
@@ -1048,22 +1053,29 @@ export default function CajaPage() {
                         );
                     })}
                     {eventoModalMesasPlano.map(m => {
-                        const sel = seleccionadas.includes(m.nombre);
+                        const sel       = seleccionadas.includes(m.nombre);
+                        const ocupada   = !!pedidos.find(p => p.mesa === m.nombre && !["cerrado","cancelado"].includes(p.estado));
+                        const reservada = !ocupada && !!reservasHoy.find(r => r.mesaId?._id === m._id);
+                        const otroEvento = !ocupada && !reservada && eventosActivos.some(e =>
+                            e._id !== eventoActualId && (e.mesas ?? []).includes(m.nombre)
+                        );
+                        const isBanq  = m.tipo === "banqueta";
+                        const bloqueada = isBanq || ocupada || reservada || otroEvento;
                         const isRound = m.forma === "round" || m.forma === "oval";
-                        const isBanq = m.tipo === "banqueta";
                         const rot = m.rotacion ?? 0;
                         const w = m.ancho || (m.forma === "oval" ? 11 : m.forma === "round" ? 5.5 : 7);
                         const h = m.alto || (m.forma === "oval" ? 5 : m.forma === "round" ? 5.5 : 5);
-                        const bg = isBanq
-                            ? "bg-amber-700 border-amber-800 text-amber-100"
-                            : sel
-                            ? "bg-blue-500 border-blue-600 text-white ring-2 ring-blue-300"
-                            : "bg-emerald-500 border-emerald-600 text-white";
+                        const bg = isBanq      ? "bg-amber-700 border-amber-800 text-amber-100"
+                            : ocupada          ? "bg-red-500 border-red-600 text-white opacity-80"
+                            : reservada        ? "bg-yellow-400 border-yellow-500 text-gray-900 opacity-80"
+                            : otroEvento       ? "bg-purple-500 border-purple-600 text-white opacity-80"
+                            : sel              ? "bg-blue-500 border-blue-600 text-white ring-2 ring-blue-300"
+                            :                   "bg-emerald-500 border-emerald-600 text-white";
                         return (
                             <div key={m._id}
-                                onClick={() => !isBanq && toggle(m.nombre)}
-                                style={{ position: "absolute", left: `${m.x ?? 10}%`, top: `${m.y ?? 10}%`, transform: `translate(-50%,-50%) rotate(${rot}deg)`, width: `min(${w}%,${w * 7}px)`, height: `min(${h}%,${h * 7.5}px)`, minWidth: "22px", minHeight: "16px", borderRadius: isRound ? "50%" : "8px", cursor: isBanq ? "default" : "pointer", userSelect: "none", zIndex: 2 }}
-                                className={`flex items-center justify-center border-2 ${bg} transition-all active:scale-95`}>
+                                onClick={() => !bloqueada && toggle(m.nombre)}
+                                style={{ position: "absolute", left: `${m.x ?? 10}%`, top: `${m.y ?? 10}%`, transform: `translate(-50%,-50%) rotate(${rot}deg)`, width: `min(${w}%,${w * 7}px)`, height: `min(${h}%,${h * 7.5}px)`, minWidth: "22px", minHeight: "16px", borderRadius: isRound ? "50%" : "8px", cursor: bloqueada ? "not-allowed" : "pointer", userSelect: "none", zIndex: 2 }}
+                                className={`flex items-center justify-center border-2 ${bg} ${!bloqueada ? "transition-all active:scale-95" : ""}`}>
                                 <div style={{ transform: `rotate(${-rot}deg)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
                                     <span style={{ fontSize: "clamp(5px,0.8vw,9px)", fontWeight: 900 }}>{m.nombre}</span>
                                 </div>
@@ -2210,8 +2222,16 @@ export default function CajaPage() {
                                     )}
                                 </div>
                                 {renderPlanoSelector(nuevoEventoMesas, (nombre) =>
-                                    setNuevoEventoMesas(prev => prev.includes(nombre) ? prev.filter(x => x !== nombre) : [...prev, nombre])
+                                    setNuevoEventoMesas(prev => prev.includes(nombre) ? prev.filter(x => x !== nombre) : [...prev, nombre]),
+                                    null
                                 )}
+                                <div className="flex flex-wrap gap-3 mt-2 text-[10px] text-gray-500">
+                                    <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-blue-500 inline-block" />Seleccionada</span>
+                                    <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 inline-block" />Libre</span>
+                                    <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-red-500 inline-block" />Ocupada</span>
+                                    <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-yellow-400 inline-block" />Reservada</span>
+                                    <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-purple-500 inline-block" />Otro evento</span>
+                                </div>
                             </div>
                         </div>
                         <div className="px-5 py-4 border-t border-gray-100 flex gap-2 shrink-0">
@@ -2239,8 +2259,16 @@ export default function CajaPage() {
                         <div className="px-5 py-4 overflow-y-auto flex-1 min-h-0">
                             <p className="text-xs text-gray-400 mb-3">Tocá las mesas para seleccionarlas. Aparecerán en azul en el plano principal.</p>
                             {renderPlanoSelector(editMesasList, (nombre) =>
-                                setEditMesasList(prev => prev.includes(nombre) ? prev.filter(x => x !== nombre) : [...prev, nombre])
+                                setEditMesasList(prev => prev.includes(nombre) ? prev.filter(x => x !== nombre) : [...prev, nombre]),
+                                editMesasEventoId
                             )}
+                            <div className="flex flex-wrap gap-3 mt-2 text-[10px] text-gray-500">
+                                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-blue-500 inline-block" />Seleccionada</span>
+                                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 inline-block" />Libre</span>
+                                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-red-500 inline-block" />Ocupada</span>
+                                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-yellow-400 inline-block" />Reservada</span>
+                                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-purple-500 inline-block" />Otro evento</span>
+                            </div>
                         </div>
                         <div className="px-5 py-4 border-t border-gray-100 flex gap-2 shrink-0">
                             <button onClick={() => setEditMesasModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
