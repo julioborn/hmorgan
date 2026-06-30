@@ -76,15 +76,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const { items, notaEmpleado } = body;
     if (!items?.length) return NextResponse.json({ error: "Sin ítems" }, { status: 400 });
 
-    // Cada agregado queda como línea propia (no se fusiona con lo existente) y marcado
-    // como "no impreso" para que la caja lo detecte y lo imprima individual en BARRA/COCINA.
-    const updatedItems = [...pedido.items] as any[];
+    // Push directo al DocumentArray de Mongoose para garantizar impreso: false en MongoDB
     for (const newItem of items) {
-        updatedItems.push({ menuItemId: newItem.menuItemId, cantidad: newItem.cantidad, impreso: false });
+        (pedido.items as any[]).push({ menuItemId: newItem.menuItemId, cantidad: newItem.cantidad, impreso: false });
     }
 
-    pedido.items = updatedItems;
-    pedido.total = await recalcularTotal(updatedItems);
+    pedido.total = await recalcularTotal(pedido.items as any[]);
     if (notaEmpleado) pedido.notaEmpleado = notaEmpleado;
     await pedido.save();
 

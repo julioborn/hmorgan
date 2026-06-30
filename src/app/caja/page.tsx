@@ -654,7 +654,7 @@ export default function CajaPage() {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         impresora: "Barra",
-                        mesa, cliente, mozo, direccion, hora, nota,
+                        mesa, cliente, mozo, direccion, hora,
                         items: bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem" })),
                     }),
                 })
@@ -701,7 +701,7 @@ export default function CajaPage() {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         impresora: "Barra", titulo: "BARRA",
-                        mesa, cliente, mozo, direccion, hora, nota,
+                        mesa, cliente, mozo, direccion, hora,
                         items: bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem" })),
                     }),
                 })
