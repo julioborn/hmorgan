@@ -24,6 +24,7 @@ const EventoSchema = new Schema(
         nombre:    { type: String, required: true },
         estado:    { type: String, enum: ["activo", "cerrado"], default: "activo" },
         ventas:    [VentaSchema],
+        mesas:     [{ type: String }],
         creadoPor: { type: Schema.Types.ObjectId, ref: "User" },
     },
     { timestamps: true }

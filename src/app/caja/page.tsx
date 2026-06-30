@@ -32,13 +32,14 @@ type Pedido = {
     notaCliente?: string;
     userId?: { _id: string; nombre: string; apellido: string; telefono?: string; role?: string };
     comensalesIds?: { _id: string; nombre: string; apellido: string; username?: string }[];
+    eventoId?: string;
 };
 type MenuItemLite = { _id: string; nombre: string; precio: number; categoria: string };
 type CajaSession = { _id: string; estado: "abierta" | "cerrada"; montoInicial: number; fechaApertura: string };
 type MesaPlano = { _id: string; nombre: string; activa: boolean; x: number; y: number; forma: string; ancho?: number; alto?: number; rotacion?: number; tipo?: string };
 type SalonElPlano = { _id: string; tipo: string; label: string; x: number; y: number; ancho: number; alto: number; color: string };
 type VentaEvento = { _id: string; items: { nombre: string; precio: number; categoria: string; cantidad: number }[]; total: number; metodoPago: string; createdAt: string };
-type Evento = { _id: string; nombre: string; estado: "activo" | "cerrado"; ventas: VentaEvento[]; createdAt: string };
+type Evento = { _id: string; nombre: string; estado: "activo" | "cerrado"; ventas: VentaEvento[]; mesas: string[]; createdAt: string };
 type CartItem = { menuItemId: string; nombre: string; precio: number; categoria: string; cantidad: number };
 type Comensal = { _id: string; nombre: string; apellido: string; username: string };
 type CanjePendiente = {
@@ -129,6 +130,10 @@ export default function CajaPage() {
     const [crearEventoModal, setCrearEventoModal] = useState(false);
     const [nuevoEventoNombre, setNuevoEventoNombre] = useState("");
     const [crearEventoSaving, setCrearEventoSaving] = useState(false);
+    const [editMesasModal, setEditMesasModal]     = useState(false);
+    const [editMesasList, setEditMesasList]       = useState<string[]>([]);
+    const [editMesasOpciones, setEditMesasOpciones] = useState<string[]>([]);
+    const [editMesasSaving, setEditMesasSaving]   = useState(false);
     const [ventaModal, setVentaModal]             = useState(false);
     const [ventaCart, setVentaCart]               = useState<CartItem[]>([]);
     const [ventaMetodo, setVentaMetodo]           = useState<typeof METODOS[number]>("efectivo");
@@ -817,6 +822,30 @@ export default function CajaPage() {
         finally { setCanjeProcessing(null); }
     }
 
+    async function abrirEditMesas() {
+        if (!eventoActivo) return;
+        const res = await fetch("/api/admin/mesas?all=true", { credentials: "include" });
+        const data = await res.json().catch(() => []);
+        setEditMesasOpciones(Array.isArray(data) ? data.filter((m: any) => m.activa).map((m: any) => m.nombre) : []);
+        setEditMesasList(eventoActivo.mesas ?? []);
+        setEditMesasModal(true);
+    }
+
+    async function guardarMesasEvento() {
+        if (!eventoActivo) return;
+        setEditMesasSaving(true);
+        try {
+            const res = await fetch(`/api/eventos/${eventoActivo._id}`, {
+                method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
+                body: JSON.stringify({ accion: "updateMesas", mesas: editMesasList }),
+            });
+            if (res.ok) {
+                setEventoActivo(prev => prev ? { ...prev, mesas: editMesasList } : prev);
+                setEditMesasModal(false);
+            }
+        } finally { setEditMesasSaving(false); }
+    }
+
     async function cerrarEvento() {
         if (!eventoActivo) return;
         const r = await swalBase.fire({
@@ -1467,6 +1496,7 @@ export default function CajaPage() {
                                 <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-emerald-500 inline-block" />Libre</span>
                                 <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-red-400 inline-block" />Ocupada</span>
                                 <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-yellow-400 inline-block" />Reservada hoy</span>
+                                {eventoActivo && <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-blue-500 inline-block" />Evento: {eventoActivo.nombre}</span>}
                             </div>
                             <div className="relative w-full rounded-xl overflow-hidden border border-gray-200" style={{ paddingBottom: "72%" }}>
                                 <div className="absolute inset-0" style={{ backgroundColor: "#f9f5ef", backgroundImage: "linear-gradient(rgba(0,0,0,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.04) 1px,transparent 1px)", backgroundSize: "30px 30px" }}>
@@ -1487,6 +1517,7 @@ export default function CajaPage() {
                                         const ocupada = !!pedido;
                                         const reserva = !ocupada ? reservasHoy.find(r => r.mesaId?._id === m._id) : undefined;
                                         const reservada = !!reserva;
+                                        const esEvento = !ocupada && !reservada && !!eventoActivo && (eventoActivo.mesas ?? []).includes(m.nombre);
                                         const isRound = m.forma === "round" || m.forma === "oval";
                                         const isBanq = m.tipo === "banqueta";
                                         const rot = m.rotacion ?? 0;
@@ -1496,6 +1527,7 @@ export default function CajaPage() {
                                             ? "bg-amber-700 border-amber-800 text-amber-100"
                                             : ocupada ? "bg-red-500 border-red-600 text-white"
                                             : reservada ? "bg-yellow-400 border-yellow-500 text-gray-900"
+                                            : esEvento ? "bg-blue-500 border-blue-600 text-white"
                                             : "bg-emerald-500 border-emerald-600 text-white";
                                         const clickeable = ocupada || reservada;
                                         return (
@@ -1546,41 +1578,86 @@ export default function CajaPage() {
                             ) : (
                                 <>
                                     {/* Cabecera del evento */}
-                                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-4">
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div>
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block" />
-                                                    <span className="text-xs font-bold text-emerald-600 uppercase tracking-wide">Evento activo</span>
+                                    {(() => {
+                                        const pedidosEvento = pedidos.filter(p => p.eventoId && p.eventoId === eventoActivo._id);
+                                        const totalPedidosEvento = pedidosEvento.reduce((acc, p) => acc + (p.total || 0), 0);
+                                        const totalVentas = eventoActivo.ventas.reduce((acc, v) => acc + v.total, 0);
+                                        return (
+                                        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-4 space-y-3">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div>
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block" />
+                                                        <span className="text-xs font-bold text-emerald-600 uppercase tracking-wide">Evento activo</span>
+                                                    </div>
+                                                    <h2 className="font-black text-gray-900 text-xl">{eventoActivo.nombre}</h2>
+                                                    <p className="text-xs text-gray-400 mt-0.5">
+                                                        Total: {formatMoney(totalVentas + totalPedidosEvento)}
+                                                        {pedidosEvento.length > 0 && ` · ${pedidosEvento.length} comanda${pedidosEvento.length !== 1 ? "s" : ""} + ${eventoActivo.ventas.length} venta${eventoActivo.ventas.length !== 1 ? "s" : ""} directas`}
+                                                    </p>
                                                 </div>
-                                                <h2 className="font-black text-gray-900 text-xl">{eventoActivo.nombre}</h2>
-                                                <p className="text-xs text-gray-400 mt-0.5">
-                                                    {eventoActivo.ventas.length} venta{eventoActivo.ventas.length !== 1 ? "s" : ""} · Total: {formatMoney(eventoActivo.ventas.reduce((acc, v) => acc + v.total, 0))}
-                                                </p>
+                                                <button onClick={cerrarEvento}
+                                                    className="text-xs font-bold text-red-600 hover:bg-red-50 border border-red-200 px-3 py-2 rounded-xl transition shrink-0">
+                                                    Cerrar evento
+                                                </button>
                                             </div>
-                                            <button onClick={cerrarEvento}
-                                                className="text-xs font-bold text-red-600 hover:bg-red-50 border border-red-200 px-3 py-2 rounded-xl transition shrink-0">
-                                                Cerrar evento
-                                            </button>
-                                        </div>
-                                        {eventoActivo.ventas.length > 0 && (
-                                            <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-3 gap-2">
-                                                {METODOS.map(met => {
-                                                    const tot = eventoActivo.ventas.filter(v => v.metodoPago === met).reduce((acc, v) => acc + v.total, 0);
-                                                    const Icon = METODO_ICON[met];
-                                                    return tot > 0 ? (
-                                                        <div key={met} className="bg-gray-50 rounded-xl px-3 py-2 text-center">
-                                                            <div className="flex items-center justify-center gap-1 text-gray-500 mb-1">
-                                                                <Icon size={11} />
-                                                                <span className="text-[10px] font-semibold uppercase">{METODO_LABEL[met]}</span>
+
+                                            {/* Mesas del evento */}
+                                            <div className="pt-2 border-t border-gray-100">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Mesas del evento</p>
+                                                    <button onClick={abrirEditMesas} className="text-[10px] font-bold text-blue-600 hover:underline">Editar</button>
+                                                </div>
+                                                {(eventoActivo.mesas ?? []).length === 0 ? (
+                                                    <button onClick={abrirEditMesas} className="text-xs text-gray-400 hover:text-blue-600 transition">+ Asignar mesas al evento</button>
+                                                ) : (
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {eventoActivo.mesas.map(m => (
+                                                            <span key={m} className="bg-blue-100 text-blue-700 text-xs font-bold px-2.5 py-1 rounded-full">{m}</span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Totales por método */}
+                                            {(eventoActivo.ventas.length > 0 || pedidosEvento.length > 0) && (
+                                                <div className="pt-2 border-t border-gray-100 grid grid-cols-3 gap-2">
+                                                    {METODOS.map(met => {
+                                                        const tot = eventoActivo.ventas.filter(v => v.metodoPago === met).reduce((acc, v) => acc + v.total, 0);
+                                                        const Icon = METODO_ICON[met];
+                                                        return tot > 0 ? (
+                                                            <div key={met} className="bg-gray-50 rounded-xl px-3 py-2 text-center">
+                                                                <div className="flex items-center justify-center gap-1 text-gray-500 mb-1">
+                                                                    <Icon size={11} />
+                                                                    <span className="text-[10px] font-semibold uppercase">{METODO_LABEL[met]}</span>
+                                                                </div>
+                                                                <p className="font-black text-gray-900 text-sm">{formatMoney(tot)}</p>
                                                             </div>
-                                                            <p className="font-black text-gray-900 text-sm">{formatMoney(tot)}</p>
-                                                        </div>
-                                                    ) : null;
-                                                })}
-                                            </div>
-                                        )}
-                                    </div>
+                                                        ) : null;
+                                                    })}
+                                                </div>
+                                            )}
+
+                                            {/* Comandas del evento */}
+                                            {pedidosEvento.length > 0 && (
+                                                <div className="pt-2 border-t border-gray-100">
+                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">Comandas vinculadas</p>
+                                                    <div className="space-y-1.5">
+                                                        {pedidosEvento.map(p => (
+                                                            <div key={p._id} className="flex items-center justify-between bg-blue-50 rounded-xl px-3 py-2 text-sm">
+                                                                <span className="font-bold text-blue-900">{p.mesa ? `Mesa ${p.mesa}` : p.nombreComanda || "Comanda"}</span>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-xs text-blue-600 capitalize">{p.estado}</span>
+                                                                    <span className="font-black text-blue-900">{formatMoney(p.total)}</span>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                        );
+                                    })()}
 
                                     {/* Botón registrar venta */}
                                     <button onClick={abrirVentaModal}
@@ -2032,6 +2109,40 @@ export default function CajaPage() {
                             <button onClick={crearEvento} disabled={!nuevoEventoNombre.trim() || crearEventoSaving}
                                 className="flex-1 py-2.5 bg-gray-900 hover:bg-gray-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
                                 {crearEventoSaving ? "Creando..." : "Crear evento"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal editar mesas del evento */}
+            {editMesasModal && (
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl max-h-[80vh] flex flex-col">
+                        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
+                            <h2 className="font-black text-gray-900 flex-1">Mesas del evento</h2>
+                            <button onClick={() => setEditMesasModal(false)} className="p-1 text-gray-400"><X size={18} /></button>
+                        </div>
+                        <div className="px-5 py-4 overflow-y-auto flex-1 min-h-0">
+                            <p className="text-xs text-gray-400 mb-3">Seleccioná las mesas que pertenecen a este evento. Aparecerán en azul en el plano.</p>
+                            <div className="grid grid-cols-4 gap-2">
+                                {editMesasOpciones.map(m => {
+                                    const sel = editMesasList.includes(m);
+                                    return (
+                                        <button key={m}
+                                            onClick={() => setEditMesasList(prev => sel ? prev.filter(x => x !== m) : [...prev, m])}
+                                            className={`py-2.5 rounded-xl text-xs font-bold border transition ${sel ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200 hover:border-blue-400"}`}>
+                                            {m}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                        <div className="px-5 py-4 border-t border-gray-100 flex gap-2 shrink-0">
+                            <button onClick={() => setEditMesasModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
+                            <button onClick={guardarMesasEvento} disabled={editMesasSaving}
+                                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
+                                {editMesasSaving ? "Guardando..." : "Guardar mesas"}
                             </button>
                         </div>
                     </div>

@@ -32,9 +32,9 @@ export async function POST(req: NextRequest) {
     }
 
     await connectMongoDB();
-    const { nombre } = await req.json();
+    const { nombre, mesas } = await req.json();
     if (!nombre?.trim()) return NextResponse.json({ error: "Nombre requerido" }, { status: 400 });
 
-    const evento = await Evento.create({ nombre: nombre.trim(), creadoPor: payload.sub });
+    const evento = await Evento.create({ nombre: nombre.trim(), mesas: Array.isArray(mesas) ? mesas : [], creadoPor: payload.sub });
     return NextResponse.json(evento, { status: 201 });
 }

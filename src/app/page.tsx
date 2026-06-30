@@ -765,6 +765,7 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
   const [ocupadas, setOcupadas]         = useState<Set<string>>(new Set());
   const [asignarForm, setAsignarForm]   = useState({ mesa: "", comensales: "2", nombre: "" });
   const [asignarSaving, setAsignarSaving] = useState(false);
+  const [eventoActivo, setEventoActivo] = useState<{ _id: string; nombre: string; mesas: string[] } | null>(null);
 
   // Zoom / pan del plano
   const planoRef  = useRef<HTMLDivElement>(null);
@@ -820,18 +821,20 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
   }, []);
 
   async function abrirAsignar() {
-    const [mRes, elRes, pRes] = await Promise.all([
+    const [mRes, elRes, pRes, evRes] = await Promise.all([
       fetch("/api/admin/mesas?all=true", { credentials: "include" }),
       fetch("/api/superadmin/salon", { credentials: "include" }),
       fetch("/api/pedidos?activos=true&fuente=empleado", { credentials: "include" }),
+      fetch("/api/eventos?activo=true", { credentials: "include" }),
     ]);
-    const [mData, elData, pData] = await Promise.all([mRes.json(), elRes.json(), pRes.json()]);
+    const [mData, elData, pData, evData] = await Promise.all([mRes.json(), elRes.json(), pRes.json(), evRes.json()]);
     setMesasPlano(Array.isArray(mData) ? mData : []);
     setElementsPlano(Array.isArray(elData) ? elData : []);
     const mesasOcupadas = new Set<string>(
       Array.isArray(pData) ? pData.map((p: any) => p.mesa).filter(Boolean) : []
     );
     setOcupadas(mesasOcupadas);
+    setEventoActivo(Array.isArray(evData) && evData.length > 0 ? evData[0] : null);
     setAsignarForm({ mesa: "", comensales: "2", nombre: "" });
     planoTr.current = { scale: 1, x: 0, y: 0 };
     setPlanoTransform({ scale: 1, x: 0, y: 0 });
@@ -841,6 +844,7 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
   async function confirmarAsignar() {
     if (!asignarForm.mesa) return;
     setAsignarSaving(true);
+    const esEventoMesa = eventoActivo && (eventoActivo.mesas ?? []).includes(asignarForm.mesa);
     try {
       await fetch("/api/pedidos", {
         method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
@@ -849,6 +853,7 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
           comensales: Number(asignarForm.comensales) || 0,
           nombreComanda: asignarForm.nombre.trim() || undefined,
           tipoEntrega: "retira",
+          eventoId: esEventoMesa ? eventoActivo!._id : undefined,
         }),
       });
       setAsignarModal(false);
@@ -933,8 +938,15 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
             <div className="flex items-center gap-4 text-xs text-gray-500 flex-wrap">
               <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-emerald-500 inline-block" />Libre</span>
               <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-red-400 inline-block" />Ocupada</span>
+              {eventoActivo && (eventoActivo.mesas ?? []).length > 0 && <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-blue-500 inline-block" />Evento</span>}
               {asignarForm.mesa && <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-gray-900 inline-block" />Seleccionada</span>}
             </div>
+            {eventoActivo && asignarForm.mesa && (eventoActivo.mesas ?? []).includes(asignarForm.mesa) && (
+              <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2">
+                <span className="text-lg">🎉</span>
+                <p className="text-xs font-bold text-blue-700">Mesa del evento <span className="font-black">{eventoActivo.nombre}</span> — se vinculará automáticamente</p>
+              </div>
+            )}
 
             {/* Plano con zoom/pan */}
             <div className="relative">
@@ -972,12 +984,15 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
                       const rot = m.rotacion ?? 0;
                       const w = m.ancho || (m.forma === "oval" ? 11 : m.forma === "round" ? 5.5 : 7);
                       const h = m.alto  || (m.forma === "oval" ? 5  : m.forma === "round" ? 5.5 : 5);
+                      const esEventoMesaPlano = !ocupada && !seleccionada && !!eventoActivo && (eventoActivo.mesas ?? []).includes(m.nombre);
                       const bg = isBanq
                         ? "bg-amber-700 border-amber-800 text-amber-100"
                         : ocupada
                         ? "bg-red-400 border-red-500 text-white opacity-60"
                         : seleccionada
                         ? "bg-gray-900 border-gray-700 text-white ring-2 ring-offset-1 ring-gray-900"
+                        : esEventoMesaPlano
+                        ? "bg-blue-500 border-blue-600 text-white"
                         : "bg-emerald-500 border-emerald-600 text-white";
                       return (
                         <div key={m._id}
