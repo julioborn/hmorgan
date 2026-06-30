@@ -1329,7 +1329,7 @@ export default function CajaPage() {
                                                                 <Printer size={12} /> Reimprimir
                                                             </button>
                                                             {(p.estado === "listo" || p.estado === "entregado") && (
-                                                                <button onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", pagos: [{ metodo: "efectivo", monto: "" }] }); }}
+                                                                <button onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", pagos: [{ metodo: "efectivo", monto: String(p.total) }] }); }}
                                                                     className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 rounded-xl text-xs transition">
                                                                     <Wallet size={12} /> Cobrar
                                                                 </button>
