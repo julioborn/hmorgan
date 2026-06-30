@@ -97,12 +97,9 @@ export default function Header() {
   ];
 
   const linksEmpleado = [
-    { href: "/", label: "Inicio", icon: Home },
     { href: "/empleado/anotador", label: "Anotador de Pedidos", icon: ClipboardList },
-    { href: "/admin/scan", label: "Escanear Puntos", icon: ScanQrCode },
-    { href: "/admin/rewards/scan", label: "Escanear Canjes", icon: ScanText },
-    { href: "/admin/rewards", label: "Canjes", icon: Ticket },
     { href: "/menu", label: "Menú", icon: Utensils },
+    { href: "/cliente/reservas", label: "Reservas de mesas", icon: CalendarDays },
   ];
 
   const links =
