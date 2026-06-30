@@ -105,19 +105,19 @@ export default function RewardsClientePage() {
                         ? <ArgentinaRewardCard key={r._id} r={r} puntos={puntos} solicitado={solicitados.has(r._id)} solicitando={solicitando === r._id} onCanjear={() => canjear(r)} />
                         : (
                             <div key={r._id}
-                                className="relative bg-white text-black rounded-2xl shadow-md border border-gray-200 p-5 h-auto flex flex-col justify-between overflow-hidden gap-3">
-                                <div className="flex flex-col gap-1">
-                                    <h2 className="text-lg font-extrabold">{r.titulo}</h2>
-                                    {r.descripcion
-                                        ? <p className="text-sm text-gray-600">{r.descripcion}</p>
-                                        : <p className="text-sm text-gray-400 italic">Canje</p>}
-                                    <span className="text-sm font-semibold text-red-600">{r.puntos} pts</span>
-                                </div>
-                                <div className="absolute bottom-3 right-3">
-                                    <img src="/icon-192x192.png" alt="Logo" className="h-8 w-8 object-contain opacity-70" />
-                                </div>
+                                className="relative bg-white text-black rounded-2xl shadow-md border border-gray-200 p-5 flex flex-col gap-3 overflow-visible">
                                 <span className="absolute -left-3 top-1/2 w-6 h-6 bg-gray-100 border border-gray-300 rounded-full shadow-sm" />
                                 <span className="absolute -right-3 top-1/2 w-6 h-6 bg-gray-100 border border-gray-300 rounded-full shadow-sm" />
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="flex flex-col gap-1 flex-1 min-w-0">
+                                        <h2 className="text-lg font-extrabold leading-tight">{r.titulo}</h2>
+                                        {r.descripcion
+                                            ? <p className="text-sm text-gray-600">{r.descripcion}</p>
+                                            : <p className="text-sm text-gray-400 italic">Canje</p>}
+                                        <span className="text-sm font-semibold text-red-600">{r.puntos} pts</span>
+                                    </div>
+                                    <img src="/icon-192x192.png" alt="Logo" className="h-8 w-8 object-contain opacity-60 shrink-0" />
+                                </div>
                                 <CanjearButton r={r} puntos={puntos} solicitado={solicitados.has(r._id)} solicitando={solicitando === r._id} onCanjear={() => canjear(r)} />
                             </div>
                         )

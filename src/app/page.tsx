@@ -5,9 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { hoyArgentina } from "@/lib/argentina-time";
+import { swalBase } from "@/lib/swalConfig";
 
 const BarMap = dynamic(() => import("@/components/BarMap"), { ssr: false });
-import { QrCode, Users, Bell, PackagePlus, Package, Utensils, Ticket, History, ScanQrCode, ScanText, Settings, Star, BarChart2, ClipboardList, LayoutGrid, Images, CalendarDays, Wallet, MapPin, TrendingUp, UserCog, Truck } from "lucide-react";
+import { QrCode, Users, Bell, PackagePlus, Package, Utensils, Ticket, History, ScanQrCode, ScanText, Settings, Star, BarChart2, ClipboardList, LayoutGrid, Images, CalendarDays, Wallet, MapPin, TrendingUp, UserCog, Truck, Gift, X, Clock } from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 import Loader from "@/components/Loader";
@@ -112,6 +113,30 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
   const [pedidosActivos, setPedidosActivos] = useState(true);
   const [reservasActivas, setReservasActivas] = useState(true);
   const [repartidorAfuera, setRepartidorAfuera] = useState(false);
+  const [canjeModal, setCanjeModal] = useState<Reward | null>(null);
+  const [canjeSolicitando, setCanjeSolicitando] = useState(false);
+  const [canjeSolicitados, setCanjeSolicitados] = useState<Set<string>>(new Set());
+
+  async function solicitarCanje(r: Reward) {
+    if (puntos < r.puntos) {
+      await swalBase.fire({ title: "Puntos insuficientes", text: `Necesitás ${r.puntos} pts y tenés ${puntos} pts.`, icon: "warning" });
+      return;
+    }
+    const p1 = await swalBase.fire({ title: `Canjear "${r.titulo}"`, text: `Usarás ${r.puntos} puntos. ¿Continuás?`, icon: "question", showCancelButton: true, confirmButtonText: "Sí, continuar", cancelButtonText: "Cancelar" });
+    if (!p1.isConfirmed) return;
+    const p2 = await swalBase.fire({ title: "Confirmación final", text: "La solicitud quedará pendiente hasta que la acepten en caja. ¿Confirmás?", icon: "warning", showCancelButton: true, confirmButtonText: "Confirmar canje", cancelButtonText: "Cancelar" });
+    if (!p2.isConfirmed) return;
+    setCanjeSolicitando(true);
+    try {
+      const res = await fetch("/api/canjes", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ rewardId: r._id }) });
+      const data = await res.json();
+      if (!res.ok) { await swalBase.fire({ title: "Error", text: data.message || "No se pudo solicitar", icon: "error" }); return; }
+      setCanjeSolicitados(prev => new Set([...prev, r._id]));
+      setCanjeModal(null);
+      await swalBase.fire({ title: "¡Solicitud enviada!", text: "Esperá que lo acepten en caja. Te avisaremos.", icon: "success" });
+    } catch { await swalBase.fire({ title: "Error", text: "No se pudo conectar", icon: "error" }); }
+    finally { setCanjeSolicitando(false); }
+  }
 
   useEffect(() => {
     const fetchRewards = async () => {
@@ -210,7 +235,7 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
               {rewards.length === 1 ? (
                 <div className="flex justify-center">
                   <div className="w-full max-w-xs">
-                    <RewardCard r={rewards[0]} />
+                    <RewardCard r={rewards[0]} onClick={() => setCanjeModal(rewards[0])} />
                   </div>
                 </div>
               ) : (
@@ -236,7 +261,7 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
               >
                 {rewards.map((r) => (
                   <SwiperSlide key={r._id}>
-                    <RewardCard r={r} />
+                    <RewardCard r={r} onClick={() => setCanjeModal(r)} />
                   </SwiperSlide>
                 ))}
               </Swiper>
@@ -361,15 +386,61 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
           </a>
         </div>
       </section>
+
+      {/* Modal de canje desde carrusel */}
+      {canjeModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center p-4"
+          onClick={() => setCanjeModal(null)}>
+          <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 pt-5 pb-3">
+              <div className="flex items-center gap-2">
+                <Gift size={18} className="text-red-600" />
+                <p className="font-black text-gray-900">Canjear</p>
+              </div>
+              <button onClick={() => setCanjeModal(null)} className="p-1 text-gray-400 hover:text-gray-600">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="px-5 pb-2 space-y-1">
+              <h2 className="text-xl font-extrabold text-gray-900 leading-tight">{canjeModal.titulo}</h2>
+              {canjeModal.descripcion && <p className="text-sm text-gray-500">{canjeModal.descripcion}</p>}
+              <p className="text-2xl font-black text-red-600">{canjeModal.puntos} pts</p>
+            </div>
+            <div className="px-5 py-4 border-t border-gray-100 space-y-2">
+              <div className="flex items-center justify-between text-sm text-gray-500">
+                <span>Tus puntos</span>
+                <span className="font-bold text-gray-900">★ {puntos} pts</span>
+              </div>
+              {puntos < canjeModal.puntos && (
+                <p className="text-xs text-red-500 font-semibold text-center">Te faltan {canjeModal.puntos - puntos} puntos para este canje</p>
+              )}
+              {canjeSolicitados.has(canjeModal._id) ? (
+                <div className="w-full flex items-center justify-center gap-2 bg-emerald-100 text-emerald-700 font-bold py-3 rounded-2xl text-sm">
+                  <Clock size={14} /> Pendiente de aprobación
+                </div>
+              ) : (
+                <button
+                  onClick={() => solicitarCanje(canjeModal)}
+                  disabled={canjeSolicitando || puntos < canjeModal.puntos}
+                  className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-bold py-3 rounded-2xl text-sm transition active:scale-[0.98]">
+                  <Gift size={15} />
+                  {canjeSolicitando ? "Solicitando..." : "Solicitar canje"}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function RewardCard({ r }: { r: Reward }) {
+function RewardCard({ r, onClick }: { r: Reward; onClick?: () => void }) {
   if (r.tema === "argentina") {
     return (
-      <div
-        className="relative rounded-2xl border-2 border-[#74ACDF] h-44 flex flex-col justify-between overflow-hidden shadow-lg"
+      <button onClick={onClick}
+        className="w-full text-left relative rounded-2xl border-2 border-[#74ACDF] h-44 flex flex-col justify-between overflow-hidden shadow-lg active:scale-[0.98] transition-transform"
         style={{ background: "repeating-linear-gradient(90deg,#74ACDF 0px,#74ACDF 26px,white 26px,white 52px)" }}
       >
         <div className="absolute inset-0 bg-white/55" />
@@ -389,12 +460,13 @@ function RewardCard({ r }: { r: Reward }) {
             <span className="text-2xl">⚽</span>
           </div>
         </div>
-      </div>
+      </button>
     );
   }
 
   return (
-    <div className="relative bg-white text-black rounded-2xl shadow-md border border-gray-200 p-5 h-44 flex flex-col justify-between overflow-hidden">
+    <button onClick={onClick}
+      className="w-full text-left relative bg-white text-black rounded-2xl shadow-md border border-gray-200 p-5 h-44 flex flex-col justify-between overflow-hidden active:scale-[0.98] transition-transform">
       <div className="flex-1 flex flex-col justify-between">
         <h3 className="font-extrabold text-base md:text-lg line-clamp-2">{r.titulo}</h3>
         <p className="text-sm text-gray-600 line-clamp-2">{r.descripcion || "Canje"}</p>
@@ -405,7 +477,7 @@ function RewardCard({ r }: { r: Reward }) {
       </div>
       <span className="absolute -left-3 top-1/2 w-6 h-6 bg-gray-100 border border-gray-300 rounded-full shadow-sm" />
       <span className="absolute -right-3 top-1/2 w-6 h-6 bg-gray-100 border border-gray-300 rounded-full shadow-sm" />
-    </div>
+    </button>
   );
 }
 
