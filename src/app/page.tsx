@@ -763,9 +763,10 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
   const [mesasPlano, setMesasPlano]     = useState<MesaPlanoEmp[]>([]);
   const [elementsPlano, setElementsPlano] = useState<ElPlanoEmp[]>([]);
   const [ocupadas, setOcupadas]         = useState<Set<string>>(new Set());
+  const [reservadasPlano, setReservadasPlano] = useState<Set<string>>(new Set());
   const [asignarForm, setAsignarForm]   = useState({ mesa: "", comensales: "2", nombre: "" });
   const [asignarSaving, setAsignarSaving] = useState(false);
-  const [eventoActivo, setEventoActivo] = useState<{ _id: string; nombre: string; mesas: string[] } | null>(null);
+  const [eventosActivosPlano, setEventosActivosPlano] = useState<{ _id: string; nombre: string; mesas: string[] }[]>([]);
 
   // Zoom / pan del plano
   const planoRef  = useRef<HTMLDivElement>(null);
@@ -778,27 +779,32 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
     if (!el) return;
     function dist(t: TouchList) { return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); }
     function onStart(e: TouchEvent) {
-      e.preventDefault();
       const tr = planoTr.current;
       if (e.touches.length === 2) {
+        e.preventDefault();
         gesture.current = { type: "pinch", startDist: dist(e.touches), startScale: tr.scale, startX: 0, startY: 0, startOx: tr.x, startOy: tr.y };
       } else if (e.touches.length === 1) {
         gesture.current = { type: "pan", startDist: 0, startScale: tr.scale, startX: e.touches[0].clientX, startY: e.touches[0].clientY, startOx: tr.x, startOy: tr.y };
       }
     }
     function onMove(e: TouchEvent) {
-      e.preventDefault();
       const g = gesture.current;
       if (!g) return;
       if (g.type === "pinch" && e.touches.length === 2) {
+        e.preventDefault();
         const s = Math.min(5, Math.max(1, g.startScale * dist(e.touches) / g.startDist));
         planoTr.current = { ...planoTr.current, scale: s };
         setPlanoTransform({ ...planoTr.current });
       } else if (g.type === "pan" && e.touches.length === 1) {
-        const nx = g.startOx + e.touches[0].clientX - g.startX;
-        const ny = g.startOy + e.touches[0].clientY - g.startY;
-        planoTr.current = { ...planoTr.current, x: nx, y: ny };
-        setPlanoTransform({ ...planoTr.current });
+        const dx = Math.abs(e.touches[0].clientX - g.startX);
+        const dy = Math.abs(e.touches[0].clientY - g.startY);
+        if (dx > 6 || dy > 6) {
+          e.preventDefault();
+          const nx = g.startOx + e.touches[0].clientX - g.startX;
+          const ny = g.startOy + e.touches[0].clientY - g.startY;
+          planoTr.current = { ...planoTr.current, x: nx, y: ny };
+          setPlanoTransform({ ...planoTr.current });
+        }
       }
     }
     function onEnd() { gesture.current = null; }
@@ -821,20 +827,27 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
   }, []);
 
   async function abrirAsignar() {
-    const [mRes, elRes, pRes, evRes] = await Promise.all([
+    const [mRes, elRes, pRes, evRes, resRes] = await Promise.all([
       fetch("/api/admin/mesas?all=true", { credentials: "include" }),
       fetch("/api/superadmin/salon", { credentials: "include" }),
-      fetch("/api/pedidos?activos=true&fuente=empleado", { credentials: "include" }),
+      fetch("/api/pedidos?activos=true", { credentials: "include" }),
       fetch("/api/eventos?activo=true", { credentials: "include" }),
+      fetch("/api/reservas", { credentials: "include" }),
     ]);
-    const [mData, elData, pData, evData] = await Promise.all([mRes.json(), elRes.json(), pRes.json(), evRes.json()]);
+    const [mData, elData, pData, evData, resData] = await Promise.all([
+      mRes.json(), elRes.json(), pRes.json(), evRes.json(), resRes.json(),
+    ]);
     setMesasPlano(Array.isArray(mData) ? mData : []);
     setElementsPlano(Array.isArray(elData) ? elData : []);
-    const mesasOcupadas = new Set<string>(
-      Array.isArray(pData) ? pData.map((p: any) => p.mesa).filter(Boolean) : []
-    );
-    setOcupadas(mesasOcupadas);
-    setEventoActivo(Array.isArray(evData) && evData.length > 0 ? evData[0] : null);
+    setOcupadas(new Set<string>(Array.isArray(pData) ? pData.map((p: any) => p.mesa).filter(Boolean) : []));
+    setEventosActivosPlano(Array.isArray(evData) ? evData : []);
+    if (Array.isArray(resData)) {
+      const hoy = new Date().toLocaleDateString("en-CA");
+      setReservadasPlano(new Set<string>(
+        resData.filter((r: any) => r.mesaId && r.estado !== "cancelada" && String(r.fecha).slice(0, 10) === hoy)
+               .map((r: any) => r.mesaId._id ?? r.mesaId)
+      ));
+    }
     setAsignarForm({ mesa: "", comensales: "2", nombre: "" });
     planoTr.current = { scale: 1, x: 0, y: 0 };
     setPlanoTransform({ scale: 1, x: 0, y: 0 });
@@ -844,7 +857,8 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
   async function confirmarAsignar() {
     if (!asignarForm.mesa) return;
     setAsignarSaving(true);
-    const esEventoMesa = eventoActivo && (eventoActivo.mesas ?? []).includes(asignarForm.mesa);
+    const eventoDeEsta = eventosActivosPlano.find(e => (e.mesas ?? []).includes(asignarForm.mesa));
+    const esEventoMesa = !!eventoDeEsta;
     try {
       await fetch("/api/pedidos", {
         method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
@@ -853,7 +867,7 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
           comensales: Number(asignarForm.comensales) || 0,
           nombreComanda: asignarForm.nombre.trim() || undefined,
           tipoEntrega: "retira",
-          eventoId: esEventoMesa ? eventoActivo!._id : undefined,
+          eventoId: eventoDeEsta?._id,
         }),
       });
       setAsignarModal(false);
@@ -937,16 +951,20 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
             {/* Leyenda */}
             <div className="flex items-center gap-4 text-xs text-gray-500 flex-wrap">
               <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-emerald-500 inline-block" />Libre</span>
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-red-400 inline-block" />Ocupada</span>
-              {eventoActivo && (eventoActivo.mesas ?? []).length > 0 && <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-blue-500 inline-block" />Evento</span>}
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-red-500 inline-block" />Ocupada</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-yellow-400 inline-block" />Reservada</span>
+              {eventosActivosPlano.length > 0 && <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-blue-500 inline-block" />Evento</span>}
               {asignarForm.mesa && <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-gray-900 inline-block" />Seleccionada</span>}
             </div>
-            {eventoActivo && asignarForm.mesa && (eventoActivo.mesas ?? []).includes(asignarForm.mesa) && (
+            {(() => {
+              const ev = eventosActivosPlano.find(e => (e.mesas ?? []).includes(asignarForm.mesa));
+              return ev ? (
               <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2">
                 <span className="text-lg">🎉</span>
-                <p className="text-xs font-bold text-blue-700">Mesa del evento <span className="font-black">{eventoActivo.nombre}</span> — se vinculará automáticamente</p>
+                <p className="text-xs font-bold text-blue-700">Mesa del evento <span className="font-black">{ev.nombre}</span> — se vinculará automáticamente</p>
               </div>
-            )}
+              ) : null;
+            })()}
 
             {/* Plano con zoom/pan */}
             <div className="relative">
@@ -977,28 +995,27 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
                       );
                     })}
                     {mesasPlano.filter(m => m.activa).map(m => {
-                      const ocupada = ocupadas.has(m.nombre);
+                      const ocupada     = ocupadas.has(m.nombre);
+                      const reservada   = !ocupada && reservadasPlano.has(m._id);
+                      const esEvento    = !ocupada && !reservada && eventosActivosPlano.some(e => (e.mesas ?? []).includes(m.nombre));
                       const seleccionada = asignarForm.mesa === m.nombre;
                       const isRound = m.forma === "round" || m.forma === "oval";
                       const isBanq  = m.tipo === "banqueta";
+                      const bloqueada = isBanq || ocupada || reservada;
                       const rot = m.rotacion ?? 0;
                       const w = m.ancho || (m.forma === "oval" ? 11 : m.forma === "round" ? 5.5 : 7);
                       const h = m.alto  || (m.forma === "oval" ? 5  : m.forma === "round" ? 5.5 : 5);
-                      const esEventoMesaPlano = !ocupada && !seleccionada && !!eventoActivo && (eventoActivo.mesas ?? []).includes(m.nombre);
-                      const bg = isBanq
-                        ? "bg-amber-700 border-amber-800 text-amber-100"
-                        : ocupada
-                        ? "bg-red-400 border-red-500 text-white opacity-60"
-                        : seleccionada
-                        ? "bg-gray-900 border-gray-700 text-white ring-2 ring-offset-1 ring-gray-900"
-                        : esEventoMesaPlano
-                        ? "bg-blue-500 border-blue-600 text-white"
-                        : "bg-emerald-500 border-emerald-600 text-white";
+                      const bg = isBanq      ? "bg-amber-700 border-amber-800 text-amber-100"
+                        : ocupada            ? "bg-red-500 border-red-600 text-white opacity-70"
+                        : reservada          ? "bg-yellow-400 border-yellow-500 text-gray-900 opacity-80"
+                        : seleccionada       ? "bg-gray-900 border-gray-700 text-white ring-2 ring-offset-1 ring-gray-900"
+                        : esEvento           ? "bg-blue-500 border-blue-600 text-white"
+                        :                      "bg-emerald-500 border-emerald-600 text-white";
                       return (
                         <div key={m._id}
-                          onClick={() => { if (!ocupada && !isBanq) setAsignarForm(p => ({ ...p, mesa: m.nombre })); }}
-                          style={{ position: "absolute", left: `${m.x ?? 10}%`, top: `${m.y ?? 10}%`, transform: `translate(-50%,-50%) rotate(${rot}deg)`, width: `min(${w}%,${w * 7}px)`, height: `min(${h}%,${h * 7.5}px)`, minWidth: "22px", minHeight: "16px", borderRadius: isRound ? "50%" : "8px", cursor: ocupada || isBanq ? "not-allowed" : "pointer", userSelect: "none", zIndex: 2 }}
-                          className={`flex items-center justify-center border-2 transition-all ${bg} ${!ocupada && !isBanq ? "active:scale-95" : ""}`}>
+                          onClick={() => { if (!bloqueada) setAsignarForm(p => ({ ...p, mesa: m.nombre })); }}
+                          style={{ position: "absolute", left: `${m.x ?? 10}%`, top: `${m.y ?? 10}%`, transform: `translate(-50%,-50%) rotate(${rot}deg)`, width: `min(${w}%,${w * 7}px)`, height: `min(${h}%,${h * 7.5}px)`, minWidth: "22px", minHeight: "16px", borderRadius: isRound ? "50%" : "8px", cursor: bloqueada ? "not-allowed" : "pointer", userSelect: "none", zIndex: 2 }}
+                          className={`flex items-center justify-center border-2 transition-all ${bg} ${!bloqueada ? "active:scale-95" : ""}`}>
                           <div style={{ transform: `rotate(${-rot}deg)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
                             <span style={{ fontSize: "clamp(5px,0.8vw,9px)", fontWeight: 900 }}>{m.nombre}</span>
                           </div>
