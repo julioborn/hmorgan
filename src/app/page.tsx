@@ -842,10 +842,13 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
     setOcupadas(new Set<string>(Array.isArray(pData) ? pData.map((p: any) => p.mesa).filter(Boolean) : []));
     setEventosActivosPlano(Array.isArray(evData) ? evData : []);
     if (Array.isArray(resData)) {
-      const hoy = new Date().toLocaleDateString("en-CA");
+      // Usar nombre de mesa como clave (más fiable que ObjectId)
+      const hoy = new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD en cualquier TZ
       setReservadasPlano(new Set<string>(
-        resData.filter((r: any) => r.mesaId && r.estado !== "cancelada" && String(r.fecha).slice(0, 10) === hoy)
-               .map((r: any) => r.mesaId._id ?? r.mesaId)
+        resData
+          .filter((r: any) => r.mesaId && r.estado !== "cancelada" && String(r.fecha).slice(0, 10) === hoy)
+          .map((r: any) => typeof r.mesaId === "object" ? r.mesaId.nombre : "")
+          .filter(Boolean)
       ));
     }
     setAsignarForm({ mesa: "", comensales: "2", nombre: "" });
@@ -996,20 +999,20 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
                     })}
                     {mesasPlano.filter(m => m.activa).map(m => {
                       const ocupada     = ocupadas.has(m.nombre);
-                      const reservada   = !ocupada && reservadasPlano.has(m._id);
+                      const reservada   = !ocupada && reservadasPlano.has(m.nombre);
                       const esEvento    = !ocupada && !reservada && eventosActivosPlano.some(e => (e.mesas ?? []).includes(m.nombre));
                       const seleccionada = asignarForm.mesa === m.nombre;
                       const isRound = m.forma === "round" || m.forma === "oval";
                       const isBanq  = m.tipo === "banqueta";
-                      const bloqueada = isBanq || ocupada || reservada;
+                      const bloqueada = isBanq || ocupada || reservada || esEvento;
                       const rot = m.rotacion ?? 0;
                       const w = m.ancho || (m.forma === "oval" ? 11 : m.forma === "round" ? 5.5 : 7);
                       const h = m.alto  || (m.forma === "oval" ? 5  : m.forma === "round" ? 5.5 : 5);
                       const bg = isBanq      ? "bg-amber-700 border-amber-800 text-amber-100"
                         : ocupada            ? "bg-red-500 border-red-600 text-white opacity-70"
                         : reservada          ? "bg-yellow-400 border-yellow-500 text-gray-900 opacity-80"
+                        : esEvento           ? "bg-blue-500 border-blue-600 text-white opacity-80"
                         : seleccionada       ? "bg-gray-900 border-gray-700 text-white ring-2 ring-offset-1 ring-gray-900"
-                        : esEvento           ? "bg-blue-500 border-blue-600 text-white"
                         :                      "bg-emerald-500 border-emerald-600 text-white";
                       return (
                         <div key={m._id}
