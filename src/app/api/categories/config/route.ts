@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { CategoryConfig } from "@/models/CategoryConfig";
+export const dynamic = "force-dynamic";
 
 export async function GET() {
     await connectMongoDB();

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import jwt from "jsonwebtoken";
+export const dynamic = "force-dynamic";
 
 function getUserIdFromCookie(req: Request) {
     const cookie = req.headers.get("cookie") || "";

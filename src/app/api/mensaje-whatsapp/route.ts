@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { MensajeWhatsApp } from "@/models/MensajeWhatsApp";
+export const dynamic = "force-dynamic";
 
 const DEFAULT = "Hola {nombre}, tu pedido en H. Morgan esta confirmado y en preparacion. Nos vemos pronto!";
 
