@@ -170,6 +170,7 @@ export default function CajaPage() {
     const [eventosCerrados, setEventosCerrados]   = useState<any[]>([]);
     const [historialVisible, setHistorialVisible] = useState(false);
     const [historialLoading, setHistorialLoading] = useState(false);
+    const [historialExpandidos, setHistorialExpandidos] = useState<Set<string>>(new Set());
     const [ventaModal, setVentaModal]             = useState(false);
     const [ventaCart, setVentaCart]               = useState<CartItem[]>([]);
     const [ventaMetodo, setVentaMetodo]           = useState<typeof METODOS[number]>("efectivo");
@@ -1894,7 +1895,29 @@ export default function CajaPage() {
                                         <p className="text-center text-gray-400 text-sm py-6">Sin eventos cerrados</p>
                                     ) : eventosCerrados.map(ev => {
                                         const cd = ev.cierreData;
-                                        const fechaCierre = cd?.fecha ? new Date(cd.fecha).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }) : new Date(ev.updatedAt).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
+                                        const fechaCierre = cd?.fecha
+                                            ? new Date(cd.fecha).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })
+                                            : new Date(ev.updatedAt).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
+
+                                        // Agregar items de todas las ventas del evento
+                                        const grouped: Record<string, { cantidad: number; total: number; categoria: string }> = {};
+                                        (ev.ventas ?? []).forEach((v: any) => {
+                                            (v.items ?? []).forEach((it: any) => {
+                                                if (!grouped[it.nombre]) grouped[it.nombre] = { cantidad: 0, total: 0, categoria: it.categoria ?? "" };
+                                                grouped[it.nombre].cantidad += it.cantidad;
+                                                grouped[it.nombre].total   += it.precio * it.cantidad;
+                                            });
+                                        });
+                                        const productList = Object.entries(grouped)
+                                            .map(([nombre, d]) => ({ nombre, ...d }))
+                                            .sort((a, b) => b.total - a.total);
+                                        const expandido = historialExpandidos.has(ev._id);
+                                        const toggleExpandido = () => setHistorialExpandidos(prev => {
+                                            const next = new Set(prev);
+                                            next.has(ev._id) ? next.delete(ev._id) : next.add(ev._id);
+                                            return next;
+                                        });
+
                                         return (
                                             <div key={ev._id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                                                 {/* Header */}
@@ -1920,9 +1943,9 @@ export default function CajaPage() {
                                                         <div className="bg-gray-50 rounded-xl p-3 space-y-1.5">
                                                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">Desglose por método</p>
                                                             {[
-                                                                { label: "Efectivo",        icon: Banknote,    total: cd.totalEfectivo,      ventas: cd.ventasEfectivo,      comandas: cd.comandasEfectivo },
-                                                                { label: "Transferencia",   icon: Send,        total: cd.totalTransferencia, ventas: cd.ventasTransferencia, comandas: cd.comandasTransferencia },
-                                                                { label: "Tarjeta (débito/crédito)", icon: CreditCard, total: cd.totalTarjeta, ventas: cd.ventasTarjeta, comandas: cd.comandasTarjeta },
+                                                                { label: "Efectivo",              icon: Banknote,   total: cd.totalEfectivo,      ventas: cd.ventasEfectivo,      comandas: cd.comandasEfectivo },
+                                                                { label: "Transferencia",         icon: Send,       total: cd.totalTransferencia, ventas: cd.ventasTransferencia, comandas: cd.comandasTransferencia },
+                                                                { label: "Tarjeta",               icon: CreditCard, total: cd.totalTarjeta,       ventas: cd.ventasTarjeta,       comandas: cd.comandasTarjeta },
                                                             ].filter(m => m.total > 0).map(m => (
                                                                 <div key={m.label} className="flex items-center justify-between text-sm">
                                                                     <span className="text-gray-600 flex items-center gap-1.5"><m.icon size={11} /> {m.label}</span>
@@ -1952,6 +1975,39 @@ export default function CajaPage() {
                                                     </div>
                                                 ) : (
                                                     <p className="px-4 py-3 text-xs text-gray-400">Sin resumen de cierre registrado</p>
+                                                )}
+
+                                                {/* Toggle productos */}
+                                                {productList.length > 0 && (
+                                                    <>
+                                                        <button
+                                                            onClick={toggleExpandido}
+                                                            className="w-full flex items-center justify-between px-4 py-2.5 border-t border-gray-100 text-xs font-bold text-gray-500 hover:bg-gray-50 transition">
+                                                            <span>Productos consumidos ({productList.length})</span>
+                                                            <span>{expandido ? "▲" : "▼"}</span>
+                                                        </button>
+                                                        {expandido && (
+                                                            <div className="px-4 pb-3">
+                                                                <div className="rounded-xl overflow-hidden border border-gray-100">
+                                                                    <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-1.5 bg-gray-50 border-b border-gray-100 text-[10px] font-black text-gray-400 uppercase tracking-wider">
+                                                                        <span>Producto</span>
+                                                                        <span className="text-center">Cant.</span>
+                                                                        <span className="text-right">Total</span>
+                                                                    </div>
+                                                                    {productList.map((p, i) => (
+                                                                        <div key={i} className={`grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-2 text-sm ${i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}`}>
+                                                                            <div>
+                                                                                <span className="font-semibold text-gray-900">{p.nombre}</span>
+                                                                                {p.categoria && <span className="text-[10px] text-gray-400 ml-1.5">{p.categoria}</span>}
+                                                                            </div>
+                                                                            <span className="text-center font-bold text-gray-700">{p.cantidad}</span>
+                                                                            <span className="text-right font-bold text-gray-900">{formatMoney(p.total)}</span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </>
                                                 )}
                                             </div>
                                         );
