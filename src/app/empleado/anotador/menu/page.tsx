@@ -366,8 +366,13 @@ function AnotadorMenuContent() {
         ]);
         setMesasPlano(Array.isArray(mData) ? mData : []);
         setElementsPlano(Array.isArray(elData) ? elData : []);
-        if (Array.isArray(pData))
-            setOcupadasPlano(new Set(pData.filter((p: any) => p.mesa).map((p: any) => String(p.mesa))));
+        if (Array.isArray(pData)) {
+            const ocupadas = new Set<string>();
+            pData
+                .filter((p: any) => p.mesa && !["pendiente", "cancelado", "cerrado"].includes(p.estado))
+                .forEach((p: any) => String(p.mesa).split(",").forEach(n => ocupadas.add(n.trim())));
+            setOcupadasPlano(ocupadas);
+        }
         if (Array.isArray(evData))
             setEventosPlano(evData.flatMap((e: any) => e.mesas ?? []));
         if (Array.isArray(resData)) {
