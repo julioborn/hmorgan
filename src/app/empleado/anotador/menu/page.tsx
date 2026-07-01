@@ -125,7 +125,7 @@ function AnotadorMenuContent() {
     const [loadingComanda, setLoadingComanda] = useState(!!comandaId);
 
     // Campos del panel
-    const [mesa, setMesa]               = useState("");
+    const [mesas, setMesas]             = useState<string[]>([]);
     const [comensales, setComensales]   = useState(2);
     const [clienteNombre, setClienteNombre] = useState("");
     const [clienteSearch, setClienteSearch] = useState("");
@@ -186,7 +186,7 @@ function AnotadorMenuContent() {
             .then(r => r.json())
             .then(d => {
                 setComanda(d);
-                if (d.mesa) setMesa(d.mesa);
+                if (d.mesa) setMesas(d.mesa.split(", ").filter(Boolean));
                 if (d.comensales) setComensales(d.comensales);
                 if (d.nombreComanda) setClienteNombre(d.nombreComanda);
             })
@@ -201,12 +201,12 @@ function AnotadorMenuContent() {
         try {
             const saved = sessionStorage.getItem(CART_KEY);
             if (!saved) return;
-            const { cart: sc, mesa: sm, comensales: scm, clienteNombre: sn, comensalesSeleccionados: scs } = JSON.parse(saved);
+            const { cart: sc, mesas: sm, comensales: scm, clienteNombre: sn, comensalesSeleccionados: scs } = JSON.parse(saved);
             if (Array.isArray(sc) && sc.length > 0) {
                 setCart(sc);
                 if (!comandaId) setStep("menu"); // borrador existente → saltar info
             }
-            if (sm && !comandaId) setMesa(sm);
+            if (Array.isArray(sm) && sm.length > 0 && !comandaId) setMesas(sm);
             if (scm && !comandaId) setComensales(scm);
             if (sn) setClienteNombre(sn);
             if (Array.isArray(scs) && scs.length > 0) setComensalesSeleccionados(scs);
@@ -216,11 +216,11 @@ function AnotadorMenuContent() {
     // Guardar cuando cambia el cart
     useEffect(() => {
         if (cart.length > 0) {
-            sessionStorage.setItem(CART_KEY, JSON.stringify({ cart, mesa, comensales, clienteNombre, comensalesSeleccionados }));
+            sessionStorage.setItem(CART_KEY, JSON.stringify({ cart, mesas, comensales, clienteNombre, comensalesSeleccionados }));
         } else {
             sessionStorage.removeItem(CART_KEY);
         }
-    }, [cart, mesa, comensales, clienteNombre, comensalesSeleccionados, CART_KEY]);
+    }, [cart, mesas, comensales, clienteNombre, comensalesSeleccionados, CART_KEY]);
 
     // Reset zoom al abrir el picker
     useEffect(() => {
@@ -437,8 +437,8 @@ function AnotadorMenuContent() {
                         items: cart.map(c => ({ menuItemId: c.menuItemId, cantidad: c.cantidad, nota: c.nota?.trim() || undefined })),
                         tipoEntrega: "retira",
                         fuente: "empleado",
-                        mesa:          eventoActivo ? undefined : (mesa.trim() || undefined),
-                        comensales:    eventoActivo ? undefined : (comensales || undefined),
+                        mesa:          eventoActivo ? undefined : (mesas.join(", ") || undefined),
+                        comensales:    eventoActivo ? undefined : (totalComensales || undefined),
                         nombreComanda: clienteNombre.trim() || undefined,
                         eventoId:      eventoActivo?._id || undefined,
                         comensalesIds: comensalesSeleccionados.length > 0 ? comensalesSeleccionados.map(c => c._id) : undefined,
@@ -447,7 +447,7 @@ function AnotadorMenuContent() {
             }
             if (!res.ok) { const e = await res.json().catch(() => ({})); setError(e.message || e.error || "Error"); return; }
             sessionStorage.removeItem(CART_KEY);
-            setLastOrder({ items: [...cart], mesa: mesa || comanda?.mesa || "", timestamp: new Date() });
+            setLastOrder({ items: [...cart], mesa: mesas.join(", ") || comanda?.mesa || "", timestamp: new Date() });
             setCart([]);
             // Volver a comandas después de un momento
             const destino = user?.role === "cajero" ? "/caja" : "/empleado/anotador";
@@ -507,7 +507,15 @@ function AnotadorMenuContent() {
         ...todasCats.filter(cat => !MAIN_ORDER.includes(cat) && !BEBIDAS_CATS.includes(cat) && !PICAR_CATS.includes(cat)),
     ];
 
-    const mesaActual = comanda?.mesa || mesa;
+    const mesaActual = comanda?.mesa || mesas.join(", ");
+
+    // Helpers banqueta / multi-mesa
+    const isBanqueta    = (nombre: string) => mesasPlano.find(m => m.nombre === nombre)?.tipo === "banqueta";
+    const displayNombre = (nombre: string) => isBanqueta(nombre) ? `Banqueta ${nombre}` : `Mesa ${nombre}`;
+    const banquetasSelec  = mesas.filter(isBanqueta);
+    const mesasRegulares  = mesas.filter(n => !isBanqueta(n));
+    const solobanquetas   = banquetasSelec.length > 0 && mesasRegulares.length === 0;
+    const totalComensales = banquetasSelec.length + (mesasRegulares.length > 0 || mesas.length === 0 ? comensales : 0);
 
     // ── CartPanel como JSX (NO como función-componente anidada)
     // Si fuera function CartPanel() {}, React la recrearía en cada render →
@@ -529,8 +537,8 @@ function AnotadorMenuContent() {
                         ) : (
                             <>
                                 <MapPin className="w-3 h-3 text-gray-400 shrink-0" />
-                                <span className="font-bold text-gray-800">{mesa ? `Mesa ${mesa}` : "Sin mesa"}</span>
-                                <span className="text-gray-400">· {comensales}p</span>
+                                <span className="font-bold text-gray-800 truncate">{mesas.length > 0 ? mesas.map(displayNombre).join(", ") : "Sin mesa"}</span>
+                                <span className="text-gray-400 shrink-0">· {totalComensales}p</span>
                                 {clienteNombre && <span className="text-gray-500 truncate">· {clienteNombre}</span>}
                                 {comensalesSeleccionados.length > 0 && <span className="text-emerald-600 text-[10px] font-bold shrink-0">· {comensalesSeleccionados.length} reg.</span>}
                             </>
@@ -733,30 +741,41 @@ function AnotadorMenuContent() {
                             <>
                                 {/* ── Modo normal: mesa + personas + nombre + comensales ── */}
 
-                                {/* Mesa */}
+                                {/* Mesa(s) */}
                                 <div>
-                                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Mesa</p>
+                                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Mesa(s)</p>
                                     <button onClick={openMesaPicker}
-                                        className={`w-full flex items-center justify-between px-4 py-4 rounded-2xl border-2 font-bold transition text-sm ${mesa ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-500 border-gray-200 hover:border-gray-400"}`}>
-                                        <div className="flex items-center gap-2">
-                                            <MapPin className="w-4 h-4" />
-                                            {mesa ? `Mesa ${mesa}` : "Seleccionar mesa"}
+                                        className={`w-full flex items-center justify-between px-4 py-4 rounded-2xl border-2 font-bold transition text-sm ${mesas.length > 0 ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-500 border-gray-200 hover:border-gray-400"}`}>
+                                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                                            <MapPin className="w-4 h-4 shrink-0" />
+                                            <span className="truncate">{mesas.length > 0 ? mesas.map(displayNombre).join(" · ") : "Seleccionar mesa(s)"}</span>
                                         </div>
-                                        <ChevronDown className="w-4 h-4 opacity-60" />
+                                        <ChevronDown className="w-4 h-4 opacity-60 shrink-0 ml-2" />
                                     </button>
                                 </div>
 
                                 {/* Personas */}
-                                <div>
-                                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Personas</p>
-                                    <div className="flex items-center gap-5">
-                                        <button onClick={() => setComensales(c => Math.max(1, c - 1))}
-                                            className="w-12 h-12 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-2xl font-bold transition active:scale-95">−</button>
-                                        <span className="text-4xl font-black text-gray-900 w-12 text-center">{comensales}</span>
-                                        <button onClick={() => setComensales(c => Math.min(20, c + 1))}
-                                            className="w-12 h-12 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-2xl font-bold transition active:scale-95">+</button>
+                                {solobanquetas ? (
+                                    <div className="bg-gray-50 rounded-2xl px-4 py-3">
+                                        <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Personas</p>
+                                        <p className="text-4xl font-black text-gray-900">{banquetasSelec.length}</p>
+                                        <p className="text-xs text-gray-400 mt-1">{banquetasSelec.length} banqueta{banquetasSelec.length !== 1 ? "s" : ""} · 1 persona c/u</p>
                                     </div>
-                                </div>
+                                ) : (
+                                    <div>
+                                        <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Personas</p>
+                                        <div className="flex items-center gap-5">
+                                            <button onClick={() => setComensales(c => Math.max(1, c - 1))}
+                                                className="w-12 h-12 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-2xl font-bold transition active:scale-95">−</button>
+                                            <span className="text-4xl font-black text-gray-900 w-12 text-center">{comensales}</span>
+                                            <button onClick={() => setComensales(c => Math.min(20, c + 1))}
+                                                className="w-12 h-12 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-2xl font-bold transition active:scale-95">+</button>
+                                        </div>
+                                        {banquetasSelec.length > 0 && (
+                                            <p className="text-xs text-gray-400 mt-2">+ {banquetasSelec.length} banqueta{banquetasSelec.length !== 1 ? "s" : ""} (1p c/u) = {totalComensales}p total</p>
+                                        )}
+                                    </div>
+                                )}
 
                                 {/* Comensales registrados */}
                                 <ComensalesSelector
@@ -774,7 +793,7 @@ function AnotadorMenuContent() {
                                     className="w-full bg-red-600 hover:bg-red-700 text-white font-extrabold py-4 rounded-2xl flex items-center justify-center gap-2 transition active:scale-[0.98] text-base shadow-lg shadow-red-600/20 mt-2">
                                     Continuar al menú →
                                 </button>
-                                {!mesa && (
+                                {mesas.length === 0 && (
                                     <p className="text-center text-xs text-gray-400 -mt-4">Podés continuar sin elegir mesa</p>
                                 )}
                             </>
@@ -878,16 +897,17 @@ function AnotadorMenuContent() {
                                         const isReservada = !isOcupada && reservadasPlano.has(m.nombre);
                                         const isEvento   = !isOcupada && !isReservada && eventosPlano.includes(m.nombre);
                                         const isBanq     = m.tipo === "banqueta";
-                                        const isSel      = m.nombre === mesa;
+                                        const isSel      = mesas.includes(m.nombre);
                                         const bloqueada  = isOcupada || isReservada || isEvento;
                                         const isRound    = m.forma === "round" || m.forma === "oval";
                                         const rot=m.rotacion??0; const w=m.ancho||(m.forma==="oval"?11:m.forma==="round"?5.5:7); const h=m.alto||(m.forma==="oval"?5:m.forma==="round"?5.5:5);
-                                        const bg = isSel        ? "bg-gray-900 border-gray-700 text-white ring-2 ring-gray-500"
+                                        const bg = isSel        ? "bg-gray-900 border-gray-700 text-white ring-2 ring-white"
                                             : isOcupada         ? "bg-red-500 border-red-600 text-white opacity-70"
                                             : isReservada       ? "bg-yellow-400 border-yellow-500 text-gray-900 opacity-80"
                                             : isEvento          ? "bg-blue-500 border-blue-600 text-white opacity-80"
                                             :                     "bg-emerald-500 border-emerald-600 text-white";
-                                        return <div key={m._id} onClick={() => { if (!bloqueada) { setMesa(m.nombre); if (isBanq) setComensales(1); setMesaPickerOpen(false); } }} style={{ position:"absolute", left:`${m.x??10}%`, top:`${m.y??10}%`, transform:`translate(-50%,-50%) rotate(${rot}deg)`, width:`min(${w}%,${w*7}px)`, height:`min(${h}%,${h*7.5}px)`, minWidth:"24px", minHeight:"18px", borderRadius:isRound?"50%":"8px", cursor:bloqueada?"not-allowed":"pointer", userSelect:"none", zIndex:2 }} className={`flex items-center justify-center border-2 ${bg} ${!bloqueada?"active:scale-95 transition-all":""}`}><div style={{ transform:`rotate(${-rot}deg)`, fontSize:"clamp(6px,0.8vw,9px)", fontWeight:900 }}>{m.nombre}</div></div>;
+                                        const label = isBanq ? `B${m.nombre}` : m.nombre;
+                                        return <div key={m._id} onClick={() => { if (!bloqueada) { setMesas(prev => prev.includes(m.nombre) ? prev.filter(n => n !== m.nombre) : [...prev, m.nombre]); } }} style={{ position:"absolute", left:`${m.x??10}%`, top:`${m.y??10}%`, transform:`translate(-50%,-50%) rotate(${rot}deg)`, width:`min(${w}%,${w*7}px)`, height:`min(${h}%,${h*7.5}px)`, minWidth:"24px", minHeight:"18px", borderRadius:isRound?"50%":"8px", cursor:bloqueada?"not-allowed":"pointer", userSelect:"none", zIndex:2 }} className={`flex items-center justify-center border-2 ${bg} ${!bloqueada?"active:scale-95 transition-all":""}`}><div style={{ transform:`rotate(${-rot}deg)`, fontSize:"clamp(6px,0.8vw,9px)", fontWeight:900 }}>{label}</div></div>;
                                     })}
                                 </div>
                                 </div>{/* end scale wrapper */}
@@ -905,12 +925,18 @@ function AnotadorMenuContent() {
                                         ↺ Reset zoom
                                     </button>
                                 )}
-                                {mesa&&<span className={mapScale > 1 ? "" : "ml-auto"+ " font-semibold text-gray-700"}>Mesa {mesa}</span>}
                             </div>
+                            {mesas.length > 0 && (
+                                <p className="text-xs font-semibold text-gray-700 mt-1.5 truncate">
+                                    {mesas.map(displayNombre).join(", ")}
+                                </p>
+                            )}
                         </div>
                         <div className="px-5 py-4 border-t border-gray-100 flex gap-2 shrink-0">
-                            <button onClick={() => { setMesa(""); setMesaPickerOpen(false); }} className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50">Sin mesa</button>
-                            <button onClick={() => setMesaPickerOpen(false)} className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold transition">{mesa ? `Confirmar Mesa ${mesa}` : "Cerrar"}</button>
+                            <button onClick={() => { setMesas([]); setMesaPickerOpen(false); }} className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50">Sin mesa</button>
+                            <button onClick={() => setMesaPickerOpen(false)} className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold transition">
+                                {mesas.length > 0 ? `Confirmar (${mesas.length})` : "Cerrar"}
+                            </button>
                         </div>
                     </div>
                 </div>
