@@ -31,6 +31,8 @@ const PedidoSchema = new Schema(
         notaEmpleado: { type: String },
         notaCliente: { type: String },
         horarioPreferido: { type: String },
+        lat: { type: Number },
+        lng: { type: Number },
         puntosAcreditados: { type: Boolean, default: false },
         metodoPago: { type: String },
         montoPagado: { type: Number },

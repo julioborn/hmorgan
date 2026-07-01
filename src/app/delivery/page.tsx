@@ -13,6 +13,8 @@ type Pedido = {
     estado: string;
     tipoEntrega?: string;
     direccion?: string;
+    lat?: number;
+    lng?: number;
     notaCliente?: string;
     notaEmpleado?: string;
     createdAt: string;
@@ -152,6 +154,17 @@ export default function DeliveryPage() {
                                             <MapPin size={15} className="text-red-500 mt-0.5 shrink-0" />
                                             <span className="font-semibold">{p.direccion}</span>
                                         </div>
+                                    )}
+                                    {p.lat && p.lng && (
+                                        <a
+                                            href={`https://www.google.com/maps?q=${p.lat},${p.lng}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-2 text-sm text-blue-600 font-semibold"
+                                        >
+                                            <MapPin size={15} className="text-blue-500 shrink-0" />
+                                            Ver en Google Maps
+                                        </a>
                                     )}
                                     {p.userId?.telefono && (
                                         <a href={`tel:${p.userId.telefono}`} className="flex items-center gap-2 text-sm text-gray-700">

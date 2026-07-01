@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     UtensilsCrossed, Pizza, Beef, Sandwich, Salad, Beer,
@@ -57,6 +57,92 @@ const categoryIcons: Record<string, React.ElementType> = {
     "POSTRE Y CAFE": CakeSlice,
 };
 
+/* ─── Autocomplete de dirección con Nominatim (OpenStreetMap, sin API key) ─── */
+type NominatimResult = { place_id: number; display_name: string; lat: string; lon: string };
+
+function AddressAutocomplete({
+    value, onChange, onSelectCoords,
+}: {
+    value: string;
+    onChange: (v: string) => void;
+    onSelectCoords: (lat: number, lng: number) => void;
+}) {
+    const [query, setQuery] = useState(value);
+    const [results, setResults] = useState<NominatimResult[]>([]);
+    const [searching, setSearching] = useState(false);
+    const [mapCoords, setMapCoords] = useState<{ lat: number; lng: number } | null>(null);
+    const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    async function buscar(q: string) {
+        if (q.trim().length < 3) { setResults([]); return; }
+        setSearching(true);
+        try {
+            const r = await fetch(
+                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ", Calchaquí, Santa Fe, Argentina")}&format=json&limit=5&countrycodes=ar&addressdetails=1`,
+                { headers: { "Accept-Language": "es" } }
+            );
+            const data = await r.json();
+            setResults(Array.isArray(data) ? data : []);
+        } catch { }
+        setSearching(false);
+    }
+
+    function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
+        const v = e.target.value;
+        setQuery(v);
+        onChange(v);
+        setMapCoords(null);
+        if (timer.current) clearTimeout(timer.current);
+        timer.current = setTimeout(() => buscar(v), 600);
+    }
+
+    function handleSelect(r: NominatimResult) {
+        const lat = parseFloat(r.lat);
+        const lng = parseFloat(r.lon);
+        const clean = r.display_name.split(",").slice(0, 3).join(",").trim();
+        setQuery(clean);
+        onChange(clean);
+        setResults([]);
+        setMapCoords({ lat, lng });
+        onSelectCoords(lat, lng);
+    }
+
+    return (
+        <div className="relative">
+            <input
+                type="text"
+                placeholder="Ingresá tu calle y número"
+                value={query}
+                onChange={handleInput}
+                onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: "smooth", block: "center" }), 350)}
+                style={{ fontSize: "16px" }}
+                className="w-full border border-gray-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-400"
+            />
+            {searching && <p className="text-xs text-gray-400 mt-1 pl-1">Buscando...</p>}
+            {results.length > 0 && !searching && (
+                <ul className="absolute z-50 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1 max-h-48 overflow-y-auto">
+                    {results.map((r) => (
+                        <li key={r.place_id} onClick={() => handleSelect(r)}
+                            className="px-3 py-2.5 text-sm hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0">
+                            {r.display_name}
+                        </li>
+                    ))}
+                </ul>
+            )}
+            {mapCoords && (
+                <div className="mt-2 rounded-xl overflow-hidden border border-gray-200">
+                    <iframe
+                        title="Ubicación de entrega"
+                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${mapCoords.lng - 0.003}%2C${mapCoords.lat - 0.002}%2C${mapCoords.lng + 0.003}%2C${mapCoords.lat + 0.002}&layer=mapnik&marker=${mapCoords.lat}%2C${mapCoords.lng}`}
+                        style={{ width: "100%", height: "140px", border: 0 }}
+                        loading="lazy"
+                    />
+                </div>
+            )}
+        </div>
+    );
+}
+
 /* ─── CartDrawer — componente de nivel superior para evitar remount al tipear ─── */
 interface CartDrawerProps {
     items: Record<string, number>;
@@ -72,6 +158,9 @@ interface CartDrawerProps {
     setNota: (v: string) => void;
     horarioPreferido: string;
     setHorarioPreferido: (v: string) => void;
+    notasProducto: Record<string, string>;
+    onSetNotaProducto: (id: string, nota: string) => void;
+    onSelectCoords: (lat: number, lng: number) => void;
     enviando: boolean;
     total: number;
     costoEnvio: number;
@@ -86,6 +175,7 @@ function CartDrawer({
     direccionPrincipal, direccionEnvio, setDireccionEnvio,
     usarOtraDireccion, setUsarOtraDireccion,
     nota, setNota, horarioPreferido, setHorarioPreferido,
+    notasProducto, onSetNotaProducto, onSelectCoords,
     enviando, total, costoEnvio, onClose, onVaciar, onEliminar, onEnviar,
 }: CartDrawerProps) {
     const totalFinal = total + (tipoEntrega === "envio" ? costoEnvio : 0);
@@ -102,19 +192,29 @@ function CartDrawer({
                 className="relative bg-white rounded-t-3xl max-h-[85dvh] overflow-y-auto p-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]"
             >
                 <h3 className="text-2xl font-extrabold mb-4 text-black">Tu pedido</h3>
-                <div className="space-y-4">
+                <div className="space-y-3">
                     {Object.entries(items).map(([id, cant]) => {
                         const producto = menu.find((m) => m._id === id);
                         if (!producto || cant === 0) return null;
                         return (
-                            <div key={id} className="flex justify-between items-center border-b pb-3">
-                                <div>
-                                    <p className="font-semibold text-black">{producto.nombre}</p>
-                                    <p className="text-sm text-gray-500">×{cant} — ${formatPrice(producto.precio * cant)}</p>
+                            <div key={id} className="border-b pb-3">
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <p className="font-semibold text-black">{producto.nombre}</p>
+                                        <p className="text-sm text-gray-500">×{cant} — ${formatPrice(producto.precio * cant)}</p>
+                                    </div>
+                                    <button onClick={() => onEliminar(id)} className="text-red-500 hover:text-red-700 p-1">
+                                        <X size={18} />
+                                    </button>
                                 </div>
-                                <button onClick={() => onEliminar(id)} className="text-red-500 hover:text-red-700 p-1">
-                                    <X size={18} />
-                                </button>
+                                <input
+                                    type="text"
+                                    placeholder="Nota (ej: sin cebolla)"
+                                    value={notasProducto[id] || ""}
+                                    onChange={(e) => onSetNotaProducto(id, e.target.value)}
+                                    style={{ fontSize: "16px" }}
+                                    className="mt-1.5 w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-red-400 bg-gray-50"
+                                />
                             </div>
                         );
                     })}
@@ -143,14 +243,10 @@ function CartDrawer({
                                 Otra dirección
                             </label>
                             {(usarOtraDireccion || !direccionPrincipal) && (
-                                <input
-                                    type="text"
-                                    placeholder="Ingresá tu dirección"
+                                <AddressAutocomplete
                                     value={direccionEnvio}
-                                    onChange={(e) => setDireccionEnvio(e.target.value)}
-                                    onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: "smooth", block: "center" }), 350)}
-                                    style={{ fontSize: "16px" }}
-                                    className="w-full border border-gray-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-400"
+                                    onChange={setDireccionEnvio}
+                                    onSelectCoords={onSelectCoords}
                                 />
                             )}
                         </div>
@@ -171,13 +267,20 @@ function CartDrawer({
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">
                         Horario preferido <span className="font-normal normal-case text-gray-400">(opcional)</span>
                     </label>
-                    <input
-                        type="time"
+                    <select
                         value={horarioPreferido}
                         onChange={(e) => setHorarioPreferido(e.target.value)}
                         style={{ fontSize: "16px" }}
-                        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
-                    />
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
+                    >
+                        <option value="">Seleccionar...</option>
+                        <option value="20:30">20:30</option>
+                        <option value="21:00">21:00</option>
+                        <option value="21:30">21:30</option>
+                        <option value="22:00">22:00</option>
+                        <option value="22:30">22:30</option>
+                        <option value="Apenas esté listo">Apenas esté listo</option>
+                    </select>
                 </div>
 
                 {tipoEntrega === "envio" && costoEnvio > 0 && (
@@ -233,6 +336,9 @@ export default function PedidosClientePage() {
     const [enviando, setEnviando] = useState(false);
     const [nota, setNota] = useState("");
     const [horarioPreferido, setHorarioPreferido] = useState("");
+    const [notasProducto, setNotasProducto] = useState<Record<string, string>>({});
+    const [mapLat, setMapLat] = useState<number | null>(null);
+    const [mapLng, setMapLng] = useState<number | null>(null);
     const [telefono, setTelefono] = useState<string>("");
     const [costoEnvio, setCostoEnvio] = useState<number>(0);
     const router = useRouter();
@@ -319,7 +425,7 @@ export default function PedidosClientePage() {
     async function enviarPedido() {
         const seleccion = Object.entries(items)
             .filter(([_, cant]) => cant > 0)
-            .map(([id, cant]) => ({ menuItemId: id, cantidad: cant }));
+            .map(([id, cant]) => ({ menuItemId: id, cantidad: cant, nota: notasProducto[id]?.trim() || undefined }));
 
         if (seleccion.length === 0)
             return swalBase.fire("⚠️", "Seleccioná al menos un ítem", "warning");
@@ -342,6 +448,8 @@ export default function PedidosClientePage() {
                     items: seleccion,
                     tipoEntrega,
                     direccion: tipoEntrega === "envio" ? direccionEnvio || direccionPrincipal || "" : undefined,
+                    lat: tipoEntrega === "envio" && mapLat ? mapLat : undefined,
+                    lng: tipoEntrega === "envio" && mapLng ? mapLng : undefined,
                     notaCliente: nota.trim() || undefined,
                     horarioPreferido: horarioPreferido.trim() || undefined,
                 }),
@@ -352,6 +460,9 @@ export default function PedidosClientePage() {
                 setItems({});
                 setNota("");
                 setHorarioPreferido("");
+                setNotasProducto({});
+                setMapLat(null);
+                setMapLng(null);
             } else {
                 swalBase.fire("❌", "Error al enviar el pedido", "error");
             }
@@ -404,6 +515,9 @@ export default function PedidosClientePage() {
         direccionPrincipal, direccionEnvio, setDireccionEnvio,
         usarOtraDireccion, setUsarOtraDireccion,
         nota, setNota, horarioPreferido, setHorarioPreferido,
+        notasProducto,
+        onSetNotaProducto: (id, nota) => setNotasProducto(prev => ({ ...prev, [id]: nota })),
+        onSelectCoords: (lat, lng) => { setMapLat(lat); setMapLng(lng); },
         enviando, total, costoEnvio,
         onClose: () => setDrawerOpen(false),
         onVaciar: vaciarCarrito,
