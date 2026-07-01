@@ -459,7 +459,7 @@ export default function PedidosClientePage() {
                     <h1 className="text-3xl font-black text-black tracking-tight mb-1">Realizar Pedido</h1>
                     <p className="text-sm text-gray-400">Elegí una categoría</p>
                 </div>
-                <div className="px-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="px-5 grid grid-cols-2 gap-3">
                     {categoriasNavegacion.map((cat, idx) => (
                         <CategoryCard key={cat} cat={cat} idx={idx} onClick={() => setCategoriaSeleccionada(cat)} />
                     ))}
@@ -490,7 +490,7 @@ export default function PedidosClientePage() {
                         </button>
                     )}
                 </div>
-                <div className="px-5 py-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="px-5 py-5 grid grid-cols-2 gap-3">
                     {subCats.map((cat, idx) => (
                         <CategoryCard key={cat} cat={cat} idx={idx} onClick={() => setCategoriaSeleccionada(cat)} />
                     ))}
