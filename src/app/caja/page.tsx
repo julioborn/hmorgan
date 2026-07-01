@@ -32,6 +32,7 @@ type Pedido = {
     createdAt: string;
     notaEmpleado?: string;
     notaCliente?: string;
+    horarioPreferido?: string;
     userId?: { _id: string; nombre: string; apellido: string; telefono?: string; role?: string };
     comensalesIds?: { _id: string; nombre: string; apellido: string; username?: string }[];
     eventoId?: string;
@@ -430,7 +431,7 @@ export default function CajaPage() {
         if (!r.isConfirmed) return;
         await fetch(`/api/pedidos/${pedidoId}`, {
             method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
-            body: JSON.stringify({ accion: "eliminarItem", itemId }),
+            body: JSON.stringify({ accion: "eliminarItem", itemId, nombreItem: nombre }),
         });
         loadData();
     }
@@ -459,7 +460,7 @@ export default function CajaPage() {
         if (!r.isConfirmed) return;
         await fetch(`/api/pedidos/${editItemModal.pedido._id}`, {
             method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
-            body: JSON.stringify({ accion: "reemplazarItem", itemId: editItemModal.itemId, nuevoMenuItemId }),
+            body: JSON.stringify({ accion: "reemplazarItem", itemId: editItemModal.itemId, nuevoMenuItemId, nombreActual: editItemModal.nombreActual, nuevoNombre }),
         });
         setEditItemModal(null);
         loadData();
@@ -1422,6 +1423,11 @@ export default function CajaPage() {
                                                                     <MapPin size={10} className="shrink-0 mt-0.5" /><span>{p.direccion}</span>
                                                                 </div>
                                                             )}
+                                                            {esApp && p.horarioPreferido && (
+                                                                <div className="flex items-center gap-1 mt-1 text-xs font-bold text-white/90">
+                                                                    <Clock size={10} className="shrink-0" /><span>Horario preferido: {p.horarioPreferido}</span>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                         <div className="shrink-0 text-right">
                                                             <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border uppercase tracking-wider inline-block ${COLOR_CLASSES[color] || "border-gray-200 bg-white text-gray-600"}`}>
@@ -1438,7 +1444,7 @@ export default function CajaPage() {
                                                     <ul className="mb-2 divide-y divide-gray-100 border border-gray-100 rounded-xl max-h-48 overflow-y-auto">
                                                         {p.items.map((it, idx) => (
                                                             <li key={it._id || idx} className="flex items-center px-3 py-2.5 gap-2">
-                                                                <span className="font-black text-gray-400 text-sm shrink-0">{it.cantidad}×</span>
+                                                                <span className="font-black text-gray-900 text-sm shrink-0">{it.cantidad}×</span>
                                                                 <span className="text-sm font-semibold text-gray-900 flex-1 min-w-0 truncate">{it.menuItemId?.nombre}</span>
                                                                 {p.estado !== "cerrado" && p.estado !== "cancelado" && it._id && (
                                                                     <div className="flex items-center gap-1 shrink-0">
@@ -1621,6 +1627,11 @@ export default function CajaPage() {
                                                         {p.tipoEntrega === "envio" ? " · Envío" : ""}
                                                         {p.comensales ? ` · ${p.comensales} pers.` : ""}
                                                     </p>
+                                                    {esApp && p.horarioPreferido && (
+                                                        <div className="flex items-center gap-1 mt-1 text-xs font-bold text-white/90">
+                                                            <Clock size={10} className="shrink-0" /><span>Horario preferido: {p.horarioPreferido}</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className="shrink-0 text-right">
                                                     <p className="font-black text-white text-2xl leading-none">{formatMoney(p.total)}</p>
@@ -1635,7 +1646,7 @@ export default function CajaPage() {
                                         <div className="px-4 py-3 space-y-1.5 flex-1 min-h-0 overflow-y-auto max-h-52">
                                             {p.items.map((item, idx) => (
                                                 <div key={item._id || idx} className="flex items-center gap-2">
-                                                    <span className="font-black text-gray-400 text-sm shrink-0">{item.cantidad}×</span>
+                                                    <span className="font-black text-gray-900 text-sm shrink-0">{item.cantidad}×</span>
                                                     <span className="text-sm font-semibold text-gray-900 flex-1 min-w-0 truncate">{item.menuItemId?.nombre}</span>
                                                     <span className="text-xs text-gray-400 shrink-0">{formatMoney((item.menuItemId?.precio || 0) * item.cantidad)}</span>
                                                     {item._id && (

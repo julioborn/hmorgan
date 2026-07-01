@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { Pedido } from "@/models/Pedido";
 import { MenuItem } from "@/models/MenuItem";
+import { User } from "@/models/User";
 import jwt from "jsonwebtoken";
+import { sendPushToSubscriptions } from "@/lib/push-server";
+import { enviarNotificacionFCM, isFCMTokenInvalid } from "@/lib/firebase-admin";
 
 const SECRET = process.env.NEXTAUTH_SECRET!;
 
@@ -40,24 +43,49 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     const body = await req.json();
 
+    // ── Notificar al cliente si el pedido es de la app ─────────────────────
+    async function notificarClienteModificacion(titulo: string, mensaje: string) {
+        if (pedido.fuente !== "cliente") return;
+        const cliente = await User.findById(pedido.userId);
+        if (!cliente) return;
+        if (cliente.pushSubscriptions?.length) {
+            await sendPushToSubscriptions(cliente.pushSubscriptions, {
+                title: titulo, body: mensaje,
+                url: "/cliente/mis-pedidos",
+                icon: "/icon-192.png", badge: "/icon-badge-96x96.png",
+            });
+        }
+        const fcmTokens = new Set<string>([...(cliente.fcmTokens ?? []), ...(cliente.tokenFCM ? [cliente.tokenFCM] : [])]);
+        for (const token of fcmTokens) {
+            try { await enviarNotificacionFCM(token, titulo, mensaje, "/cliente/mis-pedidos"); }
+            catch (err) { if (isFCMTokenInvalid(err)) await User.updateOne({ _id: cliente._id }, { $pull: { fcmTokens: token } }); }
+        }
+    }
+
     // ── Eliminar un ítem de la comanda ──────────────────────────────────────
     if (body.accion === "eliminarItem") {
-        const { itemId } = body;
+        const { itemId, nombreItem } = body;
         const items = (pedido.items as any[]).filter(i => i._id.toString() !== itemId);
         pedido.items = items;
         pedido.total = await recalcularTotal(items);
         await pedido.save();
+        const msg = nombreItem ? `Se eliminó "${nombreItem}" de tu pedido.` : "Se eliminó un producto de tu pedido.";
+        await notificarClienteModificacion("Tu pedido fue modificado", msg);
         return NextResponse.json({ ok: true, pedido });
     }
 
     // ── Reemplazar el producto de un ítem (mismo lugar, otro producto) ─────
     if (body.accion === "reemplazarItem") {
-        const { itemId, nuevoMenuItemId } = body;
+        const { itemId, nuevoMenuItemId, nombreActual, nuevoNombre } = body;
         const item = (pedido.items as any[]).find(i => i._id.toString() === itemId);
         if (!item) return NextResponse.json({ error: "Ítem no encontrado" }, { status: 404 });
         item.menuItemId = nuevoMenuItemId;
         pedido.total = await recalcularTotal(pedido.items as any[]);
         await pedido.save();
+        const msg = (nombreActual && nuevoNombre)
+            ? `"${nombreActual}" fue reemplazado por "${nuevoNombre}" en tu pedido.`
+            : "Un producto de tu pedido fue reemplazado.";
+        await notificarClienteModificacion("Tu pedido fue modificado", msg);
         return NextResponse.json({ ok: true, pedido });
     }
 

@@ -70,6 +70,8 @@ interface CartDrawerProps {
     setUsarOtraDireccion: (v: boolean) => void;
     nota: string;
     setNota: (v: string) => void;
+    horarioPreferido: string;
+    setHorarioPreferido: (v: string) => void;
     enviando: boolean;
     total: number;
     costoEnvio: number;
@@ -83,7 +85,7 @@ function CartDrawer({
     items, menu, tipoEntrega, setTipoEntrega,
     direccionPrincipal, direccionEnvio, setDireccionEnvio,
     usarOtraDireccion, setUsarOtraDireccion,
-    nota, setNota,
+    nota, setNota, horarioPreferido, setHorarioPreferido,
     enviando, total, costoEnvio, onClose, onVaciar, onEliminar, onEnviar,
 }: CartDrawerProps) {
     const totalFinal = total + (tipoEntrega === "envio" ? costoEnvio : 0);
@@ -165,6 +167,19 @@ function CartDrawer({
                     className="w-full mt-4 border border-gray-300 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-400"
                 />
 
+                <div className="mt-3">
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">
+                        Horario preferido <span className="font-normal normal-case text-gray-400">(opcional)</span>
+                    </label>
+                    <input
+                        type="time"
+                        value={horarioPreferido}
+                        onChange={(e) => setHorarioPreferido(e.target.value)}
+                        style={{ fontSize: "16px" }}
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                    />
+                </div>
+
                 {tipoEntrega === "envio" && costoEnvio > 0 && (
                     <div className="mt-4 space-y-1 border-t border-gray-100 pt-3">
                         <div className="flex justify-between text-sm text-gray-600">
@@ -217,6 +232,7 @@ export default function PedidosClientePage() {
     const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null);
     const [enviando, setEnviando] = useState(false);
     const [nota, setNota] = useState("");
+    const [horarioPreferido, setHorarioPreferido] = useState("");
     const [telefono, setTelefono] = useState<string>("");
     const [costoEnvio, setCostoEnvio] = useState<number>(0);
     const router = useRouter();
@@ -327,6 +343,7 @@ export default function PedidosClientePage() {
                     tipoEntrega,
                     direccion: tipoEntrega === "envio" ? direccionEnvio || direccionPrincipal || "" : undefined,
                     notaCliente: nota.trim() || undefined,
+                    horarioPreferido: horarioPreferido.trim() || undefined,
                 }),
             });
             if (res.ok) {
@@ -334,6 +351,7 @@ export default function PedidosClientePage() {
                 await swalBase.fire({ icon: "success", title: "Pedido enviado correctamente", timer: 2000, showConfirmButton: false });
                 setItems({});
                 setNota("");
+                setHorarioPreferido("");
             } else {
                 swalBase.fire("❌", "Error al enviar el pedido", "error");
             }
@@ -385,7 +403,7 @@ export default function PedidosClientePage() {
         items, menu, tipoEntrega, setTipoEntrega,
         direccionPrincipal, direccionEnvio, setDireccionEnvio,
         usarOtraDireccion, setUsarOtraDireccion,
-        nota, setNota,
+        nota, setNota, horarioPreferido, setHorarioPreferido,
         enviando, total, costoEnvio,
         onClose: () => setDrawerOpen(false),
         onVaciar: vaciarCarrito,
