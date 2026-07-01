@@ -64,18 +64,18 @@ const formatMoney = (n: number) => new Intl.NumberFormat("es-AR", { style: "curr
 const ESTADOS = [
     { key: "pendiente",  label: "Pendiente",   icon: Clock,         color: "yellow"  },
     { key: "preparando", label: "Preparando",  icon: Flame,         color: "orange"  },
-    { key: "listo",      label: "Listo",       icon: CheckCircle,   color: "blue"    },
+    { key: "listo",      label: "Listo",       icon: CheckCircle,   color: "dark"    },
     { key: "entregado",  label: "Finalizado",  icon: Truck,         color: "emerald" },
     { key: "cerrado",    label: "Cobrado",     icon: CheckCircle,   color: "emerald" },
 ];
 const COLOR_CLASSES: Record<string, string> = {
     yellow:  "border-yellow-500 bg-yellow-400/30 text-yellow-900 font-semibold",
     orange:  "border-orange-500 bg-orange-100 text-orange-700 font-semibold",
-    blue:    "border-blue-500 bg-blue-100 text-blue-700 font-semibold",
+    dark:    "border-gray-800 bg-gray-900 text-white font-semibold",
     emerald: "border-emerald-500 bg-emerald-100 text-emerald-700 font-semibold",
 };
 const BAR_COLORS: Record<string, string> = {
-    yellow: "bg-yellow-500", orange: "bg-orange-500", blue: "bg-blue-500", emerald: "bg-emerald-500",
+    yellow: "bg-yellow-500", orange: "bg-orange-500", dark: "bg-gray-900", emerald: "bg-emerald-500",
 };
 
 type Vista = "pendientes" | "preparando" | "listos" | "finalizados";
@@ -1551,7 +1551,7 @@ export default function CajaPage() {
                                                         </span>
                                                     )}
                                                     {p.comensales ? <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full font-semibold">{p.comensales}p</span> : null}
-                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${p.estado === "entregado" ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"}`}>
+                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${p.estado === "entregado" ? "bg-emerald-100 text-emerald-700" : "bg-gray-900 text-white"}`}>
                                                         {p.estado === "entregado" ? "Finalizado" : "Listo"}
                                                     </span>
                                                 </div>

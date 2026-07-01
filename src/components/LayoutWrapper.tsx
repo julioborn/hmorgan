@@ -18,6 +18,8 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
 
     const [showReview, setShowReview] = useState(false);
     const [pendingTxId, setPendingTxId] = useState<string | null>(null);
+    const [mozoNombre, setMozoNombre] = useState<string | null>(null);
+    const [mozoId, setMozoId] = useState<string | null>(null);
 
     useSwipeBack();
     usePullToRefresh();
@@ -31,6 +33,8 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
                 const data = await res.json();
                 if (data?.tx?._id) {
                     setPendingTxId(data.tx._id);
+                    setMozoNombre(data.mozoNombre || null);
+                    setMozoId(data.tx?.meta?.mozoId || null);
                     setShowReview(true);
                 }
             } catch (e) {
@@ -96,6 +100,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
 
                 <ReviewModal
                     open={showReview}
+                    mozoNombre={mozoNombre}
                     onClose={async () => {
                         setShowReview(false);
                         if (pendingTxId) {
@@ -105,9 +110,11 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
                                 body: JSON.stringify({ transactionId: pendingTxId }),
                             });
                             setPendingTxId(null);
+                            setMozoNombre(null);
+                            setMozoId(null);
                         }
                     }}
-                    onSubmit={async ({ rating, comment }) => {
+                    onSubmit={async ({ rating, comment, ratingMozo }) => {
                         if (!pendingTxId) return;
 
                         const res = await fetch("/api/reviews/create", {
@@ -115,14 +122,17 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({
                                 rating,
-                                comment: comment,
+                                comment,
                                 transactionId: pendingTxId,
+                                ...(ratingMozo !== undefined && mozoId ? { ratingMozo, mozoId } : {}),
                             }),
                         });
 
                         if (res.ok) {
                             setShowReview(false);
                             setPendingTxId(null);
+                            setMozoNombre(null);
+                            setMozoId(null);
                         }
                     }}
                 />

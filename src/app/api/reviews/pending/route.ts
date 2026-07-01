@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { PointTransaction } from "@/models/PointTransaction";
+import { User } from "@/models/User";
 import jwt from "jsonwebtoken";
 
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET!;
@@ -20,9 +21,15 @@ export async function GET(req: NextRequest) {
             pendingReview: true,
         })
             .sort({ createdAt: -1 })
-            .lean();
+            .lean() as any;
 
-        return NextResponse.json({ tx });
+        let mozoNombre: string | null = null;
+        if (tx?.meta?.mozoId) {
+            const mozo = await User.findById(tx.meta.mozoId).select("nombre apellido").lean() as any;
+            if (mozo) mozoNombre = [mozo.nombre, mozo.apellido].filter(Boolean).join(" ");
+        }
+
+        return NextResponse.json({ tx, mozoNombre });
     } catch (e) {
         console.error(e);
         return NextResponse.json({ error: "Error" }, { status: 500 });

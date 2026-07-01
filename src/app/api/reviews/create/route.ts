@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
 
         const payload = jwt.verify(token, NEXTAUTH_SECRET) as any;
 
-        const { rating, comment, transactionId } = await req.json();
+        const { rating, comment, transactionId, ratingMozo, mozoId } = await req.json();
 
         if (!rating || !transactionId) {
             return NextResponse.json(
@@ -28,8 +28,9 @@ export async function POST(req: NextRequest) {
 
         await Review.create({
             userId: payload.sub,
-            rating,          // ✅ AHORA SÍ COINCIDE CON EL MODELO
+            rating,
             comment: comment || "",
+            ...(ratingMozo ? { ratingMozo, mozoId: mozoId || undefined } : {}),
         });
 
         await PointTransaction.updateOne(

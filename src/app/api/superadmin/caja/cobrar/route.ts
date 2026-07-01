@@ -97,6 +97,7 @@ export async function POST(req: NextRequest) {
         const ratio = await getPointsRatio();
         const puntos = Math.floor(totalConDescuento * ratio);
         const comensalesIds: string[] = (pedido as any).comensalesIds ?? [];
+        const mozoId = pedido.fuente === "empleado" ? String((pedido as any).userId || "") : undefined;
 
         if (comensalesIds.length > 0 && puntos > 0) {
             // Acreditar y notificar a cada comensal identificado
@@ -106,7 +107,7 @@ export async function POST(req: NextRequest) {
                     await PointTransaction.create({
                         userId: cliente._id, source: "consumo", amount: puntos,
                         notes: `Cobrado en caja (comensal)`,
-                        meta: { pedidoId: pedido._id, consumoARS: pedido.total }, pendingReview: true,
+                        meta: { pedidoId: pedido._id, consumoARS: pedido.total, ...(mozoId ? { mozoId } : {}) }, pendingReview: true,
                     });
                     cliente.puntos = (cliente.puntos || 0) + puntos;
                     cliente.needsReview = true;
@@ -142,7 +143,7 @@ export async function POST(req: NextRequest) {
                     await PointTransaction.create({
                         userId: clienteDoc._id, source: "consumo", amount: puntos,
                         notes: `Cobrado en caja${pedido.fuente === "empleado" ? " (comanda)" : " (pedido app)"}`,
-                        meta: { pedidoId: pedido._id, consumoARS: pedido.total }, pendingReview: true,
+                        meta: { pedidoId: pedido._id, consumoARS: pedido.total, ...(mozoId ? { mozoId } : {}) }, pendingReview: true,
                     });
                     clienteDoc.puntos = (clienteDoc.puntos || 0) + puntos;
                     clienteDoc.needsReview = true;
