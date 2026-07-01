@@ -879,16 +879,15 @@ function AnotadorMenuContent() {
                                         const isEvento   = !isOcupada && !isReservada && eventosPlano.includes(m.nombre);
                                         const isBanq     = m.tipo === "banqueta";
                                         const isSel      = m.nombre === mesa;
-                                        const bloqueada  = isBanq || isOcupada || isReservada || isEvento;
+                                        const bloqueada  = isOcupada || isReservada || isEvento;
                                         const isRound    = m.forma === "round" || m.forma === "oval";
                                         const rot=m.rotacion??0; const w=m.ancho||(m.forma==="oval"?11:m.forma==="round"?5.5:7); const h=m.alto||(m.forma==="oval"?5:m.forma==="round"?5.5:5);
-                                        const bg = isBanq      ? "bg-amber-700 border-amber-800 text-amber-100"
+                                        const bg = isSel        ? "bg-gray-900 border-gray-700 text-white ring-2 ring-gray-500"
                                             : isOcupada         ? "bg-red-500 border-red-600 text-white opacity-70"
                                             : isReservada       ? "bg-yellow-400 border-yellow-500 text-gray-900 opacity-80"
                                             : isEvento          ? "bg-blue-500 border-blue-600 text-white opacity-80"
-                                            : isSel             ? "bg-gray-900 border-gray-700 text-white ring-2 ring-gray-500"
                                             :                     "bg-emerald-500 border-emerald-600 text-white";
-                                        return <div key={m._id} onClick={() => { if (!bloqueada) { setMesa(m.nombre); setMesaPickerOpen(false); } }} style={{ position:"absolute", left:`${m.x??10}%`, top:`${m.y??10}%`, transform:`translate(-50%,-50%) rotate(${rot}deg)`, width:`min(${w}%,${w*7}px)`, height:`min(${h}%,${h*7.5}px)`, minWidth:"24px", minHeight:"18px", borderRadius:isRound?"50%":"8px", cursor:bloqueada?"not-allowed":"pointer", userSelect:"none", zIndex:2 }} className={`flex items-center justify-center border-2 ${bg} ${!bloqueada?"active:scale-95 transition-all":""}`}><div style={{ transform:`rotate(${-rot}deg)`, fontSize:"clamp(6px,0.8vw,9px)", fontWeight:900 }}>{m.nombre}</div></div>;
+                                        return <div key={m._id} onClick={() => { if (!bloqueada) { setMesa(m.nombre); if (isBanq) setComensales(1); setMesaPickerOpen(false); } }} style={{ position:"absolute", left:`${m.x??10}%`, top:`${m.y??10}%`, transform:`translate(-50%,-50%) rotate(${rot}deg)`, width:`min(${w}%,${w*7}px)`, height:`min(${h}%,${h*7.5}px)`, minWidth:"24px", minHeight:"18px", borderRadius:isRound?"50%":"8px", cursor:bloqueada?"not-allowed":"pointer", userSelect:"none", zIndex:2 }} className={`flex items-center justify-center border-2 ${bg} ${!bloqueada?"active:scale-95 transition-all":""}`}><div style={{ transform:`rotate(${-rot}deg)`, fontSize:"clamp(6px,0.8vw,9px)", fontWeight:900 }}>{m.nombre}</div></div>;
                                     })}
                                 </div>
                                 </div>{/* end scale wrapper */}
