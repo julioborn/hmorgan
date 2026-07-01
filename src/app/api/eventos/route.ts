@@ -13,9 +13,10 @@ export async function GET(req: NextRequest) {
     }
 
     await connectMongoDB();
-    const soloActivo = req.nextUrl.searchParams.get("activo") === "true";
-    const query = soloActivo ? { estado: "activo" } : {};
-    const eventos = await Evento.find(query).sort({ createdAt: -1 }).limit(30).lean();
+    const soloActivo  = req.nextUrl.searchParams.get("activo") === "true";
+    const soloCerrado = req.nextUrl.searchParams.get("cerrado") === "true";
+    const query = soloActivo ? { estado: "activo" } : soloCerrado ? { estado: "cerrado" } : {};
+    const eventos = await Evento.find(query).sort({ createdAt: -1 }).limit(50).lean();
     return NextResponse.json(eventos);
 }
 

@@ -58,6 +58,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
             return NextResponse.json({ error: "El evento ya está cerrado" }, { status: 400 });
         }
         evento.estado = "cerrado";
+        if (body.cierreData) {
+            evento.cierreData = { ...body.cierreData, fecha: new Date() };
+        }
         await evento.save();
         return NextResponse.json({ ok: true, evento });
     }

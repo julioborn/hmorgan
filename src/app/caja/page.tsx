@@ -26,6 +26,7 @@ type Pedido = {
     total: number;
     costoEnvio?: number;
     estado: string;
+    metodoPago?: string;
     tipoEntrega?: string;
     direccion?: string;
     createdAt: string;
@@ -34,6 +35,24 @@ type Pedido = {
     userId?: { _id: string; nombre: string; apellido: string; telefono?: string; role?: string };
     comensalesIds?: { _id: string; nombre: string; apellido: string; username?: string }[];
     eventoId?: string;
+};
+type CierreResumen = {
+    eventoId: string;
+    eventoNombre: string;
+    ventasEfectivo: number;
+    ventasTransferencia: number;
+    ventasTarjeta: number;
+    entradasCantidad: number;
+    entradasPrecio: number;
+    entradasTotal: number;
+    comandasEfectivo: number;
+    comandasTransferencia: number;
+    comandasTarjeta: number;
+    comandasSinCobrar: number;
+    totalEfectivo: number;
+    totalTransferencia: number;
+    totalTarjeta: number;
+    totalGeneral: number;
 };
 type MenuItemLite = { _id: string; nombre: string; precio: number; categoria: string };
 type CajaSession = { _id: string; estado: "abierta" | "cerrada"; montoInicial: number; fechaApertura: string };
@@ -146,6 +165,11 @@ export default function CajaPage() {
     const [tarjetasEventoId, setTarjetasEventoId] = useState<string | null>(null);
     const [tarjetasCantidad, setTarjetasCantidad] = useState("1");
     const [tarjetasSaving, setTarjetasSaving]     = useState(false);
+    const [cierreEventoData, setCierreEventoData] = useState<CierreResumen | null>(null);
+    const [cierreEventoSaving, setCierreEventoSaving] = useState(false);
+    const [eventosCerrados, setEventosCerrados]   = useState<any[]>([]);
+    const [historialVisible, setHistorialVisible] = useState(false);
+    const [historialLoading, setHistorialLoading] = useState(false);
     const [ventaModal, setVentaModal]             = useState(false);
     const [ventaCart, setVentaCart]               = useState<CartItem[]>([]);
     const [ventaMetodo, setVentaMetodo]           = useState<typeof METODOS[number]>("efectivo");
@@ -885,21 +909,68 @@ export default function CajaPage() {
         } finally { setEditMesasSaving(false); }
     }
 
-    async function cerrarEvento(eventoId: string) {
+    function abrirCierreEvento(eventoId: string) {
         const ev = eventosActivos.find(e => e._id === eventoId);
         if (!ev) return;
-        const r = await swalBase.fire({
-            title: "¿Cerrar evento?",
-            text: `Se cerrará "${ev.nombre}". No se podrán agregar más ventas.`,
-            icon: "warning", showCancelButton: true,
-            confirmButtonText: "Sí, cerrar", cancelButtonText: "Cancelar",
+        const pedidosEv = pedidos.filter(p => p.eventoId === ev._id);
+        const tarjetas = (ev as any).tarjetas ?? [];
+        const precioTarjeta = (ev as any).precioTarjeta ?? 0;
+
+        // Ventas directas desglosadas
+        const ventasEfectivo      = ev.ventas.filter(v => v.metodoPago === "efectivo").reduce((a, v) => a + v.total, 0);
+        const ventasTransferencia = ev.ventas.filter(v => v.metodoPago === "transferencia").reduce((a, v) => a + v.total, 0);
+        const ventasTarjeta       = ev.ventas.filter(v => v.metodoPago === "tarjeta").reduce((a, v) => a + v.total, 0);
+
+        // Tarjetas de entrada
+        const entradasCantidad = tarjetas.reduce((a: number, t: any) => a + t.cantidad, 0);
+        const entradasTotal    = entradasCantidad * precioTarjeta;
+
+        // Comandas cobradas por método
+        const cobradas             = pedidosEv.filter(p => p.estado === "cerrado");
+        const sinCobrar            = pedidosEv.filter(p => p.estado !== "cerrado" && p.estado !== "cancelado");
+        const comandasEfectivo     = cobradas.filter(p => p.metodoPago === "efectivo").reduce((a, p) => a + p.total, 0);
+        const comandasTransferencia = cobradas.filter(p => p.metodoPago === "transferencia").reduce((a, p) => a + p.total, 0);
+        const comandasTarjeta      = cobradas.filter(p => p.metodoPago === "tarjeta").reduce((a, p) => a + p.total, 0);
+        const comandasSinCobrar    = sinCobrar.reduce((a, p) => a + p.total, 0);
+
+        // Totales por método (ventas directas + comandas cobradas; entradas aparte)
+        const totalEfectivo      = ventasEfectivo + comandasEfectivo;
+        const totalTransferencia = ventasTransferencia + comandasTransferencia;
+        const totalTarjeta       = ventasTarjeta + comandasTarjeta;
+        const totalGeneral       = totalEfectivo + totalTransferencia + totalTarjeta + entradasTotal + comandasSinCobrar;
+
+        setCierreEventoData({
+            eventoId, eventoNombre: ev.nombre,
+            ventasEfectivo, ventasTransferencia, ventasTarjeta,
+            entradasCantidad, entradasPrecio: precioTarjeta, entradasTotal,
+            comandasEfectivo, comandasTransferencia, comandasTarjeta, comandasSinCobrar,
+            totalEfectivo, totalTransferencia, totalTarjeta, totalGeneral,
         });
-        if (!r.isConfirmed) return;
-        const res = await fetch(`/api/eventos/${eventoId}`, {
-            method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
-            body: JSON.stringify({ accion: "cerrar" }),
-        });
-        if (res.ok) setEventosActivos(prev => prev.filter(e => e._id !== eventoId));
+    }
+
+    async function confirmarCierreEvento() {
+        if (!cierreEventoData) return;
+        setCierreEventoSaving(true);
+        try {
+            const res = await fetch(`/api/eventos/${cierreEventoData.eventoId}`, {
+                method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
+                body: JSON.stringify({ accion: "cerrar", cierreData: cierreEventoData }),
+            });
+            if (res.ok) {
+                setEventosActivos(prev => prev.filter(e => e._id !== cierreEventoData.eventoId));
+                setCierreEventoData(null);
+                if (historialVisible) cargarHistorial();
+            }
+        } finally { setCierreEventoSaving(false); }
+    }
+
+    async function cargarHistorial() {
+        setHistorialLoading(true);
+        try {
+            const res = await fetch("/api/eventos?cerrado=true", { credentials: "include" });
+            const data = await res.json();
+            setEventosCerrados(Array.isArray(data) ? data : []);
+        } finally { setHistorialLoading(false); }
     }
 
     async function abrirTarjetasModal(eventoId: string) {
@@ -1708,9 +1779,9 @@ export default function CajaPage() {
                                             <h2 className="font-black text-gray-900 text-lg">{ev.nombre}</h2>
                                             <p className="text-xs text-gray-400">Total: {formatMoney(totalVentas + totalPedidos + totalTarjetas * precioTarjeta)}</p>
                                         </div>
-                                        <button onClick={() => cerrarEvento(ev._id)}
+                                        <button onClick={() => abrirCierreEvento(ev._id)}
                                             className="text-xs font-bold text-red-600 hover:bg-red-50 border border-red-200 px-3 py-1.5 rounded-xl transition shrink-0">
-                                            Cerrar
+                                            Cerrar evento
                                         </button>
                                     </div>
 
@@ -1802,6 +1873,92 @@ export default function CajaPage() {
                                 </div>
                                 );
                             })}
+
+                            {/* ── Historial de eventos cerrados ── */}
+                            <div className="mt-2">
+                                <button
+                                    onClick={() => {
+                                        if (!historialVisible) cargarHistorial();
+                                        setHistorialVisible(v => !v);
+                                    }}
+                                    className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-2xl border border-gray-200 transition text-sm font-bold text-gray-600">
+                                    <span>Historial de eventos cerrados</span>
+                                    <span className="text-gray-400">{historialVisible ? "▲" : "▼"}</span>
+                                </button>
+
+                            {historialVisible && (
+                                <div className="mt-3 space-y-3">
+                                    {historialLoading ? (
+                                        <div className="flex justify-center py-8"><Loader2 className="animate-spin text-gray-300" size={28} /></div>
+                                    ) : eventosCerrados.length === 0 ? (
+                                        <p className="text-center text-gray-400 text-sm py-6">Sin eventos cerrados</p>
+                                    ) : eventosCerrados.map(ev => {
+                                        const cd = ev.cierreData;
+                                        const fechaCierre = cd?.fecha ? new Date(cd.fecha).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }) : new Date(ev.updatedAt).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
+                                        return (
+                                            <div key={ev._id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                                                {/* Header */}
+                                                <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
+                                                    <div>
+                                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Cerrado · {fechaCierre}</span>
+                                                        <h3 className="font-black text-gray-900 leading-tight">{ev.nombre}</h3>
+                                                    </div>
+                                                    {cd && <span className="font-black text-gray-900 text-lg">{formatMoney(cd.totalGeneral)}</span>}
+                                                </div>
+
+                                                {cd ? (
+                                                    <div className="px-4 py-3 space-y-3">
+                                                        {/* Tarjetas entrada */}
+                                                        {cd.entradasCantidad > 0 && (
+                                                            <div className="flex items-center justify-between text-sm">
+                                                                <span className="text-gray-500 flex items-center gap-1.5"><Star size={12} /> Tarjetas entrada ({cd.entradasCantidad}× {formatMoney(cd.entradasPrecio)})</span>
+                                                                <span className="font-bold text-gray-900">{formatMoney(cd.entradasTotal)}</span>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Desglose por método */}
+                                                        <div className="bg-gray-50 rounded-xl p-3 space-y-1.5">
+                                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">Desglose por método</p>
+                                                            {[
+                                                                { label: "Efectivo",        icon: Banknote,    total: cd.totalEfectivo,      ventas: cd.ventasEfectivo,      comandas: cd.comandasEfectivo },
+                                                                { label: "Transferencia",   icon: Send,        total: cd.totalTransferencia, ventas: cd.ventasTransferencia, comandas: cd.comandasTransferencia },
+                                                                { label: "Tarjeta (débito/crédito)", icon: CreditCard, total: cd.totalTarjeta, ventas: cd.ventasTarjeta, comandas: cd.comandasTarjeta },
+                                                            ].filter(m => m.total > 0).map(m => (
+                                                                <div key={m.label} className="flex items-center justify-between text-sm">
+                                                                    <span className="text-gray-600 flex items-center gap-1.5"><m.icon size={11} /> {m.label}</span>
+                                                                    <div className="text-right">
+                                                                        <span className="font-bold text-gray-900">{formatMoney(m.total)}</span>
+                                                                        {(m.ventas > 0 || m.comandas > 0) && (
+                                                                            <span className="text-[10px] text-gray-400 ml-1">
+                                                                                {[m.ventas > 0 && `ventas ${formatMoney(m.ventas)}`, m.comandas > 0 && `comandas ${formatMoney(m.comandas)}`].filter(Boolean).join(" + ")}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                            {cd.comandasSinCobrar > 0 && (
+                                                                <div className="flex items-center justify-between text-sm border-t border-gray-200 pt-1.5 mt-1">
+                                                                    <span className="text-amber-600 flex items-center gap-1.5"><AlertCircle size={11} /> Sin cobrar al cierre</span>
+                                                                    <span className="font-bold text-amber-600">{formatMoney(cd.comandasSinCobrar)}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Total general */}
+                                                        <div className="flex items-center justify-between border-t border-gray-100 pt-2">
+                                                            <span className="text-sm font-black text-gray-900">Total general</span>
+                                                            <span className="font-black text-gray-900 text-base">{formatMoney(cd.totalGeneral)}</span>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <p className="px-4 py-3 text-xs text-gray-400">Sin resumen de cierre registrado</p>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                            </div>
                         </div>
                     )}
                     {/* ── TAB CANJES ── */}
@@ -2560,6 +2717,110 @@ export default function CajaPage() {
                                     Ver en Pedidos
                                 </button>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal resumen de cierre de evento */}
+            {cierreEventoData && (
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl flex flex-col" style={{ maxHeight: "92vh" }}>
+                        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
+                            <div className="flex-1">
+                                <h2 className="font-black text-gray-900">Resumen de cierre</h2>
+                                <p className="text-xs text-gray-400">{cierreEventoData.eventoNombre}</p>
+                            </div>
+                            <button onClick={() => setCierreEventoData(null)} className="p-1 text-gray-400"><X size={18} /></button>
+                        </div>
+
+                        <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
+                            {/* Tarjetas de entrada */}
+                            {cierreEventoData.entradasCantidad > 0 && (
+                                <div className="bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3">
+                                    <p className="text-[10px] font-black text-amber-600 uppercase tracking-wider mb-2">Tarjetas de entrada</p>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm text-gray-600">{cierreEventoData.entradasCantidad} tarjetas × {formatMoney(cierreEventoData.entradasPrecio)}</span>
+                                        <span className="font-black text-gray-900 text-base">{formatMoney(cierreEventoData.entradasTotal)}</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Ventas directas */}
+                            {(cierreEventoData.ventasEfectivo + cierreEventoData.ventasTransferencia + cierreEventoData.ventasTarjeta) > 0 && (
+                                <div className="bg-gray-50 rounded-2xl px-4 py-3">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">Ventas directas</p>
+                                    {[
+                                        { label: "Efectivo",      Icon: Banknote,    val: cierreEventoData.ventasEfectivo },
+                                        { label: "Transferencia", Icon: Send,        val: cierreEventoData.ventasTransferencia },
+                                        { label: "Tarjeta",       Icon: CreditCard,  val: cierreEventoData.ventasTarjeta },
+                                    ].filter(r => r.val > 0).map(r => (
+                                        <div key={r.label} className="flex items-center justify-between py-1">
+                                            <span className="text-sm text-gray-600 flex items-center gap-1.5"><r.Icon size={12} />{r.label}</span>
+                                            <span className="font-bold text-gray-900">{formatMoney(r.val)}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Comandas del evento */}
+                            {(cierreEventoData.comandasEfectivo + cierreEventoData.comandasTransferencia + cierreEventoData.comandasTarjeta + cierreEventoData.comandasSinCobrar) > 0 && (
+                                <div className="bg-gray-50 rounded-2xl px-4 py-3">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">Comandas</p>
+                                    {[
+                                        { label: "Efectivo",      Icon: Banknote,    val: cierreEventoData.comandasEfectivo },
+                                        { label: "Transferencia", Icon: Send,        val: cierreEventoData.comandasTransferencia },
+                                        { label: "Tarjeta",       Icon: CreditCard,  val: cierreEventoData.comandasTarjeta },
+                                    ].filter(r => r.val > 0).map(r => (
+                                        <div key={r.label} className="flex items-center justify-between py-1">
+                                            <span className="text-sm text-gray-600 flex items-center gap-1.5"><r.Icon size={12} />{r.label}</span>
+                                            <span className="font-bold text-gray-900">{formatMoney(r.val)}</span>
+                                        </div>
+                                    ))}
+                                    {cierreEventoData.comandasSinCobrar > 0 && (
+                                        <div className="flex items-center justify-between py-1 border-t border-gray-200 mt-1 pt-2">
+                                            <span className="text-sm text-amber-600 flex items-center gap-1.5"><AlertCircle size={12} />Sin cobrar al cierre</span>
+                                            <span className="font-bold text-amber-600">{formatMoney(cierreEventoData.comandasSinCobrar)}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Total por método */}
+                            <div className="bg-gray-900 rounded-2xl px-4 py-4 text-white">
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-3">Total por método de pago</p>
+                                {[
+                                    { label: "Efectivo",      Icon: Banknote,    val: cierreEventoData.totalEfectivo },
+                                    { label: "Transferencia", Icon: Send,        val: cierreEventoData.totalTransferencia },
+                                    { label: "Tarjeta",       Icon: CreditCard,  val: cierreEventoData.totalTarjeta },
+                                ].filter(r => r.val > 0).map(r => (
+                                    <div key={r.label} className="flex items-center justify-between py-1.5">
+                                        <span className="text-sm text-gray-300 flex items-center gap-1.5"><r.Icon size={12} />{r.label}</span>
+                                        <span className="font-bold text-white">{formatMoney(r.val)}</span>
+                                    </div>
+                                ))}
+                                {cierreEventoData.entradasTotal > 0 && (
+                                    <div className="flex items-center justify-between py-1.5">
+                                        <span className="text-sm text-gray-300 flex items-center gap-1.5"><Star size={12} />Tarjetas entrada</span>
+                                        <span className="font-bold text-white">{formatMoney(cierreEventoData.entradasTotal)}</span>
+                                    </div>
+                                )}
+                                <div className="flex items-center justify-between pt-3 mt-2 border-t border-gray-700">
+                                    <span className="font-black text-white">TOTAL GENERAL</span>
+                                    <span className="font-black text-white text-xl">{formatMoney(cierreEventoData.totalGeneral)}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="px-5 py-4 border-t border-gray-100 flex gap-2 shrink-0">
+                            <button onClick={() => setCierreEventoData(null)} disabled={cierreEventoSaving}
+                                className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">
+                                Cancelar
+                            </button>
+                            <button onClick={confirmarCierreEvento} disabled={cierreEventoSaving}
+                                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
+                                {cierreEventoSaving ? "Cerrando..." : "Confirmar cierre"}
+                            </button>
                         </div>
                     </div>
                 </div>
