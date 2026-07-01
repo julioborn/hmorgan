@@ -1375,90 +1375,71 @@ export default function CajaPage() {
                                     {lista.length === 0 ? (
                                         <p className="col-span-full text-center text-gray-400 py-12">Sin pedidos en este estado.</p>
                                     ) : lista.map(p => {
-                                        const esMozo   = p.fuente === "empleado" || p.userId?.role === "empleado";
+                                        const esApp     = p.fuente !== "empleado";
+                                        const esMozo    = !esApp && p.userId?.role === "empleado";
+                                        const esCaja    = !esApp && !esMozo;
                                         const estadoIdx = getEstadoIdx(p.estado);
                                         const color     = ESTADOS[estadoIdx]?.color || "gray";
                                         const fechaHora = p.createdAt ? format(new Date(p.createdAt), "dd/MM HH:mm", { locale: es }) : "";
                                         const isUpdating = updatingId === p._id;
 
-                                        // "cerrado" nunca es clickeable en el progress bar (solo via Cobrar)
-                                        // Mozo: pendiente→preparando→listo (cobrar = pestaña Cobrar)
-                                        // Cliente: pendiente→preparando→listo→entregado (finalizado)
-                                        const estadosMozo   = ESTADOS.filter(e => e.key !== "entregado" && e.key !== "cerrado");
+                                        const estadosMozo    = ESTADOS.filter(e => e.key !== "entregado" && e.key !== "cerrado");
                                         const estadosCliente = ESTADOS.filter(e => e.key !== "cerrado");
-                                        const estadosList = esMozo ? estadosMozo : estadosCliente;
+                                        const estadosList    = esApp ? estadosCliente : estadosMozo;
+
+                                        const titulo = esApp
+                                            ? (p.userId ? `${p.userId.nombre} ${p.userId.apellido || ""}`.trim() : "Cliente")
+                                            : (p.mesa ? `Mesa ${p.mesa}` : p.nombreComanda || (esCaja ? "Caja" : "Sin mesa"));
+
+                                        const subtitulo = esApp
+                                            ? `${p.numeroDia ? `#${p.numeroDia} · ` : ""}${p.tipoEntrega === "envio" ? "Envío a domicilio" : "Retiro en local"}`
+                                            : esMozo
+                                                ? `Mozo: ${[p.userId?.nombre, p.userId?.apellido].filter(Boolean).join(" ")}`
+                                                : "Caja";
+
+                                        const accentBg     = esApp ? "bg-red-600"   : "bg-gray-900";
+                                        const cardBorder   = esApp ? "border-red-500" : "border-gray-900";
 
                                         return (
                                             <motion.div key={p._id}
                                                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                                                className={`rounded-2xl border shadow-sm overflow-hidden aspect-[4/5] flex flex-col ${esMozo ? "border-gray-800" : "border-gray-200"}`}>
+                                                className={`rounded-2xl border-2 shadow-sm overflow-hidden flex flex-col ${cardBorder} bg-white`}>
 
-                                                {/* Banner mozo */}
-                                                {esMozo && (
-                                                    <div className="shrink-0 text-white px-4 py-2.5 flex items-center gap-2" style={{ background: "linear-gradient(90deg, #1c1c1c 0%, #2a2a2a 100%)" }}>
-                                                        <UtensilsCrossed size={14} className="text-gray-400" />
+                                                {/* ── Cabecera coloreada ── */}
+                                                <div className={`shrink-0 px-4 py-3 ${accentBg}`}>
+                                                    <div className="flex items-start justify-between gap-3">
                                                         <div className="flex-1 min-w-0">
-                                                            <span className="font-black text-sm tracking-tight">
-                                                                Barra — Mozo{p.mesa ? ` · Mesa ${p.mesa}` : ""}
-                                                            </span>
-                                                            {(p as any).nombreComanda && (
-                                                                <p className="text-xs text-gray-400 font-semibold truncate mt-0.5">{(p as any).nombreComanda}</p>
+                                                            <p className="font-black text-white text-2xl leading-tight tracking-tight truncate">{titulo}</p>
+                                                            <p className="text-sm text-white/70 font-medium mt-0.5">{subtitulo}</p>
+                                                            {esApp && p.userId?.telefono && (
+                                                                <a href={`https://wa.me/${p.userId.telefono.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
+                                                                    className="inline-flex items-center gap-1 text-xs text-white/70 hover:text-white mt-1 transition">
+                                                                    <Phone size={10} />{p.userId.telefono}
+                                                                </a>
                                                             )}
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                {/* Banner app */}
-                                                {!esMozo && (
-                                                    <div className="shrink-0 bg-gray-100 text-gray-600 px-4 py-2 flex items-center gap-2">
-                                                        <Package size={12} />
-                                                        <span className="text-xs font-bold">
-                                                            {p.numeroDia ? `Pedido #${p.numeroDia}` : "Pedido App"}
-                                                        </span>
-                                                        {p.tipoEntrega && <span className="text-xs text-gray-400 ml-1 capitalize">· {p.tipoEntrega}</span>}
-                                                    </div>
-                                                )}
-
-                                                <div className={`p-3 flex flex-col flex-1 min-h-0 ${esMozo ? "bg-gray-50" : "bg-white"}`}>
-                                                    {/* Header */}
-                                                    <div className="shrink-0 flex items-start justify-between gap-3 mb-2">
-                                                        <div className="flex-1 min-w-0">
-                                                            <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border uppercase tracking-wide inline-block mb-1 ${COLOR_CLASSES[color] || "border-gray-200 bg-gray-100 text-gray-600"}`}>
-                                                                {p.estado}
-                                                            </span>
-                                                            <h2 className="text-base font-black text-gray-900 leading-tight">
-                                                                {p.userId?.nombre} {p.userId?.apellido}
-                                                            </h2>
-                                                            <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-400">
-                                                                {!esMozo && p.userId?.telefono && (
-                                                                    <a href={`https://wa.me/${p.userId.telefono.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
-                                                                        className="flex items-center gap-1 hover:text-emerald-600 transition">
-                                                                        <Phone size={10} />{p.userId.telefono}
-                                                                    </a>
-                                                                )}
-                                                                <span>{fechaHora}</span>
-                                                            </div>
-                                                            {p.tipoEntrega === "envio" && p.direccion && (
-                                                                <div className="flex items-start gap-1 mt-1.5 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-2 py-1.5">
-                                                                    <MapPin size={11} className="shrink-0 mt-0.5" />
-                                                                    <span>{p.direccion}</span>
+                                                            {esApp && p.tipoEntrega === "envio" && p.direccion && (
+                                                                <div className="flex items-start gap-1 mt-1 text-xs text-white/70">
+                                                                    <MapPin size={10} className="shrink-0 mt-0.5" /><span>{p.direccion}</span>
                                                                 </div>
                                                             )}
                                                         </div>
-                                                        {!esMozo && p.userId?.telefono && (
-                                                            <a href={`https://wa.me/${p.userId.telefono.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
-                                                                className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-semibold transition shrink-0">
-                                                                <MessageCircle size={13} /> WhatsApp
-                                                            </a>
-                                                        )}
+                                                        <div className="shrink-0 text-right">
+                                                            <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border uppercase tracking-wider inline-block ${COLOR_CLASSES[color] || "border-gray-200 bg-white text-gray-600"}`}>
+                                                                {p.estado}
+                                                            </span>
+                                                            <p className="text-xs text-white/50 mt-1.5">{fechaHora}</p>
+                                                        </div>
                                                     </div>
+                                                </div>
 
+                                                {/* ── Cuerpo ── */}
+                                                <div className="p-3 flex flex-col flex-1 min-h-0 bg-white">
                                                     {/* Items */}
-                                                    <ul className="mb-2 flex-1 min-h-0 overflow-y-auto divide-y divide-gray-100 border border-gray-100 rounded-xl">
+                                                    <ul className="mb-2 divide-y divide-gray-100 border border-gray-100 rounded-xl max-h-48 overflow-y-auto">
                                                         {p.items.map((it, idx) => (
-                                                            <li key={it._id || idx} className="flex justify-between items-center px-3 py-2 bg-gray-50 gap-2">
-                                                                <span className="text-sm text-gray-800 flex-1 min-w-0 truncate">{it.menuItemId?.nombre}</span>
-                                                                <span className="text-red-600 font-semibold text-sm shrink-0">×{it.cantidad}</span>
+                                                            <li key={it._id || idx} className="flex items-center px-3 py-2.5 gap-2">
+                                                                <span className="font-black text-gray-400 text-sm shrink-0">{it.cantidad}×</span>
+                                                                <span className="text-sm font-semibold text-gray-900 flex-1 min-w-0 truncate">{it.menuItemId?.nombre}</span>
                                                                 {p.estado !== "cerrado" && p.estado !== "cancelado" && it._id && (
                                                                     <div className="flex items-center gap-1 shrink-0">
                                                                         <button onClick={() => abrirSelectorProducto(p, { modo: "reemplazar", itemId: it._id!, nombreActual: it.menuItemId?.nombre || "ítem" })}
@@ -1484,53 +1465,57 @@ export default function CajaPage() {
 
                                                     {(p.notaEmpleado || p.notaCliente) && (
                                                         <div className="shrink-0 border-l-2 border-amber-400 pl-3 py-1 mb-2">
-                                                            <p className="text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Nota</p>
+                                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-wide mb-0.5">Nota</p>
                                                             <p className="text-xs text-gray-600 italic">{p.notaEmpleado || p.notaCliente}</p>
                                                         </div>
                                                     )}
 
                                                     {/* Total */}
                                                     {p.tipoEntrega === "envio" && (p.costoEnvio ?? 0) > 0 ? (
-                                                        <div className="shrink-0 text-sm text-gray-700 mb-2 space-y-0.5">
-                                                            <div className="flex justify-between">
-                                                                <span>Subtotal</span>
-                                                                <span>{formatMoney(p.total - (p.costoEnvio ?? 0))}</span>
+                                                        <div className="shrink-0 pt-2 pb-1 border-t border-gray-100 mb-2 space-y-0.5">
+                                                            <div className="flex justify-between text-xs text-gray-500">
+                                                                <span>Subtotal</span><span>{formatMoney(p.total - (p.costoEnvio ?? 0))}</span>
                                                             </div>
-                                                            <div className="flex justify-between">
-                                                                <span>Envío</span>
-                                                                <span>{formatMoney(p.costoEnvio ?? 0)}</span>
+                                                            <div className="flex justify-between text-xs text-gray-500">
+                                                                <span>Envío</span><span>{formatMoney(p.costoEnvio ?? 0)}</span>
                                                             </div>
-                                                            <div className="flex justify-between font-bold text-gray-900">
-                                                                <span>Total</span>
-                                                                <span>{formatMoney(p.total)}</span>
+                                                            <div className="flex justify-between font-black text-gray-900 text-lg">
+                                                                <span>Total</span><span>{formatMoney(p.total)}</span>
                                                             </div>
                                                         </div>
                                                     ) : (
-                                                        <p className="shrink-0 text-sm font-bold text-gray-900 mb-2">Total: {formatMoney(p.total)}</p>
+                                                        <div className="shrink-0 flex justify-between items-center pt-2 border-t border-gray-100 mb-2">
+                                                            <span className="text-xs font-black text-gray-400 uppercase tracking-wide">Total</span>
+                                                            <span className="font-black text-gray-900 text-xl">{formatMoney(p.total)}</span>
+                                                        </div>
                                                     )}
 
-                                                    {/* Botones estado pendiente */}
+                                                    {/* WhatsApp para pedidos app */}
+                                                    {esApp && p.userId?.telefono && (
+                                                        <a href={`https://wa.me/${p.userId.telefono.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
+                                                            className="shrink-0 mb-2 flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-bold transition">
+                                                            <MessageCircle size={13} /> WhatsApp
+                                                        </a>
+                                                    )}
+
+                                                    {/* Botones pendiente */}
                                                     {p.estado === "pendiente" ? (
                                                         <div className="shrink-0 flex gap-2">
                                                             <button disabled={isUpdating}
                                                                 onClick={async () => {
-                                                                    // Imprime y marca los ítems como impresos ANTES de pasar a
-                                                                    // "preparando", así el chequeo de agregados no los detecta
-                                                                    // como pendientes y los imprime por segunda vez.
                                                                     await printComanda(p);
                                                                     await avanzarEstado(p, "preparando");
                                                                 }}
-                                                                className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-semibold py-2 rounded-xl transition flex items-center justify-center gap-1">
+                                                                className={`flex-1 disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1 ${esApp ? "bg-red-600 hover:bg-red-700" : "bg-gray-900 hover:bg-gray-800"}`}>
                                                                 {isUpdating ? <Loader2 size={14} className="animate-spin" /> : null}
                                                                 Aceptar
                                                             </button>
                                                             <button onClick={() => rechazarPedido(p._id)}
-                                                                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 rounded-xl transition">
+                                                                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 rounded-xl transition">
                                                                 Rechazar
                                                             </button>
                                                         </div>
                                                     ) : estadoIdx < estadosList.length - 1 ? (
-                                                        /* Barra de progreso con estados (se oculta cuando ya no hay un próximo paso clickeable) */
                                                         <div className="shrink-0 relative w-full flex justify-between items-center mt-1">
                                                             <div className="absolute top-[16px] left-0 w-full h-[3px] bg-gray-200 rounded-full" />
                                                             <motion.div
@@ -1539,7 +1524,7 @@ export default function CajaPage() {
                                                                 animate={{ width: `${(estadoIdx / (estadosList.length - 1)) * 100}%` }}
                                                                 transition={{ duration: 0.4 }}
                                                             />
-                                                            {estadosList.map((est, idx) => {
+                                                            {estadosList.map((est) => {
                                                                 const Icon = est.icon;
                                                                 const isActive = estadoIdx >= getEstadoIdx(est.key);
                                                                 const canClick = getEstadoIdx(est.key) > estadoIdx;
@@ -1563,7 +1548,7 @@ export default function CajaPage() {
                                                         </div>
                                                     ) : null}
 
-                                                    {/* Reimprimir / Cobrar (pedido ya aceptado) */}
+                                                    {/* Reimprimir / Cobrar */}
                                                     {p.estado !== "pendiente" && (
                                                         <div className="shrink-0 mt-2 flex gap-2">
                                                             <button onClick={() => printComanda(p)}
@@ -1606,43 +1591,53 @@ export default function CajaPage() {
                                     <p className="text-sm mt-1 text-gray-300">Aparecen acá cuando el pedido está Listo o Finalizado</p>
                                 </div>
                             ) : paraCobrar.map(p => {
-                                const esMozo = p.fuente === "empleado" || p.userId?.role === "empleado";
-                                const label = esMozo
-                                    ? (p.mesa ? `Mesa ${p.mesa}` : p.nombreComanda || "Sin mesa")
-                                    : (p.userId ? `${p.userId.nombre} ${p.userId.apellido || ""}`.trim() : "Cliente app");
+                                const esApp  = p.fuente !== "empleado";
+                                const esMozo = !esApp && p.userId?.role === "empleado";
+
+                                const titulo = esApp
+                                    ? (p.userId ? `${p.userId.nombre} ${p.userId.apellido || ""}`.trim() : "Cliente")
+                                    : (p.mesa ? `Mesa ${p.mesa}` : p.nombreComanda || (!esMozo ? "Caja" : "Sin mesa"));
+
+                                const subtitulo = esApp
+                                    ? `${p.numeroDia ? `#${p.numeroDia} · ` : ""}${p.tipoEntrega === "envio" ? "Envío" : "Local"}`
+                                    : esMozo
+                                        ? `Mozo: ${[p.userId?.nombre, p.userId?.apellido].filter(Boolean).join(" ")}`
+                                        : "Caja";
+
+                                const accentBg   = esApp ? "bg-red-600"    : "bg-gray-900";
+                                const cardBorder = esApp ? "border-red-500" : "border-gray-900";
+                                const cobrarBg   = esApp ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700";
+
                                 return (
-                                    <div key={p._id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden aspect-[4/5] flex flex-col">
-                                        <div className="shrink-0 flex items-center justify-between px-4 py-3.5 border-b border-gray-100 bg-gray-50">
-                                            <div>
-                                                <div className="flex items-center gap-2 flex-wrap">
-                                                    <UtensilsCrossed size={14} className="text-gray-400" />
-                                                    <p className="font-black text-gray-900">{label}</p>
-                                                    {!esMozo && (
-                                                        <span className="text-[10px] bg-gray-200 text-gray-600 font-bold px-1.5 py-0.5 rounded-full">
-                                                            {p.numeroDia ? `#${p.numeroDia}` : "App"}
-                                                        </span>
-                                                    )}
-                                                    {p.comensales ? <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full font-semibold">{p.comensales}p</span> : null}
-                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${p.estado === "entregado" ? "bg-emerald-100 text-emerald-700" : "bg-gray-900 text-white"}`}>
+                                    <div key={p._id} className={`rounded-2xl border-2 shadow-sm overflow-hidden flex flex-col ${cardBorder} bg-white`}>
+                                        {/* ── Cabecera coloreada ── */}
+                                        <div className={`shrink-0 px-4 py-3 ${accentBg}`}>
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-black text-white text-2xl leading-tight tracking-tight truncate">{titulo}</p>
+                                                    <p className="text-sm text-white/70 font-medium mt-0.5">{subtitulo}</p>
+                                                    <p className="text-xs text-white/50 mt-0.5">
+                                                        {format(new Date(p.createdAt), "HH:mm", { locale: es })}
+                                                        {p.tipoEntrega === "envio" ? " · Envío" : ""}
+                                                        {p.comensales ? ` · ${p.comensales} pers.` : ""}
+                                                    </p>
+                                                </div>
+                                                <div className="shrink-0 text-right">
+                                                    <p className="font-black text-white text-2xl leading-none">{formatMoney(p.total)}</p>
+                                                    <span className={`text-[10px] font-black mt-1 px-2 py-0.5 rounded-full inline-block ${p.estado === "entregado" ? "bg-emerald-100 text-emerald-700" : "bg-white text-gray-900"}`}>
                                                         {p.estado === "entregado" ? "Finalizado" : "Listo"}
                                                     </span>
                                                 </div>
-                                                <p className="text-xs text-gray-400 mt-0.5">{format(new Date(p.createdAt), "HH:mm", { locale: es })}{p.tipoEntrega === "envio" ? " · Envío" : ""}</p>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                <p className="text-xl font-black text-gray-900">{formatMoney(p.total)}</p>
-                                                <button
-                                                    onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", pagos: [{ metodo: "efectivo", monto: String(p.total) }] }); }}
-                                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-sm transition">
-                                                    Cobrar
-                                                </button>
                                             </div>
                                         </div>
-                                        <div className="px-4 py-3 space-y-1 flex-1 min-h-0 overflow-y-auto">
+
+                                        {/* ── Items ── */}
+                                        <div className="px-4 py-3 space-y-1.5 flex-1 min-h-0 overflow-y-auto max-h-52">
                                             {p.items.map((item, idx) => (
-                                                <div key={item._id || idx} className="flex justify-between items-center text-sm gap-2">
-                                                    <span className="text-gray-700 flex-1 min-w-0 truncate">{item.cantidad}× {item.menuItemId?.nombre}</span>
-                                                    <span className="text-gray-400 shrink-0">{formatMoney((item.menuItemId?.precio || 0) * item.cantidad)}</span>
+                                                <div key={item._id || idx} className="flex items-center gap-2">
+                                                    <span className="font-black text-gray-400 text-sm shrink-0">{item.cantidad}×</span>
+                                                    <span className="text-sm font-semibold text-gray-900 flex-1 min-w-0 truncate">{item.menuItemId?.nombre}</span>
+                                                    <span className="text-xs text-gray-400 shrink-0">{formatMoney((item.menuItemId?.precio || 0) * item.cantidad)}</span>
                                                     {item._id && (
                                                         <div className="flex items-center gap-1 shrink-0">
                                                             <button onClick={() => abrirSelectorProducto(p, { modo: "reemplazar", itemId: item._id!, nombreActual: item.menuItemId?.nombre || "ítem" })}
@@ -1658,15 +1653,28 @@ export default function CajaPage() {
                                                 </div>
                                             ))}
                                             {p.tipoEntrega === "envio" && (p.costoEnvio ?? 0) > 0 && (
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-gray-700">Envío a domicilio</span>
-                                                    <span className="text-gray-400">{formatMoney(p.costoEnvio ?? 0)}</span>
+                                                <div className="flex justify-between text-xs text-gray-400 border-t border-gray-100 pt-1.5 mt-1">
+                                                    <span>Envío a domicilio</span>
+                                                    <span>{formatMoney(p.costoEnvio ?? 0)}</span>
                                                 </div>
                                             )}
-                                            {p.notaEmpleado && <p className="text-xs text-amber-600 italic pt-1">📝 {p.notaEmpleado}</p>}
+                                            {(p.notaEmpleado || p.notaCliente) && (
+                                                <div className="border-l-2 border-amber-400 pl-2 py-0.5 mt-1">
+                                                    <p className="text-xs text-gray-600 italic">{p.notaEmpleado || p.notaCliente}</p>
+                                                </div>
+                                            )}
                                             <button onClick={() => abrirSelectorProducto(p, { modo: "agregar" })}
                                                 className="mt-1 w-full flex items-center justify-center gap-1.5 border border-dashed border-gray-300 hover:border-gray-400 bg-white text-gray-500 hover:text-gray-700 font-semibold py-1.5 rounded-xl text-xs transition">
                                                 <Plus size={12} /> Agregar producto
+                                            </button>
+                                        </div>
+
+                                        {/* ── Botón cobrar ── */}
+                                        <div className="px-3 pb-3">
+                                            <button
+                                                onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", pagos: [{ metodo: "efectivo", monto: String(p.total) }] }); }}
+                                                className={`w-full text-white font-black py-3 rounded-xl text-base tracking-wide transition ${cobrarBg}`}>
+                                                Cobrar
                                             </button>
                                         </div>
                                     </div>
