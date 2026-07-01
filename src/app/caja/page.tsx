@@ -89,13 +89,21 @@ const ESTADOS = [
     { key: "cerrado",    label: "Cobrado",     icon: CheckCircle,   color: "emerald" },
 ];
 const COLOR_CLASSES: Record<string, string> = {
-    yellow:  "border-yellow-500 bg-yellow-400/30 text-yellow-900 font-semibold",
-    orange:  "border-orange-500 bg-orange-100 text-orange-700 font-semibold",
-    dark:    "border-gray-800 bg-gray-900 text-white font-semibold",
-    emerald: "border-emerald-500 bg-emerald-100 text-emerald-700 font-semibold",
+    yellow:  "border-red-600 bg-red-600 text-white font-semibold",
+    orange:  "border-black bg-black text-white font-semibold",
+    dark:    "border-black bg-black text-white font-semibold",
+    emerald: "border-gray-700 bg-gray-700 text-white font-semibold",
 };
 const BAR_COLORS: Record<string, string> = {
-    yellow: "bg-yellow-500", orange: "bg-orange-500", dark: "bg-gray-900", emerald: "bg-emerald-500",
+    yellow: "bg-red-600", orange: "bg-black", dark: "bg-black", emerald: "bg-gray-700",
+};
+// Badge del estado dentro del header coloreado (rojo/negro/blanco del bar)
+const ESTADO_BADGE: Record<string, string> = {
+    pendiente:  "bg-red-600 text-white border-2 border-white/50",
+    preparando: "bg-black text-white border-2 border-white/30",
+    listo:      "bg-white text-black border-2 border-white",
+    entregado:  "bg-white/20 text-white border border-white/30",
+    cerrado:    "bg-white/15 text-white border border-white/20",
 };
 
 type Vista = "pendientes" | "preparando" | "listos" | "finalizados";
@@ -1187,7 +1195,7 @@ export default function CajaPage() {
         <button onClick={() => setVista(key)}
             className={`relative flex-1 py-2.5 text-xs font-black transition rounded-xl ${
                 vista === key
-                    ? "bg-gray-900 text-white shadow-md"
+                    ? "bg-black text-white shadow-md"
                     : "bg-gray-100 text-gray-500 hover:bg-gray-200"
             }`}>
             {label}
@@ -1293,61 +1301,61 @@ export default function CajaPage() {
                     <div className="flex bg-white sticky top-0 z-10 border-b border-gray-100">
                         <button onClick={() => setTab("pedidos")}
                             className={`flex-1 py-3.5 text-sm font-black transition flex items-center justify-center gap-2 ${
-                                tab === "pedidos" ? "text-gray-900 border-b-2 border-gray-900" : "text-gray-400 hover:text-gray-600"
+                                tab === "pedidos" ? "text-gray-900 border-b-2 border-black" : "text-gray-400 hover:text-gray-600"
                             }`}>
                             <Package size={15} /> Pedidos
                             {(pendientes.length + preparando.length + listos.length) > 0 && (
-                                <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${tab === "pedidos" ? "bg-gray-900 text-white" : "bg-red-100 text-red-600"}`}>
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${tab === "pedidos" ? "bg-black text-white" : "bg-red-100 text-red-600"}`}>
                                     {pendientes.length + preparando.length + listos.length}
                                 </span>
                             )}
                         </button>
                         <button onClick={() => setTab("caja")}
                             className={`flex-1 py-3.5 text-sm font-black transition flex items-center justify-center gap-2 ${
-                                tab === "caja" ? "text-gray-900 border-b-2 border-gray-900" : "text-gray-400 hover:text-gray-600"
+                                tab === "caja" ? "text-gray-900 border-b-2 border-black" : "text-gray-400 hover:text-gray-600"
                             }`}>
                             <Wallet size={15} /> Cobrar
                             {paraCobrar.length > 0 && (
-                                <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${tab === "caja" ? "bg-gray-900 text-white" : "bg-amber-100 text-amber-700"}`}>
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${tab === "caja" ? "bg-black text-white" : "bg-amber-100 text-amber-700"}`}>
                                     {paraCobrar.length}
                                 </span>
                             )}
                         </button>
                         <button onClick={() => setTab("mesas")}
                             className={`flex-1 py-3.5 text-sm font-black transition flex items-center justify-center gap-2 ${
-                                tab === "mesas" ? "text-gray-900 border-b-2 border-gray-900" : "text-gray-400 hover:text-gray-600"
+                                tab === "mesas" ? "text-gray-900 border-b-2 border-black" : "text-gray-400 hover:text-gray-600"
                             }`}>
                             <MapPin size={15} /> Mesas
                         </button>
                         <button onClick={() => setTab("reservas")}
                             className={`flex-1 py-3.5 text-sm font-black transition flex items-center justify-center gap-2 ${
-                                tab === "reservas" ? "text-gray-900 border-b-2 border-gray-900" : "text-gray-400 hover:text-gray-600"
+                                tab === "reservas" ? "text-gray-900 border-b-2 border-black" : "text-gray-400 hover:text-gray-600"
                             }`}>
                             <CalendarDays size={15} /> Reservas
                             {reservasPendientes > 0 && (
-                                <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${tab === "reservas" ? "bg-gray-900 text-white" : "bg-red-100 text-red-600"}`}>
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${tab === "reservas" ? "bg-black text-white" : "bg-red-100 text-red-600"}`}>
                                     {reservasPendientes}
                                 </span>
                             )}
                         </button>
                         <button onClick={() => setTab("eventos")}
                             className={`flex-1 py-3.5 text-sm font-black transition flex items-center justify-center gap-2 ${
-                                tab === "eventos" ? "text-gray-900 border-b-2 border-gray-900" : "text-gray-400 hover:text-gray-600"
+                                tab === "eventos" ? "text-gray-900 border-b-2 border-black" : "text-gray-400 hover:text-gray-600"
                             }`}>
                             <Star size={15} /> Eventos
                             {eventosActivos.length > 0 && (
-                                <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${tab === "eventos" ? "bg-gray-900 text-white" : "bg-amber-100 text-amber-700"}`}>
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${tab === "eventos" ? "bg-black text-white" : "bg-amber-100 text-amber-700"}`}>
                                     {eventosActivos.length}
                                 </span>
                             )}
                         </button>
                         <button onClick={() => setTab("canjes")}
                             className={`flex-1 py-3.5 text-sm font-black transition flex items-center justify-center gap-2 ${
-                                tab === "canjes" ? "text-gray-900 border-b-2 border-gray-900" : "text-gray-400 hover:text-gray-600"
+                                tab === "canjes" ? "text-gray-900 border-b-2 border-black" : "text-gray-400 hover:text-gray-600"
                             }`}>
                             <Gift size={15} /> Canjes
                             {canjesPendientes.length > 0 && (
-                                <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${tab === "canjes" ? "bg-gray-900 text-white" : "bg-emerald-100 text-emerald-700"}`}>
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${tab === "canjes" ? "bg-black text-white" : "bg-emerald-100 text-emerald-700"}`}>
                                     {canjesPendientes.length}
                                 </span>
                             )}
@@ -1359,7 +1367,7 @@ export default function CajaPage() {
                         <div className="max-w-screen-2xl mx-auto px-4 pt-4">
                             {/* Nueva comanda (cajero actuando como mozo) */}
                             <button onClick={() => router.push("/empleado/anotador/menu")}
-                                className="w-full mb-4 flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-700 text-white font-bold py-3 rounded-2xl transition shadow-sm active:scale-[0.98]">
+                                className="w-full mb-4 flex items-center justify-center gap-2 bg-black hover:bg-gray-900 text-white font-bold py-3 rounded-2xl transition shadow-sm active:scale-[0.98]">
                                 <Plus size={18} /> Nueva comanda
                             </button>
 
@@ -1398,42 +1406,42 @@ export default function CajaPage() {
                                                 ? `Mozo: ${[p.userId?.nombre, p.userId?.apellido].filter(Boolean).join(" ")}`
                                                 : "Caja";
 
-                                        const accentBg     = esApp ? "bg-red-600"   : "bg-gray-900";
-                                        const cardBorder   = esApp ? "border-red-500" : "border-gray-900";
+                                        const accentBg     = esApp ? "bg-red-600"   : "bg-black";
+                                        const cardBorder   = esApp ? "border-red-500" : "border-black";
 
                                         return (
                                             <motion.div key={p._id}
                                                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                                                className={`rounded-2xl border-2 shadow-sm overflow-hidden flex flex-col ${cardBorder} bg-white`}>
+                                                className={`rounded-2xl border-2 shadow-sm overflow-hidden flex flex-col h-[500px] ${cardBorder} bg-white`}>
 
                                                 {/* ── Cabecera coloreada ── */}
                                                 <div className={`shrink-0 px-4 py-3 ${accentBg}`}>
                                                     <div className="flex items-start justify-between gap-3">
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="font-black text-white text-2xl leading-tight tracking-tight truncate">{titulo}</p>
-                                                            <p className="text-sm text-white/70 font-medium mt-0.5">{subtitulo}</p>
-                                                            {esApp && p.userId?.telefono && (
-                                                                <a href={`https://wa.me/${p.userId.telefono.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
-                                                                    className="inline-flex items-center gap-1 text-xs text-white/70 hover:text-white mt-1 transition">
-                                                                    <Phone size={10} />{p.userId.telefono}
-                                                                </a>
-                                                            )}
+                                                            <p className="font-black text-white text-xl leading-tight tracking-tight truncate">{titulo}</p>
+                                                            <p className="text-xs text-white/65 font-medium mt-0.5">{subtitulo}</p>
                                                             {esApp && p.tipoEntrega === "envio" && p.direccion && (
-                                                                <div className="flex items-start gap-1 mt-1 text-xs text-white/70">
-                                                                    <MapPin size={10} className="shrink-0 mt-0.5" /><span>{p.direccion}</span>
+                                                                <div className="flex items-start gap-1 mt-1 text-xs text-white/65">
+                                                                    <MapPin size={9} className="shrink-0 mt-0.5" /><span className="truncate">{p.direccion}</span>
                                                                 </div>
                                                             )}
                                                             {esApp && p.horarioPreferido && (
-                                                                <div className="flex items-center gap-1 mt-1 text-xs font-bold text-white/90">
-                                                                    <Clock size={10} className="shrink-0" /><span>Horario preferido: {p.horarioPreferido}</span>
+                                                                <div className="flex items-center gap-1 mt-0.5 text-xs font-bold text-white/85">
+                                                                    <Clock size={9} className="shrink-0" /><span>{p.horarioPreferido}</span>
                                                                 </div>
+                                                            )}
+                                                            {esApp && p.userId?.telefono && (
+                                                                <a href={`https://wa.me/${p.userId.telefono.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
+                                                                    className="inline-flex items-center gap-1 text-xs text-white/60 hover:text-white mt-0.5 transition">
+                                                                    <Phone size={9} />{p.userId.telefono}
+                                                                </a>
                                                             )}
                                                         </div>
                                                         <div className="shrink-0 text-right">
-                                                            <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border uppercase tracking-wider inline-block ${COLOR_CLASSES[color] || "border-gray-200 bg-white text-gray-600"}`}>
-                                                                {p.estado}
+                                                            <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider inline-block ${ESTADO_BADGE[p.estado] || "bg-white/20 text-white"}`}>
+                                                                {ESTADOS.find(e => e.key === p.estado)?.label || p.estado}
                                                             </span>
-                                                            <p className="text-xs text-white/50 mt-1.5">{fechaHora}</p>
+                                                            <p className="text-xs text-white/45 mt-1">{fechaHora}</p>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1441,7 +1449,7 @@ export default function CajaPage() {
                                                 {/* ── Cuerpo ── */}
                                                 <div className="p-3 flex flex-col flex-1 min-h-0 bg-white">
                                                     {/* Items */}
-                                                    <ul className="mb-2 divide-y divide-gray-100 border border-gray-100 rounded-xl max-h-48 overflow-y-auto">
+                                                    <ul className="mb-2 divide-y divide-gray-100 border border-gray-100 rounded-xl flex-1 min-h-0 overflow-y-auto">
                                                         {p.items.map((it, idx) => (
                                                             <li key={it._id || idx} className="flex items-center px-3 py-2.5 gap-2">
                                                                 <span className="font-black text-gray-900 text-sm shrink-0">{it.cantidad}×</span>
@@ -1512,7 +1520,7 @@ export default function CajaPage() {
                                                                     await printComanda(p);
                                                                     await avanzarEstado(p, "preparando");
                                                                 }}
-                                                                className={`flex-1 disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1 ${esApp ? "bg-red-600 hover:bg-red-700" : "bg-gray-900 hover:bg-gray-800"}`}>
+                                                                className={`flex-1 disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1 ${esApp ? "bg-red-600 hover:bg-red-700" : "bg-black hover:bg-gray-900"}`}>
                                                                 {isUpdating ? <Loader2 size={14} className="animate-spin" /> : null}
                                                                 Aceptar
                                                             </button>
@@ -1610,40 +1618,40 @@ export default function CajaPage() {
                                         ? `Mozo: ${[p.userId?.nombre, p.userId?.apellido].filter(Boolean).join(" ")}`
                                         : "Caja";
 
-                                const accentBg   = esApp ? "bg-red-600"    : "bg-gray-900";
-                                const cardBorder = esApp ? "border-red-500" : "border-gray-900";
-                                const cobrarBg   = esApp ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700";
+                                const accentBg   = esApp ? "bg-red-600"    : "bg-black";
+                                const cardBorder = esApp ? "border-red-500" : "border-black";
+                                const cobrarBg   = "bg-black hover:bg-gray-900";
 
                                 return (
-                                    <div key={p._id} className={`rounded-2xl border-2 shadow-sm overflow-hidden flex flex-col ${cardBorder} bg-white`}>
+                                    <div key={p._id} className={`rounded-2xl border-2 shadow-sm overflow-hidden flex flex-col h-[500px] ${cardBorder} bg-white`}>
                                         {/* ── Cabecera coloreada ── */}
                                         <div className={`shrink-0 px-4 py-3 ${accentBg}`}>
                                             <div className="flex items-start justify-between gap-3">
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="font-black text-white text-2xl leading-tight tracking-tight truncate">{titulo}</p>
-                                                    <p className="text-sm text-white/70 font-medium mt-0.5">{subtitulo}</p>
-                                                    <p className="text-xs text-white/50 mt-0.5">
+                                                    <p className="font-black text-white text-xl leading-tight tracking-tight truncate">{titulo}</p>
+                                                    <p className="text-xs text-white/65 font-medium mt-0.5">{subtitulo}</p>
+                                                    <p className="text-xs text-white/45 mt-0.5">
                                                         {format(new Date(p.createdAt), "HH:mm", { locale: es })}
                                                         {p.tipoEntrega === "envio" ? " · Envío" : ""}
                                                         {p.comensales ? ` · ${p.comensales} pers.` : ""}
                                                     </p>
                                                     {esApp && p.horarioPreferido && (
-                                                        <div className="flex items-center gap-1 mt-1 text-xs font-bold text-white/90">
-                                                            <Clock size={10} className="shrink-0" /><span>Horario preferido: {p.horarioPreferido}</span>
+                                                        <div className="flex items-center gap-1 mt-0.5 text-xs font-bold text-white/85">
+                                                            <Clock size={9} className="shrink-0" /><span>{p.horarioPreferido}</span>
                                                         </div>
                                                     )}
                                                 </div>
                                                 <div className="shrink-0 text-right">
-                                                    <p className="font-black text-white text-2xl leading-none">{formatMoney(p.total)}</p>
-                                                    <span className={`text-[10px] font-black mt-1 px-2 py-0.5 rounded-full inline-block ${p.estado === "entregado" ? "bg-emerald-100 text-emerald-700" : "bg-white text-gray-900"}`}>
-                                                        {p.estado === "entregado" ? "Finalizado" : "Listo"}
+                                                    <p className="font-black text-white text-xl leading-none">{formatMoney(p.total)}</p>
+                                                    <span className={`text-[10px] font-black mt-1 px-2.5 py-1 rounded-full inline-block ${ESTADO_BADGE[p.estado] || "bg-white/20 text-white"}`}>
+                                                        {ESTADOS.find(e => e.key === p.estado)?.label || p.estado}
                                                     </span>
                                                 </div>
                                             </div>
                                         </div>
 
                                         {/* ── Items ── */}
-                                        <div className="px-4 py-3 space-y-1.5 flex-1 min-h-0 overflow-y-auto max-h-52">
+                                        <div className="px-4 py-3 flex-1 min-h-0 overflow-y-auto space-y-1.5">
                                             {p.items.map((item, idx) => (
                                                 <div key={item._id || idx} className="flex items-center gap-2">
                                                     <span className="font-black text-gray-900 text-sm shrink-0">{item.cantidad}×</span>
@@ -1769,7 +1777,7 @@ export default function CajaPage() {
 
                             {/* Botón crear siempre visible */}
                             <button onClick={abrirCrearEvento}
-                                className="w-full flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-700 text-white font-bold py-3 rounded-2xl transition active:scale-95">
+                                className="w-full flex items-center justify-center gap-2 bg-black hover:bg-gray-700 text-white font-bold py-3 rounded-2xl transition active:scale-95">
                                 <Plus size={18} /> Nuevo evento
                             </button>
 
@@ -1829,7 +1837,7 @@ export default function CajaPage() {
                                                 {precioTarjeta === 0 && <p className="text-xs text-gray-400">Precio no configurado</p>}
                                             </div>
                                             <button onClick={() => abrirTarjetasModal(ev._id)}
-                                                className="text-xs font-bold text-white bg-gray-900 hover:bg-gray-700 px-3 py-1.5 rounded-xl transition">
+                                                className="text-xs font-bold text-white bg-black hover:bg-gray-700 px-3 py-1.5 rounded-xl transition">
                                                 + Registrar
                                             </button>
                                         </div>
@@ -2092,7 +2100,7 @@ export default function CajaPage() {
                                 <div className="flex items-center justify-between mb-3">
                                     <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Canjes disponibles</p>
                                     <button onClick={() => abrirRewardForm()}
-                                        className="flex items-center gap-1.5 bg-gray-900 hover:bg-gray-700 text-white font-bold px-3 py-2 rounded-xl text-xs transition active:scale-95">
+                                        className="flex items-center gap-1.5 bg-black hover:bg-gray-700 text-white font-bold px-3 py-2 rounded-xl text-xs transition active:scale-95">
                                         <Plus size={13} /> Nuevo
                                     </button>
                                 </div>
@@ -2213,7 +2221,7 @@ export default function CajaPage() {
                                 </div>
                                 <div className="px-5 py-4 border-t border-gray-100">
                                     <button onClick={() => { setCloseModal(false); setCloseForm({ montoCierre: "", notas: "" }); }}
-                                        className="w-full py-2.5 bg-gray-900 hover:bg-gray-700 text-white rounded-xl text-sm font-bold transition">
+                                        className="w-full py-2.5 bg-black hover:bg-gray-700 text-white rounded-xl text-sm font-bold transition">
                                         Listo
                                     </button>
                                 </div>
@@ -2323,7 +2331,7 @@ export default function CajaPage() {
                                                     return (
                                                         <button key={met}
                                                             onClick={() => setCobrarForm(p => ({ ...p, pagos: p.pagos.map((pg, i) => i === idx ? { ...pg, metodo: met } : pg) }))}
-                                                            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-0.5 border transition ${pago.metodo === met ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-400 border-gray-200 hover:border-gray-400"}`}>
+                                                            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-0.5 border transition ${pago.metodo === met ? "bg-black text-white border-black" : "bg-white text-gray-400 border-gray-200 hover:border-gray-400"}`}>
                                                             <Icon size={10} />{METODO_LABEL[met]}
                                                         </button>
                                                     );
@@ -2469,7 +2477,7 @@ export default function CajaPage() {
                         <div className="px-5 py-4 border-t border-gray-100 flex gap-2 shrink-0">
                             <button onClick={() => setCrearEventoModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
                             <button onClick={crearEvento} disabled={!nuevoEventoNombre.trim() || crearEventoSaving}
-                                className="flex-1 py-2.5 bg-gray-900 hover:bg-gray-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
+                                className="flex-1 py-2.5 bg-black hover:bg-gray-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
                                 {crearEventoSaving ? "Creando..." : "Crear evento"}
                             </button>
                         </div>
@@ -2548,7 +2556,7 @@ export default function CajaPage() {
                             <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
                                 <button onClick={() => setTarjetasModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
                                 <button onClick={guardarTarjetas} disabled={!tarjetasCantidad || Number(tarjetasCantidad) < 1 || tarjetasSaving}
-                                    className="flex-1 py-2.5 bg-gray-900 hover:bg-gray-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
+                                    className="flex-1 py-2.5 bg-black hover:bg-gray-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
                                     {tarjetasSaving ? "Registrando..." : "Registrar"}
                                 </button>
                             </div>
@@ -2649,7 +2657,7 @@ export default function CajaPage() {
                                     )}
                                 </div>
                                 <button onClick={() => setVentaQrOpen(true)} title="Escanear QR"
-                                    className="w-9 h-9 rounded-xl bg-gray-900 text-white flex items-center justify-center shrink-0 hover:bg-gray-700 transition">
+                                    className="w-9 h-9 rounded-xl bg-black text-white flex items-center justify-center shrink-0 hover:bg-gray-700 transition">
                                     <Plus size={16} />
                                 </button>
                             </div>
@@ -2674,7 +2682,7 @@ export default function CajaPage() {
                                     const Icon = METODO_ICON[met];
                                     return (
                                         <button key={met} onClick={() => setVentaMetodo(met)}
-                                            className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 border transition ${ventaMetodo === met ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-500 border-gray-200"}`}>
+                                            className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 border transition ${ventaMetodo === met ? "bg-black text-white border-black" : "bg-white text-gray-500 border-gray-200"}`}>
                                             <Icon size={12} /> {METODO_LABEL[met]}
                                         </button>
                                     );
@@ -2788,7 +2796,7 @@ export default function CajaPage() {
                                 </button>
                             ) : (
                                 <button onClick={() => { setTab("pedidos"); setMesaDetalle(null); }}
-                                    className="flex-1 py-2.5 bg-gray-900 hover:bg-gray-700 text-white rounded-xl text-sm font-bold transition">
+                                    className="flex-1 py-2.5 bg-black hover:bg-gray-700 text-white rounded-xl text-sm font-bold transition">
                                     Ver en Pedidos
                                 </button>
                             )}
@@ -2862,7 +2870,7 @@ export default function CajaPage() {
                             )}
 
                             {/* Total por método */}
-                            <div className="bg-gray-900 rounded-2xl px-4 py-4 text-white">
+                            <div className="bg-black rounded-2xl px-4 py-4 text-white">
                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-3">Total por método de pago</p>
                                 {[
                                     { label: "Efectivo",      Icon: Banknote,    val: cierreEventoData.totalEfectivo },
