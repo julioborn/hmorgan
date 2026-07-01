@@ -119,21 +119,25 @@ export default function AnotadorPage() {
                     </div>
                 )}
 
+                {/* Header */}
+                <div>
+                    <h1 className="font-black text-2xl text-gray-900 tracking-tight">Comandas</h1>
+                    <p className="text-xs text-gray-400 uppercase tracking-widest mt-0.5">Anotador de pedidos</p>
+                </div>
+
+                {cajaAbierta !== false && (
+                    <button onClick={handleNuevaComanda}
+                        className="w-full flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 text-white font-black py-4 rounded-2xl transition active:scale-[0.98] shadow-sm text-base">
+                        <Plus size={20} /> Nueva comanda
+                    </button>
+                )}
+
                 {/* Comandas activas */}
                 <div>
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                            <h2 className="font-black text-gray-900 text-sm uppercase tracking-wider">Comandas activas</h2>
-                            {comandas.length > 0 && (
-                                <span className="bg-red-600 text-white text-xs font-black px-2 py-0.5 rounded-full">{comandas.length}</span>
-                            )}
-                        </div>
-                        {cajaAbierta !== false && (
-                            <button
-                                onClick={handleNuevaComanda}
-                                className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-2 rounded-xl transition text-sm active:scale-95">
-                                <Plus size={15} /> Nueva comanda
-                            </button>
+                    <div className="flex items-center gap-2 mb-3">
+                        <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Comandas activas</p>
+                        {comandas.length > 0 && (
+                            <span className="bg-red-600 text-white text-xs font-black px-2 py-0.5 rounded-full">{comandas.length}</span>
                         )}
                     </div>
 

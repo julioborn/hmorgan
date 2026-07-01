@@ -583,7 +583,7 @@ function AnotadorMenuContent() {
                             ))}
                             <div className="flex justify-between items-center pt-1.5 border-t border-gray-200 mt-1">
                                 <span className="text-xs font-black text-gray-900">SUBTOTAL ${formatPrice(total)}</span>
-                                <button onClick={() => { setCart([]); sessionStorage.removeItem(CART_KEY); }}
+                                <button onClick={() => { setCart([]); sessionStorage.removeItem(CART_KEY); if (!comandaId) router.push("/empleado/anotador"); }}
                                     className="text-xs text-red-600 font-bold border border-red-200 bg-red-50 hover:bg-red-100 px-3 py-1 rounded-lg transition active:scale-95">
                                     Vaciar todo
                                 </button>
