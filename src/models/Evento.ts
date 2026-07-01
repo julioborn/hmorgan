@@ -1,4 +1,4 @@
-import { Schema, model, models } from "mongoose";
+import mongoose, { Schema, model, models } from "mongoose";
 
 const VentaSchema = new Schema(
     {
@@ -64,4 +64,5 @@ const EventoSchema = new Schema(
     { timestamps: true }
 );
 
-export const Evento = models.Evento || model("Evento", EventoSchema);
+try { mongoose.deleteModel("Evento"); } catch {}
+export const Evento = model("Evento", EventoSchema);

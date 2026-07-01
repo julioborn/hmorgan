@@ -59,7 +59,24 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         }
         evento.estado = "cerrado";
         if (body.cierreData) {
-            evento.cierreData = { ...body.cierreData, fecha: new Date() };
+            const cd = body.cierreData;
+            (evento as any).cierreData = {
+                fecha:                  new Date(),
+                ventasEfectivo:         Number(cd.ventasEfectivo)         || 0,
+                ventasTransferencia:    Number(cd.ventasTransferencia)    || 0,
+                ventasTarjeta:          Number(cd.ventasTarjeta)          || 0,
+                entradasCantidad:       Number(cd.entradasCantidad)       || 0,
+                entradasPrecio:         Number(cd.entradasPrecio)         || 0,
+                entradasTotal:          Number(cd.entradasTotal)          || 0,
+                comandasEfectivo:       Number(cd.comandasEfectivo)       || 0,
+                comandasTransferencia:  Number(cd.comandasTransferencia)  || 0,
+                comandasTarjeta:        Number(cd.comandasTarjeta)        || 0,
+                comandasSinCobrar:      Number(cd.comandasSinCobrar)      || 0,
+                totalEfectivo:          Number(cd.totalEfectivo)          || 0,
+                totalTransferencia:     Number(cd.totalTransferencia)     || 0,
+                totalTarjeta:           Number(cd.totalTarjeta)           || 0,
+                totalGeneral:           Number(cd.totalGeneral)           || 0,
+            };
         }
         await evento.save();
         return NextResponse.json({ ok: true, evento });
