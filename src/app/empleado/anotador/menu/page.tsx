@@ -574,7 +574,7 @@ function AnotadorMenuContent() {
                                     </div>
                                     <input
                                         type="text"
-                                        placeholder="Nota (ej: jugoso, sin sal...)"
+                                        placeholder="Nota"
                                         value={c.nota || ""}
                                         onChange={e => setCart(prev => prev.map(x => x.menuItemId === c.menuItemId ? { ...x, nota: e.target.value } : x))}
                                         className="w-full text-xs px-2 py-1 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-red-400 text-gray-700 placeholder:text-gray-300"
@@ -796,7 +796,7 @@ function AnotadorMenuContent() {
                     {!categoriaActiva && (
                         <>
                             <div className="px-5 pt-5 pb-3"><p className="text-sm text-gray-400">Elegí una categoría</p></div>
-                            <div className="px-5 grid grid-cols-2 gap-3">
+                            <div className="px-5 grid grid-cols-2 md:grid-cols-4 gap-3">
                                 {categoriasNav.map((cat, idx) => <CategoryCard key={cat} cat={cat} idx={idx} onClick={() => setCategoriaActiva(cat)} />)}
                             </div>
                         </>
@@ -804,7 +804,7 @@ function AnotadorMenuContent() {
 
                     {/* Vista: subcategorías BEBIDAS */}
                     {categoriaActiva === "BEBIDAS" && (
-                        <div className="px-5 py-5 grid grid-cols-2 gap-3">
+                        <div className="px-5 py-5 grid grid-cols-2 md:grid-cols-4 gap-3">
                             {subCats.map((cat, idx) => <CategoryCard key={cat} cat={cat} idx={idx} onClick={() => setCategoriaActiva(cat)} />)}
                         </div>
                     )}
