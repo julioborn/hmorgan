@@ -437,6 +437,18 @@ export default function PedidosClientePage() {
         if (tipoEntrega === "envio" && !(direccionEnvio || direccionPrincipal))
             return swalBase.fire("⚠️", "Ingresá una dirección de envío", "warning");
 
+        // Doble confirmación
+        const totalFinalConfirm = total + (tipoEntrega === "envio" ? costoEnvio : 0);
+        const { isConfirmed } = await swalBase.fire({
+            title: "¿Confirmás el pedido?",
+            html: `<p class="text-gray-600 text-sm">Total: <strong>$${formatPrice(totalFinalConfirm)}</strong>${tipoEntrega === "envio" ? " · Con envío a domicilio" : " · Retirás en el bar"}</p>`,
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonText: "Sí, confirmar",
+            cancelButtonText: "Revisar",
+        });
+        if (!isConfirmed) return;
+
         // Verificar teléfono
         const telLimpio = telefono.replace(/\D/g, "");
         if (!telLimpio || telLimpio.length < 8) {
