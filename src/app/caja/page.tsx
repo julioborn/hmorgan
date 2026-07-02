@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import ReservasManager from "@/components/ReservasManager";
 import { hoyArgentina } from "@/lib/argentina-time";
+import MenuImg from "@/components/MenuImg";
 
 type Pedido = {
     _id: string;
@@ -75,6 +76,17 @@ type ReservaHoy = { _id: string; mesaId: { _id: string; nombre: string }; hora: 
 
 // Categorías que se imprimen en la comandera de la barra; el resto va a cocina
 const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
+const PICAR_CATS   = ["PICADAS", "FRITURAS"];
+const MENU_ORDER   = ["PARRILLA","PIZZAS","HAMBURGUESAS","SANDWICHES","PICADAS Y FRITURAS","ENSALADAS","BEBIDAS","POSTRE Y CAFE"];
+const categoryImages: Record<string, string> = {
+    PARRILLA: "/parrilla.jpg", PIZZAS: "/pizzas.jpg", HAMBURGUESAS: "/hamburguesas.jpg",
+    SANDWICHES: "/sandwiches.jpg", "PICADAS Y FRITURAS": "/picada.jpg", ENSALADAS: "/ensaladas.jpg",
+    BEBIDAS: "/bebidas.jpeg", "POSTRE Y CAFE": "/postreycafe.jpeg",
+    CERVEZAS: "/subcategoria-bebidas/cervezas.png", VINOS: "/subcategoria-bebidas/vinos.png",
+    GASEOSAS: "/subcategoria-bebidas/gaseosas.png", JARROS: "/subcategoria-bebidas/jarros.png",
+    COCKTAILS: "/subcategoria-bebidas/cocktails.png", WHISKY: "/subcategoria-bebidas/whisky.png",
+    MEDIDAS: "/subcategoria-bebidas/medidas.png",
+};
 
 const METODOS = ["efectivo", "tarjeta", "transferencia"] as const;
 const METODO_LABEL: Record<string, string> = { efectivo: "Efectivo", tarjeta: "Tarjeta", transferencia: "Transferencia" };
@@ -154,6 +166,8 @@ export default function CajaPage() {
         { pedido: Pedido; modo: "agregar" } | { pedido: Pedido; modo: "reemplazar"; itemId: string; nombreActual: string } | null
     >(null);
     const [editItemSearch, setEditItemSearch] = useState("");
+    const [editItemCat, setEditItemCat]       = useState<string | null>(null);
+    const [ventaMenuCat, setVentaMenuCat]     = useState<string | null>(null);
     const [mesasPlano, setMesasPlano]     = useState<MesaPlano[]>([]);
     const [elementsPlano, setElementsPlano] = useState<SalonElPlano[]>([]);
     const [mesasLoaded, setMesasLoaded]   = useState(false);
@@ -520,6 +534,7 @@ export default function CajaPage() {
             setMenuItemsAll(Array.isArray(d) ? d : []);
         }
         setEditItemSearch("");
+        setEditItemCat(null);
         setEditItemModal({ pedido, ...opts } as typeof editItemModal);
     }
 
@@ -1176,6 +1191,7 @@ export default function CajaPage() {
         setVentaCart([]);
         setVentaMetodo("efectivo");
         setVentaSearch("");
+        setVentaMenuCat(null);
         setVentaComensales([]);
         setVentaComensalesSearch("");
         setVentaComensalesResults([]);
@@ -1226,6 +1242,7 @@ export default function CajaPage() {
                 setVentaCart([]);
                 setVentaMetodo("efectivo");
                 setVentaSearch("");
+                setVentaMenuCat(null);
             }
         } finally { setVentaSaving(false); }
     }
@@ -1323,7 +1340,7 @@ export default function CajaPage() {
     return (
         <div className="min-h-screen bg-gray-50 pb-24">
             {/* Header */}
-            <div className="text-white px-5 py-5" style={{ background: "linear-gradient(135deg, #0c0c0c 0%, #1c1c1c 100%)" }}>
+            <div className="text-white px-5 py-5 rounded-b-3xl shadow-lg shadow-black/30" style={{ background: "linear-gradient(135deg, #0c0c0c 0%, #1c1c1c 100%)" }}>
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3.5">
                     <div className={`rounded-2xl p-2.5 ${sesion ? "bg-emerald-500/20" : "bg-red-500/15"}`}>
@@ -1382,8 +1399,8 @@ export default function CajaPage() {
 
             {/* Abrir caja */}
             {!sesion && (
-                <div className="min-h-[calc(100vh-120px)] flex items-center justify-center px-4">
-                    <div className="w-full max-w-sm">
+                <div className="pt-6 px-4">
+                    <div className="w-full max-w-sm mx-auto">
                         {/* Card */}
                         <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100">
                             {/* Top band */}
@@ -2754,37 +2771,111 @@ export default function CajaPage() {
             })()}
 
             {/* Modal cambiar/agregar producto */}
-            {editItemModal && (
-                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl flex flex-col" style={{ maxHeight: "80vh" }}>
-                        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
-                            <h2 className="font-black text-gray-900 flex-1 truncate">
-                                {editItemModal.modo === "reemplazar" ? `Cambiar "${editItemModal.nombreActual}"` : "Agregar producto"}
-                            </h2>
-                            <button onClick={() => setEditItemModal(null)} className="p-1 text-gray-400"><X size={18} /></button>
-                        </div>
-                        <div className="px-5 py-3 shrink-0">
-                            <input autoFocus value={editItemSearch} onChange={e => setEditItemSearch(e.target.value)}
-                                placeholder="Buscar producto..." style={{ fontSize: "16px" }}
-                                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
-                        </div>
-                        <div className="overflow-y-auto flex-1 min-h-0 px-3 pb-3 space-y-1">
-                            {menuItemsAll
-                                .filter(m => m.nombre.toLowerCase().includes(editItemSearch.toLowerCase()))
-                                .map(m => (
-                                    <button key={m._id} onClick={() => editItemModal.modo === "reemplazar" ? reemplazarItemPedido(m._id, m.nombre) : agregarProductoAPedido(m)}
-                                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-gray-50 border border-gray-100 text-left transition">
-                                        <span className="text-sm text-gray-800">{m.nombre}</span>
-                                        <span className="text-xs text-gray-400 shrink-0 ml-2">{formatMoney(m.precio)} · {m.categoria}</span>
+            {editItemModal && (() => {
+                const allCats = Array.from(new Set(menuItemsAll.map(m => {
+                    if (BEBIDAS_CATS.includes(m.categoria)) return "BEBIDAS";
+                    if (PICAR_CATS.includes(m.categoria)) return "PICADAS Y FRITURAS";
+                    return m.categoria;
+                }))).sort((a, b) => {
+                    const ai = MENU_ORDER.indexOf(a), bi = MENU_ORDER.indexOf(b);
+                    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+                });
+                const subCatsEdit = BEBIDAS_CATS.filter(bc => menuItemsAll.some(m => m.categoria === bc));
+                const itemsForCat = editItemCat && editItemCat !== "BEBIDAS"
+                    ? menuItemsAll.filter(m => editItemCat === "PICADAS Y FRITURAS" ? PICAR_CATS.includes(m.categoria) : editItemCat === "BEBIDAS" ? BEBIDAS_CATS.includes(m.categoria) : m.categoria === editItemCat)
+                    : [];
+                const searchActive = editItemSearch.trim().length > 0;
+                const searchResults = menuItemsAll.filter(m => m.nombre.toLowerCase().includes(editItemSearch.toLowerCase()));
+                return (
+                    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+                        <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl flex flex-col" style={{ maxHeight: "88vh" }}>
+                            {/* Header */}
+                            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
+                                {editItemCat && !searchActive && (
+                                    <button onClick={() => setEditItemCat(editItemCat === "BEBIDAS" || BEBIDAS_CATS.includes(editItemCat) ? (BEBIDAS_CATS.includes(editItemCat) ? "BEBIDAS" : null) : null)}
+                                        className="p-1 text-gray-400 hover:text-gray-700 transition">
+                                        <X size={16} />
                                     </button>
-                                ))}
-                            {menuItemsAll.filter(m => m.nombre.toLowerCase().includes(editItemSearch.toLowerCase())).length === 0 && (
-                                <p className="text-center text-gray-400 py-8 text-sm">Sin resultados</p>
-                            )}
+                                )}
+                                <h2 className="font-black text-gray-900 flex-1 truncate text-sm">
+                                    {searchActive ? "Buscar" : editItemCat ? editItemCat : (editItemModal.modo === "reemplazar" ? `Cambiar "${editItemModal.nombreActual}"` : "Agregar producto")}
+                                </h2>
+                                <button onClick={() => { setEditItemModal(null); setEditItemSearch(""); setEditItemCat(null); }} className="p-1 text-gray-400"><X size={18} /></button>
+                            </div>
+                            {/* Buscador */}
+                            <div className="px-4 py-3 shrink-0">
+                                <input value={editItemSearch} onChange={e => setEditItemSearch(e.target.value)}
+                                    placeholder="Buscar producto..." style={{ fontSize: "16px" }}
+                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
+                            </div>
+                            {/* Contenido */}
+                            <div className="overflow-y-auto flex-1 min-h-0 px-3 pb-3">
+                                {searchActive ? (
+                                    <div className="space-y-1">
+                                        {searchResults.map(m => (
+                                            <button key={m._id} onClick={() => { editItemModal.modo === "reemplazar" ? reemplazarItemPedido(m._id, m.nombre) : agregarProductoAPedido(m); setEditItemSearch(""); setEditItemCat(null); }}
+                                                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-gray-50 border border-gray-100 text-left transition">
+                                                <span className="text-sm text-gray-800">{m.nombre}</span>
+                                                <span className="text-xs text-gray-400 shrink-0 ml-2">{formatMoney(m.precio)}</span>
+                                            </button>
+                                        ))}
+                                        {searchResults.length === 0 && <p className="text-center text-gray-400 py-8 text-sm">Sin resultados</p>}
+                                    </div>
+                                ) : !editItemCat ? (
+                                    <div className="grid grid-cols-2 gap-2.5 pt-1">
+                                        {allCats.map(cat => {
+                                            const img = categoryImages[cat];
+                                            const count = cat === "BEBIDAS" ? menuItemsAll.filter(m => BEBIDAS_CATS.includes(m.categoria)).length
+                                                : cat === "PICADAS Y FRITURAS" ? menuItemsAll.filter(m => PICAR_CATS.includes(m.categoria)).length
+                                                : menuItemsAll.filter(m => m.categoria === cat).length;
+                                            return (
+                                                <button key={cat} onClick={() => setEditItemCat(cat)}
+                                                    className="relative h-28 rounded-2xl overflow-hidden shadow-sm active:scale-[0.97] transition-transform">
+                                                    {img ? <MenuImg src={img} alt={cat} className="absolute inset-0 w-full h-full object-cover" /> : <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-600" />}
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/10" />
+                                                    <div className="absolute bottom-2.5 left-0 right-0 px-2 text-center">
+                                                        <p className="text-white font-black text-xs tracking-tight leading-tight">{cat}</p>
+                                                        <p className="text-white/60 text-[10px] mt-0.5">{count} prod.</p>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                ) : editItemCat === "BEBIDAS" ? (
+                                    <div className="grid grid-cols-2 gap-2.5 pt-1">
+                                        {subCatsEdit.map(cat => {
+                                            const img = categoryImages[cat];
+                                            const count = menuItemsAll.filter(m => m.categoria === cat).length;
+                                            return (
+                                                <button key={cat} onClick={() => setEditItemCat(cat)}
+                                                    className="relative h-28 rounded-2xl overflow-hidden shadow-sm active:scale-[0.97] transition-transform">
+                                                    {img ? <MenuImg src={img} alt={cat} className="absolute inset-0 w-full h-full object-cover" /> : <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-600" />}
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/10" />
+                                                    <div className="absolute bottom-2.5 left-0 right-0 px-2 text-center">
+                                                        <p className="text-white font-black text-xs tracking-tight leading-tight">{cat}</p>
+                                                        <p className="text-white/60 text-[10px] mt-0.5">{count} prod.</p>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="space-y-1 pt-1">
+                                        {itemsForCat.map(m => (
+                                            <button key={m._id} onClick={() => { editItemModal.modo === "reemplazar" ? reemplazarItemPedido(m._id, m.nombre) : agregarProductoAPedido(m); setEditItemCat(null); }}
+                                                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-gray-50 border border-gray-100 text-left transition">
+                                                <span className="text-sm text-gray-800">{m.nombre}</span>
+                                                <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full shrink-0 ml-2">{formatMoney(m.precio)}</span>
+                                            </button>
+                                        ))}
+                                        {itemsForCat.length === 0 && <p className="text-center text-gray-400 py-8 text-sm">Sin productos</p>}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                );
+            })()}
 
             {/* Modal crear evento */}
             {crearEventoModal && (
@@ -2931,34 +3022,114 @@ export default function CajaPage() {
                                 <h2 className="font-black text-gray-900">Registrar venta</h2>
                                 <p className="text-xs text-gray-400 truncate">{eventosActivos.find(e => e._id === ventaEventoId)?.nombre}</p>
                             </div>
-                            <button onClick={() => setVentaModal(false)} className="p-1 text-gray-400"><X size={18} /></button>
+                            <button onClick={() => { setVentaModal(false); setVentaMenuCat(null); setVentaSearch(""); }} className="p-1 text-gray-400"><X size={18} /></button>
                         </div>
 
-                        {/* Buscador + lista de productos */}
-                        <div className="px-4 pt-3 pb-2 shrink-0">
-                            <input autoFocus value={ventaSearch} onChange={e => setVentaSearch(e.target.value)}
-                                placeholder="Buscar producto..." style={{ fontSize: "16px" }}
-                                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
-                        </div>
-                        <div className="overflow-y-auto px-3 space-y-1 pb-2" style={{ maxHeight: "35vh" }}>
-                            {menuItemsAll
-                                .filter(m => m.nombre.toLowerCase().includes(ventaSearch.toLowerCase()))
-                                .map(m => (
-                                    <button key={m._id}
-                                        onClick={() => setVentaCart(prev => {
-                                            const ex = prev.find(it => it.menuItemId === m._id);
-                                            if (ex) return prev.map(it => it.menuItemId === m._id ? { ...it, cantidad: it.cantidad + 1 } : it);
-                                            return [...prev, { menuItemId: m._id, nombre: m.nombre, precio: m.precio, categoria: m.categoria, cantidad: 1 }];
-                                        })}
-                                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-gray-50 active:bg-gray-100 border border-gray-100 text-left transition">
-                                        <span className="text-sm text-gray-800">{m.nombre}</span>
-                                        <span className="text-xs text-gray-400 shrink-0 ml-2">{formatMoney(m.precio)}</span>
-                                    </button>
-                                ))}
-                            {menuItemsAll.filter(m => m.nombre.toLowerCase().includes(ventaSearch.toLowerCase())).length === 0 && (
-                                <p className="text-center text-gray-400 py-6 text-sm">Sin resultados</p>
-                            )}
-                        </div>
+                        {/* Selector de producto con categorías */}
+                        {(() => {
+                            const allCatsV = Array.from(new Set(menuItemsAll.map(m => {
+                                if (BEBIDAS_CATS.includes(m.categoria)) return "BEBIDAS";
+                                if (PICAR_CATS.includes(m.categoria)) return "PICADAS Y FRITURAS";
+                                return m.categoria;
+                            }))).sort((a, b) => {
+                                const ai = MENU_ORDER.indexOf(a), bi = MENU_ORDER.indexOf(b);
+                                return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+                            });
+                            const subCatsV = BEBIDAS_CATS.filter(bc => menuItemsAll.some(m => m.categoria === bc));
+                            const itemsForCatV = ventaMenuCat && ventaMenuCat !== "BEBIDAS"
+                                ? menuItemsAll.filter(m => ventaMenuCat === "PICADAS Y FRITURAS" ? PICAR_CATS.includes(m.categoria) : m.categoria === ventaMenuCat)
+                                : [];
+                            const ventaSearchActive = ventaSearch.trim().length > 0;
+                            const ventaSearchResults = menuItemsAll.filter(m => m.nombre.toLowerCase().includes(ventaSearch.toLowerCase()));
+                            const addToVentaCart = (m: MenuItemLite) => setVentaCart(prev => {
+                                const ex = prev.find(it => it.menuItemId === m._id);
+                                if (ex) return prev.map(it => it.menuItemId === m._id ? { ...it, cantidad: it.cantidad + 1 } : it);
+                                return [...prev, { menuItemId: m._id, nombre: m.nombre, precio: m.precio, categoria: m.categoria, cantidad: 1 }];
+                            });
+                            return (
+                                <>
+                                    {/* Header de navegación + búsqueda */}
+                                    <div className="px-4 pt-3 pb-2 shrink-0 space-y-2">
+                                        {ventaMenuCat && !ventaSearchActive && (
+                                            <div className="flex items-center gap-2">
+                                                <button onClick={() => setVentaMenuCat(BEBIDAS_CATS.includes(ventaMenuCat) ? "BEBIDAS" : null)}
+                                                    className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition font-semibold">
+                                                    <X size={13} /> {BEBIDAS_CATS.includes(ventaMenuCat) ? "Bebidas" : "Categorías"}
+                                                </button>
+                                                <span className="text-xs font-black text-gray-800">{ventaMenuCat}</span>
+                                            </div>
+                                        )}
+                                        <input value={ventaSearch} onChange={e => setVentaSearch(e.target.value)}
+                                            placeholder="Buscar producto..." style={{ fontSize: "16px" }}
+                                            className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
+                                    </div>
+                                    {/* Contenido: grid de categorías o lista de items */}
+                                    <div className="overflow-y-auto px-3 pb-2" style={{ maxHeight: "38vh" }}>
+                                        {ventaSearchActive ? (
+                                            <div className="space-y-1">
+                                                {ventaSearchResults.map(m => (
+                                                    <button key={m._id} onClick={() => addToVentaCart(m)}
+                                                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-gray-50 active:bg-gray-100 border border-gray-100 text-left transition">
+                                                        <span className="text-sm text-gray-800">{m.nombre}</span>
+                                                        <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full shrink-0 ml-2">{formatMoney(m.precio)}</span>
+                                                    </button>
+                                                ))}
+                                                {ventaSearchResults.length === 0 && <p className="text-center text-gray-400 py-6 text-sm">Sin resultados</p>}
+                                            </div>
+                                        ) : !ventaMenuCat ? (
+                                            <div className="grid grid-cols-2 gap-2 pt-1">
+                                                {allCatsV.map(cat => {
+                                                    const img = categoryImages[cat];
+                                                    const count = cat === "BEBIDAS" ? menuItemsAll.filter(m => BEBIDAS_CATS.includes(m.categoria)).length
+                                                        : cat === "PICADAS Y FRITURAS" ? menuItemsAll.filter(m => PICAR_CATS.includes(m.categoria)).length
+                                                        : menuItemsAll.filter(m => m.categoria === cat).length;
+                                                    return (
+                                                        <button key={cat} onClick={() => setVentaMenuCat(cat)}
+                                                            className="relative h-24 rounded-2xl overflow-hidden shadow-sm active:scale-[0.97] transition-transform">
+                                                            {img ? <MenuImg src={img} alt={cat} className="absolute inset-0 w-full h-full object-cover" /> : <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-600" />}
+                                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/10" />
+                                                            <div className="absolute bottom-2 left-0 right-0 px-2 text-center">
+                                                                <p className="text-white font-black text-xs tracking-tight leading-tight">{cat}</p>
+                                                                <p className="text-white/60 text-[10px]">{count} prod.</p>
+                                                            </div>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        ) : ventaMenuCat === "BEBIDAS" ? (
+                                            <div className="grid grid-cols-2 gap-2 pt-1">
+                                                {subCatsV.map(cat => {
+                                                    const img = categoryImages[cat];
+                                                    const count = menuItemsAll.filter(m => m.categoria === cat).length;
+                                                    return (
+                                                        <button key={cat} onClick={() => setVentaMenuCat(cat)}
+                                                            className="relative h-24 rounded-2xl overflow-hidden shadow-sm active:scale-[0.97] transition-transform">
+                                                            {img ? <MenuImg src={img} alt={cat} className="absolute inset-0 w-full h-full object-cover" /> : <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-600" />}
+                                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/10" />
+                                                            <div className="absolute bottom-2 left-0 right-0 px-2 text-center">
+                                                                <p className="text-white font-black text-xs tracking-tight leading-tight">{cat}</p>
+                                                                <p className="text-white/60 text-[10px]">{count} prod.</p>
+                                                            </div>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-1 pt-1">
+                                                {itemsForCatV.map(m => (
+                                                    <button key={m._id} onClick={() => addToVentaCart(m)}
+                                                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-gray-50 active:bg-gray-100 border border-gray-100 text-left transition">
+                                                        <span className="text-sm text-gray-800">{m.nombre}</span>
+                                                        <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full shrink-0 ml-2">{formatMoney(m.precio)}</span>
+                                                    </button>
+                                                ))}
+                                                {itemsForCatV.length === 0 && <p className="text-center text-gray-400 py-6 text-sm">Sin productos</p>}
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            );
+                        })()}
 
                         {/* Carrito */}
                         {ventaCart.length > 0 && (
