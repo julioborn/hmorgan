@@ -154,8 +154,6 @@ interface CartDrawerProps {
     setDireccionEnvio: (v: string) => void;
     usarOtraDireccion: boolean;
     setUsarOtraDireccion: (v: boolean) => void;
-    nota: string;
-    setNota: (v: string) => void;
     horarioPreferido: string;
     setHorarioPreferido: (v: string) => void;
     notasProducto: Record<string, string>;
@@ -174,7 +172,7 @@ function CartDrawer({
     items, menu, tipoEntrega, setTipoEntrega,
     direccionPrincipal, direccionEnvio, setDireccionEnvio,
     usarOtraDireccion, setUsarOtraDireccion,
-    nota, setNota, horarioPreferido, setHorarioPreferido,
+    horarioPreferido, setHorarioPreferido,
     notasProducto, onSetNotaProducto, onSelectCoords,
     enviando, total, costoEnvio, onClose, onVaciar, onEliminar, onEnviar,
 }: CartDrawerProps) {
@@ -209,7 +207,7 @@ function CartDrawer({
                                 </div>
                                 <input
                                     type="text"
-                                    placeholder="Nota (ej: sin cebolla)"
+                                    placeholder="Nota del pedido"
                                     value={notasProducto[id] || ""}
                                     onChange={(e) => onSetNotaProducto(id, e.target.value)}
                                     style={{ fontSize: "16px" }}
@@ -253,15 +251,6 @@ function CartDrawer({
                     )}
                 </div>
 
-                <textarea
-                    placeholder="Observaciones (ej: sin lechuga, sin tomate...)"
-                    value={nota}
-                    onChange={(e) => setNota(e.target.value)}
-                    onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: "smooth", block: "center" }), 350)}
-                    style={{ fontSize: "16px" }}
-                    rows={2}
-                    className="w-full mt-4 border border-gray-300 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-400"
-                />
 
                 <div className="mt-3">
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">
@@ -334,7 +323,6 @@ export default function PedidosClientePage() {
     const [usarOtraDireccion, setUsarOtraDireccion] = useState(false);
     const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null);
     const [enviando, setEnviando] = useState(false);
-    const [nota, setNota] = useState("");
     const [horarioPreferido, setHorarioPreferido] = useState("");
     const [notasProducto, setNotasProducto] = useState<Record<string, string>>({});
     const [mapLat, setMapLat] = useState<number | null>(null);
@@ -450,7 +438,6 @@ export default function PedidosClientePage() {
                     direccion: tipoEntrega === "envio" ? direccionEnvio || direccionPrincipal || "" : undefined,
                     lat: tipoEntrega === "envio" && mapLat ? mapLat : undefined,
                     lng: tipoEntrega === "envio" && mapLng ? mapLng : undefined,
-                    notaCliente: nota.trim() || undefined,
                     horarioPreferido: horarioPreferido.trim() || undefined,
                 }),
             });
@@ -458,7 +445,6 @@ export default function PedidosClientePage() {
                 setDrawerOpen(false);
                 await swalBase.fire({ icon: "success", title: "Pedido enviado correctamente", timer: 2000, showConfirmButton: false });
                 setItems({});
-                setNota("");
                 setHorarioPreferido("");
                 setNotasProducto({});
                 setMapLat(null);
@@ -514,7 +500,7 @@ export default function PedidosClientePage() {
         items, menu, tipoEntrega, setTipoEntrega,
         direccionPrincipal, direccionEnvio, setDireccionEnvio,
         usarOtraDireccion, setUsarOtraDireccion,
-        nota, setNota, horarioPreferido, setHorarioPreferido,
+        horarioPreferido, setHorarioPreferido,
         notasProducto,
         onSetNotaProducto: (id, nota) => setNotasProducto(prev => ({ ...prev, [id]: nota })),
         onSelectCoords: (lat, lng) => { setMapLat(lat); setMapLng(lng); },
