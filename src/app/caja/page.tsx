@@ -1707,7 +1707,7 @@ export default function CajaPage() {
                                                                     await printComanda(p);
                                                                     await avanzarEstado(p, "preparando");
                                                                 }}
-                                                                className={`flex-1 disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1 ${esApp ? "bg-red-600 hover:bg-red-700" : "bg-black"}`}>
+                                                                className={`flex-1 disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1 bg-black`}>
                                                                 {isUpdating ? <Loader2 size={14} className="animate-spin" /> : null}
                                                                 Aceptar
                                                             </button>
