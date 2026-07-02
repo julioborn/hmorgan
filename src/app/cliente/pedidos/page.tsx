@@ -207,7 +207,7 @@ function CartDrawer({
                                 </div>
                                 <input
                                     type="text"
-                                    placeholder="Nota del pedido"
+                                    placeholder="Observación para este producto"
                                     value={notasProducto[id] || ""}
                                     onChange={(e) => onSetNotaProducto(id, e.target.value)}
                                     style={{ fontSize: "16px" }}
@@ -583,18 +583,28 @@ export default function PedidosClientePage() {
         const subCats = BEBIDAS_CATS.filter(bc => menu.some(i => i.categoria === bc));
         return (
             <div className="bg-white min-h-screen pb-10">
-                <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
-                    <button onClick={() => setCategoriaSeleccionada(null)} className="p-2 rounded-full hover:bg-gray-100 transition">
-                        <ChevronLeft size={22} className="text-gray-800" />
-                    </button>
-                    <Beer size={18} className="text-red-600 shrink-0" />
-                    <h1 className="font-black text-xl text-black tracking-tight flex-1">Bebidas</h1>
-                    {totalItems > 0 && (
-                        <button onClick={() => setDrawerOpen(true)} className="relative p-2">
-                            <ShoppingCart size={24} className="text-gray-800" />
-                            <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">{totalItems}</span>
+                <div className="sticky top-0 z-10 bg-white shadow-sm">
+                    <div className="px-4 py-3 flex items-center gap-3 border-b border-gray-100">
+                        <button onClick={() => setCategoriaSeleccionada(null)} className="p-2 rounded-full hover:bg-gray-100 transition">
+                            <ChevronLeft size={22} className="text-gray-800" />
                         </button>
-                    )}
+                        <Beer size={18} className="text-red-600 shrink-0" />
+                        <h1 className="font-black text-xl text-black tracking-tight flex-1">Bebidas</h1>
+                        {totalItems > 0 && (
+                            <button onClick={() => setDrawerOpen(true)} className="relative p-2">
+                                <ShoppingCart size={24} className="text-gray-800" />
+                                <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">{totalItems}</span>
+                            </button>
+                        )}
+                    </div>
+                    <div className="px-4 py-2 flex gap-2 overflow-x-auto border-b border-gray-100" style={{ scrollbarWidth: "none" }}>
+                        {categoriasNavegacion.map(cat => (
+                            <button key={cat} onClick={() => setCategoriaSeleccionada(cat)}
+                                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition whitespace-nowrap ${cat === "BEBIDAS" ? "bg-black text-white" : "bg-gray-100 text-gray-700 active:bg-gray-200"}`}>
+                                {cat}
+                            </button>
+                        ))}
+                    </div>
                 </div>
                 <div className="px-5 py-5 grid grid-cols-2 gap-3">
                     {subCats.map((cat, idx) => (
@@ -625,20 +635,33 @@ export default function PedidosClientePage() {
             return 0;
         });
 
+    const subCatsBebidas = BEBIDAS_CATS.filter(bc => menu.some(i => i.categoria === bc));
+    const stripCats = esBebida ? subCatsBebidas : categoriasNavegacion;
+
     return (
         <div className="bg-white min-h-screen">
-            <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
-                <button onClick={() => setCategoriaSeleccionada(esBebida ? "BEBIDAS" : null)} className="p-2 rounded-full hover:bg-gray-100 transition">
-                    <ChevronLeft size={22} className="text-gray-800" />
-                </button>
-                <CatIcon size={18} className="text-red-600 shrink-0" />
-                <h1 className="font-black text-xl text-black tracking-tight flex-1">{categoriaSeleccionada}</h1>
-                {totalItems > 0 && (
-                    <button onClick={() => setDrawerOpen(true)} className="relative p-2">
-                        <ShoppingCart size={24} className="text-gray-800" />
-                        <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">{totalItems}</span>
+            <div className="sticky top-0 z-10 bg-white shadow-sm">
+                <div className="px-4 py-3 flex items-center gap-3 border-b border-gray-100">
+                    <button onClick={() => setCategoriaSeleccionada(esBebida ? "BEBIDAS" : null)} className="p-2 rounded-full hover:bg-gray-100 transition">
+                        <ChevronLeft size={22} className="text-gray-800" />
                     </button>
-                )}
+                    <CatIcon size={18} className="text-red-600 shrink-0" />
+                    <h1 className="font-black text-xl text-black tracking-tight flex-1">{categoriaSeleccionada}</h1>
+                    {totalItems > 0 && (
+                        <button onClick={() => setDrawerOpen(true)} className="relative p-2">
+                            <ShoppingCart size={24} className="text-gray-800" />
+                            <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">{totalItems}</span>
+                        </button>
+                    )}
+                </div>
+                <div className="px-4 py-2 flex gap-2 overflow-x-auto border-b border-gray-100" style={{ scrollbarWidth: "none" }}>
+                    {stripCats.map(cat => (
+                        <button key={cat} onClick={() => setCategoriaSeleccionada(cat)}
+                            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition whitespace-nowrap ${cat === categoriaSeleccionada ? "bg-black text-white" : "bg-gray-100 text-gray-700 active:bg-gray-200"}`}>
+                            {cat}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             <AnimatePresence mode="wait">

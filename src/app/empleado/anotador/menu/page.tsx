@@ -810,9 +810,19 @@ function AnotadorMenuContent() {
             {/* ── STEP 2: Menú ── */}
             {step === "menu" && (
                 <>
-                    {/* Sticky header + CartPanel */}
+                    {/* Sticky header + strip de categorías + CartPanel */}
                     <div className="sticky z-20" style={{ top: "calc(env(safe-area-inset-top) + 98px)" }}>
                         {makeStickyHeader(stickyTitle, stickyBack, stickyIcon)}
+                        {categoriaActiva && categoriaActiva !== "BEBIDAS" && (
+                            <div className="bg-white border-b border-gray-100 px-4 py-2 flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+                                {(esBebida ? subCats : categoriasNav).map(cat => (
+                                    <button key={cat} onClick={() => setCategoriaActiva(cat)}
+                                        className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition whitespace-nowrap ${cat === categoriaActiva ? "bg-black text-white" : "bg-gray-100 text-gray-700 active:bg-gray-200"}`}>
+                                        {cat}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                         {cartPanelJSX}
                     </div>
 
