@@ -3,6 +3,8 @@ import { connectMongoDB } from "@/lib/mongodb";
 import { Evento } from "@/models/Evento";
 import { User } from "@/models/User";
 import { PointTransaction } from "@/models/PointTransaction";
+import { CajaSession } from "@/models/CajaSession";
+import { CajaMovement } from "@/models/CajaMovement";
 import { getPointsRatio } from "@/lib/getPointsRatio";
 import jwt from "jsonwebtoken";
 
@@ -48,8 +50,21 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (body.accion === "agregarTarjetas") {
         const cantidad = Number(body.cantidad);
         if (!cantidad || cantidad < 1) return NextResponse.json({ error: "Cantidad inválida" }, { status: 400 });
+        const metodoPago = body.metodoPago || "efectivo";
         evento.tarjetas.push({ cantidad });
         await evento.save();
+        const precioTarjeta = (evento as any).precioTarjeta ?? 0;
+        const totalTarjetas = cantidad * precioTarjeta;
+        if (totalTarjetas > 0) {
+            const sesion = await CajaSession.findOne({ estado: "abierta" });
+            if (sesion) {
+                await CajaMovement.create({
+                    sesionId: sesion._id, tipo: "ingreso",
+                    concepto: `Entradas evento: ${evento.nombre} (${cantidad}×)`,
+                    monto: totalTarjetas, metodoPago, userId: payload.sub,
+                });
+            }
+        }
         return NextResponse.json({ ok: true, evento });
     }
 
@@ -105,6 +120,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
             comensalesIds: Array.isArray(comensalesIds) && comensalesIds.length > 0 ? comensalesIds : [],
         });
         await evento.save();
+
+        const sesion = await CajaSession.findOne({ estado: "abierta" });
+        if (sesion) {
+            await CajaMovement.create({
+                sesionId: sesion._id, tipo: "ingreso",
+                concepto: `Venta directa evento: ${evento.nombre}`,
+                monto: total, metodoPago, userId: payload.sub,
+            });
+        }
 
         // Acreditar puntos a cada comensal registrado
         if (Array.isArray(comensalesIds) && comensalesIds.length > 0 && total > 0) {

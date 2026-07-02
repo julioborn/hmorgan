@@ -153,7 +153,7 @@ export default function CajaPage() {
     const [closeSaving, setCloseSaving]   = useState(false);
     const [closeError, setCloseError]     = useState("");
     const [closeStep, setCloseStep]       = useState<"form" | "resumen">("form");
-    const [cierreResumen, setCierreResumen] = useState<Record<string, { ingreso: number; egreso: number }>>({});
+    const [cierreResumen, setCierreResumen] = useState<Record<string, { ingreso: number; egreso: number; excedente?: number }>>({});
     const [cierreMontoInicial, setCierreMontoInicial] = useState(0);
     const [cierreMontoCierre,  setCierreMontoCierre]  = useState(0);
     const [cierreEfectivoSistema, setCierreEfectivoSistema] = useState(0);
@@ -192,6 +192,7 @@ export default function CajaPage() {
     const [eventoModalElementos, setEventoModalElementos]   = useState<SalonElPlano[]>([]);
     const [ventaEventoId, setVentaEventoId]       = useState<string | null>(null);
     const [tarjetasModal, setTarjetasModal]       = useState(false);
+    const [tarjetasMetodo, setTarjetasMetodo]     = useState<"efectivo" | "transferencia" | "tarjeta">("efectivo");
     const [tarjetasEventoId, setTarjetasEventoId] = useState<string | null>(null);
     const [tarjetasCantidad, setTarjetasCantidad] = useState("1");
     const [tarjetasSaving, setTarjetasSaving]     = useState(false);
@@ -1131,7 +1132,7 @@ export default function CajaPage() {
         try {
             const res = await fetch(`/api/eventos/${tarjetasEventoId}`, {
                 method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
-                body: JSON.stringify({ accion: "agregarTarjetas", cantidad: Number(tarjetasCantidad) }),
+                body: JSON.stringify({ accion: "agregarTarjetas", cantidad: Number(tarjetasCantidad), metodoPago: tarjetasMetodo }),
             });
             if (res.ok) {
                 const { evento } = await res.json();
@@ -2604,12 +2605,14 @@ export default function CajaPage() {
                                     <p className="text-[10px] font-black text-gray-700 uppercase tracking-wider">Recaudado por método</p>
                                     {METODOS.map(met => {
                                         const r = cierreResumen[met];
-                                        const ingreso = r?.ingreso || 0;
-                                        const egreso  = r?.egreso  || 0;
-                                        const neto    = ingreso - egreso;
+                                        const ingreso   = r?.ingreso   || 0;
+                                        const egreso    = r?.egreso    || 0;
+                                        const excedente = r?.excedente || 0;
+                                        const neto      = ingreso - egreso;
+                                        if (neto <= 0) return null;
                                         const Icon = METODO_ICON[met];
                                         return (
-                                            <div key={met} className="bg-gray-50 rounded-xl px-4 py-3">
+                                            <div key={met} className="bg-gray-50 rounded-xl px-4 py-3 space-y-1">
                                                 <div className="flex items-center justify-between">
                                                     <span className="flex items-center gap-2 text-sm font-semibold text-gray-700">
                                                         <Icon size={14} />{METODO_LABEL[met]}
@@ -2617,9 +2620,10 @@ export default function CajaPage() {
                                                     <span className="font-black text-gray-900">{formatMoney(neto)}</span>
                                                 </div>
                                                 {egreso > 0 && (
-                                                    <div className="flex justify-between text-xs text-gray-700 mt-1">
-                                                        <span>Ingresos {formatMoney(ingreso)} · Egresos −{formatMoney(egreso)}</span>
-                                                    </div>
+                                                    <p className="text-xs text-gray-500">Ingresos {formatMoney(ingreso)} · Egresos −{formatMoney(egreso)}</p>
+                                                )}
+                                                {excedente > 0 && (
+                                                    <p className="text-xs text-amber-600 font-semibold">Incluye {formatMoney(excedente)} de excedente (propina)</p>
                                                 )}
                                             </div>
                                         );
@@ -3089,6 +3093,17 @@ export default function CajaPage() {
                                         onChange={e => setTarjetasCantidad(e.target.value)}
                                         style={{ fontSize: "16px" }}
                                         className="w-full px-4 py-3 border border-black rounded-xl text-base font-semibold focus:outline-none focus:ring-2 focus:ring-black text-center" />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Método de pago</label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {(["efectivo", "transferencia", "tarjeta"] as const).map(m => (
+                                            <button key={m} onClick={() => setTarjetasMetodo(m)}
+                                                className={`py-2 rounded-xl text-xs font-bold capitalize border-2 transition ${tarjetasMetodo === m ? "bg-black text-white border-black" : "bg-white text-gray-700 border-gray-200"}`}>
+                                                {m === "efectivo" ? "Efectivo" : m === "transferencia" ? "Transf." : "Tarjeta"}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                                 {precio > 0 && cant > 0 && (
                                     <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">

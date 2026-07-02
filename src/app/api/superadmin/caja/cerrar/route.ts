@@ -21,11 +21,12 @@ export async function POST(req: NextRequest) {
     const { montoCierre, notas } = await req.json();
     const movimientos = await CajaMovement.find({ sesionId: sesion._id }).lean();
 
-    // Calcular totales por método
+    // Calcular totales por método (incluye excedentes)
     const resumen = movimientos.reduce((acc: any, m: any) => {
         const key = m.metodoPago;
-        if (!acc[key]) acc[key] = { ingreso: 0, egreso: 0 };
+        if (!acc[key]) acc[key] = { ingreso: 0, egreso: 0, excedente: 0 };
         acc[key][m.tipo] += m.monto;
+        if (m.excedente) acc[key].excedente += m.excedente;
         return acc;
     }, {});
 

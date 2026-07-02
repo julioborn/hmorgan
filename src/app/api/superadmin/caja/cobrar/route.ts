@@ -75,16 +75,25 @@ export async function POST(req: NextRequest) {
         const totalPagadoArr = pagosArr.reduce((a: number, p: any) => a + (Number(p.monto) || 0), 0);
         const hayEfectivoArr = pagosArr.some((p: any) => p.metodo === "efectivo");
         const vueltoArr = hayEfectivoArr && totalPagadoArr > totalConDescuento ? totalPagadoArr - totalConDescuento : 0;
+        // Excedente: solo cuando no hay efectivo y se paga de más (propina en tarjeta/transferencia)
+        const excedenteTotal = !hayEfectivoArr && totalPagadoArr > totalConDescuento
+            ? totalPagadoArr - totalConDescuento
+            : 0;
         for (const pago of pagosArr) {
             const montoNet = pago.metodo === "efectivo"
                 ? Math.max(0, (Number(pago.monto) || 0) - vueltoArr)
                 : (Number(pago.monto) || 0);
             if (montoNet <= 0) continue;
+            // Proporción del excedente en este método de pago
+            const excedentePago = excedenteTotal > 0 && pagosArr.length === 1
+                ? excedenteTotal
+                : 0;
             await CajaMovement.create({
                 sesionId: sesion._id,
                 tipo: "ingreso",
                 concepto,
                 monto: montoNet,
+                excedente: excedentePago,
                 metodoPago: pago.metodo,
                 pedidoId: pedido._id,
                 userId: payload.sub,
