@@ -20,7 +20,10 @@ const VentaSchema = new Schema(
 );
 
 const TarjetaSchema = new Schema(
-    { cantidad: { type: Number, required: true } },
+    {
+        cantidad:   { type: Number, required: true },
+        metodoPago: { type: String, enum: ["efectivo", "transferencia", "tarjeta"], default: "efectivo" },
+    },
     { timestamps: true }
 );
 

@@ -68,6 +68,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         return NextResponse.json({ ok: true, evento });
     }
 
+    if (body.accion === "eliminarTarjeta") {
+        const { tarjetaId } = body;
+        if (!tarjetaId) return NextResponse.json({ error: "tarjetaId requerido" }, { status: 400 });
+        const tarjetas = evento.tarjetas as any[];
+        const idx = tarjetas.findIndex((t: any) => t._id.toString() === tarjetaId);
+        if (idx === -1) return NextResponse.json({ error: "Tarjeta no encontrada" }, { status: 404 });
+        tarjetas.splice(idx, 1);
+        await evento.save();
+        return NextResponse.json({ ok: true, evento });
+    }
+
     if (body.accion === "cerrar") {
         if (evento.estado === "cerrado") {
             return NextResponse.json({ error: "El evento ya está cerrado" }, { status: 400 });

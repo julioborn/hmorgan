@@ -2110,30 +2110,45 @@ export default function CajaPage() {
                                             </div>
                                         </div>
 
-                                        {/* ── Desglose entradas por método ── */}
+                                        {/* ── Desglose entradas por registro ── */}
                                         {totalTarjetas > 0 && (() => {
                                             const tarjetasArr = (ev as any).tarjetas ?? [];
-                                            const porMetodo: Record<string, number> = {};
-                                            for (const t of tarjetasArr) {
-                                                porMetodo[t.metodoPago] = (porMetodo[t.metodoPago] || 0) + t.cantidad;
-                                            }
+                                            const METODO_NOMBRE: Record<string, string> = { efectivo: "Efectivo", transferencia: "Transferencia", tarjeta: "Tarjeta" };
                                             return (
                                                 <div>
-                                                    <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">Entradas por método</p>
+                                                    <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">
+                                                        Entradas registradas · {totalTarjetas} total
+                                                    </p>
                                                     <div className="space-y-1.5">
-                                                        {Object.entries(porMetodo).map(([metodo, cant]) => {
-                                                            const Icon = METODO_ICON[metodo] || Banknote;
+                                                        {tarjetasArr.map((t: any) => {
+                                                            const Icon = METODO_ICON[t.metodoPago] || Banknote;
                                                             return (
-                                                                <div key={metodo} className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2 border border-gray-200">
-                                                                    <span className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 capitalize">
+                                                                <div key={t._id} className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2 border border-gray-200">
+                                                                    <span className="flex items-center gap-1.5 text-sm font-semibold text-gray-700">
                                                                         <Icon size={13} className="text-gray-500" />
-                                                                        {metodo === "transferencia" ? "Transferencia" : metodo === "tarjeta" ? "Tarjeta" : "Efectivo"}
+                                                                        {METODO_NOMBRE[t.metodoPago] || t.metodoPago}
                                                                     </span>
                                                                     <div className="flex items-center gap-2">
-                                                                        <span className="text-sm font-black text-gray-900">{cant} entrada{cant !== 1 ? "s" : ""}</span>
+                                                                        <span className="text-sm font-black text-gray-900">{t.cantidad} entrada{t.cantidad !== 1 ? "s" : ""}</span>
                                                                         {precioTarjeta > 0 && (
-                                                                            <span className="text-xs font-bold text-gray-400">{formatMoney(cant * precioTarjeta)}</span>
+                                                                            <span className="text-xs font-bold text-gray-400">{formatMoney(t.cantidad * precioTarjeta)}</span>
                                                                         )}
+                                                                        <button
+                                                                            onClick={async () => {
+                                                                                const res = await fetch(`/api/eventos/${ev._id}`, {
+                                                                                    method: "PATCH", credentials: "include",
+                                                                                    headers: { "Content-Type": "application/json" },
+                                                                                    body: JSON.stringify({ accion: "eliminarTarjeta", tarjetaId: t._id }),
+                                                                                });
+                                                                                if (res.ok) {
+                                                                                    const { evento: updated } = await res.json();
+                                                                                    setEventosActivos(prev => prev.map(e => e._id === ev._id ? updated : e));
+                                                                                }
+                                                                            }}
+                                                                            className="p-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition"
+                                                                            title="Eliminar registro">
+                                                                            <Trash2 size={12} />
+                                                                        </button>
                                                                     </div>
                                                                 </div>
                                                             );
