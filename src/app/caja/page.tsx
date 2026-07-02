@@ -1298,7 +1298,7 @@ export default function CajaPage() {
         );
     }
 
-    if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-gray-400" size={36} /></div>;
+    if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-gray-700" size={36} /></div>;
 
     // Pedidos listos para cobrar: estado listo O entregado (ambos estados válidos)
     const paraCobrar = pedidos.filter(p => p.estado === "listo" || p.estado === "entregado");
@@ -1381,14 +1381,14 @@ export default function CajaPage() {
             {/* Switches pedidos / reservas */}
             <div className="flex items-center gap-5 mt-4 pt-4 border-t border-white/10">
                 <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-gray-300">Pedidos</span>
+                    <span className="text-xs font-semibold text-white/80">Pedidos</span>
                     <button onClick={togglePedidosActivos}
                         className={`relative flex h-5 w-9 shrink-0 cursor-pointer rounded-full items-center transition-colors duration-200 ${pedidosActivos ? "bg-red-500" : "bg-gray-600"}`}>
                         <span className={`absolute h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-200 ${pedidosActivos ? "translate-x-[18px]" : "translate-x-[2px]"}`} />
                     </button>
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-gray-300">Reservas</span>
+                    <span className="text-xs font-semibold text-white/80">Reservas</span>
                     <button onClick={toggleReservasActivas}
                         className={`relative flex h-5 w-9 shrink-0 cursor-pointer rounded-full items-center transition-colors duration-200 ${reservasActivas ? "bg-red-500" : "bg-gray-600"}`}>
                         <span className={`absolute h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-200 ${reservasActivas ? "translate-x-[18px]" : "translate-x-[2px]"}`} />
@@ -1414,9 +1414,9 @@ export default function CajaPage() {
                             {/* Body */}
                             <div className="px-6 py-6 space-y-4">
                                 <div>
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-2">Monto en efectivo</label>
+                                    <label className="text-[10px] font-black text-gray-700 uppercase tracking-wider block mb-2">Monto en efectivo</label>
                                     <div className="flex items-center gap-2 border-2 border-gray-100 focus-within:border-black rounded-2xl px-4 py-3 transition-colors">
-                                        <span className="text-2xl font-black text-gray-300">$</span>
+                                        <span className="text-2xl font-black text-gray-600">$</span>
                                         <input type="number" min="0" value={openForm.montoInicial}
                                             onChange={e => setOpenForm(p => ({ ...p, montoInicial: e.target.value }))}
                                             placeholder="0" style={{ fontSize: "28px" }}
@@ -1442,7 +1442,7 @@ export default function CajaPage() {
                     <div className="flex bg-white sticky top-0 z-10 border-b border-gray-100">
                         <button onClick={() => setTab("pedidos")}
                             className={`flex-1 py-3.5 text-sm font-black transition flex items-center justify-center gap-2 ${
-                                tab === "pedidos" ? "text-gray-900 border-b-2 border-black" : "text-gray-400 hover:text-gray-600"
+                                tab === "pedidos" ? "text-gray-900 border-b-2 border-black" : "text-gray-700 hover:text-gray-600"
                             }`}>
                             <Package size={15} /> Pedidos
                             {(pendientes.length + preparando.length + listos.length) > 0 && (
@@ -1453,7 +1453,7 @@ export default function CajaPage() {
                         </button>
                         <button onClick={() => setTab("caja")}
                             className={`flex-1 py-3.5 text-sm font-black transition flex items-center justify-center gap-2 ${
-                                tab === "caja" ? "text-gray-900 border-b-2 border-black" : "text-gray-400 hover:text-gray-600"
+                                tab === "caja" ? "text-gray-900 border-b-2 border-black" : "text-gray-700 hover:text-gray-600"
                             }`}>
                             <Wallet size={15} /> Cobrar
                             {paraCobrar.length > 0 && (
@@ -1464,13 +1464,13 @@ export default function CajaPage() {
                         </button>
                         <button onClick={() => setTab("mesas")}
                             className={`flex-1 py-3.5 text-sm font-black transition flex items-center justify-center gap-2 ${
-                                tab === "mesas" ? "text-gray-900 border-b-2 border-black" : "text-gray-400 hover:text-gray-600"
+                                tab === "mesas" ? "text-gray-900 border-b-2 border-black" : "text-gray-700 hover:text-gray-600"
                             }`}>
                             <MapPin size={15} /> Mesas
                         </button>
                         <button onClick={() => setTab("reservas")}
                             className={`flex-1 py-3.5 text-sm font-black transition flex items-center justify-center gap-2 ${
-                                tab === "reservas" ? "text-gray-900 border-b-2 border-black" : "text-gray-400 hover:text-gray-600"
+                                tab === "reservas" ? "text-gray-900 border-b-2 border-black" : "text-gray-700 hover:text-gray-600"
                             }`}>
                             <CalendarDays size={15} /> Reservas
                             {reservasPendientes > 0 && (
@@ -1481,7 +1481,7 @@ export default function CajaPage() {
                         </button>
                         <button onClick={() => setTab("eventos")}
                             className={`flex-1 py-3.5 text-sm font-black transition flex items-center justify-center gap-2 ${
-                                tab === "eventos" ? "text-gray-900 border-b-2 border-black" : "text-gray-400 hover:text-gray-600"
+                                tab === "eventos" ? "text-gray-900 border-b-2 border-black" : "text-gray-700 hover:text-gray-600"
                             }`}>
                             <Star size={15} /> Eventos
                             {eventosActivos.length > 0 && (
@@ -1492,7 +1492,7 @@ export default function CajaPage() {
                         </button>
                         <button onClick={() => setTab("canjes")}
                             className={`flex-1 py-3.5 text-sm font-black transition flex items-center justify-center gap-2 ${
-                                tab === "canjes" ? "text-gray-900 border-b-2 border-black" : "text-gray-400 hover:text-gray-600"
+                                tab === "canjes" ? "text-gray-900 border-b-2 border-black" : "text-gray-700 hover:text-gray-600"
                             }`}>
                             <Gift size={15} /> Canjes
                             {canjesPendientes.length > 0 && (
@@ -1503,7 +1503,7 @@ export default function CajaPage() {
                         </button>
                         <button onClick={() => setTab("menu")}
                             className={`flex-1 py-3.5 text-sm font-black transition flex items-center justify-center gap-2 ${
-                                tab === "menu" ? "text-gray-900 border-b-2 border-black" : "text-gray-400 hover:text-gray-600"
+                                tab === "menu" ? "text-gray-900 border-b-2 border-black" : "text-gray-700 hover:text-gray-600"
                             }`}>
                             <UtensilsCrossed size={15} /> Menú
                         </button>
@@ -1529,7 +1529,7 @@ export default function CajaPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 items-start">
                                 <AnimatePresence>
                                     {lista.length === 0 ? (
-                                        <p className="col-span-full text-center text-gray-400 py-12">Sin pedidos en este estado.</p>
+                                        <p className="col-span-full text-center text-gray-700 py-12">Sin pedidos en este estado.</p>
                                     ) : lista.map(p => {
                                         const esApp     = p.fuente !== "empleado";
                                         const esMozo    = !esApp && p.userId?.role === "empleado";
@@ -1626,7 +1626,7 @@ export default function CajaPage() {
 
                                                     {(p.notaEmpleado || p.notaCliente) && (
                                                         <div className="shrink-0 border-l-2 border-amber-400 pl-3 py-1 mb-2">
-                                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-wide mb-0.5">Nota</p>
+                                                            <p className="text-[10px] font-black text-gray-700 uppercase tracking-wide mb-0.5">Nota</p>
                                                             <p className="text-xs text-gray-600 italic">{p.notaEmpleado || p.notaCliente}</p>
                                                         </div>
                                                     )}
@@ -1646,7 +1646,7 @@ export default function CajaPage() {
                                                         </div>
                                                     ) : (
                                                         <div className="shrink-0 flex justify-between items-center pt-2 border-t border-gray-100 mb-2">
-                                                            <span className="text-xs font-black text-gray-400 uppercase tracking-wide">Total</span>
+                                                            <span className="text-xs font-black text-gray-700 uppercase tracking-wide">Total</span>
                                                             <span className="font-black text-gray-900 text-xl">{formatMoney(p.total)}</span>
                                                         </div>
                                                     )}
@@ -1696,11 +1696,11 @@ export default function CajaPage() {
                                                                             onClick={() => canClick && avanzarEstado(p, est.key)}
                                                                             whileTap={canClick ? { scale: 0.9 } : undefined}
                                                                             className={`flex items-center justify-center w-8 h-8 rounded-full border-2 transition-all
-                                                                                ${isActive ? COLOR_CLASSES[est.color] : "border-gray-300 bg-white text-gray-400"}
+                                                                                ${isActive ? COLOR_CLASSES[est.color] : "border-gray-300 bg-white text-gray-700"}
                                                                                 ${!canClick ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}`}>
                                                                             <Icon className="w-3.5 h-3.5" />
                                                                         </motion.button>
-                                                                        <span className={`mt-1 font-medium ${isActive ? "text-gray-700" : "text-gray-400"}`}>
+                                                                        <span className={`mt-1 font-medium ${isActive ? "text-gray-700" : "text-gray-700"}`}>
                                                                             {est.label}
                                                                         </span>
                                                                     </div>
@@ -1751,12 +1751,12 @@ export default function CajaPage() {
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 items-start">
                             {paraCobrar.length === 0 ? (
-                                <div className="col-span-full text-center py-20 text-gray-400">
+                                <div className="col-span-full text-center py-20 text-gray-700">
                                     <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
-                                        <Wallet size={28} className="text-gray-300" />
+                                        <Wallet size={28} className="text-gray-600" />
                                     </div>
-                                    <p className="font-bold text-gray-400">Sin pedidos para cobrar</p>
-                                    <p className="text-sm mt-1 text-gray-300">Aparecen acá cuando el pedido está Listo o Finalizado</p>
+                                    <p className="font-bold text-gray-700">Sin pedidos para cobrar</p>
+                                    <p className="text-sm mt-1 text-gray-600">Aparecen acá cuando el pedido está Listo o Finalizado</p>
                                 </div>
                             ) : paraCobrar.map(p => {
                                 const esApp  = p.fuente !== "empleado";
@@ -1810,7 +1810,7 @@ export default function CajaPage() {
                                                 <div key={item._id || idx} className="flex items-center gap-2">
                                                     <span className="font-black text-gray-900 text-sm shrink-0">{item.cantidad}×</span>
                                                     <span className="text-sm font-semibold text-gray-900 flex-1 min-w-0 truncate">{item.menuItemId?.nombre}</span>
-                                                    <span className="text-xs text-gray-400 shrink-0">{formatMoney((item.menuItemId?.precio || 0) * item.cantidad)}</span>
+                                                    <span className="text-xs text-gray-700 shrink-0">{formatMoney((item.menuItemId?.precio || 0) * item.cantidad)}</span>
                                                     {item._id && (
                                                         <div className="flex items-center gap-1 shrink-0">
                                                             <button onClick={() => abrirSelectorProducto(p, { modo: "reemplazar", itemId: item._id!, nombreActual: item.menuItemId?.nombre || "ítem" })}
@@ -1826,7 +1826,7 @@ export default function CajaPage() {
                                                 </div>
                                             ))}
                                             {p.tipoEntrega === "envio" && (p.costoEnvio ?? 0) > 0 && (
-                                                <div className="flex justify-between text-xs text-gray-400 border-t border-gray-100 pt-1.5 mt-1">
+                                                <div className="flex justify-between text-xs text-gray-700 border-t border-gray-100 pt-1.5 mt-1">
                                                     <span>Envío a domicilio</span>
                                                     <span>{formatMoney(p.costoEnvio ?? 0)}</span>
                                                 </div>
@@ -1936,11 +1936,11 @@ export default function CajaPage() {
                             </button>
 
                             {!eventosLoaded ? (
-                                <div className="flex justify-center py-10"><Loader2 className="animate-spin text-gray-300" size={28} /></div>
+                                <div className="flex justify-center py-10"><Loader2 className="animate-spin text-gray-600" size={28} /></div>
                             ) : eventosActivos.length === 0 ? (
                                 <div className="text-center py-12">
                                     <Star size={32} className="mx-auto text-gray-200 mb-3" />
-                                    <p className="font-bold text-gray-400">Sin eventos activos</p>
+                                    <p className="font-bold text-gray-700">Sin eventos activos</p>
                                 </div>
                             ) : eventosActivos.map(ev => {
                                 const pedidosEv = pedidos.filter(p => p.eventoId === ev._id);
@@ -1959,7 +1959,7 @@ export default function CajaPage() {
                                                 <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wide">Activo</span>
                                             </div>
                                             <h2 className="font-black text-gray-900 text-lg">{ev.nombre}</h2>
-                                            <p className="text-xs text-gray-400">Total: {formatMoney(totalVentas + totalPedidos + totalTarjetas * precioTarjeta)}</p>
+                                            <p className="text-xs text-gray-700">Total: {formatMoney(totalVentas + totalPedidos + totalTarjetas * precioTarjeta)}</p>
                                         </div>
                                         <button onClick={() => abrirCierreEvento(ev._id)}
                                             className="text-xs font-bold text-red-600 hover:bg-red-50 border border-red-200 px-3 py-1.5 rounded-xl transition shrink-0">
@@ -1970,11 +1970,11 @@ export default function CajaPage() {
                                     {/* Mesas */}
                                     <div className="px-4 pb-3 border-b border-gray-100">
                                         <div className="flex items-center justify-between mb-1.5">
-                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Mesas del evento</p>
+                                            <p className="text-[10px] font-black text-gray-700 uppercase tracking-wider">Mesas del evento</p>
                                             <button onClick={() => abrirEditMesas(ev._id)} className="text-[10px] font-bold text-blue-600 hover:underline">Editar</button>
                                         </div>
                                         {(ev.mesas ?? []).length === 0 ? (
-                                            <button onClick={() => abrirEditMesas(ev._id)} className="text-xs text-gray-400 hover:text-blue-600 transition">+ Asignar mesas</button>
+                                            <button onClick={() => abrirEditMesas(ev._id)} className="text-xs text-gray-700 hover:text-blue-600 transition">+ Asignar mesas</button>
                                         ) : (
                                             <div className="flex flex-wrap gap-1.5">
                                                 {ev.mesas.map(m => <span key={m} className="bg-blue-100 text-blue-700 text-xs font-bold px-2.5 py-0.5 rounded-full">{m}</span>)}
@@ -1986,9 +1986,9 @@ export default function CajaPage() {
                                     <div className="px-4 py-3 border-b border-gray-100">
                                         <div className="flex items-center justify-between mb-1">
                                             <div>
-                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Tarjetas</p>
+                                                <p className="text-[10px] font-black text-gray-700 uppercase tracking-wider">Tarjetas</p>
                                                 {precioTarjeta > 0 && <p className="text-xs text-gray-500">{totalTarjetas} tarjetas · {formatMoney(precioTarjeta)} c/u = <span className="font-black text-gray-900">{formatMoney(totalTarjetas * precioTarjeta)}</span></p>}
-                                                {precioTarjeta === 0 && <p className="text-xs text-gray-400">Precio no configurado</p>}
+                                                {precioTarjeta === 0 && <p className="text-xs text-gray-700">Precio no configurado</p>}
                                             </div>
                                             <button onClick={() => abrirTarjetasModal(ev._id)}
                                                 className="text-xs font-bold text-white bg-black hover:bg-gray-700 px-3 py-1.5 rounded-xl transition">
@@ -2009,7 +2009,7 @@ export default function CajaPage() {
                                     {/* Comandas vinculadas */}
                                     {pedidosEv.length > 0 && (
                                         <div className="px-4 py-3 border-b border-gray-100">
-                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">Comandas ({pedidosEv.length})</p>
+                                            <p className="text-[10px] font-black text-gray-700 uppercase tracking-wider mb-2">Comandas ({pedidosEv.length})</p>
                                             <div className="space-y-1">
                                                 {pedidosEv.map(p => (
                                                     <div key={p._id} className="flex items-center justify-between bg-blue-50 rounded-xl px-3 py-1.5 text-sm">
@@ -2024,14 +2024,14 @@ export default function CajaPage() {
                                     {/* Ventas directas */}
                                     <div className="px-4 py-3">
                                         <div className="flex items-center justify-between mb-2">
-                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Ventas directas ({ev.ventas.length})</p>
+                                            <p className="text-[10px] font-black text-gray-700 uppercase tracking-wider">Ventas directas ({ev.ventas.length})</p>
                                             <button onClick={() => abrirVentaModal(ev._id)}
                                                 className="text-xs font-bold text-white bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-xl transition">
                                                 + Registrar venta
                                             </button>
                                         </div>
                                         {ev.ventas.length === 0 ? (
-                                            <p className="text-xs text-gray-300 py-2">Sin ventas registradas</p>
+                                            <p className="text-xs text-gray-600 py-2">Sin ventas registradas</p>
                                         ) : (
                                             <div className="space-y-1.5">
                                                 {[...ev.ventas].reverse().map(v => {
@@ -2041,7 +2041,7 @@ export default function CajaPage() {
                                                             <div className="flex items-center justify-between mb-1">
                                                                 <span className="flex items-center gap-1 text-[10px] font-bold text-gray-500">
                                                                     <Icon size={9} /> {METODO_LABEL[v.metodoPago]}
-                                                                    <span className="text-gray-300 font-normal ml-1">{new Date(v.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</span>
+                                                                    <span className="text-gray-600 font-normal ml-1">{new Date(v.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</span>
                                                                 </span>
                                                                 <span className="font-black text-gray-900 text-sm">{formatMoney(v.total)}</span>
                                                             </div>
@@ -2077,15 +2077,15 @@ export default function CajaPage() {
                                     }}
                                     className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-2xl border border-gray-200 transition text-sm font-bold text-gray-600">
                                     <span>Historial de eventos cerrados</span>
-                                    <span className="text-gray-400">{historialVisible ? "▲" : "▼"}</span>
+                                    <span className="text-gray-700">{historialVisible ? "▲" : "▼"}</span>
                                 </button>
 
                             {historialVisible && (
                                 <div className="mt-3 space-y-3">
                                     {historialLoading ? (
-                                        <div className="flex justify-center py-8"><Loader2 className="animate-spin text-gray-300" size={28} /></div>
+                                        <div className="flex justify-center py-8"><Loader2 className="animate-spin text-gray-600" size={28} /></div>
                                     ) : eventosCerrados.length === 0 ? (
-                                        <p className="text-center text-gray-400 text-sm py-6">Sin eventos cerrados</p>
+                                        <p className="text-center text-gray-700 text-sm py-6">Sin eventos cerrados</p>
                                     ) : eventosCerrados.map(ev => {
                                         const cd = ev.cierreData;
                                         const fechaCierre = cd?.fecha
@@ -2116,7 +2116,7 @@ export default function CajaPage() {
                                                 {/* Header */}
                                                 <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
                                                     <div>
-                                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Cerrado · {fechaCierre}</span>
+                                                        <span className="text-[10px] font-bold text-gray-700 uppercase tracking-wide">Cerrado · {fechaCierre}</span>
                                                         <h3 className="font-black text-gray-900 leading-tight">{ev.nombre}</h3>
                                                     </div>
                                                     {cd && <span className="font-black text-gray-900 text-lg">{formatMoney(cd.totalGeneral)}</span>}
@@ -2134,7 +2134,7 @@ export default function CajaPage() {
 
                                                         {/* Desglose por método */}
                                                         <div className="bg-gray-50 rounded-xl p-3 space-y-1.5">
-                                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">Desglose por método</p>
+                                                            <p className="text-[10px] font-black text-gray-700 uppercase tracking-wider mb-2">Desglose por método</p>
                                                             {[
                                                                 { label: "Efectivo",              icon: Banknote,   total: cd.totalEfectivo,      ventas: cd.ventasEfectivo,      comandas: cd.comandasEfectivo },
                                                                 { label: "Transferencia",         icon: Send,       total: cd.totalTransferencia, ventas: cd.ventasTransferencia, comandas: cd.comandasTransferencia },
@@ -2145,7 +2145,7 @@ export default function CajaPage() {
                                                                     <div className="text-right">
                                                                         <span className="font-bold text-gray-900">{formatMoney(m.total)}</span>
                                                                         {(m.ventas > 0 || m.comandas > 0) && (
-                                                                            <span className="text-[10px] text-gray-400 ml-1">
+                                                                            <span className="text-[10px] text-gray-700 ml-1">
                                                                                 {[m.ventas > 0 && `ventas ${formatMoney(m.ventas)}`, m.comandas > 0 && `comandas ${formatMoney(m.comandas)}`].filter(Boolean).join(" + ")}
                                                                             </span>
                                                                         )}
@@ -2167,7 +2167,7 @@ export default function CajaPage() {
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    <p className="px-4 py-3 text-xs text-gray-400">Sin resumen de cierre registrado</p>
+                                                    <p className="px-4 py-3 text-xs text-gray-700">Sin resumen de cierre registrado</p>
                                                 )}
 
                                                 {/* Toggle productos */}
@@ -2182,7 +2182,7 @@ export default function CajaPage() {
                                                         {expandido && (
                                                             <div className="px-4 pb-3">
                                                                 <div className="rounded-xl overflow-hidden border border-gray-100">
-                                                                    <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-1.5 bg-gray-50 border-b border-gray-100 text-[10px] font-black text-gray-400 uppercase tracking-wider">
+                                                                    <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-1.5 bg-gray-50 border-b border-gray-100 text-[10px] font-black text-gray-700 uppercase tracking-wider">
                                                                         <span>Producto</span>
                                                                         <span className="text-center">Cant.</span>
                                                                         <span className="text-right">Total</span>
@@ -2191,7 +2191,7 @@ export default function CajaPage() {
                                                                         <div key={i} className={`grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-2 text-sm ${i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}`}>
                                                                             <div>
                                                                                 <span className="font-semibold text-gray-900">{p.nombre}</span>
-                                                                                {p.categoria && <span className="text-[10px] text-gray-400 ml-1.5">{p.categoria}</span>}
+                                                                                {p.categoria && <span className="text-[10px] text-gray-700 ml-1.5">{p.categoria}</span>}
                                                                             </div>
                                                                             <span className="text-center font-bold text-gray-700">{p.cantidad}</span>
                                                                             <span className="text-right font-bold text-gray-900">{formatMoney(p.total)}</span>
@@ -2216,11 +2216,11 @@ export default function CajaPage() {
 
                             {/* ── Solicitudes pendientes ── */}
                             <section>
-                                <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Solicitudes pendientes</p>
+                                <p className="text-xs font-black text-gray-700 uppercase tracking-widest mb-3">Solicitudes pendientes</p>
                                 {canjesPendientes.length === 0 ? (
                                     <div className="bg-gray-50 rounded-2xl border border-gray-100 py-8 text-center">
-                                        <Gift size={24} className="mx-auto text-gray-300 mb-2" />
-                                        <p className="text-sm text-gray-400">Sin solicitudes pendientes</p>
+                                        <Gift size={24} className="mx-auto text-gray-600 mb-2" />
+                                        <p className="text-sm text-gray-700">Sin solicitudes pendientes</p>
                                     </div>
                                 ) : (
                                     <div className="space-y-3">
@@ -2229,9 +2229,9 @@ export default function CajaPage() {
                                                 <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
                                                     <div>
                                                         <p className="font-black text-gray-900">{c.userId?.nombre} {c.userId?.apellido}</p>
-                                                        <p className="text-xs text-gray-400">{c.userId?.puntos ?? 0} pts disponibles</p>
+                                                        <p className="text-xs text-gray-700">{c.userId?.puntos ?? 0} pts disponibles</p>
                                                     </div>
-                                                    <p className="text-xs text-gray-400">
+                                                    <p className="text-xs text-gray-700">
                                                         {new Date(c.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
                                                     </p>
                                                 </div>
@@ -2264,7 +2264,7 @@ export default function CajaPage() {
                             {/* ── Gestión de canjes disponibles ── */}
                             <section>
                                 <div className="flex items-center justify-between mb-3">
-                                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Canjes disponibles</p>
+                                    <p className="text-xs font-black text-gray-700 uppercase tracking-widest">Canjes disponibles</p>
                                     <button onClick={() => abrirRewardForm()}
                                         className="flex items-center gap-1.5 bg-black hover:bg-gray-700 text-white font-bold px-3 py-2 rounded-xl text-xs transition active:scale-95">
                                         <Plus size={13} /> Nuevo
@@ -2315,7 +2315,7 @@ export default function CajaPage() {
 
                                 {rewards.length === 0 ? (
                                     <div className="bg-gray-50 rounded-2xl border border-gray-100 py-8 text-center">
-                                        <p className="text-sm text-gray-400">No hay canjes creados</p>
+                                        <p className="text-sm text-gray-700">No hay canjes creados</p>
                                     </div>
                                 ) : (
                                     <div className="space-y-2">
@@ -2358,7 +2358,7 @@ export default function CajaPage() {
                             <div className="flex items-center justify-between mb-4">
                                 <div>
                                     <h2 className="font-black text-gray-900 text-lg">Menú</h2>
-                                    <p className="text-xs text-gray-400">{menuGest.length} productos</p>
+                                    <p className="text-xs text-gray-700">{menuGest.length} productos</p>
                                 </div>
                                 <button
                                     onClick={() => { setMenuGestShowForm(f => !f); setMenuGestEditId(null); setMenuGestForm({ nombre: "", precio: "", descripcion: "", categoria: "" }); setMenuGestSelectCat(""); }}
@@ -2430,7 +2430,7 @@ export default function CajaPage() {
 
                             {/* Lista de productos */}
                             {menuGestLoading ? (
-                                <div className="flex justify-center py-12"><Loader2 size={32} className="animate-spin text-gray-400" /></div>
+                                <div className="flex justify-center py-12"><Loader2 size={32} className="animate-spin text-gray-700" /></div>
                             ) : (
                                 <div className="space-y-2">
                                     {menuGest
@@ -2440,8 +2440,8 @@ export default function CajaPage() {
                                             <div key={item._id} className={`bg-white border rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm transition ${item.activo === false ? "opacity-50 border-gray-100" : "border-gray-200"}`}>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="font-bold text-gray-900 text-sm truncate">{item.nombre}</p>
-                                                    <p className="text-xs text-gray-400">{item.categoria} · ${new Intl.NumberFormat("es-AR").format(item.precio)}</p>
-                                                    {item.descripcion && <p className="text-xs text-gray-400 truncate mt-0.5">{item.descripcion}</p>}
+                                                    <p className="text-xs text-gray-700">{item.categoria} · ${new Intl.NumberFormat("es-AR").format(item.precio)}</p>
+                                                    {item.descripcion && <p className="text-xs text-gray-700 truncate mt-0.5">{item.descripcion}</p>}
                                                 </div>
                                                 {/* Toggle activo */}
                                                 <button onClick={() => toggleMenuGestActivo(item)}
@@ -2462,7 +2462,7 @@ export default function CajaPage() {
                                         ))
                                     }
                                     {menuGest.filter(i => menuGestCat === "todas" || i.categoria === menuGestCat).filter(i => !menuGestSearch || i.nombre.toLowerCase().includes(menuGestSearch.toLowerCase())).length === 0 && (
-                                        <p className="text-center text-gray-400 py-10">Sin productos en esta categoría.</p>
+                                        <p className="text-center text-gray-700 py-10">Sin productos en esta categoría.</p>
                                     )}
                                 </div>
                             )}
@@ -2485,7 +2485,7 @@ export default function CajaPage() {
 
                                     {/* Efectivo — bloque detallado */}
                                     <div className="bg-gray-50 rounded-2xl p-4 space-y-2.5">
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider flex items-center gap-1.5"><Banknote size={11} />Efectivo</p>
+                                        <p className="text-[10px] font-black text-gray-700 uppercase tracking-wider flex items-center gap-1.5"><Banknote size={11} />Efectivo</p>
                                         <div className="flex justify-between text-sm">
                                             <span className="text-gray-500">Al inicio</span>
                                             <span className="font-bold text-gray-900">{formatMoney(cierreMontoInicial)}</span>
@@ -2505,7 +2505,7 @@ export default function CajaPage() {
                                     </div>
 
                                     {/* Desglose por método */}
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Recaudado por método</p>
+                                    <p className="text-[10px] font-black text-gray-700 uppercase tracking-wider">Recaudado por método</p>
                                     {METODOS.map(met => {
                                         const r = cierreResumen[met];
                                         const ingreso = r?.ingreso || 0;
@@ -2521,7 +2521,7 @@ export default function CajaPage() {
                                                     <span className="font-black text-gray-900">{formatMoney(neto)}</span>
                                                 </div>
                                                 {egreso > 0 && (
-                                                    <div className="flex justify-between text-xs text-gray-400 mt-1">
+                                                    <div className="flex justify-between text-xs text-gray-700 mt-1">
                                                         <span>Ingresos {formatMoney(ingreso)} · Egresos −{formatMoney(egreso)}</span>
                                                     </div>
                                                 )}
@@ -2548,7 +2548,7 @@ export default function CajaPage() {
                             <>
                                 <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
                                     <h2 className="font-black text-gray-900 flex-1">Cerrar caja</h2>
-                                    <button onClick={() => setCloseModal(false)} className="p-1 text-gray-400 hover:text-gray-700"><X size={18} /></button>
+                                    <button onClick={() => setCloseModal(false)} className="p-1 text-gray-700 hover:text-gray-700"><X size={18} /></button>
                                 </div>
                                 <div className="px-5 py-4 space-y-3">
                                     <p className="text-sm text-gray-600">
@@ -2587,11 +2587,11 @@ export default function CajaPage() {
                         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
                             <ArrowDownLeft size={18} className="text-red-500" />
                             <h2 className="font-black text-gray-900 flex-1">Registrar gasto</h2>
-                            <button onClick={() => setGastoModal(false)} className="p-1 text-gray-400"><X size={18} /></button>
+                            <button onClick={() => setGastoModal(false)} className="p-1 text-gray-700"><X size={18} /></button>
                         </div>
                         <div className="px-5 py-4 space-y-3">
                             <div>
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1.5">Concepto</label>
+                                <label className="text-[10px] font-black text-gray-700 uppercase tracking-wider block mb-1.5">Concepto</label>
                                 <input
                                     type="text" placeholder="Ej: Pago publicidad, limpieza, etc."
                                     value={gastoForm.concepto}
@@ -2600,9 +2600,9 @@ export default function CajaPage() {
                                 />
                             </div>
                             <div>
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1.5">Monto</label>
+                                <label className="text-[10px] font-black text-gray-700 uppercase tracking-wider block mb-1.5">Monto</label>
                                 <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-red-400 focus-within:border-transparent">
-                                    <span className="text-gray-400 text-sm font-semibold">$</span>
+                                    <span className="text-gray-700 text-sm font-semibold">$</span>
                                     <input type="number" min="0" placeholder="0"
                                         value={gastoForm.monto}
                                         onChange={e => setGastoForm(p => ({ ...p, monto: e.target.value }))}
@@ -2610,14 +2610,14 @@ export default function CajaPage() {
                                 </div>
                             </div>
                             <div>
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1.5">Método</label>
+                                <label className="text-[10px] font-black text-gray-700 uppercase tracking-wider block mb-1.5">Método</label>
                                 <div className="flex gap-2">
                                     {METODOS.map(met => {
                                         const Icon = METODO_ICON[met];
                                         return (
                                             <button key={met}
                                                 onClick={() => setGastoForm(p => ({ ...p, metodo: met }))}
-                                                className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 border transition ${gastoForm.metodo === met ? "bg-black text-white border-black" : "bg-white text-gray-400 border-gray-200 hover:border-gray-400"}`}>
+                                                className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 border transition ${gastoForm.metodo === met ? "bg-black text-white border-black" : "bg-white text-gray-700 border-gray-200 hover:border-gray-400"}`}>
                                                 <Icon size={11} />{METODO_LABEL[met]}
                                             </button>
                                         );
@@ -2653,7 +2653,7 @@ export default function CajaPage() {
                                 <h2 className="font-black text-gray-900 flex-1">
                                     Cobrar {ped.mesa ? `Mesa ${ped.mesa}` : ped.nombreComanda || ""}
                                 </h2>
-                                <button onClick={() => setCobrarModal({ open: false, pedido: null })} className="p-1 text-gray-400"><X size={18} /></button>
+                                <button onClick={() => setCobrarModal({ open: false, pedido: null })} className="p-1 text-gray-700"><X size={18} /></button>
                             </div>
                             <div className="px-5 py-4 space-y-4 overflow-y-auto flex-1 min-h-0">
                                 {/* Items */}
@@ -2677,9 +2677,9 @@ export default function CajaPage() {
 
                                 {/* Descuento */}
                                 <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Descuento en pesos</label>
+                                    <label className="text-[10px] font-black text-gray-700 uppercase tracking-wider">Descuento en pesos</label>
                                     <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-red-400 focus-within:border-transparent">
-                                        <span className="text-gray-400 text-sm font-semibold">−$</span>
+                                        <span className="text-gray-700 text-sm font-semibold">−$</span>
                                         <input type="number" min="0" max={ped.total}
                                             value={cobrarForm.descuento}
                                             onChange={e => setCobrarForm(p => ({ ...p, descuento: e.target.value }))}
@@ -2696,7 +2696,7 @@ export default function CajaPage() {
 
                                 {/* Pagos */}
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Forma de pago</label>
+                                    <label className="text-[10px] font-black text-gray-700 uppercase tracking-wider">Forma de pago</label>
                                     {cobrarForm.pagos.map((pago, idx) => (
                                         <div key={idx} className="flex items-center gap-2">
                                             <div className="flex gap-1 flex-1">
@@ -2705,7 +2705,7 @@ export default function CajaPage() {
                                                     return (
                                                         <button key={met}
                                                             onClick={() => setCobrarForm(p => ({ ...p, pagos: p.pagos.map((pg, i) => i === idx ? { ...pg, metodo: met } : pg) }))}
-                                                            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-0.5 border transition ${pago.metodo === met ? "bg-black text-white border-black" : "bg-white text-gray-400 border-gray-200 hover:border-gray-400"}`}>
+                                                            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-0.5 border transition ${pago.metodo === met ? "bg-black text-white border-black" : "bg-white text-gray-700 border-gray-200 hover:border-gray-400"}`}>
                                                             <Icon size={10} />{METODO_LABEL[met]}
                                                         </button>
                                                     );
@@ -2732,7 +2732,7 @@ export default function CajaPage() {
                                                 const restante = Math.max(0, totalConDescuento - totalPagado);
                                                 setCobrarForm(p => ({ ...p, pagos: [...p.pagos, { metodo: next, monto: restante > 0 ? String(restante) : "" }] }));
                                             }}
-                                            className="w-full py-1.5 border border-dashed border-gray-300 rounded-xl text-xs font-semibold text-gray-400 hover:text-gray-600 hover:border-gray-400 transition">
+                                            className="w-full py-1.5 border border-dashed border-gray-300 rounded-xl text-xs font-semibold text-gray-700 hover:text-gray-600 hover:border-gray-400 transition">
                                             + Agregar método de pago
                                         </button>
                                     )}
@@ -2793,14 +2793,14 @@ export default function CajaPage() {
                             <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
                                 {editItemCat && !searchActive && (
                                     <button onClick={() => setEditItemCat(editItemCat === "BEBIDAS" || BEBIDAS_CATS.includes(editItemCat) ? (BEBIDAS_CATS.includes(editItemCat) ? "BEBIDAS" : null) : null)}
-                                        className="p-1 text-gray-400 hover:text-gray-700 transition">
+                                        className="p-1 text-gray-700 hover:text-gray-700 transition">
                                         <X size={16} />
                                     </button>
                                 )}
                                 <h2 className="font-black text-gray-900 flex-1 truncate text-sm">
                                     {searchActive ? "Buscar" : editItemCat ? editItemCat : (editItemModal.modo === "reemplazar" ? `Cambiar "${editItemModal.nombreActual}"` : "Agregar producto")}
                                 </h2>
-                                <button onClick={() => { setEditItemModal(null); setEditItemSearch(""); setEditItemCat(null); }} className="p-1 text-gray-400"><X size={18} /></button>
+                                <button onClick={() => { setEditItemModal(null); setEditItemSearch(""); setEditItemCat(null); }} className="p-1 text-gray-700"><X size={18} /></button>
                             </div>
                             {/* Buscador */}
                             <div className="px-4 py-3 shrink-0">
@@ -2816,10 +2816,10 @@ export default function CajaPage() {
                                             <button key={m._id} onClick={() => { editItemModal.modo === "reemplazar" ? reemplazarItemPedido(m._id, m.nombre) : agregarProductoAPedido(m); setEditItemSearch(""); setEditItemCat(null); }}
                                                 className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-gray-50 border border-gray-100 text-left transition">
                                                 <span className="text-sm text-gray-800">{m.nombre}</span>
-                                                <span className="text-xs text-gray-400 shrink-0 ml-2">{formatMoney(m.precio)}</span>
+                                                <span className="text-xs text-gray-700 shrink-0 ml-2">{formatMoney(m.precio)}</span>
                                             </button>
                                         ))}
-                                        {searchResults.length === 0 && <p className="text-center text-gray-400 py-8 text-sm">Sin resultados</p>}
+                                        {searchResults.length === 0 && <p className="text-center text-gray-700 py-8 text-sm">Sin resultados</p>}
                                     </div>
                                 ) : !editItemCat ? (
                                     <div className="grid grid-cols-2 gap-2.5 pt-1">
@@ -2868,7 +2868,7 @@ export default function CajaPage() {
                                                 <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full shrink-0 ml-2">{formatMoney(m.precio)}</span>
                                             </button>
                                         ))}
-                                        {itemsForCat.length === 0 && <p className="text-center text-gray-400 py-8 text-sm">Sin productos</p>}
+                                        {itemsForCat.length === 0 && <p className="text-center text-gray-700 py-8 text-sm">Sin productos</p>}
                                     </div>
                                 )}
                             </div>
@@ -2883,7 +2883,7 @@ export default function CajaPage() {
                     <div className="bg-white rounded-3xl w-full sm:max-w-3xl shadow-2xl max-h-[92vh] flex flex-col">
                         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
                             <h2 className="font-black text-gray-900 flex-1">Nuevo evento</h2>
-                            <button onClick={() => setCrearEventoModal(false)} className="p-1 text-gray-400"><X size={18} /></button>
+                            <button onClick={() => setCrearEventoModal(false)} className="p-1 text-gray-700"><X size={18} /></button>
                         </div>
                         <div className="px-5 py-4 space-y-4 overflow-y-auto flex-1 min-h-0">
                             <div className="grid sm:grid-cols-2 gap-3">
@@ -2942,10 +2942,10 @@ export default function CajaPage() {
                                 <h2 className="font-black text-gray-900">Mesas del evento</h2>
                                 {editMesasList.length > 0 && <p className="text-xs text-blue-600 font-bold mt-0.5">{editMesasList.length} seleccionada{editMesasList.length !== 1 ? "s" : ""}</p>}
                             </div>
-                            <button onClick={() => setEditMesasModal(false)} className="p-1 text-gray-400"><X size={18} /></button>
+                            <button onClick={() => setEditMesasModal(false)} className="p-1 text-gray-700"><X size={18} /></button>
                         </div>
                         <div className="px-5 py-4 overflow-y-auto flex-1 min-h-0">
-                            <p className="text-xs text-gray-400 mb-3">Tocá las mesas para seleccionarlas. Aparecerán en azul en el plano principal.</p>
+                            <p className="text-xs text-gray-700 mb-3">Tocá las mesas para seleccionarlas. Aparecerán en azul en el plano principal.</p>
                             {renderPlanoSelector(editMesasList, (nombre) =>
                                 setEditMesasList(prev => prev.includes(nombre) ? prev.filter(x => x !== nombre) : [...prev, nombre]),
                                 editMesasEventoId
@@ -2981,9 +2981,9 @@ export default function CajaPage() {
                             <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
                                 <div className="flex-1">
                                     <h2 className="font-black text-gray-900">Registrar tarjetas</h2>
-                                    <p className="text-xs text-gray-400">{ev.nombre} · {formatMoney(precio)} c/u</p>
+                                    <p className="text-xs text-gray-700">{ev.nombre} · {formatMoney(precio)} c/u</p>
                                 </div>
-                                <button onClick={() => setTarjetasModal(false)} className="p-1 text-gray-400"><X size={18} /></button>
+                                <button onClick={() => setTarjetasModal(false)} className="p-1 text-gray-700"><X size={18} /></button>
                             </div>
                             <div className="px-5 py-5 space-y-4">
                                 <div>
@@ -3020,9 +3020,9 @@ export default function CajaPage() {
                         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
                             <div className="flex-1 min-w-0">
                                 <h2 className="font-black text-gray-900">Registrar venta</h2>
-                                <p className="text-xs text-gray-400 truncate">{eventosActivos.find(e => e._id === ventaEventoId)?.nombre}</p>
+                                <p className="text-xs text-gray-700 truncate">{eventosActivos.find(e => e._id === ventaEventoId)?.nombre}</p>
                             </div>
-                            <button onClick={() => { setVentaModal(false); setVentaMenuCat(null); setVentaSearch(""); }} className="p-1 text-gray-400"><X size={18} /></button>
+                            <button onClick={() => { setVentaModal(false); setVentaMenuCat(null); setVentaSearch(""); }} className="p-1 text-gray-700"><X size={18} /></button>
                         </div>
 
                         {/* Selector de producto con categorías */}
@@ -3074,7 +3074,7 @@ export default function CajaPage() {
                                                         <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full shrink-0 ml-2">{formatMoney(m.precio)}</span>
                                                     </button>
                                                 ))}
-                                                {ventaSearchResults.length === 0 && <p className="text-center text-gray-400 py-6 text-sm">Sin resultados</p>}
+                                                {ventaSearchResults.length === 0 && <p className="text-center text-gray-700 py-6 text-sm">Sin resultados</p>}
                                             </div>
                                         ) : !ventaMenuCat ? (
                                             <div className="grid grid-cols-2 gap-2 pt-1">
@@ -3123,7 +3123,7 @@ export default function CajaPage() {
                                                         <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full shrink-0 ml-2">{formatMoney(m.precio)}</span>
                                                     </button>
                                                 ))}
-                                                {itemsForCatV.length === 0 && <p className="text-center text-gray-400 py-6 text-sm">Sin productos</p>}
+                                                {itemsForCatV.length === 0 && <p className="text-center text-gray-700 py-6 text-sm">Sin productos</p>}
                                             </div>
                                         )}
                                     </div>
@@ -3134,7 +3134,7 @@ export default function CajaPage() {
                         {/* Carrito */}
                         {ventaCart.length > 0 && (
                             <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 shrink-0">
-                                <p className="text-[10px] font-black text-gray-400 uppercase mb-2">Carrito</p>
+                                <p className="text-[10px] font-black text-gray-700 uppercase mb-2">Carrito</p>
                                 <div className="space-y-2">
                                     {ventaCart.map(it => (
                                         <div key={it.menuItemId} className="flex items-center gap-2">
@@ -3144,7 +3144,7 @@ export default function CajaPage() {
                                             <button onClick={() => setVentaCart(prev => prev.map(x => x.menuItemId === it.menuItemId ? { ...x, cantidad: x.cantidad + 1 } : x))}
                                                 className="w-7 h-7 rounded-lg bg-white border border-gray-200 text-gray-700 font-bold flex items-center justify-center shrink-0">+</button>
                                             <span className="text-sm text-gray-700 flex-1 min-w-0 truncate">{it.nombre}</span>
-                                            <span className="text-xs text-gray-400 shrink-0">{formatMoney(it.precio * it.cantidad)}</span>
+                                            <span className="text-xs text-gray-700 shrink-0">{formatMoney(it.precio * it.cantidad)}</span>
                                             <button onClick={() => setVentaCart(prev => prev.filter(x => x.menuItemId !== it.menuItemId))}
                                                 className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 shrink-0 transition">
                                                 <Trash2 size={12} />
@@ -3157,8 +3157,8 @@ export default function CajaPage() {
 
                         {/* Comensales registrados (suman puntos al guardar) */}
                         <div className="px-4 py-3 border-t border-gray-100 shrink-0">
-                            <p className="text-[10px] font-black text-gray-400 uppercase mb-2">
-                                Comensales <span className="font-normal normal-case text-gray-300">(suman puntos)</span>
+                            <p className="text-[10px] font-black text-gray-700 uppercase mb-2">
+                                Comensales <span className="font-normal normal-case text-gray-600">(suman puntos)</span>
                             </p>
                             <div className="flex gap-2 relative">
                                 <div className="relative flex-1">
@@ -3178,7 +3178,7 @@ export default function CajaPage() {
                                                     setVentaComensalesResults([]);
                                                 }} className="w-full text-left px-3 py-2.5 hover:bg-gray-50 text-xs transition border-b border-gray-50 last:border-0">
                                                     <span className="font-semibold text-gray-900">{c.nombre} {c.apellido}</span>
-                                                    <span className="text-gray-400 ml-1">@{c.username}</span>
+                                                    <span className="text-gray-700 ml-1">@{c.username}</span>
                                                 </button>
                                             ))}
                                         </div>
@@ -3276,7 +3276,7 @@ export default function CajaPage() {
                             <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border uppercase tracking-wide ${COLOR_CLASSES[ESTADOS[getEstadoIdx(mesaDetalle.pedido.estado)]?.color] || "border-gray-200 bg-gray-100 text-gray-600"}`}>
                                 {mesaDetalle.pedido.estado}
                             </span>
-                            <button onClick={() => setMesaDetalle(null)} className="p-1 text-gray-400 hover:text-gray-700"><X size={18} /></button>
+                            <button onClick={() => setMesaDetalle(null)} className="p-1 text-gray-700 hover:text-gray-700"><X size={18} /></button>
                         </div>
                         <div className="px-5 py-4 space-y-3 overflow-y-auto flex-1 min-h-0">
                             <div className="flex items-center gap-2 text-sm text-gray-600 flex-wrap">
@@ -3290,9 +3290,9 @@ export default function CajaPage() {
                                 ) : null}
                             </div>
                             {mesaDetalle.pedido.fuente === "empleado" && mesaDetalle.pedido.userId?.nombre && (
-                                <p className="text-xs text-gray-400">Mozo: {mesaDetalle.pedido.userId.nombre}</p>
+                                <p className="text-xs text-gray-700">Mozo: {mesaDetalle.pedido.userId.nombre}</p>
                             )}
-                            <p className="text-xs text-gray-400">{format(new Date(mesaDetalle.pedido.createdAt), "dd/MM HH:mm", { locale: es })}</p>
+                            <p className="text-xs text-gray-700">{format(new Date(mesaDetalle.pedido.createdAt), "dd/MM HH:mm", { locale: es })}</p>
 
                             <ul className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
                                 {mesaDetalle.pedido.items.map((it, idx) => (
@@ -3305,7 +3305,7 @@ export default function CajaPage() {
 
                             {(mesaDetalle.pedido.notaEmpleado || mesaDetalle.pedido.notaCliente) && (
                                 <div className="border-l-2 border-amber-400 pl-3 py-1">
-                                    <p className="text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Nota</p>
+                                    <p className="text-[10px] font-semibold text-gray-700 uppercase mb-0.5">Nota</p>
                                     <p className="text-xs text-gray-600 italic">{mesaDetalle.pedido.notaEmpleado || mesaDetalle.pedido.notaCliente}</p>
                                 </div>
                             )}
@@ -3340,9 +3340,9 @@ export default function CajaPage() {
                         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
                             <div className="flex-1">
                                 <h2 className="font-black text-gray-900">Resumen de cierre</h2>
-                                <p className="text-xs text-gray-400">{cierreEventoData.eventoNombre}</p>
+                                <p className="text-xs text-gray-700">{cierreEventoData.eventoNombre}</p>
                             </div>
-                            <button onClick={() => setCierreEventoData(null)} className="p-1 text-gray-400"><X size={18} /></button>
+                            <button onClick={() => setCierreEventoData(null)} className="p-1 text-gray-700"><X size={18} /></button>
                         </div>
 
                         <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
@@ -3360,7 +3360,7 @@ export default function CajaPage() {
                             {/* Ventas directas */}
                             {(cierreEventoData.ventasEfectivo + cierreEventoData.ventasTransferencia + cierreEventoData.ventasTarjeta) > 0 && (
                                 <div className="bg-gray-50 rounded-2xl px-4 py-3">
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">Ventas directas</p>
+                                    <p className="text-[10px] font-black text-gray-700 uppercase tracking-wider mb-2">Ventas directas</p>
                                     {[
                                         { label: "Efectivo",      Icon: Banknote,    val: cierreEventoData.ventasEfectivo },
                                         { label: "Transferencia", Icon: Send,        val: cierreEventoData.ventasTransferencia },
@@ -3377,7 +3377,7 @@ export default function CajaPage() {
                             {/* Comandas del evento */}
                             {(cierreEventoData.comandasEfectivo + cierreEventoData.comandasTransferencia + cierreEventoData.comandasTarjeta + cierreEventoData.comandasSinCobrar) > 0 && (
                                 <div className="bg-gray-50 rounded-2xl px-4 py-3">
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">Comandas</p>
+                                    <p className="text-[10px] font-black text-gray-700 uppercase tracking-wider mb-2">Comandas</p>
                                     {[
                                         { label: "Efectivo",      Icon: Banknote,    val: cierreEventoData.comandasEfectivo },
                                         { label: "Transferencia", Icon: Send,        val: cierreEventoData.comandasTransferencia },
@@ -3399,20 +3399,20 @@ export default function CajaPage() {
 
                             {/* Total por método */}
                             <div className="bg-black rounded-2xl px-4 py-4 text-white">
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-3">Total por método de pago</p>
+                                <p className="text-[10px] font-black text-gray-700 uppercase tracking-wider mb-3">Total por método de pago</p>
                                 {[
                                     { label: "Efectivo",      Icon: Banknote,    val: cierreEventoData.totalEfectivo },
                                     { label: "Transferencia", Icon: Send,        val: cierreEventoData.totalTransferencia },
                                     { label: "Tarjeta",       Icon: CreditCard,  val: cierreEventoData.totalTarjeta },
                                 ].filter(r => r.val > 0).map(r => (
                                     <div key={r.label} className="flex items-center justify-between py-1.5">
-                                        <span className="text-sm text-gray-300 flex items-center gap-1.5"><r.Icon size={12} />{r.label}</span>
+                                        <span className="text-sm text-gray-600 flex items-center gap-1.5"><r.Icon size={12} />{r.label}</span>
                                         <span className="font-bold text-white">{formatMoney(r.val)}</span>
                                     </div>
                                 ))}
                                 {cierreEventoData.entradasTotal > 0 && (
                                     <div className="flex items-center justify-between py-1.5">
-                                        <span className="text-sm text-gray-300 flex items-center gap-1.5"><Star size={12} />Tarjetas entrada</span>
+                                        <span className="text-sm text-gray-600 flex items-center gap-1.5"><Star size={12} />Tarjetas entrada</span>
                                         <span className="font-bold text-white">{formatMoney(cierreEventoData.entradasTotal)}</span>
                                     </div>
                                 )}
@@ -3444,7 +3444,7 @@ export default function CajaPage() {
                         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
                             <div className="w-3 h-3 rounded-full bg-yellow-400 shrink-0" />
                             <h2 className="font-black text-gray-900 flex-1">Mesa reservada</h2>
-                            <button onClick={() => setReservaDetalle(null)} className="p-1 text-gray-400 hover:text-gray-700"><X size={18} /></button>
+                            <button onClick={() => setReservaDetalle(null)} className="p-1 text-gray-700 hover:text-gray-700"><X size={18} /></button>
                         </div>
                         <div className="px-5 py-4 space-y-3">
                             <div className="flex items-center justify-between">
@@ -3467,7 +3467,7 @@ export default function CajaPage() {
                             )}
                             {reservaDetalle.notas && (
                                 <div className="border-l-2 border-amber-400 pl-3 py-1">
-                                    <p className="text-xs text-gray-400 mb-0.5 font-semibold uppercase">Nota</p>
+                                    <p className="text-xs text-gray-700 mb-0.5 font-semibold uppercase">Nota</p>
                                     <p className="text-sm text-gray-600 italic">{reservaDetalle.notas}</p>
                                 </div>
                             )}
