@@ -10,7 +10,7 @@ import {
     Wallet, X, Printer, CreditCard, Banknote, Send,
     Loader2, CheckCircle, AlertCircle, Clock, Flame,
     Package, Truck, UtensilsCrossed, CalendarDays,
-    Phone, MessageCircle, Plus, Pencil, Trash2, MapPin, Users, Star, Gift, XCircle, ArrowDownLeft,
+    Phone, MessageCircle, Plus, Pencil, Trash2, MapPin, Users, Star, Gift, XCircle, ArrowDownLeft, ArrowLeftRight,
 } from "lucide-react";
 import ReservasManager from "@/components/ReservasManager";
 import { hoyArgentina } from "@/lib/argentina-time";
@@ -174,6 +174,7 @@ export default function CajaPage() {
     const [mesaDetalle, setMesaDetalle]   = useState<{ mesa: MesaPlano; pedido: Pedido } | null>(null);
     const [reservasHoy, setReservasHoy]   = useState<ReservaHoy[]>([]);
     const [reservaDetalle, setReservaDetalle] = useState<ReservaHoy | null>(null);
+    const [cambiarMesaModal, setCambiarMesaModal] = useState<Pedido | null>(null);
 
     // Eventos
     const [eventosActivos, setEventosActivos]     = useState<Evento[]>([]);
@@ -530,6 +531,17 @@ export default function CajaPage() {
             method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
             body: JSON.stringify({ accion: "eliminarItem", itemId, nombreItem: nombre }),
         });
+        loadData();
+    }
+
+    async function ejecutarCambioMesa(pedido: Pedido, nuevaMesa: string) {
+        await fetch(`/api/pedidos/${pedido._id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ accion: "cambiarMesa", mesa: nuevaMesa }),
+        });
+        setCambiarMesaModal(null);
         loadData();
     }
 
@@ -1608,6 +1620,13 @@ export default function CajaPage() {
                                                                 <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider inline-block ${tipoBadge.cls}`}>
                                                                     {tipoBadge.label}
                                                                 </span>
+                                                                {!esApp && p.mesa && (
+                                                                    <button onClick={() => setCambiarMesaModal(p)}
+                                                                        className="p-1.5 rounded-full bg-white/20 hover:bg-white/40 text-white transition"
+                                                                        title="Transferir mesa">
+                                                                        <ArrowLeftRight size={12} />
+                                                                    </button>
+                                                                )}
                                                                 <button onClick={() => eliminarPedidoCaja(p)}
                                                                     className="p-1.5 rounded-full bg-white/20 hover:bg-white/40 text-white transition">
                                                                     <Trash2 size={12} />
@@ -3591,6 +3610,56 @@ export default function CajaPage() {
                                 className="w-full py-2.5 border border-black rounded-xl text-sm font-semibold text-gray-600">
                                 Cerrar
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Modal transferir mesa ── */}
+            {cambiarMesaModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
+                    onClick={() => setCambiarMesaModal(null)}>
+                    <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl"
+                        onClick={e => e.stopPropagation()}>
+                        <div className="bg-black px-4 py-3 flex items-center justify-between">
+                            <div>
+                                <p className="font-black text-white text-sm">Transferir mesa</p>
+                                <p className="text-xs text-white/60">
+                                    Actualmente: {cambiarMesaModal.mesa ? mesaLabel(cambiarMesaModal.mesa) : "Sin mesa"}
+                                </p>
+                            </div>
+                            <button onClick={() => setCambiarMesaModal(null)} className="text-white/60 hover:text-white transition">
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className="px-4 py-4">
+                            {mesasPlano.length === 0 ? (
+                                <p className="text-sm text-gray-400 text-center py-4">Sin mesas configuradas</p>
+                            ) : (
+                                <div className="grid grid-cols-3 gap-2">
+                                    {mesasPlano
+                                        .filter(m => m.nombre !== cambiarMesaModal.mesa)
+                                        .map(m => {
+                                            const ocupada = !!pedidos.find(p =>
+                                                p.mesa === m.nombre &&
+                                                p._id !== cambiarMesaModal._id &&
+                                                !["cerrado", "cancelado"].includes(p.estado)
+                                            );
+                                            return (
+                                                <button key={m._id}
+                                                    onClick={() => ejecutarCambioMesa(cambiarMesaModal, m.nombre)}
+                                                    className={`py-3 rounded-xl text-sm font-bold border-2 transition active:scale-95
+                                                        ${ocupada
+                                                            ? "border-orange-300 bg-orange-50 text-orange-600"
+                                                            : "border-black bg-white text-black hover:bg-black hover:text-white"
+                                                        }`}>
+                                                    {m.tipo === "banqueta" ? `Banqueta ${m.nombre}` : `Mesa ${m.nombre}`}
+                                                    {ocupada && <span className="block text-[9px] font-semibold mt-0.5 opacity-70">ocupada</span>}
+                                                </button>
+                                            );
+                                        })}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

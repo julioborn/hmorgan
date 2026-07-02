@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
-import { Plus, UtensilsCrossed, ChevronRight, Trash2, LockKeyhole, Star, X } from "lucide-react";
+import { Plus, UtensilsCrossed, ChevronRight, Trash2, LockKeyhole, Star, X, ArrowLeftRight } from "lucide-react";
 import Loader from "@/components/Loader";
 import { swalBase } from "@/lib/swalConfig";
 
@@ -31,6 +31,8 @@ export default function AnotadorPage() {
     const [loadingData, setLoadingData] = useState(true);
     const [eventosActivos, setEventosActivos] = useState<EventoActivo[]>([]);
     const [eventoPickerModal, setEventoPickerModal] = useState(false);
+    const [cambiarMesaModal, setCambiarMesaModal] = useState<Comanda | null>(null);
+    const [mesasDisponibles, setMesasDisponibles] = useState<{ _id: string; nombre: string; tipo?: string }[]>([]);
 
     useEffect(() => {
         if (!loading && user && !["empleado", "cajero", "admin", "superadmin"].includes(user.role)) {
@@ -61,6 +63,26 @@ export default function AnotadorPage() {
         const iv = setInterval(fetchComandas, 8000);
         return () => clearInterval(iv);
     }, [fetchComandas]);
+
+    async function abrirCambiarMesa(c: Comanda) {
+        if (mesasDisponibles.length === 0) {
+            const r = await fetch("/api/admin/mesas?all=true", { credentials: "include" });
+            const d = await r.json().catch(() => []);
+            setMesasDisponibles(Array.isArray(d) ? d : []);
+        }
+        setCambiarMesaModal(c);
+    }
+
+    async function ejecutarCambioMesa(comanda: Comanda, nuevaMesa: string) {
+        await fetch(`/api/pedidos/${comanda._id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ accion: "cambiarMesa", mesa: nuevaMesa }),
+        });
+        setCambiarMesaModal(null);
+        fetchComandas();
+    }
 
     async function eliminarComanda(id: string) {
         const r = await swalBase.fire({
@@ -211,11 +233,21 @@ export default function AnotadorPage() {
 
                                     {cajaAbierta !== false && (
                                         <div className="px-4 pb-3 flex items-center justify-between gap-2">
-                                            <button
-                                                onClick={() => eliminarComanda(c._id)}
-                                                className="flex items-center gap-1.5 text-red-500 hover:bg-red-50 border border-red-200 px-3 py-2 rounded-xl text-sm transition active:scale-95">
-                                                <Trash2 size={14} /> Eliminar
-                                            </button>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => eliminarComanda(c._id)}
+                                                    className="flex items-center gap-1.5 text-red-500 hover:bg-red-50 border border-red-200 px-3 py-2 rounded-xl text-sm transition active:scale-95">
+                                                    <Trash2 size={14} /> Eliminar
+                                                </button>
+                                                {c.mesa && (
+                                                    <button
+                                                        onClick={() => abrirCambiarMesa(c)}
+                                                        className="flex items-center gap-1.5 text-gray-600 hover:bg-gray-100 border border-gray-200 px-3 py-2 rounded-xl text-sm transition active:scale-95"
+                                                        title="Transferir mesa">
+                                                        <ArrowLeftRight size={14} />
+                                                    </button>
+                                                )}
+                                            </div>
                                             <button
                                                 onClick={() => router.push(`/empleado/anotador/menu?id=${c._id}`)}
                                                 className="flex items-center gap-1.5 bg-gray-900 hover:bg-gray-700 text-white font-bold px-4 py-2 rounded-xl text-sm transition active:scale-95">
@@ -272,6 +304,55 @@ export default function AnotadorPage() {
                                 className="w-full py-2.5 text-sm text-gray-500 font-semibold hover:text-gray-700 transition">
                                 Cancelar
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Modal transferir mesa ── */}
+            {cambiarMesaModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
+                    onClick={() => setCambiarMesaModal(null)}>
+                    <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl"
+                        onClick={e => e.stopPropagation()}>
+                        <div className="bg-black px-4 py-3 flex items-center justify-between">
+                            <div>
+                                <p className="font-black text-white text-sm">Transferir mesa</p>
+                                <p className="text-xs text-white/60">
+                                    Actualmente: Mesa {cambiarMesaModal.mesa}
+                                </p>
+                            </div>
+                            <button onClick={() => setCambiarMesaModal(null)} className="text-white/60 hover:text-white transition">
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className="px-4 py-4">
+                            {mesasDisponibles.length === 0 ? (
+                                <p className="text-sm text-gray-400 text-center py-4">Cargando mesas…</p>
+                            ) : (
+                                <div className="grid grid-cols-3 gap-2">
+                                    {mesasDisponibles
+                                        .filter(m => m.nombre !== cambiarMesaModal.mesa)
+                                        .map(m => {
+                                            const ocupada = !!comandas.find(c =>
+                                                c.mesa === m.nombre &&
+                                                c._id !== cambiarMesaModal._id
+                                            );
+                                            return (
+                                                <button key={m._id}
+                                                    onClick={() => ejecutarCambioMesa(cambiarMesaModal, m.nombre)}
+                                                    className={`py-3 rounded-xl text-sm font-bold border-2 transition active:scale-95
+                                                        ${ocupada
+                                                            ? "border-orange-300 bg-orange-50 text-orange-600"
+                                                            : "border-black bg-white text-black hover:bg-black hover:text-white"
+                                                        }`}>
+                                                    {m.tipo === "banqueta" ? `Banqueta ${m.nombre}` : `Mesa ${m.nombre}`}
+                                                    {ocupada && <span className="block text-[9px] font-semibold mt-0.5 opacity-70">ocupada</span>}
+                                                </button>
+                                            );
+                                        })}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

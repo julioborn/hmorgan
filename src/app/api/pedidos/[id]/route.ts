@@ -89,6 +89,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         return NextResponse.json({ ok: true, pedido });
     }
 
+    // ── Transferir mesa ────────────────────────────────────────────────────
+    if (body.accion === "cambiarMesa") {
+        const { mesa: nuevaMesa } = body;
+        if (!nuevaMesa) return NextResponse.json({ error: "Mesa requerida" }, { status: 400 });
+        pedido.mesa = nuevaMesa;
+        await pedido.save();
+        return NextResponse.json({ ok: true, pedido });
+    }
+
     // ── Marcar ítems como ya impresos en BARRA/COCINA ───────────────────────
     if (body.accion === "marcarImpreso") {
         const { itemIds } = body;
