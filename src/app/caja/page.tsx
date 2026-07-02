@@ -1415,7 +1415,7 @@ export default function CajaPage() {
                             <div className="px-6 py-6 space-y-4">
                                 <div>
                                     <label className="text-[10px] font-black text-gray-700 uppercase tracking-wider block mb-2">Monto en efectivo</label>
-                                    <div className="flex items-center gap-2 border-2 border-gray-100 focus-within:border-black rounded-2xl px-4 py-3 transition-colors">
+                                    <div className="flex items-center gap-2 border-2 border-black rounded-2xl px-4 py-3 transition-colors">
                                         <span className="text-2xl font-black text-gray-600">$</span>
                                         <input type="number" min="0" value={openForm.montoInicial}
                                             onChange={e => setOpenForm(p => ({ ...p, montoInicial: e.target.value }))}
@@ -1425,7 +1425,7 @@ export default function CajaPage() {
                                 </div>
                                 <input value={openForm.notas} onChange={e => setOpenForm(p => ({ ...p, notas: e.target.value }))}
                                     placeholder="Notas (opcional)" style={{ fontSize: "15px" }}
-                                    className="w-full px-4 py-3 border border-gray-100 rounded-xl text-sm focus:outline-none focus:border-gray-300 transition-colors text-gray-700" />
+                                    className="w-full px-4 py-3 border border-black rounded-xl text-sm focus:outline-none focus:border-black transition-colors text-gray-700" />
                                 <button onClick={abrirCaja} disabled={openSaving}
                                     className="w-full bg-black hover:bg-gray-800 disabled:opacity-50 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2.5 transition-all text-base tracking-wide">
                                     <Wallet size={18} />{openSaving ? "Abriendo..." : "Abrir caja"}
@@ -1596,7 +1596,7 @@ export default function CajaPage() {
                                                 {/* ── Cuerpo ── */}
                                                 <div className="p-3 flex flex-col flex-1 min-h-0 bg-white">
                                                     {/* Items */}
-                                                    <ul className="mb-2 divide-y divide-gray-100 border border-gray-100 rounded-xl flex-1 min-h-0 overflow-y-auto">
+                                                    <ul className="mb-2 divide-y divide-gray-100 border border-black rounded-xl flex-1 min-h-0 overflow-y-auto">
                                                         {p.items.map((it, idx) => (
                                                             <li key={it._id || idx} className="flex items-center px-3 py-2.5 gap-2">
                                                                 <span className="font-black text-gray-900 text-sm shrink-0">{it.cantidad}×</span>
@@ -2279,24 +2279,24 @@ export default function CajaPage() {
                                             value={rewardForm.titulo}
                                             onChange={e => setRewardForm(p => ({ ...p, titulo: e.target.value }))}
                                             placeholder="Título *"
-                                            className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-gray-400"
+                                            className="w-full px-3 py-2.5 border border-black rounded-xl text-sm focus:outline-none focus:border-gray-400"
                                         />
                                         <input
                                             type="number" min="1"
                                             value={rewardForm.puntos || ""}
                                             onChange={e => setRewardForm(p => ({ ...p, puntos: Number(e.target.value) }))}
                                             placeholder="Puntos *"
-                                            className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-gray-400"
+                                            className="w-full px-3 py-2.5 border border-black rounded-xl text-sm focus:outline-none focus:border-gray-400"
                                         />
                                         <textarea
                                             value={rewardForm.descripcion}
                                             onChange={e => setRewardForm(p => ({ ...p, descripcion: e.target.value }))}
                                             placeholder="Descripción (opcional)"
                                             rows={2}
-                                            className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-gray-400 resize-none"
+                                            className="w-full px-3 py-2.5 border border-black rounded-xl text-sm focus:outline-none focus:border-gray-400 resize-none"
                                         />
                                         <select value={rewardForm.tema} onChange={e => setRewardForm(p => ({ ...p, tema: e.target.value }))}
-                                            className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-gray-400 bg-white">
+                                            className="w-full px-3 py-2.5 border border-black rounded-xl text-sm focus:outline-none focus:border-gray-400 bg-white">
                                             <option value="">Tarjeta estándar</option>
                                             <option value="argentina">🇦🇷 Especial Argentina — Mundial 2026</option>
                                         </select>
@@ -2560,15 +2560,15 @@ export default function CajaPage() {
                                         <input type="number" min="0" value={closeForm.montoCierre}
                                             onChange={e => setCloseForm(p => ({ ...p, montoCierre: e.target.value }))}
                                             placeholder="$0" style={{ fontSize: "16px" }}
-                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl text-xl font-black focus:outline-none focus:ring-2 focus:ring-red-400" />
+                                            className="w-full px-4 py-3 border border-black rounded-xl text-xl font-black focus:outline-none focus:ring-2 focus:ring-black" />
                                     </div>
                                     <input value={closeForm.notas} onChange={e => setCloseForm(p => ({ ...p, notas: e.target.value }))}
                                         placeholder="Notas del cierre (opcional)"
-                                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none" />
+                                        className="w-full px-4 py-2.5 border border-black rounded-xl text-sm focus:outline-none" />
                                     {closeError && <p className="text-red-600 text-xs font-semibold">{closeError}</p>}
                                 </div>
                                 <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
-                                    <button onClick={() => { setCloseModal(false); setCloseError(""); }} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
+                                    <button onClick={() => { setCloseModal(false); setCloseError(""); }} className="flex-1 py-2.5 border border-black rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
                                     <button onClick={cerrarCaja} disabled={closeSaving}
                                         className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
                                         {closeSaving ? "Cerrando..." : "Confirmar cierre"}
@@ -2596,12 +2596,12 @@ export default function CajaPage() {
                                     type="text" placeholder="Ej: Pago publicidad, limpieza, etc."
                                     value={gastoForm.concepto}
                                     onChange={e => setGastoForm(p => ({ ...p, concepto: e.target.value }))}
-                                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                                    className="w-full px-3 py-2.5 border border-black rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-black"
                                 />
                             </div>
                             <div>
                                 <label className="text-[10px] font-black text-gray-700 uppercase tracking-wider block mb-1.5">Monto</label>
-                                <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-red-400 focus-within:border-transparent">
+                                <div className="flex items-center gap-2 border border-black rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-black">
                                     <span className="text-gray-700 text-sm font-semibold">$</span>
                                     <input type="number" min="0" placeholder="0"
                                         value={gastoForm.monto}
@@ -2626,7 +2626,7 @@ export default function CajaPage() {
                             </div>
                         </div>
                         <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
-                            <button onClick={() => setGastoModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
+                            <button onClick={() => setGastoModal(false)} className="flex-1 py-2.5 border border-black rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
                             <button onClick={registrarGasto} disabled={gastoSaving || !gastoForm.concepto.trim() || !gastoForm.monto}
                                 className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
                                 {gastoSaving ? "Guardando..." : "Registrar egreso"}
@@ -2678,7 +2678,7 @@ export default function CajaPage() {
                                 {/* Descuento */}
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-black text-gray-700 uppercase tracking-wider">Descuento en pesos</label>
-                                    <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-red-400 focus-within:border-transparent">
+                                    <div className="flex items-center gap-2 border border-black rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-black">
                                         <span className="text-gray-700 text-sm font-semibold">−$</span>
                                         <input type="number" min="0" max={ped.total}
                                             value={cobrarForm.descuento}
@@ -2714,7 +2714,7 @@ export default function CajaPage() {
                                             <input type="number" min="0"
                                                 value={pago.monto}
                                                 onChange={e => setCobrarForm(p => ({ ...p, pagos: p.pagos.map((pg, i) => i === idx ? { ...pg, monto: e.target.value } : pg) }))}
-                                                className="w-24 px-2 py-1.5 border border-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-1 focus:ring-emerald-400 text-right bg-transparent"
+                                                className="w-24 px-2 py-1.5 border border-black rounded-xl text-sm font-bold focus:outline-none focus:ring-1 focus:ring-black text-right bg-transparent"
                                                 placeholder="$0" />
                                             {cobrarForm.pagos.length > 1 && (
                                                 <button onClick={() => setCobrarForm(p => ({ ...p, pagos: p.pagos.filter((_, i) => i !== idx) }))}
@@ -2759,7 +2759,7 @@ export default function CajaPage() {
                                 )}
                             </div>
                             <div className="px-5 py-4 border-t border-gray-100 flex gap-2 shrink-0">
-                                <button onClick={() => setCobrarModal({ open: false, pedido: null })} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
+                                <button onClick={() => setCobrarModal({ open: false, pedido: null })} className="flex-1 py-2.5 border border-black rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
                                 <button onClick={cobrar} disabled={cobrarSaving || !esValido}
                                     className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition">
                                     <Printer size={15} />{cobrarSaving ? "..." : "Cobrar e imprimir"}
@@ -2806,7 +2806,7 @@ export default function CajaPage() {
                             <div className="px-4 py-3 shrink-0">
                                 <input value={editItemSearch} onChange={e => setEditItemSearch(e.target.value)}
                                     placeholder="Buscar producto..." style={{ fontSize: "16px" }}
-                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
+                                    className="w-full px-4 py-2.5 border border-black rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-black" />
                             </div>
                             {/* Contenido */}
                             <div className="overflow-y-auto flex-1 min-h-0 px-3 pb-3">
@@ -2892,14 +2892,14 @@ export default function CajaPage() {
                                     <input autoFocus value={nuevoEventoNombre}
                                         onChange={e => setNuevoEventoNombre(e.target.value)}
                                         placeholder="Ej: Cumpleaños" style={{ fontSize: "16px" }}
-                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-base font-semibold focus:outline-none focus:ring-2 focus:ring-red-400" />
+                                        className="w-full px-4 py-3 border border-black rounded-xl text-base font-semibold focus:outline-none focus:ring-2 focus:ring-black" />
                                 </div>
                                 <div>
                                     <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Precio tarjeta (ARS)</label>
                                     <input type="number" inputMode="numeric" value={nuevoEventoPrecio}
                                         onChange={e => setNuevoEventoPrecio(e.target.value)}
                                         placeholder="0" style={{ fontSize: "16px" }}
-                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-base font-semibold focus:outline-none focus:ring-2 focus:ring-red-400" />
+                                        className="w-full px-4 py-3 border border-black rounded-xl text-base font-semibold focus:outline-none focus:ring-2 focus:ring-black" />
                                 </div>
                             </div>
                             <div>
@@ -2923,7 +2923,7 @@ export default function CajaPage() {
                             </div>
                         </div>
                         <div className="px-5 py-4 border-t border-gray-100 flex gap-2 shrink-0">
-                            <button onClick={() => setCrearEventoModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
+                            <button onClick={() => setCrearEventoModal(false)} className="flex-1 py-2.5 border border-black rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
                             <button onClick={crearEvento} disabled={!nuevoEventoNombre.trim() || crearEventoSaving}
                                 className="flex-1 py-2.5 bg-black hover:bg-gray-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
                                 {crearEventoSaving ? "Creando..." : "Crear evento"}
@@ -2959,7 +2959,7 @@ export default function CajaPage() {
                             </div>
                         </div>
                         <div className="px-5 py-4 border-t border-gray-100 flex gap-2 shrink-0">
-                            <button onClick={() => setEditMesasModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
+                            <button onClick={() => setEditMesasModal(false)} className="flex-1 py-2.5 border border-black rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
                             <button onClick={guardarMesasEvento} disabled={editMesasSaving}
                                 className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
                                 {editMesasSaving ? "Guardando..." : "Guardar mesas"}
@@ -2992,7 +2992,7 @@ export default function CajaPage() {
                                         value={tarjetasCantidad}
                                         onChange={e => setTarjetasCantidad(e.target.value)}
                                         style={{ fontSize: "16px" }}
-                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-base font-semibold focus:outline-none focus:ring-2 focus:ring-gray-900 text-center" />
+                                        className="w-full px-4 py-3 border border-black rounded-xl text-base font-semibold focus:outline-none focus:ring-2 focus:ring-black text-center" />
                                 </div>
                                 {precio > 0 && cant > 0 && (
                                     <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
@@ -3002,7 +3002,7 @@ export default function CajaPage() {
                                 )}
                             </div>
                             <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
-                                <button onClick={() => setTarjetasModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
+                                <button onClick={() => setTarjetasModal(false)} className="flex-1 py-2.5 border border-black rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
                                 <button onClick={guardarTarjetas} disabled={!tarjetasCantidad || Number(tarjetasCantidad) < 1 || tarjetasSaving}
                                     className="flex-1 py-2.5 bg-black hover:bg-gray-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
                                     {tarjetasSaving ? "Registrando..." : "Registrar"}
@@ -3061,7 +3061,7 @@ export default function CajaPage() {
                                         )}
                                         <input value={ventaSearch} onChange={e => setVentaSearch(e.target.value)}
                                             placeholder="Buscar producto..." style={{ fontSize: "16px" }}
-                                            className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
+                                            className="w-full px-4 py-2.5 border border-black rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-black" />
                                     </div>
                                     {/* Contenido: grid de categorías o lista de items */}
                                     <div className="overflow-y-auto px-3 pb-2" style={{ maxHeight: "38vh" }}>
@@ -3167,10 +3167,10 @@ export default function CajaPage() {
                                         placeholder="Buscar usuario..."
                                         value={ventaComensalesSearch}
                                         onChange={e => setVentaComensalesSearch(e.target.value)}
-                                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-black"
                                     />
                                     {ventaComensalesResults.filter(c => !ventaComensales.some(s => s._id === c._id)).length > 0 && ventaComensalesSearch.length >= 2 && (
-                                        <div className="absolute top-full left-0 right-0 z-30 bg-white border border-gray-200 rounded-xl shadow-lg mt-1 overflow-hidden">
+                                        <div className="absolute top-full left-0 right-0 z-30 bg-white border border-black rounded-xl shadow-lg mt-1 overflow-hidden">
                                             {ventaComensalesResults.filter(c => !ventaComensales.some(s => s._id === c._id)).map(c => (
                                                 <button key={c._id} onMouseDown={e => e.preventDefault()} onClick={() => {
                                                     setVentaComensales(prev => [...prev, c]);
@@ -3294,7 +3294,7 @@ export default function CajaPage() {
                             )}
                             <p className="text-xs text-gray-700">{format(new Date(mesaDetalle.pedido.createdAt), "dd/MM HH:mm", { locale: es })}</p>
 
-                            <ul className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
+                            <ul className="divide-y divide-gray-100 border border-black rounded-xl overflow-hidden">
                                 {mesaDetalle.pedido.items.map((it, idx) => (
                                     <li key={it._id || idx} className="flex justify-between items-center px-3 py-2 bg-gray-50">
                                         <span className="text-sm text-gray-800">{it.menuItemId?.nombre}</span>
@@ -3425,7 +3425,7 @@ export default function CajaPage() {
 
                         <div className="px-5 py-4 border-t border-gray-100 flex gap-2 shrink-0">
                             <button onClick={() => setCierreEventoData(null)} disabled={cierreEventoSaving}
-                                className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">
+                                className="flex-1 py-2.5 border border-black rounded-xl text-sm font-semibold text-gray-600">
                                 Cancelar
                             </button>
                             <button onClick={confirmarCierreEvento} disabled={cierreEventoSaving}
@@ -3477,7 +3477,7 @@ export default function CajaPage() {
                         </div>
                         <div className="px-5 py-4 border-t border-gray-100">
                             <button onClick={() => setReservaDetalle(null)}
-                                className="w-full py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">
+                                className="w-full py-2.5 border border-black rounded-xl text-sm font-semibold text-gray-600">
                                 Cerrar
                             </button>
                         </div>
