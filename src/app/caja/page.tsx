@@ -339,10 +339,12 @@ export default function CajaPage() {
                 fetch("/api/superadmin/caja", { credentials: "include" }),
                 fetch("/api/pedidos", { credentials: "include" }),
             ]);
+            // Solo actualizar sesión si la respuesta es válida (evita que un
+            // error de auth transite falso null y muestre pantalla de apertura)
+            if (!cajaRes.ok) return;
             const [cajaData, pedData] = await Promise.all([cajaRes.json(), pedRes.json()]);
             setSesion(cajaData.sesion || null);
             if (Array.isArray(pedData)) {
-                // Solo mostrar "cerrado" si fue cobrado durante la sesión actual de caja
                 const sesionApertura = cajaData.sesion?.fechaApertura
                     ? new Date(cajaData.sesion.fechaApertura)
                     : null;
@@ -1383,7 +1385,7 @@ export default function CajaPage() {
         );
     }
 
-    if (loading) return (
+    if (loading || sesion === undefined) return (
         <div className="min-h-screen flex items-center justify-center">
             <Loader2 className="animate-spin text-gray-400" size={40} />
         </div>
