@@ -11,6 +11,7 @@ type Comanda = {
     mesa?: string;
     comensales?: number;
     nombreComanda?: string;
+    eventoId?: string;
     items: { menuItemId: { _id: string; nombre: string; precio: number }; cantidad: number }[];
     total: number;
     estado: string;
@@ -151,7 +152,9 @@ export default function AnotadorPage() {
                         </div>
                     ) : (
                         <div className="space-y-3">
-                            {comandas.map(c => (
+                            {comandas.map(c => {
+                                const eventoNombre = c.eventoId ? (eventosActivos.find(e => e._id === c.eventoId)?.nombre ?? null) : null;
+                                return (
                                 <div key={c._id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                                     <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
                                         <div className="min-w-0 flex-1">
@@ -162,6 +165,11 @@ export default function AnotadorPage() {
                                                 {!!c.comensales && (
                                                     <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full font-semibold">
                                                         {c.comensales}p
+                                                    </span>
+                                                )}
+                                                {eventoNombre && (
+                                                    <span className="text-[10px] font-black bg-amber-400 text-black px-2 py-0.5 rounded-full uppercase tracking-wide">
+                                                        Evento · {eventoNombre}
                                                     </span>
                                                 )}
                                             </div>
@@ -217,7 +225,8 @@ export default function AnotadorPage() {
                                         </div>
                                     )}
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </div>
