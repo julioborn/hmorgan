@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ensurePushAfterLogin } from "@/lib/push-auto";
 
 type RegisterForm = {
@@ -34,6 +34,9 @@ export default function RegisterPage() {
   const [diaStr, setDiaStr]   = useState("");
   const [mesStr, setMesStr]   = useState("");
   const [anioStr, setAnioStr] = useState("");
+  const diaRef  = useRef<HTMLInputElement>(null);
+  const mesRef  = useRef<HTMLInputElement>(null);
+  const anioRef = useRef<HTMLInputElement>(null);
 
   const setField = (k: keyof RegisterForm, v: string) =>
     setForm((prev) => ({ ...prev, [k]: v }));
@@ -289,28 +292,45 @@ export default function RegisterPage() {
                   <div className="flex gap-2">
                     <div className="flex-1">
                       <input
+                        ref={diaRef}
                         type="text" inputMode="numeric" placeholder="Día" maxLength={2}
                         className={dateInputClass}
                         value={diaStr}
-                        onChange={e => { const v = onlyDigits(e.target.value).slice(0, 2); setDiaStr(v); combineDate(v, mesStr, anioStr); }}
+                        onChange={e => {
+                          const v = onlyDigits(e.target.value).slice(0, 2);
+                          setDiaStr(v);
+                          combineDate(v, mesStr, anioStr);
+                          if (v.length === 2) mesRef.current?.focus();
+                        }}
                         onBlur={() => setTouched(t => ({ ...t, fechaNacimiento: true }))}
                       />
                     </div>
                     <div className="flex-1">
                       <input
+                        ref={mesRef}
                         type="text" inputMode="numeric" placeholder="Mes" maxLength={2}
                         className={dateInputClass}
                         value={mesStr}
-                        onChange={e => { const v = onlyDigits(e.target.value).slice(0, 2); setMesStr(v); combineDate(diaStr, v, anioStr); }}
+                        onChange={e => {
+                          const v = onlyDigits(e.target.value).slice(0, 2);
+                          setMesStr(v);
+                          combineDate(diaStr, v, anioStr);
+                          if (v.length === 2) anioRef.current?.focus();
+                        }}
                         onBlur={() => setTouched(t => ({ ...t, fechaNacimiento: true }))}
                       />
                     </div>
                     <div className="flex-[2]">
                       <input
+                        ref={anioRef}
                         type="text" inputMode="numeric" placeholder="Año" maxLength={4}
                         className={dateInputClass}
                         value={anioStr}
-                        onChange={e => { const v = onlyDigits(e.target.value).slice(0, 4); setAnioStr(v); combineDate(diaStr, mesStr, v); }}
+                        onChange={e => {
+                          const v = onlyDigits(e.target.value).slice(0, 4);
+                          setAnioStr(v);
+                          combineDate(diaStr, mesStr, v);
+                        }}
                         onBlur={() => setTouched(t => ({ ...t, fechaNacimiento: true }))}
                       />
                     </div>
