@@ -1180,7 +1180,7 @@ export default function CajaPage() {
 
     async function abrirTarjetasModal(eventoId: string) {
         setTarjetasEventoId(eventoId);
-        setTarjetasCantidad("0");
+        setTarjetasCantidad("");
         setTarjetasModal(true);
     }
 
