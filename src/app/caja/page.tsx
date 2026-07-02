@@ -1599,7 +1599,7 @@ export default function CajaPage() {
                                                             <p className="font-black text-white text-xl leading-tight tracking-tight truncate">{titulo}</p>
                                                             {esEvento && (
                                                                 <span className="inline-block text-[10px] font-black bg-amber-400 text-black px-2 py-0.5 rounded-full uppercase tracking-widest mt-0.5 mb-0.5">
-                                                                    Evento{eventoNombre ? ` · ${eventoNombre}` : ""}
+                                                                    Evento
                                                                 </span>
                                                             )}
                                                             <p className="text-xs text-white/65 font-medium mt-0.5">{subtitulo}</p>
