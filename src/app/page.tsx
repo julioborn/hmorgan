@@ -175,14 +175,16 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
       .then(data => { setReservasActivas(data.activo ?? true); });
   }, []);
 
-  // Banner: repartidor afuera del domicilio
+  // Banner: repartidor afuera + conteo de pedidos activos
   useEffect(() => {
     const fetchEnvios = async () => {
       try {
         const res = await fetch("/api/pedidos", { credentials: "include", cache: "no-store" });
         if (!res.ok) return;
         const data = await res.json();
-        setRepartidorAfuera(Array.isArray(data) && data.some((p: any) => p.tipoEntrega === "envio" && p.estado === "listo" && p.repartidorAfuera));
+        if (!Array.isArray(data)) return;
+        setRepartidorAfuera(data.some((p: any) => p.tipoEntrega === "envio" && p.estado === "listo" && p.repartidorAfuera));
+        setPedidosActivosCount(data.filter((p: any) => ["pendiente", "aceptado", "preparando", "listo"].includes(p.estado)).length);
       } catch {}
     };
     fetchEnvios();
@@ -862,9 +864,7 @@ function ActionCard({
     >
       <Icon className="h-10 w-10 lg:h-12 lg:w-12 mb-3 opacity-95" aria-hidden />
       {(notificationCount ?? 0) > 0 && (
-        <span
-          className="absolute top-3 right-3 bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded-full ring-2 ring-white shadow-md animate-pulse"
-        >
+        <span className="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1.5 bg-white text-black text-xs font-black rounded-full flex items-center justify-center shadow-md border-2 border-black pointer-events-none">
           {notificationCount}
         </span>
       )}
