@@ -3495,20 +3495,20 @@ export default function CajaPage() {
 
                             {/* Total por método */}
                             <div className="bg-black rounded-2xl px-4 py-4 text-white">
-                                <p className="text-[10px] font-black text-gray-700 uppercase tracking-wider mb-3">Total por método de pago</p>
+                                <p className="text-[10px] font-black text-white/60 uppercase tracking-wider mb-3">Total por método de pago</p>
                                 {[
                                     { label: "Efectivo",      Icon: Banknote,    val: cierreEventoData.totalEfectivo },
                                     { label: "Transferencia", Icon: Send,        val: cierreEventoData.totalTransferencia },
                                     { label: "Tarjeta",       Icon: CreditCard,  val: cierreEventoData.totalTarjeta },
                                 ].filter(r => r.val > 0).map(r => (
                                     <div key={r.label} className="flex items-center justify-between py-1.5">
-                                        <span className="text-sm text-gray-600 flex items-center gap-1.5"><r.Icon size={12} />{r.label}</span>
+                                        <span className="text-sm text-white/70 flex items-center gap-1.5"><r.Icon size={12} />{r.label}</span>
                                         <span className="font-bold text-white">{formatMoney(r.val)}</span>
                                     </div>
                                 ))}
                                 {cierreEventoData.entradasTotal > 0 && (
                                     <div className="flex items-center justify-between py-1.5">
-                                        <span className="text-sm text-gray-600 flex items-center gap-1.5"><Star size={12} />Tarjetas entrada</span>
+                                        <span className="text-sm text-white/70 flex items-center gap-1.5"><Star size={12} />Tarjetas entrada</span>
                                         <span className="font-bold text-white">{formatMoney(cierreEventoData.entradasTotal)}</span>
                                     </div>
                                 )}
