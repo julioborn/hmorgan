@@ -148,6 +148,12 @@ export default function CajaPage() {
     const [cobrarModal, setCobrarModal]   = useState<{ open: boolean; pedido: Pedido | null }>({ open: false, pedido: null });
     const [cobrarForm, setCobrarForm]     = useState<{ descuento: string; pagos: { metodo: typeof METODOS[number]; monto: string }[] }>({ descuento: "", pagos: [{ metodo: "efectivo", monto: "" }] });
     const [cobrarSaving, setCobrarSaving] = useState(false);
+
+    type CPItem = { itemId: string; nombre: string; precio: number; max: number; selected: number };
+    const [cpModal,  setCpModal]  = useState<Pedido | null>(null);
+    const [cpItems,  setCpItems]  = useState<CPItem[]>([]);
+    const [cpMetodo, setCpMetodo] = useState<typeof METODOS[number]>("efectivo");
+    const [cpSaving, setCpSaving] = useState(false);
     const [closeModal, setCloseModal]     = useState(false);
     const [closeForm, setCloseForm]       = useState({ montoCierre: "", notas: "" });
     const [closeSaving, setCloseSaving]   = useState(false);
@@ -532,6 +538,58 @@ export default function CajaPage() {
             body: JSON.stringify({ accion: "eliminarItem", itemId, nombreItem: nombre }),
         });
         loadData();
+    }
+
+    function abrirCobroParcial(p: Pedido) {
+        const items: CPItem[] = p.items
+            .filter(it => it._id && it.menuItemId)
+            .map(it => ({
+                itemId: it._id!,
+                nombre: it.menuItemId?.nombre || "Ítem",
+                precio: it.menuItemId?.precio || 0,
+                max: it.cantidad,
+                selected: 0,
+            }));
+        setCpItems(items);
+        setCpMetodo("efectivo");
+        setCpModal(p);
+    }
+
+    function setCpCantidad(itemId: string, delta: number) {
+        setCpItems(prev => prev.map(i =>
+            i.itemId === itemId
+                ? { ...i, selected: Math.min(i.max, Math.max(0, i.selected + delta)) }
+                : i
+        ));
+    }
+
+    async function ejecutarCobroParcial() {
+        if (!cpModal) return;
+        const selected = cpItems.filter(i => i.selected > 0);
+        if (selected.length === 0) {
+            await swalBase.fire({ title: "Seleccioná al menos un ítem", icon: "warning" }); return;
+        }
+        const total = selected.reduce((s, i) => s + i.precio * i.selected, 0);
+        setCpSaving(true);
+        try {
+            const res = await fetch("/api/superadmin/caja/cobrar-parcial", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({
+                    pedidoId: cpModal._id,
+                    items: selected.map(i => ({ itemId: i.itemId, cantidad: i.selected })),
+                    metodoPago: cpMetodo,
+                    montoPagado: total,
+                }),
+            });
+            if (res.ok) {
+                setCpModal(null);
+                loadData();
+            } else {
+                await swalBase.fire({ title: "Error al procesar el cobro", icon: "error" });
+            }
+        } finally { setCpSaving(false); }
     }
 
     async function ejecutarCambioMesa(pedido: Pedido, nuevaMesa: string) {
@@ -1913,13 +1971,20 @@ export default function CajaPage() {
                                             </button>
                                         </div>
 
-                                        {/* ── Botón cobrar ── */}
-                                        <div className="px-3 pb-3">
+                                        {/* ── Botones cobrar ── */}
+                                        <div className="px-3 pb-3 flex flex-col gap-2">
                                             <button
                                                 onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", pagos: [{ metodo: "efectivo", monto: String(p.total) }] }); }}
                                                 className={`w-full text-white font-black py-3 rounded-xl text-base tracking-wide transition ${cobrarBg}`}>
-                                                Cobrar
+                                                Cobrar todo
                                             </button>
+                                            {!esApp && (
+                                                <button
+                                                    onClick={() => abrirCobroParcial(p)}
+                                                    className="w-full border-2 border-black text-black font-bold py-2 rounded-xl text-sm tracking-wide hover:bg-black hover:text-white transition">
+                                                    Cobro parcial
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 );
@@ -3618,6 +3683,92 @@ export default function CajaPage() {
                     </div>
                 </div>
             )}
+
+            {/* ── Modal cobro parcial ── */}
+            {cpModal && (() => {
+                const cpTotal = cpItems.reduce((s, i) => s + i.precio * i.selected, 0);
+                const titulo  = cpModal.mesa ? mesaLabel(cpModal.mesa) : cpModal.nombreComanda || "Pedido";
+                return (
+                    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/60"
+                        onClick={() => !cpSaving && setCpModal(null)}>
+                        <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md shadow-2xl overflow-hidden"
+                            onClick={e => e.stopPropagation()}>
+
+                            {/* Header */}
+                            <div className="bg-black px-4 py-3 flex items-center justify-between">
+                                <div>
+                                    <p className="font-black text-white text-sm">Cobro parcial</p>
+                                    <p className="text-xs text-white/60">{titulo}</p>
+                                </div>
+                                <button onClick={() => setCpModal(null)} className="text-white/60 hover:text-white transition"><X size={18} /></button>
+                            </div>
+
+                            {/* Items con stepper */}
+                            <div className="px-4 py-3 space-y-3 max-h-72 overflow-y-auto">
+                                {cpItems.map(it => (
+                                    <div key={it.itemId} className="flex items-center gap-3">
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-semibold text-gray-800 truncate">{it.nombre}</p>
+                                            <p className="text-xs text-gray-400">{formatMoney(it.precio)} c/u · hasta {it.max}</p>
+                                        </div>
+                                        {/* Stepper */}
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <button
+                                                onClick={() => setCpCantidad(it.itemId, -1)}
+                                                disabled={it.selected === 0}
+                                                className="w-7 h-7 rounded-full border-2 border-gray-300 flex items-center justify-center text-gray-700 font-black disabled:opacity-30 hover:border-black transition">
+                                                −
+                                            </button>
+                                            <span className={`w-6 text-center font-black text-sm ${it.selected > 0 ? "text-black" : "text-gray-300"}`}>
+                                                {it.selected}
+                                            </span>
+                                            <button
+                                                onClick={() => setCpCantidad(it.itemId, +1)}
+                                                disabled={it.selected === it.max}
+                                                className="w-7 h-7 rounded-full border-2 border-gray-300 flex items-center justify-center text-gray-700 font-black disabled:opacity-30 hover:border-black transition">
+                                                +
+                                            </button>
+                                        </div>
+                                        <span className={`text-sm font-black w-16 text-right shrink-0 ${it.selected > 0 ? "text-emerald-600" : "text-gray-200"}`}>
+                                            {formatMoney(it.precio * it.selected)}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Método de pago */}
+                            <div className="px-4 pb-3 border-t border-gray-100 pt-3">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Método de pago</p>
+                                <div className="flex gap-2">
+                                    {(["efectivo", "tarjeta", "transferencia"] as const).map(m => (
+                                        <button key={m}
+                                            onClick={() => setCpMetodo(m)}
+                                            className={`flex-1 py-2 rounded-xl text-xs font-bold border-2 transition capitalize
+                                                ${cpMetodo === m ? "bg-black text-white border-black" : "bg-white text-gray-700 border-gray-200 hover:border-gray-400"}`}>
+                                            {m === "efectivo" ? "Efectivo" : m === "tarjeta" ? "Tarjeta" : "Transf."}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Total + confirm */}
+                            <div className="px-4 pb-5 pt-2 border-t border-gray-100">
+                                <div className="flex items-center justify-between mb-3">
+                                    <span className="text-sm font-bold text-gray-600">Total a cobrar</span>
+                                    <span className="text-xl font-black text-gray-900">{formatMoney(cpTotal)}</span>
+                                </div>
+                                <button
+                                    onClick={ejecutarCobroParcial}
+                                    disabled={cpSaving || cpTotal === 0}
+                                    className="w-full bg-black text-white font-black py-3 rounded-xl text-base transition disabled:opacity-40 flex items-center justify-center gap-2">
+                                    {cpSaving ? <Loader2 size={18} className="animate-spin" /> : null}
+                                    {cpSaving ? "Procesando…" : `Cobrar ${formatMoney(cpTotal)}`}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* ── Modal transferir mesa ── */}
             {cambiarMesaModal && (
