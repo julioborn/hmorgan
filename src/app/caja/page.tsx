@@ -2110,46 +2110,68 @@ export default function CajaPage() {
                                             </div>
                                         </div>
 
-                                        {/* ── Desglose entradas por registro ── */}
+                                        {/* ── Desglose entradas por método ── */}
                                         {totalTarjetas > 0 && (() => {
                                             const tarjetasArr = (ev as any).tarjetas ?? [];
                                             const METODO_NOMBRE: Record<string, string> = { efectivo: "Efectivo", transferencia: "Transferencia", tarjeta: "Tarjeta" };
+                                            // Agrupar totales por método
+                                            const grupos: Record<string, { total: number; registros: any[] }> = {};
+                                            for (const t of tarjetasArr) {
+                                                const m = t.metodoPago || "efectivo";
+                                                if (!grupos[m]) grupos[m] = { total: 0, registros: [] };
+                                                grupos[m].total += t.cantidad;
+                                                grupos[m].registros.push(t);
+                                            }
                                             return (
                                                 <div>
                                                     <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">
-                                                        Entradas registradas · {totalTarjetas} total
+                                                        Entradas · {totalTarjetas} total
                                                     </p>
                                                     <div className="space-y-1.5">
-                                                        {tarjetasArr.map((t: any) => {
-                                                            const Icon = METODO_ICON[t.metodoPago] || Banknote;
+                                                        {Object.entries(grupos).map(([metodo, g]) => {
+                                                            const Icon = METODO_ICON[metodo] || Banknote;
                                                             return (
-                                                                <div key={t._id} className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2 border border-gray-200">
-                                                                    <span className="flex items-center gap-1.5 text-sm font-semibold text-gray-700">
-                                                                        <Icon size={13} className="text-gray-500" />
-                                                                        {METODO_NOMBRE[t.metodoPago] || t.metodoPago}
-                                                                    </span>
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="text-sm font-black text-gray-900">{t.cantidad} entrada{t.cantidad !== 1 ? "s" : ""}</span>
-                                                                        {precioTarjeta > 0 && (
-                                                                            <span className="text-xs font-bold text-gray-400">{formatMoney(t.cantidad * precioTarjeta)}</span>
-                                                                        )}
-                                                                        <button
-                                                                            onClick={async () => {
-                                                                                const res = await fetch(`/api/eventos/${ev._id}`, {
-                                                                                    method: "PATCH", credentials: "include",
-                                                                                    headers: { "Content-Type": "application/json" },
-                                                                                    body: JSON.stringify({ accion: "eliminarTarjeta", tarjetaId: t._id }),
-                                                                                });
-                                                                                if (res.ok) {
-                                                                                    const { evento: updated } = await res.json();
-                                                                                    setEventosActivos(prev => prev.map(e => e._id === ev._id ? updated : e));
-                                                                                }
-                                                                            }}
-                                                                            className="p-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition"
-                                                                            title="Eliminar registro">
-                                                                            <Trash2 size={12} />
-                                                                        </button>
+                                                                <div key={metodo} className="rounded-xl border border-gray-200 overflow-hidden">
+                                                                    {/* Fila total del método */}
+                                                                    <div className="flex items-center justify-between bg-gray-50 px-3 py-2">
+                                                                        <span className="flex items-center gap-1.5 text-sm font-semibold text-gray-700">
+                                                                            <Icon size={13} className="text-gray-500" />
+                                                                            {METODO_NOMBRE[metodo] || metodo}
+                                                                        </span>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="text-sm font-black text-gray-900">{g.total} entrada{g.total !== 1 ? "s" : ""}</span>
+                                                                            {precioTarjeta > 0 && (
+                                                                                <span className="text-xs font-bold text-gray-400">{formatMoney(g.total * precioTarjeta)}</span>
+                                                                            )}
+                                                                        </div>
                                                                     </div>
+                                                                    {/* Sub-filas por registro con botón eliminar */}
+                                                                    {g.registros.map((t: any) => (
+                                                                        <div key={t._id} className="flex items-center justify-between px-3 py-1.5 border-t border-gray-100 bg-white">
+                                                                            <span className="text-xs text-gray-400">{t.cantidad} entrada{t.cantidad !== 1 ? "s" : ""}</span>
+                                                                            <div className="flex items-center gap-2">
+                                                                                {precioTarjeta > 0 && (
+                                                                                    <span className="text-xs text-gray-400">{formatMoney(t.cantidad * precioTarjeta)}</span>
+                                                                                )}
+                                                                                <button
+                                                                                    onClick={async () => {
+                                                                                        const res = await fetch(`/api/eventos/${ev._id}`, {
+                                                                                            method: "PATCH", credentials: "include",
+                                                                                            headers: { "Content-Type": "application/json" },
+                                                                                            body: JSON.stringify({ accion: "eliminarTarjeta", tarjetaId: t._id }),
+                                                                                        });
+                                                                                        if (res.ok) {
+                                                                                            const { evento: updated } = await res.json();
+                                                                                            setEventosActivos(prev => prev.map(e => e._id === ev._id ? updated : e));
+                                                                                        }
+                                                                                    }}
+                                                                                    className="p-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition"
+                                                                                    title="Eliminar este registro">
+                                                                                    <Trash2 size={11} />
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
                                                                 </div>
                                                             );
                                                         })}
