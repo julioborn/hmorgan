@@ -134,7 +134,7 @@ export default function CajaPage() {
     const [openForm, setOpenForm]         = useState({ montoInicial: "", notas: "" });
     const [openSaving, setOpenSaving]     = useState(false);
     const [cobrarModal, setCobrarModal]   = useState<{ open: boolean; pedido: Pedido | null }>({ open: false, pedido: null });
-    const [cobrarForm, setCobrarForm]     = useState<{ descuento: string; pagos: { metodo: typeof METODOS[number]; monto: string }[] }>({ descuento: "", pagos: [{ metodo: "efectivo", monto: "" }] });
+    const [cobrarForm, setCobrarForm]     = useState<{ descuento: string; propina: string; pagos: { metodo: typeof METODOS[number]; monto: string }[] }>({ descuento: "", propina: "", pagos: [{ metodo: "efectivo", monto: "" }] });
     const [cobrarSaving, setCobrarSaving] = useState(false);
     const [closeModal, setCloseModal]     = useState(false);
     const [closeForm, setCloseForm]       = useState({ montoCierre: "", notas: "" });
@@ -624,6 +624,7 @@ export default function CajaPage() {
         setCobrarSaving(true);
         const ped = cobrarModal.pedido;
         const descuento = Math.max(0, Number(cobrarForm.descuento) || 0);
+        const propina = Math.max(0, Number(cobrarForm.propina) || 0);
         const totalConDescuento = Math.max(0, ped.total - descuento);
         const pagos = cobrarForm.pagos.map(p => ({ metodo: p.metodo, monto: Number(p.monto) || 0 }));
         const totalPagado = pagos.reduce((a, p) => a + p.monto, 0);
@@ -633,19 +634,19 @@ export default function CajaPage() {
         try {
             const res = await fetch("/api/superadmin/caja/cobrar", {
                 method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
-                body: JSON.stringify({ pedidoId: ped._id, metodoPago, montoPagado: totalConDescuento, descuento, pagos }),
+                body: JSON.stringify({ pedidoId: ped._id, metodoPago, montoPagado: totalConDescuento, descuento, pagos, propina }),
             });
             if (res.ok) {
                 setCobrarModal({ open: false, pedido: null });
-                setCobrarForm({ descuento: "", pagos: [{ metodo: "efectivo", monto: "" }] });
+                setCobrarForm({ descuento: "", propina: "", pagos: [{ metodo: "efectivo", monto: "" }] });
                 setPedidos(prev => prev.map(p => p._id === ped._id ? { ...p, estado: "cerrado" } : p));
-                printTicket(ped, pagos, descuento, totalConDescuento, vuelto);
+                printTicket(ped, pagos, descuento, totalConDescuento, vuelto, propina);
                 await loadData();
             }
         } finally { setCobrarSaving(false); }
     }
 
-    async function printTicket(pedido: Pedido, pagos: { metodo: string; monto: number }[], descuento: number, totalConDescuento: number, vuelto: number) {
+    async function printTicket(pedido: Pedido, pagos: { metodo: string; monto: number }[], descuento: number, totalConDescuento: number, vuelto: number, propina: number = 0) {
         const hora  = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
         const fecha = new Date().toLocaleDateString("es-AR");
 
@@ -663,6 +664,7 @@ export default function CajaPage() {
                     descuento,
                     pagos,
                     vuelto,
+                    propina,
                 }),
             });
             if (res.ok) return;
@@ -678,20 +680,21 @@ export default function CajaPage() {
                <tr><td class="total">A COBRAR</td><td class="total" style="text-align:right">${formatMoney(totalConDescuento)}</td></tr>` : "";
         const pagosRows = pagos.map(p => `<tr><td>${METODO_LABEL[p.metodo] || p.metodo}</td><td style="text-align:right">${formatMoney(p.monto)}</td></tr>`).join("");
         const vueltoRow = vuelto > 0 ? `<tr><td class="vuelto">Vuelto</td><td class="vuelto" style="text-align:right">${formatMoney(vuelto)}</td></tr>` : "";
+        const propinaRow = propina > 0 ? `<tr><td class="propina">Propina</td><td class="propina" style="text-align:right">${formatMoney(propina)}</td></tr>` : "";
         const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Ticket</title><style>
             *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Courier New',monospace;font-size:12px;padding:12px;max-width:280px}
             h2{text-align:center;font-size:15px;letter-spacing:2px;margin-bottom:2px}
             .sub{text-align:center;font-size:11px;color:#555;margin-bottom:4px}
             hr{border:none;border-top:1px dashed #000;margin:5px 0}
             table{width:100%;border-collapse:collapse}td{padding:2px 0;font-size:12px}
-            .total{font-size:14px;font-weight:bold}.vuelto{font-weight:bold;color:#16a34a}
+            .total{font-size:14px;font-weight:bold}.vuelto{font-weight:bold;color:#16a34a}.propina{font-weight:bold;color:#7c3aed}
             .legal{text-align:center;font-size:9px;color:#aaa;margin-top:10px}
         </style></head><body>
         <h2>TICKET</h2><div class="sub">${fecha} ${hora}</div>
         <hr/><table>${rows}</table><hr/>
         <table>
             <tr><td class="total">TOTAL</td><td class="total" style="text-align:right">${formatMoney(pedido.total)}</td></tr>
-            ${descuentoRow}${pagosRows}${vueltoRow}
+            ${descuentoRow}${pagosRows}${vueltoRow}${propinaRow}
         </table>
         <div class="legal">Comprobante no válido como factura</div></body></html>`;
         const w = window.open("", "_blank", "width=320,height=500,toolbar=0,menubar=0");
@@ -1635,7 +1638,7 @@ export default function CajaPage() {
                                                                 <Printer size={12} /> Reimprimir
                                                             </button>
                                                             {(p.estado === "listo" || p.estado === "entregado") && (
-                                                                <button onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", pagos: [{ metodo: "efectivo", monto: String(p.total) }] }); }}
+                                                                <button onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", propina: "", pagos: [{ metodo: "efectivo", monto: String(p.total) }] }); }}
                                                                     className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 rounded-xl text-xs transition">
                                                                     <Wallet size={12} /> Cobrar
                                                                 </button>
@@ -1756,7 +1759,7 @@ export default function CajaPage() {
                                         {/* ── Botón cobrar ── */}
                                         <div className="px-3 pb-3">
                                             <button
-                                                onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", pagos: [{ metodo: "efectivo", monto: String(p.total) }] }); }}
+                                                onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", propina: "", pagos: [{ metodo: "efectivo", monto: String(p.total) }] }); }}
                                                 className={`w-full text-white font-black py-3 rounded-xl text-base tracking-wide transition ${cobrarBg}`}>
                                                 Cobrar
                                             </button>
@@ -2503,6 +2506,19 @@ export default function CajaPage() {
                                     )}
                                 </div>
 
+                                {/* Propina */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Propina (opcional)</label>
+                                    <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-violet-400 focus-within:border-transparent">
+                                        <span className="text-gray-400 text-sm font-semibold">+$</span>
+                                        <input type="number" min="0"
+                                            value={cobrarForm.propina}
+                                            onChange={e => setCobrarForm(p => ({ ...p, propina: e.target.value }))}
+                                            placeholder="0"
+                                            className="flex-1 text-sm font-bold focus:outline-none text-gray-900 bg-transparent" />
+                                    </div>
+                                </div>
+
                                 {/* Pagos */}
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Forma de pago</label>
@@ -2972,7 +2988,7 @@ export default function CajaPage() {
                                 <button onClick={() => {
                                     const p = mesaDetalle.pedido;
                                     setCobrarModal({ open: true, pedido: p });
-                                    setCobrarForm({ descuento: "", pagos: [{ metodo: "efectivo", monto: String(p.total) }] });
+                                    setCobrarForm({ descuento: "", propina: "", pagos: [{ metodo: "efectivo", monto: String(p.total) }] });
                                     setMesaDetalle(null);
                                 }} className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition">
                                     Cobrar

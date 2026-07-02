@@ -31,6 +31,9 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
+  const [diaStr, setDiaStr]   = useState("");
+  const [mesStr, setMesStr]   = useState("");
+  const [anioStr, setAnioStr] = useState("");
 
   const setField = (k: keyof RegisterForm, v: string) =>
     setForm((prev) => ({ ...prev, [k]: v }));
@@ -152,6 +155,14 @@ export default function RegisterPage() {
 
   }
 
+  function combineDate(dia: string, mes: string, anio: string) {
+    if (dia && mes && anio && anio.length === 4) {
+      setField("fechaNacimiento", `${anio}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}`);
+    } else {
+      setField("fechaNacimiento", "");
+    }
+  }
+
   // 👉 Formatea el DNI como "12.345.678"
   function formatDni(value: string) {
     const clean = value.replace(/\D/g, "");
@@ -269,7 +280,48 @@ export default function RegisterPage() {
             </label>
           </div>
 
-          {(["nombre", "apellido", "fechaNacimiento", "dni", "telefono"] as (keyof RegisterForm)[]).map((field) => (
+          {(["nombre", "apellido", "fechaNacimiento", "dni", "telefono"] as (keyof RegisterForm)[]).map((field) => {
+            if (field === "fechaNacimiento") {
+              const dateInputClass = `w-full h-12 px-2 rounded-xl border text-gray-800 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 transition text-center text-base ${touched.fechaNacimiento && currentErrors.fechaNacimiento ? "border-red-400 focus:ring-red-400" : "border-gray-300"}`;
+              return (
+                <div key="fechaNacimiento">
+                  <label className="block mb-1 text-sm font-semibold text-gray-700">Fecha de nacimiento</label>
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <input
+                        type="text" inputMode="numeric" placeholder="Día" maxLength={2}
+                        className={dateInputClass}
+                        value={diaStr}
+                        onChange={e => { const v = onlyDigits(e.target.value).slice(0, 2); setDiaStr(v); combineDate(v, mesStr, anioStr); }}
+                        onBlur={() => setTouched(t => ({ ...t, fechaNacimiento: true }))}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <input
+                        type="text" inputMode="numeric" placeholder="Mes" maxLength={2}
+                        className={dateInputClass}
+                        value={mesStr}
+                        onChange={e => { const v = onlyDigits(e.target.value).slice(0, 2); setMesStr(v); combineDate(diaStr, v, anioStr); }}
+                        onBlur={() => setTouched(t => ({ ...t, fechaNacimiento: true }))}
+                      />
+                    </div>
+                    <div className="flex-[2]">
+                      <input
+                        type="text" inputMode="numeric" placeholder="Año" maxLength={4}
+                        className={dateInputClass}
+                        value={anioStr}
+                        onChange={e => { const v = onlyDigits(e.target.value).slice(0, 4); setAnioStr(v); combineDate(diaStr, mesStr, v); }}
+                        onBlur={() => setTouched(t => ({ ...t, fechaNacimiento: true }))}
+                      />
+                    </div>
+                  </div>
+                  {touched.fechaNacimiento && currentErrors.fechaNacimiento && (
+                    <p className="mt-1 text-xs text-red-600">{currentErrors.fechaNacimiento}</p>
+                  )}
+                </div>
+              );
+            }
+            return (
             <div key={field}>
               <label className="block mb-1 text-sm font-semibold text-gray-700">
                 {field === "dni"
@@ -278,12 +330,10 @@ export default function RegisterPage() {
                     ? "Teléfono (opcional)"
                     : field === "nombre"
                       ? "Nombre"
-                      : field === "apellido"
-                        ? "Apellido"
-                        : "Fecha de nacimiento"}
+                      : "Apellido"}
               </label>
               <input
-                type={field === "fechaNacimiento" ? "date" : "text"}
+                type="text"
                 inputMode={field === "dni" || field === "telefono" ? "numeric" : "text"}
                 placeholder={
                   field === "dni"
@@ -292,38 +342,29 @@ export default function RegisterPage() {
                       ? "Teléfono (opcional)"
                       : field.charAt(0).toUpperCase() + field.slice(1)
                 }
-                max={field === "fechaNacimiento" ? hoyStr : undefined}
-                lang={field === "fechaNacimiento" ? "es-AR" : undefined}
-                style={field === "fechaNacimiento" ? { fontSize: "16px" } : undefined}
                 enterKeyHint="next"
                 className={inputClass(field)}
                 value={form[field]}
                 onChange={(e) => {
                   let value = e.target.value;
-
                   if (field === "dni") {
-                    // 🔹 Solo permitir números reales (sin puntos)
                     const digits = onlyDigits(value).slice(0, 8);
-                    // 🔹 Mostrar con puntos visualmente
                     value = formatDni(digits);
                   } else if (field === "telefono") {
-                    // 🔹 Permitir solo números, sin formateo visual
                     value = onlyDigits(value).slice(0, 15);
                   }
-
                   setField(field, value);
                 }}
                 onBlur={() => setTouched((t) => ({ ...t, [field]: true }))}
-                // 🚫 Evita validaciones HTML5 nativas
                 pattern={undefined}
                 onInvalid={(e) => e.preventDefault()}
               />
-
               {touched[field] && currentErrors[field] && (
                 <p className="mt-1 text-xs text-red-600">{currentErrors[field]}</p>
               )}
             </div>
-          ))}
+            );
+          })}
           <button
             disabled={loading || hasErrors || usernameStatus === "taken" || usernameStatus === "checking"}
             className="w-full h-12 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold shadow-sm transition disabled:opacity-60"

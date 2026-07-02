@@ -36,6 +36,7 @@ const PedidoSchema = new Schema(
         puntosAcreditados: { type: Boolean, default: false },
         metodoPago: { type: String },
         montoPagado: { type: Number },
+        propina: { type: Number, default: 0 },
         clienteId:      { type: Schema.Types.ObjectId, ref: "User" },
         eventoId:       { type: Schema.Types.ObjectId, ref: "Evento" },
         comensalesIds:  [{ type: Schema.Types.ObjectId, ref: "User" }],
