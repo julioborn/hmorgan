@@ -1542,7 +1542,7 @@ export default function CajaPage() {
                         <div className="max-w-screen-2xl mx-auto px-4 pt-4">
                             {/* Nueva comanda (cajero actuando como mozo) */}
                             <button onClick={() => router.push("/empleado/anotador/menu")}
-                                className="w-full mb-4 flex items-center justify-center gap-2 bg-black hover:bg-gray-900 text-white font-bold py-3 rounded-2xl transition shadow-sm active:scale-[0.98]">
+                                className="w-full mb-4 flex items-center justify-center gap-2 bg-black text-white font-bold py-3 rounded-2xl transition shadow-sm active:scale-[0.98]">
                                 <Plus size={18} /> Nueva comanda
                             </button>
 
@@ -1701,7 +1701,7 @@ export default function CajaPage() {
                                                                     await printComanda(p);
                                                                     await avanzarEstado(p, "preparando");
                                                                 }}
-                                                                className={`flex-1 disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1 ${esApp ? "bg-red-600 hover:bg-red-700" : "bg-black hover:bg-gray-900"}`}>
+                                                                className={`flex-1 disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1 ${esApp ? "bg-red-600 hover:bg-red-700" : "bg-black"}`}>
                                                                 {isUpdating ? <Loader2 size={14} className="animate-spin" /> : null}
                                                                 Aceptar
                                                             </button>
@@ -1808,7 +1808,7 @@ export default function CajaPage() {
 
                                 const accentBg   = esApp ? "bg-red-600"    : "bg-black";
                                 const cardBorder = esApp ? "border-red-500" : "border-black";
-                                const cobrarBg   = "bg-black hover:bg-gray-900";
+                                const cobrarBg   = "bg-black";
 
                                 return (
                                     <div key={p._id} className={`rounded-2xl border-2 shadow-sm overflow-hidden flex flex-col h-[500px] ${cardBorder} bg-white`}>
@@ -2396,7 +2396,7 @@ export default function CajaPage() {
                                 </div>
                                 <button
                                     onClick={() => { setMenuGestShowForm(f => !f); setMenuGestEditId(null); setMenuGestForm({ nombre: "", precio: "", descripcion: "", categoria: "" }); setMenuGestSelectCat(""); }}
-                                    className="flex items-center gap-2 bg-black text-white font-bold px-4 py-2 rounded-xl text-sm hover:bg-gray-900 transition">
+                                    className="flex items-center gap-2 bg-black text-white font-bold px-4 py-2 rounded-xl text-sm transition">
                                     <Plus size={15} /> Agregar
                                 </button>
                             </div>
@@ -2439,7 +2439,7 @@ export default function CajaPage() {
                                                 Cancelar
                                             </button>
                                             <button onClick={saveMenuGestItem} disabled={menuGestSaving}
-                                                className="px-5 py-2 rounded-xl bg-black text-white text-sm font-bold hover:bg-gray-900 transition disabled:opacity-50">
+                                                className="px-5 py-2 rounded-xl bg-black text-white text-sm font-bold transition disabled:opacity-50">
                                                 {menuGestSaving ? "Guardando..." : (menuGestEditId ? "Guardar cambios" : "Agregar")}
                                             </button>
                                         </div>

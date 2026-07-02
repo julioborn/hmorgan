@@ -81,7 +81,7 @@ function Landing() {
         <div className="w-full max-w-xs flex flex-col gap-3 px-2">
           <Link
             href="/login"
-            className="w-full text-center px-5 py-3.5 rounded-xl bg-black text-white font-semibold hover:bg-gray-900 transition shadow-lg hover:scale-105"
+            className="w-full text-center px-5 py-3.5 rounded-xl bg-black text-white font-semibold transition shadow-lg hover:scale-105"
           >
             Ingresar
           </Link>
