@@ -381,6 +381,15 @@ export default function CajaPage() {
         if (tab === "menu") loadMenuGest();
     }, [tab]);
 
+    // Cargar elementos del plano cuando se abre el modal de transferir mesa
+    useEffect(() => {
+        if (!cambiarMesaModal || elementsPlano.length > 0) return;
+        fetch("/api/superadmin/salon", { credentials: "include" })
+            .then(r => r.json())
+            .then(d => { if (Array.isArray(d)) setElementsPlano(d); })
+            .catch(() => {});
+    }, [cambiarMesaModal]);
+
     // Búsqueda de comensales en modal de venta de evento
     useEffect(() => {
         if (ventaComensalesSearch.length < 2) { setVentaComensalesResults([]); return; }
@@ -3687,45 +3696,81 @@ export default function CajaPage() {
             {cambiarMesaModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
                     onClick={() => setCambiarMesaModal(null)}>
-                    <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl"
+                    <div className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl"
                         onClick={e => e.stopPropagation()}>
                         <div className="bg-black px-4 py-3 flex items-center justify-between">
                             <div>
                                 <p className="font-black text-white text-sm">Transferir mesa</p>
                                 <p className="text-xs text-white/60">
-                                    Actualmente: {cambiarMesaModal.mesa ? mesaLabel(cambiarMesaModal.mesa) : "Sin mesa"}
+                                    Actual: <span className="text-white font-bold">{cambiarMesaModal.mesa ? mesaLabel(cambiarMesaModal.mesa) : "Sin mesa"}</span>
+                                    {" · "}Tocá una mesa disponible
                                 </p>
                             </div>
                             <button onClick={() => setCambiarMesaModal(null)} className="text-white/60 hover:text-white transition">
                                 <X size={18} />
                             </button>
                         </div>
-                        <div className="px-4 py-4">
+
+                        {/* Leyenda */}
+                        <div className="px-4 pt-3 pb-1 flex flex-wrap gap-3 text-[10px] text-gray-500">
+                            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-blue-500 inline-block" />Actual</span>
+                            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 inline-block" />Disponible</span>
+                            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-red-500 inline-block" />Ocupada</span>
+                            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-yellow-400 inline-block" />Reservada</span>
+                        </div>
+
+                        {/* Plano */}
+                        <div className="px-4 pb-4">
                             {mesasPlano.length === 0 ? (
-                                <p className="text-sm text-gray-400 text-center py-4">Sin mesas configuradas</p>
+                                <p className="text-sm text-gray-400 text-center py-6">Sin mesas configuradas</p>
                             ) : (
-                                <div className="grid grid-cols-3 gap-2">
-                                    {mesasPlano
-                                        .filter(m => m.nombre !== cambiarMesaModal.mesa)
-                                        .map(m => {
-                                            const ocupada = !!pedidos.find(p =>
+                                <div className="relative w-full rounded-xl overflow-hidden border border-gray-200" style={{ paddingBottom: "72%" }}>
+                                    <div className="absolute inset-0" style={{ backgroundColor: "#f9f5ef", backgroundImage: "linear-gradient(rgba(0,0,0,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.04) 1px,transparent 1px)", backgroundSize: "30px 30px" }}>
+                                        {/* Elementos decorativos */}
+                                        {elementsPlano.map(el => {
+                                            const isLine = el.tipo === "linea_h" || el.tipo === "linea_v";
+                                            const isBarra = el.tipo === "barra";
+                                            if (isLine) return (
+                                                <div key={el._id} style={{ position: "absolute", left: `${el.x}%`, top: `${el.y}%`, width: el.tipo === "linea_h" ? `${el.ancho}%` : "3px", height: el.tipo === "linea_v" ? `${el.alto}%` : "3px", backgroundColor: el.color, borderRadius: "2px", transform: el.tipo === "linea_h" ? "translateY(-50%)" : "translateX(-50%)" }} />
+                                            );
+                                            return (
+                                                <div key={el._id} style={{ position: "absolute", left: `${el.x}%`, top: `${el.y}%`, transform: "translate(-50%,-50%)", width: `${el.ancho}%`, height: `${el.alto}%`, minWidth: "32px", minHeight: "14px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "6px", backgroundColor: isBarra ? "#b45309" : el.color, border: isBarra ? "2px solid #92400e" : `1px solid ${el.color === "#fef3c7" ? "#d97706" : "#9ca3af"}60` }}>
+                                                    {el.label && <span style={{ fontSize: "clamp(6px,0.9vw,9px)", fontWeight: 700, color: isBarra ? "#fef3c7" : "#374151", whiteSpace: "nowrap" }}>{el.label}</span>}
+                                                </div>
+                                            );
+                                        })}
+                                        {/* Mesas */}
+                                        {mesasPlano.filter(m => m.activa).map(m => {
+                                            const esActual  = m.nombre === cambiarMesaModal.mesa;
+                                            const ocupada   = !esActual && !!pedidos.find(p =>
                                                 p.mesa === m.nombre &&
                                                 p._id !== cambiarMesaModal._id &&
                                                 !["cerrado", "cancelado"].includes(p.estado)
                                             );
+                                            const reservada = !esActual && !ocupada && !!reservasHoy.find(r => r.mesaId?._id === m._id);
+                                            const isBanq    = m.tipo === "banqueta";
+                                            const isRound   = m.forma === "round" || m.forma === "oval";
+                                            const rot       = m.rotacion ?? 0;
+                                            const w         = m.ancho || (m.forma === "oval" ? 11 : m.forma === "round" ? 5.5 : 7);
+                                            const h         = m.alto  || (m.forma === "oval" ? 5  : m.forma === "round" ? 5.5 : 5);
+                                            const bloqueada = isBanq || ocupada || reservada;
+                                            const bg = esActual   ? "bg-blue-500 border-blue-600 text-white ring-2 ring-blue-300"
+                                                : isBanq          ? "bg-amber-700 border-amber-800 text-amber-100"
+                                                : ocupada         ? "bg-red-500 border-red-600 text-white opacity-70"
+                                                : reservada       ? "bg-yellow-400 border-yellow-500 text-gray-900 opacity-80"
+                                                :                   "bg-emerald-500 border-emerald-600 text-white";
                                             return (
-                                                <button key={m._id}
-                                                    onClick={() => ejecutarCambioMesa(cambiarMesaModal, m.nombre)}
-                                                    className={`py-3 rounded-xl text-sm font-bold border-2 transition active:scale-95
-                                                        ${ocupada
-                                                            ? "border-orange-300 bg-orange-50 text-orange-600"
-                                                            : "border-black bg-white text-black hover:bg-black hover:text-white"
-                                                        }`}>
-                                                    {m.tipo === "banqueta" ? `Banqueta ${m.nombre}` : `Mesa ${m.nombre}`}
-                                                    {ocupada && <span className="block text-[9px] font-semibold mt-0.5 opacity-70">ocupada</span>}
-                                                </button>
+                                                <div key={m._id}
+                                                    onClick={() => !bloqueada && !esActual && ejecutarCambioMesa(cambiarMesaModal, m.nombre)}
+                                                    style={{ position: "absolute", left: `${m.x ?? 10}%`, top: `${m.y ?? 10}%`, transform: `translate(-50%,-50%) rotate(${rot}deg)`, width: `min(${w}%,${w * 7}px)`, height: `min(${h}%,${h * 7.5}px)`, minWidth: "22px", minHeight: "16px", borderRadius: isRound ? "50%" : "8px", cursor: bloqueada || esActual ? "default" : "pointer", userSelect: "none", zIndex: 2 }}
+                                                    className={`flex items-center justify-center border-2 ${bg} ${!bloqueada && !esActual ? "transition-all active:scale-95 hover:brightness-110" : ""}`}>
+                                                    <div style={{ transform: `rotate(${-rot}deg)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                        <span style={{ fontSize: "clamp(5px,0.8vw,9px)", fontWeight: 900 }}>{isBanq ? `B${m.nombre}` : m.nombre}</span>
+                                                    </div>
+                                                </div>
                                             );
                                         })}
+                                    </div>
                                 </div>
                             )}
                         </div>
