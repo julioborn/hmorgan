@@ -2086,21 +2086,21 @@ export default function CajaPage() {
                                 const precioTarjeta = (ev as any).precioTarjeta ?? 0;
                                 const totalEvento   = totalVentas + totalPedidos + totalTarjetas * precioTarjeta;
                                 return (
-                                <div key={ev._id} className="bg-white rounded-3xl border-2 border-amber-400 shadow-md overflow-hidden">
+                                <div key={ev._id} className="bg-white rounded-2xl border-2 border-black shadow-sm overflow-hidden">
 
                                     {/* ── Header ── */}
-                                    <div className="bg-amber-400 px-5 py-4">
+                                    <div className="bg-black px-5 py-4">
                                         <div className="flex items-start justify-between gap-3">
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    <span className="w-2 h-2 rounded-full bg-white animate-pulse inline-block" />
-                                                    <span className="text-xs font-black text-amber-900 uppercase tracking-wide">Evento activo</span>
+                                                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse inline-block" />
+                                                    <span className="text-xs font-black text-white/50 uppercase tracking-wide">Evento activo</span>
                                                 </div>
-                                                <h2 className="font-black text-amber-900 text-2xl leading-tight truncate">{ev.nombre}</h2>
-                                                <p className="text-sm font-bold text-amber-800 mt-0.5">Total: <span className="text-amber-900 font-black">{formatMoney(totalEvento)}</span></p>
+                                                <h2 className="font-black text-white text-2xl leading-tight truncate">{ev.nombre}</h2>
+                                                <p className="text-sm font-bold text-white/50 mt-0.5">Total: <span className="text-white font-black">{formatMoney(totalEvento)}</span></p>
                                             </div>
                                             <button onClick={() => abrirCierreEvento(ev._id)}
-                                                className="shrink-0 text-sm font-black text-red-700 bg-white hover:bg-red-50 border-2 border-red-300 px-4 py-2 rounded-2xl transition">
+                                                className="shrink-0 text-sm font-bold text-white/70 hover:text-white border border-white/30 hover:border-white/60 px-4 py-2 rounded-xl transition">
                                                 Cerrar
                                             </button>
                                         </div>
@@ -2110,35 +2110,35 @@ export default function CajaPage() {
 
                                         {/* ── Stats ── */}
                                         <div className="grid grid-cols-3 gap-3">
-                                            <div className="bg-amber-50 rounded-2xl p-3 text-center border border-amber-200">
-                                                <p className="text-lg font-black text-amber-900">{totalTarjetas}</p>
-                                                <p className="text-xs font-bold text-amber-700 mt-0.5">Tarjetas</p>
-                                                {precioTarjeta > 0 && <p className="text-[10px] text-amber-600 font-semibold">{formatMoney(totalTarjetas * precioTarjeta)}</p>}
+                                            <div className="bg-gray-50 rounded-xl p-3 text-center border border-gray-200">
+                                                <p className="text-lg font-black text-gray-900">{totalTarjetas}</p>
+                                                <p className="text-xs font-bold text-gray-500 mt-0.5">Entradas</p>
+                                                {precioTarjeta > 0 && <p className="text-[10px] text-gray-400 font-semibold">{formatMoney(totalTarjetas * precioTarjeta)}</p>}
                                             </div>
-                                            <div className="bg-blue-50 rounded-2xl p-3 text-center border border-blue-200">
-                                                <p className="text-lg font-black text-blue-900">{pedidosEv.length}</p>
-                                                <p className="text-xs font-bold text-blue-700 mt-0.5">Comandas</p>
-                                                {totalPedidos > 0 && <p className="text-[10px] text-blue-600 font-semibold">{formatMoney(totalPedidos)}</p>}
+                                            <div className="bg-gray-50 rounded-xl p-3 text-center border border-gray-200">
+                                                <p className="text-lg font-black text-gray-900">{pedidosEv.length}</p>
+                                                <p className="text-xs font-bold text-gray-500 mt-0.5">Comandas</p>
+                                                {totalPedidos > 0 && <p className="text-[10px] text-gray-400 font-semibold">{formatMoney(totalPedidos)}</p>}
                                             </div>
-                                            <div className="bg-emerald-50 rounded-2xl p-3 text-center border border-emerald-200">
-                                                <p className="text-lg font-black text-emerald-900">{ev.ventas.length}</p>
-                                                <p className="text-xs font-bold text-emerald-700 mt-0.5">Ventas</p>
-                                                {totalVentas > 0 && <p className="text-[10px] text-emerald-600 font-semibold">{formatMoney(totalVentas)}</p>}
+                                            <div className="bg-gray-50 rounded-xl p-3 text-center border border-gray-200">
+                                                <p className="text-lg font-black text-gray-900">{ev.ventas.length}</p>
+                                                <p className="text-xs font-bold text-gray-500 mt-0.5">Ventas</p>
+                                                {totalVentas > 0 && <p className="text-[10px] text-gray-400 font-semibold">{formatMoney(totalVentas)}</p>}
                                             </div>
                                         </div>
 
                                         {/* ── Botones de acción ── */}
                                         <div className="grid grid-cols-3 gap-2">
                                             <button onClick={() => abrirVentaModal(ev._id)}
-                                                className="flex flex-col items-center gap-1 bg-black hover:bg-gray-800 text-white font-bold py-3 rounded-2xl transition text-xs">
+                                                className="flex flex-col items-center gap-1 bg-black hover:bg-gray-800 text-white font-bold py-3 rounded-xl transition text-xs">
                                                 <Plus size={16} /> Venta directa
                                             </button>
                                             <button onClick={() => abrirTarjetasModal(ev._id)}
-                                                className="flex flex-col items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-2xl transition text-xs">
-                                                <Star size={16} /> Tarjetas
+                                                className="flex flex-col items-center gap-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-xl transition text-xs">
+                                                <Star size={16} /> Entradas
                                             </button>
                                             <button onClick={() => abrirEditMesas(ev._id)}
-                                                className="flex flex-col items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-3 rounded-2xl transition text-xs">
+                                                className="flex flex-col items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-3 rounded-xl transition text-xs">
                                                 <Users size={16} /> Mesas
                                             </button>
                                         </div>
@@ -2146,9 +2146,9 @@ export default function CajaPage() {
                                         {/* ── Mesas ── */}
                                         {(ev.mesas ?? []).length > 0 && (
                                             <div>
-                                                <p className="text-xs font-black text-gray-500 uppercase tracking-wider mb-2">Mesas asignadas</p>
+                                                <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">Mesas asignadas</p>
                                                 <div className="flex flex-wrap gap-1.5">
-                                                    {ev.mesas.map(m => <span key={m} className="bg-gray-900 text-white text-sm font-black px-3 py-1 rounded-full">{m}</span>)}
+                                                    {ev.mesas.map(m => <span key={m} className="bg-black text-white text-sm font-black px-3 py-1 rounded-full">{m}</span>)}
                                                 </div>
                                             </div>
                                         )}
@@ -2156,15 +2156,15 @@ export default function CajaPage() {
                                         {/* ── Comandas ── */}
                                         {pedidosEv.length > 0 && (
                                             <div>
-                                                <p className="text-xs font-black text-gray-500 uppercase tracking-wider mb-2">Comandas vinculadas</p>
+                                                <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">Comandas vinculadas</p>
                                                 <div className="space-y-1.5">
                                                     {pedidosEv.map(p => (
-                                                        <div key={p._id} className="flex items-center justify-between bg-blue-50 rounded-xl px-4 py-2.5 border border-blue-100">
+                                                        <div key={p._id} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-200">
                                                             <div>
-                                                                <span className="font-bold text-blue-900 text-sm">{p.mesa ? mesaLabel(p.mesa) : p.nombreComanda || "Comanda"}</span>
-                                                                {p.userId && <span className="text-xs text-blue-600 ml-2">· {p.userId.nombre}</span>}
+                                                                <span className="font-bold text-gray-900 text-sm">{p.mesa ? mesaLabel(p.mesa) : p.nombreComanda || "Comanda"}</span>
+                                                                {p.userId && <span className="text-xs text-gray-400 ml-2">· {p.userId.nombre}</span>}
                                                             </div>
-                                                            <span className="font-black text-blue-900 text-base">{formatMoney(p.total)}</span>
+                                                            <span className="font-black text-gray-900 text-base">{formatMoney(p.total)}</span>
                                                         </div>
                                                     ))}
                                                 </div>

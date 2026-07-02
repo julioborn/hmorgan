@@ -24,10 +24,10 @@ type SalonEl = { _id: string; tipo: string; label: string; x: number; y: number;
 
 const ZONA_LABEL: Record<string, string> = { adentro: "Adentro", afuera: "Afuera", indiferente: "Sin preferencia" };
 const ZONA_COLOR: Record<string, string> = { adentro: "bg-blue-100 text-blue-700", afuera: "bg-emerald-100 text-emerald-700", indiferente: "bg-gray-100 text-gray-600" };
-const ESTADO_COLOR: Record<string, string> = {
-    pendiente:  "bg-amber-100 text-amber-700 border-amber-200",
-    confirmada: "bg-emerald-100 text-emerald-700 border-emerald-200",
-    cancelada:  "bg-gray-100 text-gray-500 border-gray-200",
+const ESTADO_BADGE: Record<string, string> = {
+    pendiente:  "bg-amber-400 text-black",
+    confirmada: "bg-white text-black",
+    cancelada:  "bg-white/20 text-white/60",
 };
 
 function formatFecha(fechaStr: string) {
@@ -236,34 +236,34 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
                         const isLoading = saving === r._id;
                         const mesaAsignada = mesas.find(m => m._id === r.mesaId?._id);
                         return (
-                            <div key={r._id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                                {/* Header con nombre, estado y WA */}
-                                <div className="flex items-start justify-between gap-3 px-5 pt-4 pb-3">
+                            <div key={r._id} className="bg-white rounded-2xl border-2 border-black shadow-sm overflow-hidden">
+                                {/* Header negro */}
+                                <div className="bg-black px-5 py-3 flex items-center justify-between gap-3">
                                     <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border uppercase tracking-wide ${ESTADO_COLOR[r.estado]}`}>
-                                                {r.estado}
-                                            </span>
-                                        </div>
-                                        <p className="text-lg font-black text-gray-900 leading-tight">
+                                        <p className="font-black text-white text-lg leading-tight truncate">
                                             {r.userId.nombre} {r.userId.apellido}
                                         </p>
                                         {r.userId.telefono && (
-                                            <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                                            <p className="text-xs text-white/50 mt-0.5 flex items-center gap-1">
                                                 <Phone size={10} />{r.userId.telefono}
                                             </p>
                                         )}
                                     </div>
-                                    {waUrl && (
-                                        <a href={waUrl} target="_blank" rel="noopener noreferrer"
-                                            className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-semibold transition shrink-0">
-                                            <MessageCircle size={13} /> WhatsApp
-                                        </a>
-                                    )}
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wide ${ESTADO_BADGE[r.estado]}`}>
+                                            {r.estado}
+                                        </span>
+                                        {waUrl && (
+                                            <a href={waUrl} target="_blank" rel="noopener noreferrer"
+                                                className="flex items-center gap-1.5 bg-white/15 hover:bg-white/30 text-white px-2.5 py-1.5 rounded-xl text-xs font-semibold transition">
+                                                <MessageCircle size={12} /> WA
+                                            </a>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* Detalle en fila */}
-                                <div className="px-5 pb-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                <div className="px-5 py-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
                                     <div className="bg-gray-50 rounded-xl px-3 py-2">
                                         <p className="text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Fecha</p>
                                         <p className="text-sm font-bold text-gray-900 leading-tight">{formatArgDate(r.fecha, { day:"numeric", month:"short", year:"2-digit" })}</p>
@@ -285,11 +285,11 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
                                 {/* Mesa asignada */}
                                 {mesaAsignada && (
                                     <div className="px-5 pb-3">
-                                        <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2">
-                                            <MapPin size={13} className="text-indigo-500 shrink-0" />
-                                            <span className="text-sm font-semibold text-indigo-800">Mesa {mesaAsignada.nombre}</span>
-                                            {mesaAsignada.zona && <span className="text-xs text-indigo-500">· {mesaAsignada.zona}</span>}
-                                            {mesaAsignada.capacidad ? <span className="text-xs text-indigo-400 ml-auto">{mesaAsignada.capacidad}p</span> : null}
+                                        <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+                                            <MapPin size={13} className="text-gray-500 shrink-0" />
+                                            <span className="text-sm font-semibold text-gray-800">Mesa {mesaAsignada.nombre}</span>
+                                            {mesaAsignada.zona && <span className="text-xs text-gray-500">· {mesaAsignada.zona}</span>}
+                                            {mesaAsignada.capacidad ? <span className="text-xs text-gray-400 ml-auto">{mesaAsignada.capacidad}p</span> : null}
                                         </div>
                                     </div>
                                 )}
