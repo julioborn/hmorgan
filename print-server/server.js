@@ -119,7 +119,7 @@ function buildComanda({ titulo, mesa, cliente, direccion, mozo, hora, items, not
     return Buffer.from(b);
 }
 
-function buildTicket({ mesa, fecha, hora, items, total, costoEnvio, metodoPago, montoPagado, descuento, pagos, vuelto, propina }) {
+function buildTicket({ mesa, fecha, hora, items, total, costoEnvio, metodoPago, montoPagado, descuento, pagos, vuelto }) {
     const SEP      = "-".repeat(32);
     const b        = [];
     const add      = (...bytes) => b.push(...bytes);
@@ -172,11 +172,6 @@ function buildTicket({ mesa, fecha, hora, items, total, costoEnvio, metodoPago, 
     if (vueltoNum > 0) {
         txt(padLine("Vuelto", $$(vueltoNum))); add(LF);
     }
-    const propinaNum = Number(propina) || 0;
-    if (propinaNum > 0) {
-        txt(padLine("Propina", $$(propinaNum))); add(LF);
-    }
-
     txt(SEP); add(LF);
     add(ESC, 0x61, 0x01);
     txt("Gracias por su visita!"); add(LF);
@@ -234,9 +229,9 @@ app.post("/imprimir/comanda", (req, res) => {
 });
 
 app.post("/imprimir/ticket", (req, res) => {
-    const { mesa, fecha, hora, items, total, costoEnvio, metodoPago, montoPagado, descuento, pagos, vuelto, propina } = req.body;
+    const { mesa, fecha, hora, items, total, costoEnvio, metodoPago, montoPagado, descuento, pagos, vuelto } = req.body;
     try {
-        imprimir(buildTicket({ mesa, fecha, hora, items, total, costoEnvio: costoEnvio || 0, metodoPago, montoPagado, descuento: descuento || 0, pagos, vuelto: vuelto || 0, propina: propina || 0 }), IMPRESORA_BARRA, res, "Ticket");
+        imprimir(buildTicket({ mesa, fecha, hora, items, total, costoEnvio: costoEnvio || 0, metodoPago, montoPagado, descuento: descuento || 0, pagos, vuelto: vuelto || 0 }), IMPRESORA_BARRA, res, "Ticket");
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 
     await connectMongoDB();
 
-    const { pedidoId, metodoPago, montoPagado, descuento, pagos, notas, propina } = await req.json();
+    const { pedidoId, metodoPago, montoPagado, descuento, pagos, notas } = await req.json();
     if (!pedidoId || !metodoPago) return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
 
     const pedido = await Pedido.findById(pedidoId)
@@ -40,7 +40,6 @@ export async function POST(req: NextRequest) {
     pedido.estado = "cerrado";
     pedido.metodoPago = metodoPago;
     pedido.montoPagado = Number(montoPagado) || totalConDescuento || 0;
-    (pedido as any).propina = Math.max(0, Number(propina) || 0);
     await pedido.save();
 
     // Si el pedido pertenece a un evento, registrarlo también en Evento.ventas

@@ -10,7 +10,7 @@ import {
     Wallet, X, Printer, CreditCard, Banknote, Send,
     Loader2, CheckCircle, AlertCircle, Clock, Flame,
     Package, Truck, UtensilsCrossed, CalendarDays,
-    Phone, MessageCircle, Plus, Pencil, Trash2, MapPin, Users, Star, Gift, XCircle,
+    Phone, MessageCircle, Plus, Pencil, Trash2, MapPin, Users, Star, Gift, XCircle, ArrowDownLeft,
 } from "lucide-react";
 import ReservasManager from "@/components/ReservasManager";
 import { hoyArgentina } from "@/lib/argentina-time";
@@ -134,7 +134,7 @@ export default function CajaPage() {
     const [openForm, setOpenForm]         = useState({ montoInicial: "", notas: "" });
     const [openSaving, setOpenSaving]     = useState(false);
     const [cobrarModal, setCobrarModal]   = useState<{ open: boolean; pedido: Pedido | null }>({ open: false, pedido: null });
-    const [cobrarForm, setCobrarForm]     = useState<{ descuento: string; propina: string; pagos: { metodo: typeof METODOS[number]; monto: string }[] }>({ descuento: "", propina: "", pagos: [{ metodo: "efectivo", monto: "" }] });
+    const [cobrarForm, setCobrarForm]     = useState<{ descuento: string; pagos: { metodo: typeof METODOS[number]; monto: string }[] }>({ descuento: "", pagos: [{ metodo: "efectivo", monto: "" }] });
     const [cobrarSaving, setCobrarSaving] = useState(false);
     const [closeModal, setCloseModal]     = useState(false);
     const [closeForm, setCloseForm]       = useState({ montoCierre: "", notas: "" });
@@ -142,6 +142,13 @@ export default function CajaPage() {
     const [closeError, setCloseError]     = useState("");
     const [closeStep, setCloseStep]       = useState<"form" | "resumen">("form");
     const [cierreResumen, setCierreResumen] = useState<Record<string, { ingreso: number; egreso: number }>>({});
+    const [cierreMontoInicial, setCierreMontoInicial] = useState(0);
+    const [cierreMontoCierre,  setCierreMontoCierre]  = useState(0);
+    const [cierreEfectivoSistema, setCierreEfectivoSistema] = useState(0);
+    const [cierreDiferencia, setCierreDiferencia] = useState(0);
+    const [gastoModal,  setGastoModal]  = useState(false);
+    const [gastoForm,   setGastoForm]   = useState<{ concepto: string; monto: string; metodo: typeof METODOS[number] }>({ concepto: "", monto: "", metodo: "efectivo" });
+    const [gastoSaving, setGastoSaving] = useState(false);
     const [menuItemsAll, setMenuItemsAll] = useState<MenuItemLite[]>([]);
     const [editItemModal, setEditItemModal] = useState<
         { pedido: Pedido; modo: "agregar" } | { pedido: Pedido; modo: "reemplazar"; itemId: string; nombreActual: string } | null
@@ -579,6 +586,13 @@ export default function CajaPage() {
     }
 
     async function cerrarCaja() {
+        const confirm = await swalBase.fire({
+            title: "¿Confirmar cierre de caja?",
+            text: "Esta acción no se puede deshacer. La caja quedará cerrada.",
+            icon: "warning", showCancelButton: true,
+            confirmButtonText: "Sí, cerrar caja", cancelButtonText: "Cancelar",
+        });
+        if (!confirm.isConfirmed) return;
         setCloseSaving(true);
         setCloseError("");
         try {
@@ -589,6 +603,10 @@ export default function CajaPage() {
             if (res.ok) {
                 const data = await res.json().catch(() => ({}));
                 setCierreResumen(data.resumen || {});
+                setCierreMontoInicial(data.montoInicial ?? 0);
+                setCierreMontoCierre(data.montoCierre ?? 0);
+                setCierreEfectivoSistema(data.efectivoSistema ?? 0);
+                setCierreDiferencia(data.diferencia ?? 0);
                 setCloseStep("resumen");
                 await loadData();
             } else {
@@ -598,6 +616,22 @@ export default function CajaPage() {
         } catch {
             setCloseError("Error de conexión");
         } finally { setCloseSaving(false); }
+    }
+
+    async function registrarGasto() {
+        if (!gastoForm.concepto.trim() || !gastoForm.monto) return;
+        setGastoSaving(true);
+        try {
+            const res = await fetch("/api/superadmin/caja/movimiento", {
+                method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
+                body: JSON.stringify({ tipo: "egreso", concepto: gastoForm.concepto.trim(), monto: Number(gastoForm.monto), metodoPago: gastoForm.metodo }),
+            });
+            if (res.ok) {
+                setGastoModal(false);
+                setGastoForm({ concepto: "", monto: "", metodo: "efectivo" });
+                loadData();
+            }
+        } finally { setGastoSaving(false); }
     }
 
     async function avanzarEstado(p: Pedido, estado: string) {
@@ -624,7 +658,6 @@ export default function CajaPage() {
         setCobrarSaving(true);
         const ped = cobrarModal.pedido;
         const descuento = Math.max(0, Number(cobrarForm.descuento) || 0);
-        const propina = Math.max(0, Number(cobrarForm.propina) || 0);
         const totalConDescuento = Math.max(0, ped.total - descuento);
         const pagos = cobrarForm.pagos.map(p => ({ metodo: p.metodo, monto: Number(p.monto) || 0 }));
         const totalPagado = pagos.reduce((a, p) => a + p.monto, 0);
@@ -634,19 +667,19 @@ export default function CajaPage() {
         try {
             const res = await fetch("/api/superadmin/caja/cobrar", {
                 method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
-                body: JSON.stringify({ pedidoId: ped._id, metodoPago, montoPagado: totalConDescuento, descuento, pagos, propina }),
+                body: JSON.stringify({ pedidoId: ped._id, metodoPago, montoPagado: totalConDescuento, descuento, pagos }),
             });
             if (res.ok) {
                 setCobrarModal({ open: false, pedido: null });
-                setCobrarForm({ descuento: "", propina: "", pagos: [{ metodo: "efectivo", monto: "" }] });
+                setCobrarForm({ descuento: "", pagos: [{ metodo: "efectivo", monto: "" }] });
                 setPedidos(prev => prev.map(p => p._id === ped._id ? { ...p, estado: "cerrado" } : p));
-                printTicket(ped, pagos, descuento, totalConDescuento, vuelto, propina);
+                printTicket(ped, pagos, descuento, totalConDescuento, vuelto);
                 await loadData();
             }
         } finally { setCobrarSaving(false); }
     }
 
-    async function printTicket(pedido: Pedido, pagos: { metodo: string; monto: number }[], descuento: number, totalConDescuento: number, vuelto: number, propina: number = 0) {
+    async function printTicket(pedido: Pedido, pagos: { metodo: string; monto: number }[], descuento: number, totalConDescuento: number, vuelto: number) {
         const hora  = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
         const fecha = new Date().toLocaleDateString("es-AR");
 
@@ -664,7 +697,6 @@ export default function CajaPage() {
                     descuento,
                     pagos,
                     vuelto,
-                    propina,
                 }),
             });
             if (res.ok) return;
@@ -680,21 +712,20 @@ export default function CajaPage() {
                <tr><td class="total">A COBRAR</td><td class="total" style="text-align:right">${formatMoney(totalConDescuento)}</td></tr>` : "";
         const pagosRows = pagos.map(p => `<tr><td>${METODO_LABEL[p.metodo] || p.metodo}</td><td style="text-align:right">${formatMoney(p.monto)}</td></tr>`).join("");
         const vueltoRow = vuelto > 0 ? `<tr><td class="vuelto">Vuelto</td><td class="vuelto" style="text-align:right">${formatMoney(vuelto)}</td></tr>` : "";
-        const propinaRow = propina > 0 ? `<tr><td class="propina">Propina</td><td class="propina" style="text-align:right">${formatMoney(propina)}</td></tr>` : "";
         const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Ticket</title><style>
             *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Courier New',monospace;font-size:12px;padding:12px;max-width:280px}
             h2{text-align:center;font-size:15px;letter-spacing:2px;margin-bottom:2px}
             .sub{text-align:center;font-size:11px;color:#555;margin-bottom:4px}
             hr{border:none;border-top:1px dashed #000;margin:5px 0}
             table{width:100%;border-collapse:collapse}td{padding:2px 0;font-size:12px}
-            .total{font-size:14px;font-weight:bold}.vuelto{font-weight:bold;color:#16a34a}.propina{font-weight:bold;color:#7c3aed}
+            .total{font-size:14px;font-weight:bold}.vuelto{font-weight:bold;color:#16a34a}
             .legal{text-align:center;font-size:9px;color:#aaa;margin-top:10px}
         </style></head><body>
         <h2>TICKET</h2><div class="sub">${fecha} ${hora}</div>
         <hr/><table>${rows}</table><hr/>
         <table>
             <tr><td class="total">TOTAL</td><td class="total" style="text-align:right">${formatMoney(pedido.total)}</td></tr>
-            ${descuentoRow}${pagosRows}${vueltoRow}${propinaRow}
+            ${descuentoRow}${pagosRows}${vueltoRow}
         </table>
         <div class="legal">Comprobante no válido como factura</div></body></html>`;
         const w = window.open("", "_blank", "width=320,height=500,toolbar=0,menubar=0");
@@ -1351,27 +1382,38 @@ export default function CajaPage() {
 
             {/* Abrir caja */}
             {!sesion && (
-                <div className="max-w-sm mx-auto px-4 mt-10">
-                    <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
-                        <div className="px-6 pt-8 pb-4 text-center">
-                            <div className="w-16 h-16 rounded-2xl bg-emerald-100 flex items-center justify-center mx-auto mb-4 shadow-sm">
-                                <Wallet size={28} className="text-emerald-600" />
+                <div className="min-h-[calc(100vh-120px)] flex items-center justify-center px-4">
+                    <div className="w-full max-w-sm">
+                        {/* Card */}
+                        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100">
+                            {/* Top band */}
+                            <div className="bg-black px-6 py-8 text-center">
+                                <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center mx-auto mb-4">
+                                    <Wallet size={30} className="text-white" />
+                                </div>
+                                <h2 className="font-black text-white text-2xl tracking-tight">Abrir caja</h2>
+                                <p className="text-sm text-white/50 mt-1">Ingresá el efectivo inicial</p>
                             </div>
-                            <h2 className="font-black text-gray-900 text-xl tracking-tight">Abrir caja</h2>
-                            <p className="text-sm text-gray-400 mt-1">Ingresá el monto inicial para comenzar</p>
-                        </div>
-                        <div className="px-6 pb-8 space-y-3">
-                            <input type="number" min="0" value={openForm.montoInicial}
-                                onChange={e => setOpenForm(p => ({ ...p, montoInicial: e.target.value }))}
-                                placeholder="$0" style={{ fontSize: "16px" }}
-                                className="w-full px-4 py-4 border-2 border-gray-100 focus:border-emerald-400 rounded-2xl text-3xl font-black text-center focus:outline-none transition-colors" />
-                            <input value={openForm.notas} onChange={e => setOpenForm(p => ({ ...p, notas: e.target.value }))}
-                                placeholder="Notas (opcional)" style={{ fontSize: "16px" }}
-                                className="w-full px-4 py-3 border border-gray-100 rounded-xl text-sm focus:outline-none focus:border-gray-300 transition-colors" />
-                            <button onClick={abrirCaja} disabled={openSaving}
-                                className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2.5 transition-all shadow-lg shadow-emerald-500/30 text-base">
-                                <Wallet size={19} />{openSaving ? "Abriendo..." : "Abrir caja"}
-                            </button>
+                            {/* Body */}
+                            <div className="px-6 py-6 space-y-4">
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-2">Monto en efectivo</label>
+                                    <div className="flex items-center gap-2 border-2 border-gray-100 focus-within:border-black rounded-2xl px-4 py-3 transition-colors">
+                                        <span className="text-2xl font-black text-gray-300">$</span>
+                                        <input type="number" min="0" value={openForm.montoInicial}
+                                            onChange={e => setOpenForm(p => ({ ...p, montoInicial: e.target.value }))}
+                                            placeholder="0" style={{ fontSize: "28px" }}
+                                            className="flex-1 font-black text-gray-900 focus:outline-none bg-transparent text-right" />
+                                    </div>
+                                </div>
+                                <input value={openForm.notas} onChange={e => setOpenForm(p => ({ ...p, notas: e.target.value }))}
+                                    placeholder="Notas (opcional)" style={{ fontSize: "15px" }}
+                                    className="w-full px-4 py-3 border border-gray-100 rounded-xl text-sm focus:outline-none focus:border-gray-300 transition-colors text-gray-700" />
+                                <button onClick={abrirCaja} disabled={openSaving}
+                                    className="w-full bg-black hover:bg-gray-800 disabled:opacity-50 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2.5 transition-all text-base tracking-wide">
+                                    <Wallet size={18} />{openSaving ? "Abriendo..." : "Abrir caja"}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1658,7 +1700,7 @@ export default function CajaPage() {
                                                                 <Printer size={12} /> Reimprimir
                                                             </button>
                                                             {(p.estado === "listo" || p.estado === "entregado") && (
-                                                                <button onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", propina: "", pagos: [{ metodo: "efectivo", monto: String(p.total) }] }); }}
+                                                                <button onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", pagos: [{ metodo: "efectivo", monto: String(p.total) }] }); }}
                                                                     className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 rounded-xl text-xs transition">
                                                                     <Wallet size={12} /> Cobrar
                                                                 </button>
@@ -1679,9 +1721,16 @@ export default function CajaPage() {
                         <div className="max-w-screen-2xl mx-auto px-4 pt-4">
                             <div className="flex items-center justify-between mb-4">
                                 <h2 className="font-black text-gray-900 text-lg tracking-tight">Para cobrar</h2>
-                                {paraCobrar.length > 0 && (
-                                    <span className="text-xs font-black text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">{paraCobrar.length}</span>
-                                )}
+                                <div className="flex items-center gap-2">
+                                    {paraCobrar.length > 0 && (
+                                        <span className="text-xs font-black text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">{paraCobrar.length}</span>
+                                    )}
+                                    <button
+                                        onClick={() => { setGastoModal(true); setGastoForm({ concepto: "", monto: "", metodo: "efectivo" }); }}
+                                        className="flex items-center gap-1.5 bg-black hover:bg-gray-800 text-white text-xs font-bold px-3 py-2 rounded-xl transition">
+                                        <ArrowDownLeft size={13} /> Registrar gasto
+                                    </button>
+                                </div>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 items-start">
                             {paraCobrar.length === 0 ? (
@@ -1779,7 +1828,7 @@ export default function CajaPage() {
                                         {/* ── Botón cobrar ── */}
                                         <div className="px-3 pb-3">
                                             <button
-                                                onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", propina: "", pagos: [{ metodo: "efectivo", monto: String(p.total) }] }); }}
+                                                onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", pagos: [{ metodo: "efectivo", monto: String(p.total) }] }); }}
                                                 className={`w-full text-white font-black py-3 rounded-xl text-base tracking-wide transition ${cobrarBg}`}>
                                                 Cobrar
                                             </button>
@@ -2408,39 +2457,73 @@ export default function CajaPage() {
             {/* Modal cerrar caja */}
             {closeModal && (
                 <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl">
+                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl max-h-[92vh] flex flex-col">
                         {closeStep === "resumen" ? (
                             <>
-                                <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
-                                    <h2 className="font-black text-gray-900 flex-1">Caja cerrada</h2>
+                                <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
                                     <CheckCircle size={18} className="text-emerald-500" />
+                                    <h2 className="font-black text-gray-900 flex-1">Resumen de caja</h2>
                                 </div>
-                                <div className="px-5 py-4 space-y-2">
-                                    <p className="text-sm text-gray-500 mb-1">Recaudado en esta sesión:</p>
+                                <div className="px-5 py-4 space-y-3 overflow-y-auto flex-1 min-h-0">
+
+                                    {/* Efectivo — bloque detallado */}
+                                    <div className="bg-gray-50 rounded-2xl p-4 space-y-2.5">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider flex items-center gap-1.5"><Banknote size={11} />Efectivo</p>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-gray-500">Al inicio</span>
+                                            <span className="font-bold text-gray-900">{formatMoney(cierreMontoInicial)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-gray-500">Sistema al cierre</span>
+                                            <span className="font-bold text-gray-900">{formatMoney(cierreEfectivoSistema)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-gray-500">Contado por encargado</span>
+                                            <span className="font-bold text-gray-900">{formatMoney(cierreMontoCierre)}</span>
+                                        </div>
+                                        <div className={`flex justify-between text-sm pt-2 border-t border-gray-200 font-black ${cierreDiferencia === 0 ? "text-gray-700" : cierreDiferencia > 0 ? "text-emerald-600" : "text-red-600"}`}>
+                                            <span>Diferencia</span>
+                                            <span>{cierreDiferencia > 0 ? "+" : ""}{formatMoney(cierreDiferencia)}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Desglose por método */}
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Recaudado por método</p>
                                     {METODOS.map(met => {
                                         const r = cierreResumen[met];
-                                        const neto = (r?.ingreso || 0) - (r?.egreso || 0);
+                                        const ingreso = r?.ingreso || 0;
+                                        const egreso  = r?.egreso  || 0;
+                                        const neto    = ingreso - egreso;
                                         const Icon = METODO_ICON[met];
                                         return (
-                                            <div key={met} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
-                                                <span className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                                                    <Icon size={14} />{METODO_LABEL[met]}
-                                                </span>
-                                                <span className="font-black text-gray-900">{formatMoney(neto)}</span>
+                                            <div key={met} className="bg-gray-50 rounded-xl px-4 py-3">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                                                        <Icon size={14} />{METODO_LABEL[met]}
+                                                    </span>
+                                                    <span className="font-black text-gray-900">{formatMoney(neto)}</span>
+                                                </div>
+                                                {egreso > 0 && (
+                                                    <div className="flex justify-between text-xs text-gray-400 mt-1">
+                                                        <span>Ingresos {formatMoney(ingreso)} · Egresos −{formatMoney(egreso)}</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         );
                                     })}
-                                    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 mt-2">
-                                        <span className="text-sm font-black text-gray-900">Total cobrado</span>
-                                        <span className="text-lg font-black text-gray-900">
+
+                                    {/* Total general */}
+                                    <div className="flex items-center justify-between bg-black rounded-2xl px-4 py-3.5">
+                                        <span className="text-sm font-black text-white">Total general</span>
+                                        <span className="text-xl font-black text-white">
                                             {formatMoney(METODOS.reduce((acc, met) => acc + ((cierreResumen[met]?.ingreso || 0) - (cierreResumen[met]?.egreso || 0)), 0))}
                                         </span>
                                     </div>
                                 </div>
-                                <div className="px-5 py-4 border-t border-gray-100">
+                                <div className="px-5 py-4 border-t border-gray-100 shrink-0">
                                     <button onClick={() => { setCloseModal(false); setCloseForm({ montoCierre: "", notas: "" }); }}
-                                        className="w-full py-2.5 bg-black hover:bg-gray-700 text-white rounded-xl text-sm font-bold transition">
-                                        Listo
+                                        className="w-full py-3 bg-black hover:bg-gray-700 text-white rounded-xl text-sm font-bold transition">
+                                        Cerrar
                                     </button>
                                 </div>
                             </>
@@ -2476,6 +2559,62 @@ export default function CajaPage() {
                                 </div>
                             </>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* Modal gastos */}
+            {gastoModal && (
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl">
+                        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+                            <ArrowDownLeft size={18} className="text-red-500" />
+                            <h2 className="font-black text-gray-900 flex-1">Registrar gasto</h2>
+                            <button onClick={() => setGastoModal(false)} className="p-1 text-gray-400"><X size={18} /></button>
+                        </div>
+                        <div className="px-5 py-4 space-y-3">
+                            <div>
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1.5">Concepto</label>
+                                <input
+                                    type="text" placeholder="Ej: Pago publicidad, limpieza, etc."
+                                    value={gastoForm.concepto}
+                                    onChange={e => setGastoForm(p => ({ ...p, concepto: e.target.value }))}
+                                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1.5">Monto</label>
+                                <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-red-400 focus-within:border-transparent">
+                                    <span className="text-gray-400 text-sm font-semibold">$</span>
+                                    <input type="number" min="0" placeholder="0"
+                                        value={gastoForm.monto}
+                                        onChange={e => setGastoForm(p => ({ ...p, monto: e.target.value }))}
+                                        className="flex-1 text-lg font-black focus:outline-none text-gray-900 bg-transparent" />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1.5">Método</label>
+                                <div className="flex gap-2">
+                                    {METODOS.map(met => {
+                                        const Icon = METODO_ICON[met];
+                                        return (
+                                            <button key={met}
+                                                onClick={() => setGastoForm(p => ({ ...p, metodo: met }))}
+                                                className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 border transition ${gastoForm.metodo === met ? "bg-black text-white border-black" : "bg-white text-gray-400 border-gray-200 hover:border-gray-400"}`}>
+                                                <Icon size={11} />{METODO_LABEL[met]}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
+                            <button onClick={() => setGastoModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
+                            <button onClick={registrarGasto} disabled={gastoSaving || !gastoForm.concepto.trim() || !gastoForm.monto}
+                                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
+                                {gastoSaving ? "Guardando..." : "Registrar egreso"}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
@@ -2536,19 +2675,6 @@ export default function CajaPage() {
                                             <span className="text-xs text-red-600 font-black">{formatMoney(totalConDescuento)}</span>
                                         </div>
                                     )}
-                                </div>
-
-                                {/* Propina */}
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Propina (opcional)</label>
-                                    <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-violet-400 focus-within:border-transparent">
-                                        <span className="text-gray-400 text-sm font-semibold">+$</span>
-                                        <input type="number" min="0"
-                                            value={cobrarForm.propina}
-                                            onChange={e => setCobrarForm(p => ({ ...p, propina: e.target.value }))}
-                                            placeholder="0"
-                                            className="flex-1 text-sm font-bold focus:outline-none text-gray-900 bg-transparent" />
-                                    </div>
                                 </div>
 
                                 {/* Pagos */}
@@ -3020,7 +3146,7 @@ export default function CajaPage() {
                                 <button onClick={() => {
                                     const p = mesaDetalle.pedido;
                                     setCobrarModal({ open: true, pedido: p });
-                                    setCobrarForm({ descuento: "", propina: "", pagos: [{ metodo: "efectivo", monto: String(p.total) }] });
+                                    setCobrarForm({ descuento: "", pagos: [{ metodo: "efectivo", monto: String(p.total) }] });
                                     setMesaDetalle(null);
                                 }} className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition">
                                     Cobrar
