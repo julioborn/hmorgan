@@ -2106,6 +2106,39 @@ export default function CajaPage() {
                                             </div>
                                         </div>
 
+                                        {/* ── Desglose entradas por método ── */}
+                                        {totalTarjetas > 0 && (() => {
+                                            const tarjetasArr = (ev as any).tarjetas ?? [];
+                                            const porMetodo: Record<string, number> = {};
+                                            for (const t of tarjetasArr) {
+                                                porMetodo[t.metodoPago] = (porMetodo[t.metodoPago] || 0) + t.cantidad;
+                                            }
+                                            return (
+                                                <div>
+                                                    <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">Entradas por método</p>
+                                                    <div className="space-y-1.5">
+                                                        {Object.entries(porMetodo).map(([metodo, cant]) => {
+                                                            const Icon = METODO_ICON[metodo] || Banknote;
+                                                            return (
+                                                                <div key={metodo} className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2 border border-gray-200">
+                                                                    <span className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 capitalize">
+                                                                        <Icon size={13} className="text-gray-500" />
+                                                                        {metodo === "transferencia" ? "Transferencia" : metodo === "tarjeta" ? "Tarjeta" : "Efectivo"}
+                                                                    </span>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-sm font-black text-gray-900">{cant} entrada{cant !== 1 ? "s" : ""}</span>
+                                                                        {precioTarjeta > 0 && (
+                                                                            <span className="text-xs font-bold text-gray-400">{formatMoney(cant * precioTarjeta)}</span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+
                                         {/* ── Botones de acción ── */}
                                         <div className="grid grid-cols-3 gap-2">
                                             <button onClick={() => abrirVentaModal(ev._id)}
