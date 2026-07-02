@@ -6,6 +6,7 @@ import {
     ChevronLeft, ChevronDown, ChevronUp, X,
     TrendingUp, TrendingDown, Banknote, CreditCard, Send,
     Package, ArrowDownCircle, ArrowUpCircle, UtensilsCrossed,
+    Star, AlertCircle,
 } from "lucide-react";
 import Loader from "@/components/Loader";
 
@@ -63,6 +64,33 @@ type Sesion = {
     totales: Record<string, { ingreso: number; egreso: number; excedente: number }>;
     movimientos: Movement[];
     productos: Record<string, Producto>;
+};
+
+type EventoCerrado = {
+    _id: string;
+    nombre: string;
+    estado: string;
+    updatedAt: string;
+    cierreData?: {
+        fecha?: string;
+        totalGeneral: number;
+        entradasCantidad: number;
+        entradasPrecio: number;
+        entradasTotal: number;
+        totalEfectivo: number;
+        ventasEfectivo: number;
+        comandasEfectivo: number;
+        totalTransferencia: number;
+        ventasTransferencia: number;
+        comandasTransferencia: number;
+        totalTarjeta: number;
+        ventasTarjeta: number;
+        comandasTarjeta: number;
+        comandasSinCobrar: number;
+    };
+    ventas?: Array<{
+        items?: Array<{ nombre: string; precio: number; cantidad: number; categoria?: string }>;
+    }>;
 };
 
 // Groups of movements by pedidoId (or solo if no pedido)
@@ -188,7 +216,6 @@ function PedidoModal({ pedido, onClose }: { pedido: PedidoDetail; onClose: () =>
                 className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl"
                 onClick={e => e.stopPropagation()}
             >
-                {/* Header */}
                 <div className="bg-black px-4 py-3 flex items-center justify-between">
                     <p className="font-black text-white text-sm">{titulo}</p>
                     <button onClick={onClose} className="text-white/60 hover:text-white transition">
@@ -196,7 +223,6 @@ function PedidoModal({ pedido, onClose }: { pedido: PedidoDetail; onClose: () =>
                     </button>
                 </div>
 
-                {/* Items */}
                 <div className="px-4 py-3 space-y-2 max-h-72 overflow-y-auto">
                     {pedido.items.map((it, i) => {
                         const nombre = it.menuItemId?.nombre || "Ítem";
@@ -217,7 +243,6 @@ function PedidoModal({ pedido, onClose }: { pedido: PedidoDetail; onClose: () =>
                     })}
                 </div>
 
-                {/* Footer: total */}
                 {pedido.total != null && (
                     <div className="border-t border-gray-200 px-4 py-3 flex justify-between items-center">
                         <span className="font-black text-gray-700 text-sm">Total</span>
@@ -241,7 +266,6 @@ function MovimientosSection({ movimientos }: { movimientos: Movement[] }) {
                 {groups.map(g => {
                     const canOpen = !!g.pedido?.items?.length;
 
-                    // Non-pedido movement: single row
                     if (!g.pedido) {
                         return (
                             <div key={g.key} className="flex items-center gap-2 text-xs px-2 py-1.5 rounded-xl">
@@ -266,10 +290,8 @@ function MovimientosSection({ movimientos }: { movimientos: Movement[] }) {
                         );
                     }
 
-                    // Pedido group: header + method rows + optional discount + total
                     return (
                         <div key={g.key} className="border border-gray-200 rounded-xl overflow-hidden">
-                            {/* Header — opens modal */}
                             <button
                                 onClick={() => canOpen && setModalPedido(g.pedido!)}
                                 className={`w-full flex items-center justify-between px-3 py-2 bg-gray-50 text-xs gap-2
@@ -289,7 +311,6 @@ function MovimientosSection({ movimientos }: { movimientos: Movement[] }) {
                                 )}
                             </button>
 
-                            {/* One row per payment method */}
                             {g.pagos.map((p, i) => (
                                 <div key={i} className="flex items-center justify-between px-3 py-2 border-t border-gray-100 text-xs">
                                     <MetodoBadge metodo={p.metodo} />
@@ -297,7 +318,6 @@ function MovimientosSection({ movimientos }: { movimientos: Movement[] }) {
                                 </div>
                             ))}
 
-                            {/* Descuento (si aplica) */}
                             {g.descuento > 0 && (
                                 <div className="flex items-center justify-between px-3 py-1.5 border-t border-gray-100 text-xs">
                                     <span className="text-orange-600 font-semibold">Descuento</span>
@@ -305,7 +325,6 @@ function MovimientosSection({ movimientos }: { movimientos: Movement[] }) {
                                 </div>
                             )}
 
-                            {/* Excedente (si aplica) */}
                             {g.excedente > 0 && (
                                 <div className="flex items-center justify-between px-3 py-1.5 border-t border-gray-100 text-xs">
                                     <span className="text-amber-600 font-semibold">Excedente</span>
@@ -313,7 +332,6 @@ function MovimientosSection({ movimientos }: { movimientos: Movement[] }) {
                                 </div>
                             )}
 
-                            {/* Total pedido */}
                             <div className="flex items-center justify-between px-3 py-2 border-t border-gray-200 bg-gray-50 text-xs">
                                 <span className="font-black text-gray-600">Total cobrado</span>
                                 <span className="font-black text-gray-900">{fmt(g.total)}</span>
@@ -339,7 +357,6 @@ function DetalleSesion({ s }: { s: Sesion }) {
     return (
         <div className="border-t border-gray-100 divide-y divide-gray-100">
 
-            {/* Apertura / Cierre */}
             <div className="px-4 py-3 flex gap-4">
                 <div>
                     <p className="text-[10px] font-semibold text-gray-400 uppercase">Monto apertura</p>
@@ -353,7 +370,6 @@ function DetalleSesion({ s }: { s: Sesion }) {
                 )}
             </div>
 
-            {/* Per-method breakdown */}
             {Object.keys(s.totales).length > 0 && (
                 <div className="px-4 py-4">
                     <SectionTitle>Recaudación por método</SectionTitle>
@@ -391,7 +407,6 @@ function DetalleSesion({ s }: { s: Sesion }) {
                 </div>
             )}
 
-            {/* Excedente per-method detail */}
             {Object.entries(s.totales).some(([, v]) => (v.excedente || 0) > 0) && (
                 <div className="px-4 py-4">
                     <SectionTitle>Detalle de excedentes</SectionTitle>
@@ -408,7 +423,6 @@ function DetalleSesion({ s }: { s: Sesion }) {
                 </div>
             )}
 
-            {/* Products sold */}
             {productos.length > 0 && (
                 <div className="px-4 py-4">
                     <SectionTitle>Productos vendidos ({productos.reduce((s, p) => s + p.cantidad, 0)} ítems)</SectionTitle>
@@ -432,7 +446,6 @@ function DetalleSesion({ s }: { s: Sesion }) {
                 </div>
             )}
 
-            {/* Movements list (grouped by pedido) */}
             {s.movimientos.length > 0 && (
                 <div className="px-4 py-4">
                     <SectionTitle>Movimientos ({s.movimientos.length})</SectionTitle>
@@ -440,7 +453,6 @@ function DetalleSesion({ s }: { s: Sesion }) {
                 </div>
             )}
 
-            {/* Notes */}
             {s.notas && (
                 <div className="px-4 py-3">
                     <SectionTitle>Notas de cierre</SectionTitle>
@@ -451,14 +463,126 @@ function DetalleSesion({ s }: { s: Sesion }) {
     );
 }
 
+// ── Evento detail ──────────────────────────────────────────────────────────────
+
+function DetalleEvento({ ev }: { ev: EventoCerrado }) {
+    const cd = ev.cierreData;
+    if (!cd) return <p className="px-4 py-3 text-xs text-gray-500">Sin resumen de cierre registrado</p>;
+
+    // Aggregate products from all ventas
+    const grouped: Record<string, { cantidad: number; total: number; categoria: string }> = {};
+    (ev.ventas ?? []).forEach(v => {
+        (v.items ?? []).forEach(it => {
+            if (!grouped[it.nombre]) grouped[it.nombre] = { cantidad: 0, total: 0, categoria: it.categoria ?? "" };
+            grouped[it.nombre].cantidad += it.cantidad;
+            grouped[it.nombre].total += it.precio * it.cantidad;
+        });
+    });
+    const productList = Object.entries(grouped)
+        .map(([nombre, d]) => ({ nombre, ...d }))
+        .sort((a, b) => b.total - a.total);
+
+    const metodos = [
+        { label: "Efectivo", icon: Banknote, key: "efectivo", total: cd.totalEfectivo, ventas: cd.ventasEfectivo, comandas: cd.comandasEfectivo },
+        { label: "Transferencia", icon: Send, key: "transferencia", total: cd.totalTransferencia, ventas: cd.ventasTransferencia, comandas: cd.comandasTransferencia },
+        { label: "Tarjeta", icon: CreditCard, key: "tarjeta", total: cd.totalTarjeta, ventas: cd.ventasTarjeta, comandas: cd.comandasTarjeta },
+    ].filter(m => m.total > 0);
+
+    return (
+        <div className="border-t border-gray-100 divide-y divide-gray-100">
+
+            {/* Tarjetas entrada */}
+            {cd.entradasCantidad > 0 && (
+                <div className="px-4 py-3 flex items-center justify-between text-sm">
+                    <span className="text-gray-600 flex items-center gap-1.5">
+                        <Star size={13} className="text-gray-400" />
+                        Tarjetas entrada ({cd.entradasCantidad}× {fmt(cd.entradasPrecio)})
+                    </span>
+                    <span className="font-black text-gray-900">{fmt(cd.entradasTotal)}</span>
+                </div>
+            )}
+
+            {/* Desglose por método */}
+            {metodos.length > 0 && (
+                <div className="px-4 py-4">
+                    <SectionTitle>Recaudación por método</SectionTitle>
+                    <div className="space-y-2">
+                        {metodos.map(m => (
+                            <div key={m.key} className="flex items-center gap-3 bg-gray-50 rounded-xl px-3 py-2">
+                                <m.icon size={16} className="text-gray-500 shrink-0" />
+                                <span className="font-bold text-sm text-gray-700 w-28">{m.label}</span>
+                                <div className="flex-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs">
+                                    {m.ventas > 0 && (
+                                        <span className="text-gray-500">ventas {fmt(m.ventas)}</span>
+                                    )}
+                                    {m.comandas > 0 && (
+                                        <span className="text-gray-500">comandas {fmt(m.comandas)}</span>
+                                    )}
+                                </div>
+                                <span className="text-sm font-black text-gray-900">{fmt(m.total)}</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    {cd.comandasSinCobrar > 0 && (
+                        <div className="mt-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-center justify-between">
+                            <span className="text-xs font-bold text-amber-700 flex items-center gap-1.5">
+                                <AlertCircle size={12} />Sin cobrar al cierre
+                            </span>
+                            <span className="text-sm font-black text-amber-700">{fmt(cd.comandasSinCobrar)}</span>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Products consumed */}
+            {productList.length > 0 && (
+                <div className="px-4 py-4">
+                    <SectionTitle>Productos consumidos ({productList.reduce((s, p) => s + p.cantidad, 0)} ítems)</SectionTitle>
+                    <div className="space-y-1">
+                        {productList.map((p, i) => (
+                            <div key={i} className="flex items-center gap-2 text-xs py-1.5 border-b border-gray-50 last:border-0">
+                                <Package size={11} className="text-gray-400 shrink-0" />
+                                <span className="flex-1 font-medium text-gray-800">{p.nombre}</span>
+                                {p.categoria && (
+                                    <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">{p.categoria}</span>
+                                )}
+                                <span className="text-gray-500 font-semibold">×{p.cantidad}</span>
+                                <span className="font-black text-gray-900 w-20 text-right">{fmt(p.total)}</span>
+                            </div>
+                        ))}
+                        <div className="flex items-center justify-between pt-1.5 text-xs font-black text-gray-900">
+                            <span>Total productos</span>
+                            <span>{fmt(productList.reduce((sum, p) => sum + p.total, 0))}</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function CajaHistorialPage() {
-    const { data: sesiones, isLoading } = useSWR<Sesion[]>("/api/superadmin/caja/historial", fetcher);
+    const { data: sesiones, isLoading: loadingSesiones } = useSWR<Sesion[]>("/api/superadmin/caja/historial", fetcher);
+    const { data: eventosData, isLoading: loadingEventos } = useSWR<EventoCerrado[]>("/api/eventos?cerrado=true", fetcher);
+
     const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
+    const [expandidosEv, setExpandidosEv] = useState<Set<string>>(new Set());
+
+    const eventosCerrados = Array.isArray(eventosData) ? eventosData : [];
 
     function toggle(id: string) {
         setExpandidas(prev => {
+            const next = new Set(prev);
+            next.has(id) ? next.delete(id) : next.add(id);
+            return next;
+        });
+    }
+
+    function toggleEv(id: string) {
+        setExpandidosEv(prev => {
             const next = new Set(prev);
             next.has(id) ? next.delete(id) : next.add(id);
             return next;
@@ -474,21 +598,21 @@ export default function CajaHistorialPage() {
                 <h1 className="text-3xl font-extrabold text-black">Historial de Caja</h1>
             </div>
 
-            {isLoading && (
+            {/* ── Sesiones de caja ── */}
+            {loadingSesiones && (
                 <div className="flex justify-center py-20"><Loader size={40} /></div>
             )}
 
-            {!isLoading && (!sesiones || sesiones.length === 0) && (
-                <p className="text-center text-gray-400 py-20">Sin sesiones registradas</p>
+            {!loadingSesiones && (!sesiones || sesiones.length === 0) && (
+                <p className="text-center text-gray-400 py-10">Sin sesiones registradas</p>
             )}
 
             {sesiones && sesiones.length > 0 && (
-                <div className="space-y-4">
+                <div className="space-y-4 mb-10">
                     {sesiones.map(s => {
                         const open = expandidas.has(s._id);
                         return (
                             <div key={s._id} className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-                                {/* Header */}
                                 <div className={`px-4 py-3 flex items-center justify-between ${s.estado === "abierta" ? "bg-emerald-50 border-b border-emerald-100" : "bg-gray-50 border-b border-gray-100"}`}>
                                     <div>
                                         <p className="font-black text-gray-900 text-sm">{formatFecha(s.fechaApertura)}</p>
@@ -504,7 +628,6 @@ export default function CajaHistorialPage() {
                                     </span>
                                 </div>
 
-                                {/* Compact totals */}
                                 <div className="px-4 py-3 grid grid-cols-3 gap-3">
                                     <div className="text-center">
                                         <p className="text-[11px] text-gray-400 uppercase font-semibold">Ingresos</p>
@@ -520,10 +643,8 @@ export default function CajaHistorialPage() {
                                     </div>
                                 </div>
 
-                                {/* Expanded detail */}
                                 {open && <DetalleSesion s={s} />}
 
-                                {/* Footer / expand toggle */}
                                 <button
                                     onClick={() => toggle(s._id)}
                                     className="w-full border-t border-gray-100 px-4 py-2.5 flex items-center justify-between hover:bg-gray-50 transition"
@@ -542,6 +663,86 @@ export default function CajaHistorialPage() {
                     })}
                 </div>
             )}
+
+            {/* ── Historial de eventos ── */}
+            <div className="mb-6">
+                <h2 className="text-xl font-extrabold text-black mb-4">Historial de Eventos</h2>
+
+                {loadingEventos && (
+                    <div className="flex justify-center py-10"><Loader size={36} /></div>
+                )}
+
+                {!loadingEventos && eventosCerrados.length === 0 && (
+                    <p className="text-center text-gray-400 py-10">Sin eventos cerrados</p>
+                )}
+
+                {eventosCerrados.length > 0 && (
+                    <div className="space-y-4">
+                        {eventosCerrados.map(ev => {
+                            const cd = ev.cierreData;
+                            const open = expandidosEv.has(ev._id);
+                            const fechaCierre = cd?.fecha
+                                ? new Date(cd.fecha).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" })
+                                : new Date(ev.updatedAt).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
+                            const horaCierre = cd?.fecha
+                                ? formatHora(cd.fecha)
+                                : formatHora(ev.updatedAt);
+
+                            return (
+                                <div key={ev._id} className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+                                    {/* Black header */}
+                                    <div className="bg-black px-4 py-3 flex items-center justify-between">
+                                        <div>
+                                            <p className="text-[10px] font-bold text-white/50 uppercase tracking-wide">
+                                                Cerrado · {fechaCierre} {horaCierre}
+                                            </p>
+                                            <p className="font-black text-white text-sm leading-tight">{ev.nombre}</p>
+                                        </div>
+                                        {cd && (
+                                            <span className="font-black text-white text-base">{fmt(cd.totalGeneral)}</span>
+                                        )}
+                                    </div>
+
+                                    {/* Compact stats */}
+                                    {cd && (
+                                        <div className="px-4 py-3 grid grid-cols-3 gap-3">
+                                            <div className="text-center">
+                                                <p className="text-[11px] text-gray-400 uppercase font-semibold">Efectivo</p>
+                                                <p className="text-sm font-black text-gray-800">{fmt(cd.totalEfectivo)}</p>
+                                            </div>
+                                            <div className="text-center">
+                                                <p className="text-[11px] text-gray-400 uppercase font-semibold">Transf.</p>
+                                                <p className="text-sm font-black text-gray-800">{fmt(cd.totalTransferencia)}</p>
+                                            </div>
+                                            <div className="text-center">
+                                                <p className="text-[11px] text-gray-400 uppercase font-semibold">Total</p>
+                                                <p className="text-sm font-black text-gray-900">{fmt(cd.totalGeneral)}</p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {open && <DetalleEvento ev={ev} />}
+
+                                    <button
+                                        onClick={() => toggleEv(ev._id)}
+                                        className="w-full border-t border-gray-100 px-4 py-2.5 flex items-center justify-between hover:bg-gray-50 transition"
+                                    >
+                                        <p className="text-[11px] text-gray-400">
+                                            {cd?.entradasCantidad
+                                                ? `${cd.entradasCantidad} tarjeta${cd.entradasCantidad !== 1 ? "s" : ""} entrada`
+                                                : "Sin tarjetas"}
+                                            {(ev.ventas?.length ?? 0) > 0 && ` · ${ev.ventas!.length} venta${ev.ventas!.length !== 1 ? "s" : ""}`}
+                                        </p>
+                                        <span className="flex items-center gap-1 text-[11px] font-bold text-gray-500">
+                                            {open ? <><ChevronUp size={13} />Ocultar</> : <><ChevronDown size={13} />Ver detalle</>}
+                                        </span>
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
