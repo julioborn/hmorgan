@@ -29,6 +29,11 @@ export async function GET(req: NextRequest) {
     const [movimientos, pedidos] = await Promise.all([
         CajaMovement.find({ sesionId: { $in: sesionIds } })
             .populate("userId", "nombre apellido")
+            .populate({
+                path: "pedidoId",
+                select: "mesa nombreComanda fuente items total eventoId",
+                populate: { path: "items.menuItemId", select: "nombre precio categoria" },
+            })
             .sort({ createdAt: 1 })
             .lean<any[]>(),
         Pedido.find({ estado: "cerrado" })

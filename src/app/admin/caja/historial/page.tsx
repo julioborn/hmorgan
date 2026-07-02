@@ -5,9 +5,26 @@ import { useState } from "react";
 import {
     ChevronLeft, ChevronDown, ChevronUp,
     TrendingUp, TrendingDown, Banknote, CreditCard, Send,
-    Package, ArrowDownCircle, ArrowUpCircle,
+    Package, ArrowDownCircle, ArrowUpCircle, UtensilsCrossed,
 } from "lucide-react";
 import Loader from "@/components/Loader";
+
+// ── Types ──────────────────────────────────────────────────────────────────────
+
+type PedidoItem = {
+    menuItemId?: { nombre: string; precio: number; categoria?: string };
+    cantidad: number;
+    nota?: string;
+};
+
+type PedidoDetail = {
+    _id: string;
+    mesa?: string;
+    nombreComanda?: string;
+    fuente: string;
+    items: PedidoItem[];
+    total?: number;
+};
 
 type Movement = {
     _id: string;
@@ -16,6 +33,7 @@ type Movement = {
     monto: number;
     excedente?: number;
     metodoPago: string;
+    pedidoId?: PedidoDetail | null;
     userId?: { nombre?: string; apellido?: string };
     createdAt: string;
 };
@@ -46,6 +64,21 @@ type Sesion = {
     productos: Record<string, Producto>;
 };
 
+// Groups of movements by pedidoId (or solo if no pedido)
+type MovGroup = {
+    key: string;
+    pedido?: PedidoDetail;
+    concepto: string;
+    tipo: "ingreso" | "egreso";
+    total: number;
+    excedente: number;
+    pagos: { metodo: string; monto: number }[];
+    userId?: { nombre?: string; apellido?: string };
+    createdAt: string;
+};
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
 const fetcher = (url: string) => fetch(url, { credentials: "include" }).then(r => r.json());
 
 const fmt = (n: number) =>
@@ -54,7 +87,7 @@ const fmt = (n: number) =>
 const METODO_LABEL: Record<string, string> = {
     efectivo: "Efectivo",
     tarjeta: "Tarjeta",
-    transferencia: "Transferencia",
+    transferencia: "Transf.",
 };
 
 const METODO_ICON: Record<string, React.ElementType> = {
@@ -63,9 +96,9 @@ const METODO_ICON: Record<string, React.ElementType> = {
     transferencia: Send,
 };
 
-function nombreU(u: { nombre?: string; apellido?: string } | null | undefined) {
-    if (!u) return "—";
-    return [u.nombre, u.apellido].filter(Boolean).join(" ") || "—";
+function nombreU(u?: { nombre?: string; apellido?: string } | null) {
+    if (!u) return null;
+    return [u.nombre, u.apellido].filter(Boolean).join(" ") || null;
 }
 
 function formatFecha(iso: string) {
@@ -76,20 +109,162 @@ function formatHora(iso: string) {
     return new Date(iso).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
-    return (
-        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">{children}</p>
-    );
-}
-
-function MetodoBadge({ metodo }: { metodo: string }) {
+function MetodoBadge({ metodo, monto }: { metodo: string; monto?: number }) {
     const Icon = METODO_ICON[metodo] || Banknote;
     return (
         <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">
             <Icon size={9} />{METODO_LABEL[metodo] || metodo}
+            {monto != null && <span className="text-gray-500">{fmt(monto)}</span>}
         </span>
     );
 }
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+    return <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">{children}</p>;
+}
+
+function buildGroups(movimientos: Movement[]): MovGroup[] {
+    const groups: MovGroup[] = [];
+    const byPedido: Record<string, MovGroup> = {};
+
+    for (const m of movimientos) {
+        const pedido = m.pedidoId && typeof m.pedidoId === "object" ? m.pedidoId : null;
+        const pid = pedido?._id;
+
+        if (pid) {
+            if (!byPedido[pid]) {
+                const label = pedido.mesa
+                    ? `Mesa ${pedido.mesa}${pedido.nombreComanda ? ` · ${pedido.nombreComanda}` : ""}`
+                    : pedido.nombreComanda || m.concepto;
+                const g: MovGroup = {
+                    key: pid,
+                    pedido,
+                    concepto: label,
+                    tipo: m.tipo,
+                    total: 0,
+                    excedente: 0,
+                    pagos: [],
+                    userId: m.userId,
+                    createdAt: m.createdAt,
+                };
+                byPedido[pid] = g;
+                groups.push(g);
+            }
+            byPedido[pid].total += m.monto;
+            byPedido[pid].excedente += m.excedente || 0;
+            byPedido[pid].pagos.push({ metodo: m.metodoPago, monto: m.monto });
+        } else {
+            groups.push({
+                key: m._id,
+                concepto: m.concepto,
+                tipo: m.tipo,
+                total: m.monto,
+                excedente: m.excedente || 0,
+                pagos: [{ metodo: m.metodoPago, monto: m.monto }],
+                userId: m.userId,
+                createdAt: m.createdAt,
+            });
+        }
+    }
+
+    return groups;
+}
+
+// ── Pedido detail card ─────────────────────────────────────────────────────────
+
+function PedidoCard({ pedido }: { pedido: PedidoDetail }) {
+    return (
+        <div className="mt-2 ml-4 bg-white border border-gray-200 rounded-xl px-3 py-2.5 space-y-1.5">
+            {pedido.items.map((it, i) => {
+                const nombre = it.menuItemId?.nombre || "Ítem";
+                const precio = it.menuItemId?.precio || 0;
+                return (
+                    <div key={i} className="flex items-start justify-between text-xs gap-2">
+                        <div className="flex-1 min-w-0">
+                            <span className="text-gray-800 font-medium">{nombre}</span>
+                            {it.nota && <span className="ml-1 text-gray-400">({it.nota})</span>}
+                            {it.menuItemId?.categoria && (
+                                <span className="ml-1.5 text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">{it.menuItemId.categoria}</span>
+                            )}
+                        </div>
+                        <span className="text-gray-500 shrink-0">×{it.cantidad}</span>
+                        <span className="font-semibold text-gray-900 shrink-0 w-16 text-right">{fmt(precio * it.cantidad)}</span>
+                    </div>
+                );
+            })}
+            {pedido.total != null && (
+                <div className="flex justify-between text-xs font-black pt-1.5 border-t border-gray-100">
+                    <span className="text-gray-700">Total pedido</span>
+                    <span className="text-gray-900">{fmt(pedido.total)}</span>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ── Movements section ──────────────────────────────────────────────────────────
+
+function MovimientosSection({ movimientos }: { movimientos: Movement[] }) {
+    const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+    function toggle(key: string) {
+        setExpanded(prev => {
+            const next = new Set(prev);
+            next.has(key) ? next.delete(key) : next.add(key);
+            return next;
+        });
+    }
+
+    const groups = buildGroups(movimientos);
+
+    return (
+        <div className="space-y-1.5">
+            {groups.map(g => {
+                const isOpen = expanded.has(g.key);
+                const canExpand = !!g.pedido?.items?.length;
+                return (
+                    <div key={g.key}>
+                        <button
+                            onClick={() => canExpand && toggle(g.key)}
+                            className={`w-full flex items-start gap-2 text-xs text-left rounded-xl px-2 py-1.5 transition
+                                ${canExpand ? "hover:bg-gray-100 active:bg-gray-200 cursor-pointer" : "cursor-default"}`}
+                        >
+                            {g.tipo === "ingreso"
+                                ? <ArrowDownCircle size={14} className="text-emerald-500 shrink-0 mt-0.5" />
+                                : <ArrowUpCircle size={14} className="text-red-400 shrink-0 mt-0.5" />
+                            }
+                            <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-gray-800 truncate">{g.concepto}</p>
+                                <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                                    <span className="text-gray-400">{formatHora(g.createdAt)}</span>
+                                    {g.pagos.map((p, i) => (
+                                        <MetodoBadge key={i} metodo={p.metodo} monto={g.pagos.length > 1 ? p.monto : undefined} />
+                                    ))}
+                                    {g.excedente > 0 && (
+                                        <span className="text-amber-600 font-bold">+{fmt(g.excedente)} exc.</span>
+                                    )}
+                                    {canExpand && (
+                                        <span className="text-gray-400 flex items-center gap-0.5">
+                                            <UtensilsCrossed size={9} />
+                                            {g.pedido!.items.reduce((s, i) => s + i.cantidad, 0)} ítems
+                                            {isOpen ? <ChevronUp size={9} /> : <ChevronDown size={9} />}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                            <span className={`font-black shrink-0 ${g.tipo === "ingreso" ? "text-emerald-600" : "text-red-500"}`}>
+                                {g.tipo === "egreso" ? "-" : "+"}{fmt(g.total)}
+                            </span>
+                        </button>
+                        {isOpen && g.pedido && <PedidoCard pedido={g.pedido} />}
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
+// ── Expanded session detail ────────────────────────────────────────────────────
 
 function DetalleSesion({ s }: { s: Sesion }) {
     const productos = Object.values(s.productos).sort((a, b) => b.total - a.total);
@@ -98,24 +273,18 @@ function DetalleSesion({ s }: { s: Sesion }) {
     return (
         <div className="border-t border-gray-100 divide-y divide-gray-100">
 
-            {/* Financial summary */}
-            <div className="px-4 py-4 grid grid-cols-2 gap-3">
-                <div className="bg-gray-50 rounded-xl px-3 py-2.5">
+            {/* Apertura / Cierre */}
+            <div className="px-4 py-3 flex gap-4">
+                <div>
                     <p className="text-[10px] font-semibold text-gray-400 uppercase">Monto apertura</p>
-                    <p className="text-lg font-black text-gray-800">{fmt(s.montoInicial || 0)}</p>
+                    <p className="font-black text-gray-800">{fmt(s.montoInicial || 0)}</p>
                 </div>
-                <div className="bg-gray-50 rounded-xl px-3 py-2.5">
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase">Monto cierre</p>
-                    <p className="text-lg font-black text-gray-800">{s.montoCierre != null ? fmt(s.montoCierre) : "—"}</p>
-                </div>
-                <div className="bg-emerald-50 rounded-xl px-3 py-2.5">
-                    <p className="text-[10px] font-semibold text-emerald-600 uppercase">Total ingresos</p>
-                    <p className="text-lg font-black text-emerald-700">{fmt(s.totalIngreso)}</p>
-                </div>
-                <div className="bg-red-50 rounded-xl px-3 py-2.5">
-                    <p className="text-[10px] font-semibold text-red-500 uppercase">Total egresos</p>
-                    <p className="text-lg font-black text-red-600">{fmt(s.totalEgreso)}</p>
-                </div>
+                {s.montoCierre != null && (
+                    <div>
+                        <p className="text-[10px] font-semibold text-gray-400 uppercase">Monto cierre</p>
+                        <p className="font-black text-gray-800">{fmt(s.montoCierre)}</p>
+                    </div>
+                )}
             </div>
 
             {/* Per-method breakdown */}
@@ -197,36 +366,11 @@ function DetalleSesion({ s }: { s: Sesion }) {
                 </div>
             )}
 
-            {/* Movements list */}
+            {/* Movements list (grouped by pedido) */}
             {s.movimientos.length > 0 && (
                 <div className="px-4 py-4">
                     <SectionTitle>Movimientos ({s.movimientos.length})</SectionTitle>
-                    <div className="space-y-1.5">
-                        {s.movimientos.map(m => (
-                            <div key={m._id} className="flex items-start gap-2 text-xs">
-                                {m.tipo === "ingreso"
-                                    ? <ArrowDownCircle size={14} className="text-emerald-500 shrink-0 mt-0.5" />
-                                    : <ArrowUpCircle size={14} className="text-red-400 shrink-0 mt-0.5" />
-                                }
-                                <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-gray-800 truncate">{m.concepto}</p>
-                                    <div className="flex items-center gap-2 mt-0.5">
-                                        <span className="text-gray-400">{formatHora(m.createdAt)}</span>
-                                        <MetodoBadge metodo={m.metodoPago} />
-                                        {m.userId && (
-                                            <span className="text-gray-400">{nombreU(m.userId)}</span>
-                                        )}
-                                        {(m.excedente || 0) > 0 && (
-                                            <span className="text-amber-600 font-bold">+{fmt(m.excedente!)} excedente</span>
-                                        )}
-                                    </div>
-                                </div>
-                                <span className={`font-black shrink-0 ${m.tipo === "ingreso" ? "text-emerald-600" : "text-red-500"}`}>
-                                    {m.tipo === "egreso" ? "-" : "+"}{fmt(m.monto)}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
+                    <MovimientosSection movimientos={s.movimientos} />
                 </div>
             )}
 
@@ -240,6 +384,8 @@ function DetalleSesion({ s }: { s: Sesion }) {
         </div>
     );
 }
+
+// ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function CajaHistorialPage() {
     const { data: sesiones, isLoading } = useSWR<Sesion[]>("/api/superadmin/caja/historial", fetcher);
@@ -263,9 +409,7 @@ export default function CajaHistorialPage() {
             </div>
 
             {isLoading && (
-                <div className="flex justify-center py-20">
-                    <Loader size={40} />
-                </div>
+                <div className="flex justify-center py-20"><Loader size={40} /></div>
             )}
 
             {!isLoading && (!sesiones || sesiones.length === 0) && (
@@ -285,8 +429,8 @@ export default function CajaHistorialPage() {
                                         <p className="text-xs text-gray-400">
                                             {formatHora(s.fechaApertura)}
                                             {s.fechaCierre && ` → ${formatHora(s.fechaCierre)}`}
-                                            {" · "}Abrió: {nombreU(s.abiertaPor)}
-                                            {s.cerradaPor && ` · Cerró: ${nombreU(s.cerradaPor)}`}
+                                            {" · "}Abrió: {nombreU(s.abiertaPor) ?? "—"}
+                                            {s.cerradaPor && ` · Cerró: ${nombreU(s.cerradaPor) ?? "—"}`}
                                         </p>
                                     </div>
                                     <span className={`text-xs font-bold px-2 py-1 rounded-full ${s.estado === "abierta" ? "bg-emerald-100 text-emerald-700" : "bg-gray-200 text-gray-500"}`}>
