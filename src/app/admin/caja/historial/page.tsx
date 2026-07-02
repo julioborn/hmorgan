@@ -218,45 +218,75 @@ function MovimientosSection({ movimientos }: { movimientos: Movement[] }) {
     const groups = buildGroups(movimientos);
 
     return (
-        <div className="space-y-1.5">
+        <div className="space-y-2">
             {groups.map(g => {
                 const isOpen = expanded.has(g.key);
                 const canExpand = !!g.pedido?.items?.length;
-                return (
-                    <div key={g.key}>
-                        <button
-                            onClick={() => canExpand && toggle(g.key)}
-                            className={`w-full flex items-start gap-2 text-xs text-left rounded-xl px-2 py-1.5 transition
-                                ${canExpand ? "hover:bg-gray-100 active:bg-gray-200 cursor-pointer" : "cursor-default"}`}
-                        >
+
+                // Non-pedido movement: single row
+                if (!g.pedido) {
+                    return (
+                        <div key={g.key} className="flex items-center gap-2 text-xs px-2 py-1.5 rounded-xl">
                             {g.tipo === "ingreso"
-                                ? <ArrowDownCircle size={14} className="text-emerald-500 shrink-0 mt-0.5" />
-                                : <ArrowUpCircle size={14} className="text-red-400 shrink-0 mt-0.5" />
+                                ? <ArrowDownCircle size={14} className="text-emerald-500 shrink-0" />
+                                : <ArrowUpCircle size={14} className="text-red-400 shrink-0" />
                             }
                             <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-gray-800 truncate">{g.concepto}</p>
-                                <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                                <span className="font-medium text-gray-800">{g.concepto}</span>
+                                <div className="flex items-center gap-1.5 mt-0.5">
                                     <span className="text-gray-400">{formatHora(g.createdAt)}</span>
-                                    {g.pagos.map((p, i) => (
-                                        <MetodoBadge key={i} metodo={p.metodo} monto={g.pagos.length > 1 ? p.monto : undefined} />
-                                    ))}
+                                    <MetodoBadge metodo={g.pagos[0].metodo} />
                                     {g.excedente > 0 && (
                                         <span className="text-amber-600 font-bold">+{fmt(g.excedente)} exc.</span>
-                                    )}
-                                    {canExpand && (
-                                        <span className="text-gray-400 flex items-center gap-0.5">
-                                            <UtensilsCrossed size={9} />
-                                            {g.pedido!.items.reduce((s, i) => s + i.cantidad, 0)} ítems
-                                            {isOpen ? <ChevronUp size={9} /> : <ChevronDown size={9} />}
-                                        </span>
                                     )}
                                 </div>
                             </div>
                             <span className={`font-black shrink-0 ${g.tipo === "ingreso" ? "text-emerald-600" : "text-red-500"}`}>
                                 {g.tipo === "egreso" ? "-" : "+"}{fmt(g.total)}
                             </span>
+                        </div>
+                    );
+                }
+
+                // Pedido group: header + one row per payment method + total
+                return (
+                    <div key={g.key} className="border border-gray-200 rounded-xl overflow-hidden">
+                        {/* Pedido header */}
+                        <button
+                            onClick={() => canExpand && toggle(g.key)}
+                            className={`w-full flex items-center justify-between px-3 py-2 bg-gray-50 text-xs gap-2
+                                ${canExpand ? "hover:bg-gray-100 cursor-pointer" : "cursor-default"}`}
+                        >
+                            <div className="flex items-center gap-1.5">
+                                <ArrowDownCircle size={13} className="text-emerald-500 shrink-0" />
+                                <span className="font-bold text-gray-800">{g.concepto}</span>
+                                <span className="text-gray-400">{formatHora(g.createdAt)}</span>
+                            </div>
+                            {canExpand && (
+                                <span className="flex items-center gap-0.5 text-gray-400">
+                                    <UtensilsCrossed size={9} />
+                                    {g.pedido.items.reduce((s, i) => s + i.cantidad, 0)} ítems
+                                    {isOpen ? <ChevronUp size={9} /> : <ChevronDown size={9} />}
+                                </span>
+                            )}
                         </button>
-                        {isOpen && g.pedido && <PedidoCard pedido={g.pedido} />}
+
+                        {/* One row per payment method */}
+                        {g.pagos.map((p, i) => (
+                            <div key={i} className="flex items-center justify-between px-3 py-2 border-t border-gray-100 text-xs">
+                                <MetodoBadge metodo={p.metodo} />
+                                <span className="font-bold text-emerald-600">+{fmt(p.monto)}</span>
+                            </div>
+                        ))}
+
+                        {/* Total pedido */}
+                        <div className="flex items-center justify-between px-3 py-2 border-t border-gray-200 bg-gray-50 text-xs">
+                            <span className="font-black text-gray-600">Total pedido</span>
+                            <span className="font-black text-gray-900">{fmt(g.total)}</span>
+                        </div>
+
+                        {/* Items detail (expanded) */}
+                        {isOpen && <PedidoCard pedido={g.pedido} />}
                     </div>
                 );
             })}
