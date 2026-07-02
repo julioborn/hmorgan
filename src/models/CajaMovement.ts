@@ -6,6 +6,7 @@ const CajaMovementSchema = new Schema({
     concepto:   { type: String, required: true },
     monto:      { type: Number, required: true },
     excedente:  { type: Number, default: 0 },
+    descuento:  { type: Number, default: 0 },
     metodoPago: { type: String, default: "efectivo" },
     pedidoId:   { type: Schema.Types.ObjectId, ref: "Pedido" },
     userId:     { type: Schema.Types.ObjectId, ref: "User", required: true },

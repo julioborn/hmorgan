@@ -3,7 +3,7 @@ import useSWR from "swr";
 import Link from "next/link";
 import { useState } from "react";
 import {
-    ChevronLeft, ChevronDown, ChevronUp,
+    ChevronLeft, ChevronDown, ChevronUp, X,
     TrendingUp, TrendingDown, Banknote, CreditCard, Send,
     Package, ArrowDownCircle, ArrowUpCircle, UtensilsCrossed,
 } from "lucide-react";
@@ -32,6 +32,7 @@ type Movement = {
     concepto: string;
     monto: number;
     excedente?: number;
+    descuento?: number;
     metodoPago: string;
     pedidoId?: PedidoDetail | null;
     userId?: { nombre?: string; apellido?: string };
@@ -72,6 +73,7 @@ type MovGroup = {
     tipo: "ingreso" | "egreso";
     total: number;
     excedente: number;
+    descuento: number;
     pagos: { metodo: string; monto: number }[];
     userId?: { nombre?: string; apellido?: string };
     createdAt: string;
@@ -143,6 +145,7 @@ function buildGroups(movimientos: Movement[]): MovGroup[] {
                     tipo: m.tipo,
                     total: 0,
                     excedente: 0,
+                    descuento: 0,
                     pagos: [],
                     userId: m.userId,
                     createdAt: m.createdAt,
@@ -152,6 +155,7 @@ function buildGroups(movimientos: Movement[]): MovGroup[] {
             }
             byPedido[pid].total += m.monto;
             byPedido[pid].excedente += m.excedente || 0;
+            byPedido[pid].descuento += m.descuento || 0;
             byPedido[pid].pagos.push({ metodo: m.metodoPago, monto: m.monto });
         } else {
             groups.push({
@@ -160,6 +164,7 @@ function buildGroups(movimientos: Movement[]): MovGroup[] {
                 tipo: m.tipo,
                 total: m.monto,
                 excedente: m.excedente || 0,
+                descuento: m.descuento || 0,
                 pagos: [{ metodo: m.metodoPago, monto: m.monto }],
                 userId: m.userId,
                 createdAt: m.createdAt,
@@ -170,34 +175,56 @@ function buildGroups(movimientos: Movement[]): MovGroup[] {
     return groups;
 }
 
-// ── Pedido detail card ─────────────────────────────────────────────────────────
+// ── Pedido modal ───────────────────────────────────────────────────────────────
 
-function PedidoCard({ pedido }: { pedido: PedidoDetail }) {
+function PedidoModal({ pedido, onClose }: { pedido: PedidoDetail; onClose: () => void }) {
+    const titulo = pedido.mesa
+        ? `Mesa ${pedido.mesa}${pedido.nombreComanda ? ` · ${pedido.nombreComanda}` : ""}`
+        : pedido.nombreComanda || "Pedido";
+
     return (
-        <div className="mt-2 ml-4 bg-white border border-gray-200 rounded-xl px-3 py-2.5 space-y-1.5">
-            {pedido.items.map((it, i) => {
-                const nombre = it.menuItemId?.nombre || "Ítem";
-                const precio = it.menuItemId?.precio || 0;
-                return (
-                    <div key={i} className="flex items-start justify-between text-xs gap-2">
-                        <div className="flex-1 min-w-0">
-                            <span className="text-gray-800 font-medium">{nombre}</span>
-                            {it.nota && <span className="ml-1 text-gray-400">({it.nota})</span>}
-                            {it.menuItemId?.categoria && (
-                                <span className="ml-1.5 text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">{it.menuItemId.categoria}</span>
-                            )}
-                        </div>
-                        <span className="text-gray-500 shrink-0">×{it.cantidad}</span>
-                        <span className="font-semibold text-gray-900 shrink-0 w-16 text-right">{fmt(precio * it.cantidad)}</span>
-                    </div>
-                );
-            })}
-            {pedido.total != null && (
-                <div className="flex justify-between text-xs font-black pt-1.5 border-t border-gray-100">
-                    <span className="text-gray-700">Total pedido</span>
-                    <span className="text-gray-900">{fmt(pedido.total)}</span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={onClose}>
+            <div
+                className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl"
+                onClick={e => e.stopPropagation()}
+            >
+                {/* Header */}
+                <div className="bg-black px-4 py-3 flex items-center justify-between">
+                    <p className="font-black text-white text-sm">{titulo}</p>
+                    <button onClick={onClose} className="text-white/60 hover:text-white transition">
+                        <X size={18} />
+                    </button>
                 </div>
-            )}
+
+                {/* Items */}
+                <div className="px-4 py-3 space-y-2 max-h-72 overflow-y-auto">
+                    {pedido.items.map((it, i) => {
+                        const nombre = it.menuItemId?.nombre || "Ítem";
+                        const precio = it.menuItemId?.precio || 0;
+                        return (
+                            <div key={i} className="flex items-center gap-2 text-sm">
+                                <div className="flex-1 min-w-0">
+                                    <span className="font-medium text-gray-800">{nombre}</span>
+                                    {it.nota && <span className="ml-1 text-xs text-gray-400">({it.nota})</span>}
+                                    {it.menuItemId?.categoria && (
+                                        <span className="ml-1.5 text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">{it.menuItemId.categoria}</span>
+                                    )}
+                                </div>
+                                <span className="text-gray-400 shrink-0">×{it.cantidad}</span>
+                                <span className="font-semibold text-gray-900 shrink-0 w-16 text-right">{fmt(precio * it.cantidad)}</span>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* Footer: total */}
+                {pedido.total != null && (
+                    <div className="border-t border-gray-200 px-4 py-3 flex justify-between items-center">
+                        <span className="font-black text-gray-700 text-sm">Total</span>
+                        <span className="font-black text-gray-900 text-sm">{fmt(pedido.total)}</span>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
@@ -205,92 +232,101 @@ function PedidoCard({ pedido }: { pedido: PedidoDetail }) {
 // ── Movements section ──────────────────────────────────────────────────────────
 
 function MovimientosSection({ movimientos }: { movimientos: Movement[] }) {
-    const [expanded, setExpanded] = useState<Set<string>>(new Set());
-
-    function toggle(key: string) {
-        setExpanded(prev => {
-            const next = new Set(prev);
-            next.has(key) ? next.delete(key) : next.add(key);
-            return next;
-        });
-    }
-
+    const [modalPedido, setModalPedido] = useState<PedidoDetail | null>(null);
     const groups = buildGroups(movimientos);
 
     return (
-        <div className="space-y-2">
-            {groups.map(g => {
-                const isOpen = expanded.has(g.key);
-                const canExpand = !!g.pedido?.items?.length;
+        <>
+            <div className="space-y-2">
+                {groups.map(g => {
+                    const canOpen = !!g.pedido?.items?.length;
 
-                // Non-pedido movement: single row
-                if (!g.pedido) {
-                    return (
-                        <div key={g.key} className="flex items-center gap-2 text-xs px-2 py-1.5 rounded-xl">
-                            {g.tipo === "ingreso"
-                                ? <ArrowDownCircle size={14} className="text-emerald-500 shrink-0" />
-                                : <ArrowUpCircle size={14} className="text-red-400 shrink-0" />
-                            }
-                            <div className="flex-1 min-w-0">
-                                <span className="font-medium text-gray-800">{g.concepto}</span>
-                                <div className="flex items-center gap-1.5 mt-0.5">
-                                    <span className="text-gray-400">{formatHora(g.createdAt)}</span>
-                                    <MetodoBadge metodo={g.pagos[0].metodo} />
-                                    {g.excedente > 0 && (
-                                        <span className="text-amber-600 font-bold">+{fmt(g.excedente)} exc.</span>
-                                    )}
+                    // Non-pedido movement: single row
+                    if (!g.pedido) {
+                        return (
+                            <div key={g.key} className="flex items-center gap-2 text-xs px-2 py-1.5 rounded-xl">
+                                {g.tipo === "ingreso"
+                                    ? <ArrowDownCircle size={14} className="text-emerald-500 shrink-0" />
+                                    : <ArrowUpCircle size={14} className="text-red-400 shrink-0" />
+                                }
+                                <div className="flex-1 min-w-0">
+                                    <span className="font-medium text-gray-800">{g.concepto}</span>
+                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                        <span className="text-gray-400">{formatHora(g.createdAt)}</span>
+                                        <MetodoBadge metodo={g.pagos[0].metodo} />
+                                        {g.excedente > 0 && (
+                                            <span className="text-amber-600 font-bold">+{fmt(g.excedente)} exc.</span>
+                                        )}
+                                    </div>
                                 </div>
+                                <span className={`font-black shrink-0 ${g.tipo === "ingreso" ? "text-emerald-600" : "text-red-500"}`}>
+                                    {g.tipo === "egreso" ? "-" : "+"}{fmt(g.total)}
+                                </span>
                             </div>
-                            <span className={`font-black shrink-0 ${g.tipo === "ingreso" ? "text-emerald-600" : "text-red-500"}`}>
-                                {g.tipo === "egreso" ? "-" : "+"}{fmt(g.total)}
-                            </span>
+                        );
+                    }
+
+                    // Pedido group: header + method rows + optional discount + total
+                    return (
+                        <div key={g.key} className="border border-gray-200 rounded-xl overflow-hidden">
+                            {/* Header — opens modal */}
+                            <button
+                                onClick={() => canOpen && setModalPedido(g.pedido!)}
+                                className={`w-full flex items-center justify-between px-3 py-2 bg-gray-50 text-xs gap-2
+                                    ${canOpen ? "hover:bg-gray-100 cursor-pointer" : "cursor-default"}`}
+                            >
+                                <div className="flex items-center gap-1.5">
+                                    <ArrowDownCircle size={13} className="text-emerald-500 shrink-0" />
+                                    <span className="font-bold text-gray-800">{g.concepto}</span>
+                                    <span className="text-gray-400">{formatHora(g.createdAt)}</span>
+                                </div>
+                                {canOpen && (
+                                    <span className="flex items-center gap-0.5 text-gray-400">
+                                        <UtensilsCrossed size={9} />
+                                        {g.pedido.items.reduce((s, i) => s + i.cantidad, 0)} ítems
+                                        <ChevronDown size={9} />
+                                    </span>
+                                )}
+                            </button>
+
+                            {/* One row per payment method */}
+                            {g.pagos.map((p, i) => (
+                                <div key={i} className="flex items-center justify-between px-3 py-2 border-t border-gray-100 text-xs">
+                                    <MetodoBadge metodo={p.metodo} />
+                                    <span className="font-bold text-emerald-600">+{fmt(p.monto)}</span>
+                                </div>
+                            ))}
+
+                            {/* Descuento (si aplica) */}
+                            {g.descuento > 0 && (
+                                <div className="flex items-center justify-between px-3 py-1.5 border-t border-gray-100 text-xs">
+                                    <span className="text-orange-600 font-semibold">Descuento</span>
+                                    <span className="font-bold text-orange-600">-{fmt(g.descuento)}</span>
+                                </div>
+                            )}
+
+                            {/* Excedente (si aplica) */}
+                            {g.excedente > 0 && (
+                                <div className="flex items-center justify-between px-3 py-1.5 border-t border-gray-100 text-xs">
+                                    <span className="text-amber-600 font-semibold">Excedente</span>
+                                    <span className="font-bold text-amber-600">+{fmt(g.excedente)}</span>
+                                </div>
+                            )}
+
+                            {/* Total pedido */}
+                            <div className="flex items-center justify-between px-3 py-2 border-t border-gray-200 bg-gray-50 text-xs">
+                                <span className="font-black text-gray-600">Total cobrado</span>
+                                <span className="font-black text-gray-900">{fmt(g.total)}</span>
+                            </div>
                         </div>
                     );
-                }
+                })}
+            </div>
 
-                // Pedido group: header + one row per payment method + total
-                return (
-                    <div key={g.key} className="border border-gray-200 rounded-xl overflow-hidden">
-                        {/* Pedido header */}
-                        <button
-                            onClick={() => canExpand && toggle(g.key)}
-                            className={`w-full flex items-center justify-between px-3 py-2 bg-gray-50 text-xs gap-2
-                                ${canExpand ? "hover:bg-gray-100 cursor-pointer" : "cursor-default"}`}
-                        >
-                            <div className="flex items-center gap-1.5">
-                                <ArrowDownCircle size={13} className="text-emerald-500 shrink-0" />
-                                <span className="font-bold text-gray-800">{g.concepto}</span>
-                                <span className="text-gray-400">{formatHora(g.createdAt)}</span>
-                            </div>
-                            {canExpand && (
-                                <span className="flex items-center gap-0.5 text-gray-400">
-                                    <UtensilsCrossed size={9} />
-                                    {g.pedido.items.reduce((s, i) => s + i.cantidad, 0)} ítems
-                                    {isOpen ? <ChevronUp size={9} /> : <ChevronDown size={9} />}
-                                </span>
-                            )}
-                        </button>
-
-                        {/* One row per payment method */}
-                        {g.pagos.map((p, i) => (
-                            <div key={i} className="flex items-center justify-between px-3 py-2 border-t border-gray-100 text-xs">
-                                <MetodoBadge metodo={p.metodo} />
-                                <span className="font-bold text-emerald-600">+{fmt(p.monto)}</span>
-                            </div>
-                        ))}
-
-                        {/* Total pedido */}
-                        <div className="flex items-center justify-between px-3 py-2 border-t border-gray-200 bg-gray-50 text-xs">
-                            <span className="font-black text-gray-600">Total pedido</span>
-                            <span className="font-black text-gray-900">{fmt(g.total)}</span>
-                        </div>
-
-                        {/* Items detail (expanded) */}
-                        {isOpen && <PedidoCard pedido={g.pedido} />}
-                    </div>
-                );
-            })}
-        </div>
+            {modalPedido && (
+                <PedidoModal pedido={modalPedido} onClose={() => setModalPedido(null)} />
+            )}
+        </>
     );
 }
 
