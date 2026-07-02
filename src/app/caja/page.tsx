@@ -1601,22 +1601,6 @@ export default function CajaPage() {
                                                         <div className="flex-1 min-w-0">
                                                             <p className="font-black text-white text-xl leading-tight tracking-tight truncate">{titulo}</p>
                                                             <p className="text-xs text-white/65 font-medium mt-0.5">{subtitulo}</p>
-                                                            {esApp && p.tipoEntrega === "envio" && p.direccion && (
-                                                                <div className="flex items-start gap-1 mt-1 text-xs text-white/65">
-                                                                    <MapPin size={9} className="shrink-0 mt-0.5" /><span className="truncate">{p.direccion}</span>
-                                                                </div>
-                                                            )}
-                                                            {esApp && p.horarioPreferido && (
-                                                                <div className="flex items-center gap-1 mt-0.5 text-xs font-bold text-white/85">
-                                                                    <Clock size={9} className="shrink-0" /><span>{p.horarioPreferido}</span>
-                                                                </div>
-                                                            )}
-                                                            {esApp && p.userId?.telefono && (
-                                                                <a href={`https://wa.me/${p.userId.telefono.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
-                                                                    className="inline-flex items-center gap-1 text-xs text-white/60 hover:text-white mt-0.5 transition">
-                                                                    <Phone size={9} />{p.userId.telefono}
-                                                                </a>
-                                                            )}
                                                         </div>
                                                         <div className="shrink-0 text-right flex flex-col items-end gap-1">
                                                             <div className="flex items-center gap-2">
@@ -1635,6 +1619,29 @@ export default function CajaPage() {
 
                                                 {/* ── Cuerpo ── */}
                                                 <div className="p-3 flex flex-col flex-1 min-h-0 bg-white">
+
+                                                    {/* Info extra pedidos app */}
+                                                    {esApp && (
+                                                        <div className="shrink-0 mb-2 flex flex-wrap gap-x-3 gap-y-1">
+                                                            {p.tipoEntrega === "envio" && p.direccion && (
+                                                                <div className="flex items-start gap-1 text-xs text-gray-700">
+                                                                    <MapPin size={11} className="shrink-0 mt-0.5 text-gray-500" /><span>{p.direccion}</span>
+                                                                </div>
+                                                            )}
+                                                            {p.horarioPreferido && (
+                                                                <div className="flex items-center gap-1 text-xs font-bold text-gray-800">
+                                                                    <Clock size={11} className="shrink-0 text-gray-500" /><span>{p.horarioPreferido}</span>
+                                                                </div>
+                                                            )}
+                                                            {p.userId?.telefono && (
+                                                                <a href={`https://wa.me/${p.userId.telefono.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
+                                                                    className="flex items-center gap-1 text-xs text-gray-700 hover:text-black transition">
+                                                                    <Phone size={11} className="shrink-0" />{p.userId.telefono}
+                                                                </a>
+                                                            )}
+                                                        </div>
+                                                    )}
+
                                                     {/* Items */}
                                                     <ul className="mb-2 divide-y divide-gray-100 border border-black rounded-xl flex-1 min-h-0 overflow-y-auto">
                                                         {p.items.map((it, idx) => (
@@ -3050,7 +3057,7 @@ export default function CajaPage() {
                         <div className="px-5 py-4 border-t border-gray-100 flex gap-2 shrink-0">
                             <button onClick={() => setEditMesasModal(false)} className="flex-1 py-2.5 border border-black rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
                             <button onClick={guardarMesasEvento} disabled={editMesasSaving}
-                                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
+                                className="flex-1 py-2.5 bg-red-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
                                 {editMesasSaving ? "Guardando..." : "Guardar mesas"}
                             </button>
                         </div>
