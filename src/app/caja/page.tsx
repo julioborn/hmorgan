@@ -361,7 +361,7 @@ export default function CajaPage() {
         loadCanjes();
         loadRewards();
         fetch("/api/admin/mesas?all=true", { credentials: "include" })
-            .then(r => r.json()).then(d => { if (Array.isArray(d)) { setMesasPlano(d); setMesasLoaded(true); } }).catch(() => {});
+            .then(r => r.json()).then(d => { if (Array.isArray(d)) setMesasPlano(d); }).catch(() => {});
         const iv = setInterval(() => { loadData(); loadCanjes(); }, 5000);
         return () => clearInterval(iv);
     }, [loadData, loadEvento, loadCanjes, loadRewards]);
