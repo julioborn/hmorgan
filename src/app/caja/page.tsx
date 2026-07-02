@@ -1719,7 +1719,7 @@ export default function CajaPage() {
                                                                 Aceptar
                                                             </button>
                                                             <button onClick={() => rechazarPedido(p._id)}
-                                                                className="flex-1 bg-red-600 hover:bg-red-700 text-gray-700 font-semibold py-2.5 rounded-xl transition">
+                                                                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 rounded-xl transition">
                                                                 Rechazar
                                                             </button>
                                                         </div>
