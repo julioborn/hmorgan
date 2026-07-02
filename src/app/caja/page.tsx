@@ -1339,7 +1339,11 @@ export default function CajaPage() {
         );
     }
 
-    if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-gray-700" size={36} /></div>;
+    if (loading) return (
+        <div className="min-h-screen flex items-center justify-center">
+            <Loader2 className="animate-spin text-gray-400" size={40} />
+        </div>
+    );
 
     // Pedidos listos para cobrar: estado listo O entregado (ambos estados válidos)
     const paraCobrar = pedidos.filter(p => p.estado === "listo" || p.estado === "entregado");
