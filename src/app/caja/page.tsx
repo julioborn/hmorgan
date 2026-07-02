@@ -600,6 +600,16 @@ export default function CajaPage() {
     }
 
     async function ejecutarCambioMesa(pedido: Pedido, nuevaMesa: string) {
+        const mesaActual = pedido.mesa ? mesaLabel(pedido.mesa) : "Sin mesa";
+        const { isConfirmed } = await swalBase.fire({
+            title: "¿Transferir mesa?",
+            html: `<p class="text-gray-600 text-sm">De <strong>${mesaActual}</strong> → <strong>Mesa ${nuevaMesa}</strong></p>`,
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonText: "Sí, transferir",
+            cancelButtonText: "Cancelar",
+        });
+        if (!isConfirmed) return;
         await fetch(`/api/pedidos/${pedido._id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
