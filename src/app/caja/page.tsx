@@ -1584,24 +1584,22 @@ export default function CajaPage() {
                                                 ? `Mozo: ${[p.userId?.nombre, p.userId?.apellido].filter(Boolean).join(" ")}`
                                                 : "Caja";
 
-                                        const accentBg   = esApp ? "bg-red-600" : "bg-black";
-                                        const cardBorder = esApp ? "border-red-500" : "border-black";
+                                        const tipoBadge = esEvento
+                                            ? { label: "Evento", cls: "bg-amber-400 text-black" }
+                                            : esApp
+                                                ? { label: "Pedido", cls: "bg-red-500 text-white" }
+                                                : { label: "Bar", cls: "bg-white text-black" };
 
                                         return (
                                             <motion.div key={p._id}
                                                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                                                className={`rounded-2xl border-2 shadow-sm overflow-hidden flex flex-col h-[500px] ${cardBorder} bg-white`}>
+                                                className="rounded-2xl border-2 border-black shadow-sm overflow-hidden flex flex-col h-[500px] bg-white">
 
-                                                {/* ── Cabecera coloreada ── */}
-                                                <div className={`shrink-0 px-4 py-3 ${accentBg}`}>
+                                                {/* ── Cabecera ── */}
+                                                <div className="shrink-0 px-4 py-3 bg-black">
                                                     <div className="flex items-start justify-between gap-3">
                                                         <div className="flex-1 min-w-0">
                                                             <p className="font-black text-white text-xl leading-tight tracking-tight truncate">{titulo}</p>
-                                                            {esEvento && (
-                                                                <span className="inline-block text-[10px] font-black bg-amber-400 text-black px-2 py-0.5 rounded-full uppercase tracking-widest mt-0.5 mb-0.5">
-                                                                    Evento
-                                                                </span>
-                                                            )}
                                                             <p className="text-xs text-white/65 font-medium mt-0.5">{subtitulo}</p>
                                                             {esApp && p.tipoEntrega === "envio" && p.direccion && (
                                                                 <div className="flex items-start gap-1 mt-1 text-xs text-white/65">
@@ -1622,8 +1620,8 @@ export default function CajaPage() {
                                                         </div>
                                                         <div className="shrink-0 text-right flex flex-col items-end gap-1">
                                                             <div className="flex items-center gap-2">
-                                                                <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider inline-block ${ESTADO_BADGE[p.estado] || "bg-white/20 text-white"}`}>
-                                                                    {ESTADOS.find(e => e.key === p.estado)?.label || p.estado}
+                                                                <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider inline-block ${tipoBadge.cls}`}>
+                                                                    {tipoBadge.label}
                                                                 </span>
                                                                 <button onClick={() => eliminarPedidoCaja(p)}
                                                                     className="p-1.5 rounded-full bg-white/20 hover:bg-white/40 text-white transition">
