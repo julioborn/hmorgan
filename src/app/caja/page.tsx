@@ -221,6 +221,7 @@ export default function CajaPage() {
     const [menuGestLoading, setMenuGestLoading] = useState(false);
     const [menuGestCat, setMenuGestCat]     = useState<string>("todas");
     const [menuGestSearch, setMenuGestSearch] = useState("");
+    const [menuGestCatActiva, setMenuGestCatActiva] = useState<string | null>(null);
     const [menuGestForm, setMenuGestForm]   = useState({ nombre: "", precio: "", descripcion: "", categoria: "" });
     const [menuGestSelectCat, setMenuGestSelectCat] = useState("");
     const [menuGestEditId, setMenuGestEditId] = useState<string | null>(null);
@@ -359,6 +360,8 @@ export default function CajaPage() {
         loadEvento();
         loadCanjes();
         loadRewards();
+        fetch("/api/admin/mesas?all=true", { credentials: "include" })
+            .then(r => r.json()).then(d => { if (Array.isArray(d)) { setMesasPlano(d); setMesasLoaded(true); } }).catch(() => {});
         const iv = setInterval(() => { loadData(); loadCanjes(); }, 5000);
         return () => clearInterval(iv);
     }, [loadData, loadEvento, loadCanjes, loadRewards]);
@@ -477,6 +480,11 @@ export default function CajaPage() {
 
     function pedidoDeMesa(nombreMesa: string): Pedido | undefined {
         return pedidos.find(p => p.mesa === nombreMesa && !["cerrado", "cancelado"].includes(p.estado));
+    }
+
+    function mesaLabel(mesa: string) {
+        const m = mesasPlano.find(mp => mp.nombre === mesa);
+        return m?.tipo === "banqueta" ? `Banqueta ${mesa}` : `Mesa ${mesa}`;
     }
 
     async function togglePedidosActivos() {
@@ -749,7 +757,7 @@ export default function CajaPage() {
 
     function datosComanda(p: Pedido) {
         const esEmpleado = p.fuente === "empleado";
-        const base = p.mesa ? `Mesa ${p.mesa}` : p.tipoEntrega === "envio" ? "Envío a domicilio" : "Retira en barra";
+        const base = p.mesa ? mesaLabel(p.mesa) : p.tipoEntrega === "envio" ? "Envío a domicilio" : "Retira en barra";
         const mesa = !esEmpleado && p.numeroDia ? `Pedido #${p.numeroDia} · ${base}` : base;
         const comensalesStr = p.comensalesIds?.length
             ? p.comensalesIds.map(c => `${c.nombre} ${c.apellido}`.trim()).join(", ")
@@ -1288,7 +1296,7 @@ export default function CajaPage() {
                                 style={{ position: "absolute", left: `${m.x ?? 10}%`, top: `${m.y ?? 10}%`, transform: `translate(-50%,-50%) rotate(${rot}deg)`, width: `min(${w}%,${w * 7}px)`, height: `min(${h}%,${h * 7.5}px)`, minWidth: "22px", minHeight: "16px", borderRadius: isRound ? "50%" : "8px", cursor: bloqueada ? "not-allowed" : "pointer", userSelect: "none", zIndex: 2 }}
                                 className={`flex items-center justify-center border-2 ${bg} ${!bloqueada ? "transition-all active:scale-95" : ""}`}>
                                 <div style={{ transform: `rotate(${-rot}deg)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                    <span style={{ fontSize: "clamp(5px,0.8vw,9px)", fontWeight: 900 }}>{m.nombre}</span>
+                                    <span style={{ fontSize: "clamp(5px,0.8vw,9px)", fontWeight: 900 }}>{isBanq ? `B${m.nombre}` : m.nombre}</span>
                                 </div>
                             </div>
                         );
@@ -1420,7 +1428,7 @@ export default function CajaPage() {
                                         <input type="number" min="0" value={openForm.montoInicial}
                                             onChange={e => setOpenForm(p => ({ ...p, montoInicial: e.target.value }))}
                                             placeholder="0" style={{ fontSize: "28px" }}
-                                            className="flex-1 min-w-0 font-black text-gray-900 focus:outline-none bg-transparent text-right" />
+                                            className="flex-1 min-w-0 font-black text-gray-900 focus:outline-none bg-transparent" />
                                     </div>
                                 </div>
                                 <input value={openForm.notas} onChange={e => setOpenForm(p => ({ ...p, notas: e.target.value }))}
@@ -1545,7 +1553,7 @@ export default function CajaPage() {
 
                                         const titulo = esApp
                                             ? (p.userId ? `${p.userId.nombre} ${p.userId.apellido || ""}`.trim() : "Cliente")
-                                            : (p.mesa ? `Mesa ${p.mesa}` : p.nombreComanda || (esCaja ? "Caja" : "Sin mesa"));
+                                            : (p.mesa ? mesaLabel(p.mesa) : p.nombreComanda || (esCaja ? "Caja" : "Sin mesa"));
 
                                         const subtitulo = esApp
                                             ? `${p.numeroDia ? `#${p.numeroDia} · ` : ""}${p.tipoEntrega === "envio" ? "Envío a domicilio" : "Retiro en local"}`
@@ -1764,7 +1772,7 @@ export default function CajaPage() {
 
                                 const titulo = esApp
                                     ? (p.userId ? `${p.userId.nombre} ${p.userId.apellido || ""}`.trim() : "Cliente")
-                                    : (p.mesa ? `Mesa ${p.mesa}` : p.nombreComanda || (!esMozo ? "Caja" : "Sin mesa"));
+                                    : (p.mesa ? mesaLabel(p.mesa) : p.nombreComanda || (!esMozo ? "Caja" : "Sin mesa"));
 
                                 const subtitulo = esApp
                                     ? `${p.numeroDia ? `#${p.numeroDia} · ` : ""}${p.tipoEntrega === "envio" ? "Envío" : "Local"}`
@@ -2013,7 +2021,7 @@ export default function CajaPage() {
                                             <div className="space-y-1">
                                                 {pedidosEv.map(p => (
                                                     <div key={p._id} className="flex items-center justify-between bg-blue-50 rounded-xl px-3 py-1.5 text-sm">
-                                                        <span className="font-bold text-blue-900">{p.mesa ? `Mesa ${p.mesa}` : p.nombreComanda || "Comanda"}</span>
+                                                        <span className="font-bold text-blue-900">{p.mesa ? mesaLabel(p.mesa) : p.nombreComanda || "Comanda"}</span>
                                                         <span className="font-black text-blue-900">{formatMoney(p.total)}</span>
                                                     </div>
                                                 ))}
@@ -2413,58 +2421,102 @@ export default function CajaPage() {
                                 )}
                             </AnimatePresence>
 
-                            {/* Filtro por categoría + búsqueda */}
-                            <div className="flex gap-2 mb-3">
-                                <input className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                            {/* Búsqueda */}
+                            <div className="flex gap-2 mb-4">
+                                <input className="flex-1 rounded-xl border border-black px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
                                     placeholder="Buscar producto..." value={menuGestSearch}
-                                    onChange={e => setMenuGestSearch(e.target.value)} />
-                            </div>
-                            <div className="flex gap-2 flex-wrap mb-4">
-                                {["todas", ...Array.from(new Set(menuGest.map(i => i.categoria))).sort()].map(cat => (
-                                    <button key={cat} onClick={() => setMenuGestCat(cat)}
-                                        className={`px-3 py-1 rounded-full text-xs font-bold transition ${menuGestCat === cat ? "bg-black text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
-                                        {cat === "todas" ? "Todas" : cat}
-                                    </button>
-                                ))}
+                                    onChange={e => { setMenuGestSearch(e.target.value); if (e.target.value) setMenuGestCatActiva(null); }} />
                             </div>
 
-                            {/* Lista de productos */}
                             {menuGestLoading ? (
                                 <div className="flex justify-center py-12"><Loader2 size={32} className="animate-spin text-gray-700" /></div>
-                            ) : (
+                            ) : menuGestSearch.trim() ? (
+                                /* Resultados de búsqueda */
                                 <div className="space-y-2">
-                                    {menuGest
-                                        .filter(i => menuGestCat === "todas" || i.categoria === menuGestCat)
-                                        .filter(i => !menuGestSearch || i.nombre.toLowerCase().includes(menuGestSearch.toLowerCase()))
-                                        .map(item => (
-                                            <div key={item._id} className={`bg-white border rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm transition ${item.activo === false ? "opacity-50 border-gray-100" : "border-gray-200"}`}>
+                                    {menuGest.filter(i => i.nombre.toLowerCase().includes(menuGestSearch.toLowerCase())).map(item => (
+                                        <div key={item._id} className={`bg-white border rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm transition ${item.activo === false ? "opacity-50 border-gray-200" : "border-black"}`}>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-bold text-gray-900 text-sm truncate">{item.nombre}</p>
+                                                <p className="text-xs text-gray-700">{item.categoria} · ${new Intl.NumberFormat("es-AR").format(item.precio)}</p>
+                                                {item.descripcion && <p className="text-xs text-gray-700 truncate mt-0.5">{item.descripcion}</p>}
+                                            </div>
+                                            <button onClick={() => toggleMenuGestActivo(item)}
+                                                className={`relative flex h-5 w-9 shrink-0 cursor-pointer rounded-full items-center transition-colors duration-200 ${item.activo !== false ? "bg-red-500" : "bg-gray-300"}`}>
+                                                <span className={`absolute h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-200 ${item.activo !== false ? "translate-x-[18px]" : "translate-x-[2px]"}`} />
+                                            </button>
+                                            <button onClick={() => abrirEditarMenuGest(item)} className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition"><Pencil size={13} /></button>
+                                            <button onClick={() => eliminarMenuGestItem(item._id)} className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition"><Trash2 size={13} /></button>
+                                        </div>
+                                    ))}
+                                    {menuGest.filter(i => i.nombre.toLowerCase().includes(menuGestSearch.toLowerCase())).length === 0 && (
+                                        <p className="text-center text-gray-700 py-10">Sin resultados.</p>
+                                    )}
+                                </div>
+                            ) : !menuGestCatActiva ? (
+                                /* Grid de categorías */
+                                <div className="grid grid-cols-2 gap-3">
+                                    {Array.from(new Set(menuGest.map(i => {
+                                        if (BEBIDAS_CATS.includes(i.categoria)) return "BEBIDAS";
+                                        if (PICAR_CATS.includes(i.categoria)) return "PICADAS Y FRITURAS";
+                                        return i.categoria;
+                                    }))).sort((a, b) => {
+                                        const ai = MENU_ORDER.indexOf(a), bi = MENU_ORDER.indexOf(b);
+                                        return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+                                    }).map(cat => {
+                                        const img = categoryImages[cat];
+                                        const count = cat === "BEBIDAS" ? menuGest.filter(i => BEBIDAS_CATS.includes(i.categoria)).length
+                                            : cat === "PICADAS Y FRITURAS" ? menuGest.filter(i => PICAR_CATS.includes(i.categoria)).length
+                                            : menuGest.filter(i => i.categoria === cat).length;
+                                        return (
+                                            <button key={cat} onClick={() => setMenuGestCatActiva(cat)}
+                                                className="relative h-32 rounded-2xl overflow-hidden shadow-sm active:scale-[0.97] transition-transform">
+                                                {img ? <MenuImg src={img} alt={cat} className="absolute inset-0 w-full h-full object-cover" /> : <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-600" />}
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/10" />
+                                                <div className="absolute bottom-3 left-0 right-0 px-2 text-center">
+                                                    <p className="text-white font-black text-sm tracking-tight leading-tight">{cat}</p>
+                                                    <p className="text-white/70 text-[11px] mt-0.5">{count} productos</p>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                /* Lista de productos de la categoría seleccionada */
+                                <>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <button onClick={() => setMenuGestCatActiva(null)}
+                                            className="flex items-center gap-1.5 text-sm font-bold text-gray-700 hover:text-black transition">
+                                            <X size={15} /> Categorías
+                                        </button>
+                                        <span className="text-sm font-black text-gray-900">{menuGestCatActiva}</span>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {menuGest.filter(i =>
+                                            menuGestCatActiva === "BEBIDAS" ? BEBIDAS_CATS.includes(i.categoria)
+                                            : menuGestCatActiva === "PICADAS Y FRITURAS" ? PICAR_CATS.includes(i.categoria)
+                                            : i.categoria === menuGestCatActiva
+                                        ).map(item => (
+                                            <div key={item._id} className={`bg-white border rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm transition ${item.activo === false ? "opacity-50 border-gray-200" : "border-black"}`}>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="font-bold text-gray-900 text-sm truncate">{item.nombre}</p>
                                                     <p className="text-xs text-gray-700">{item.categoria} · ${new Intl.NumberFormat("es-AR").format(item.precio)}</p>
                                                     {item.descripcion && <p className="text-xs text-gray-700 truncate mt-0.5">{item.descripcion}</p>}
                                                 </div>
-                                                {/* Toggle activo */}
                                                 <button onClick={() => toggleMenuGestActivo(item)}
                                                     className={`relative flex h-5 w-9 shrink-0 cursor-pointer rounded-full items-center transition-colors duration-200 ${item.activo !== false ? "bg-red-500" : "bg-gray-300"}`}>
                                                     <span className={`absolute h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-200 ${item.activo !== false ? "translate-x-[18px]" : "translate-x-[2px]"}`} />
                                                 </button>
-                                                {/* Editar */}
-                                                <button onClick={() => abrirEditarMenuGest(item)}
-                                                    className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition">
-                                                    <Pencil size={13} />
-                                                </button>
-                                                {/* Eliminar */}
-                                                <button onClick={() => eliminarMenuGestItem(item._id)}
-                                                    className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition">
-                                                    <Trash2 size={13} />
-                                                </button>
+                                                <button onClick={() => abrirEditarMenuGest(item)} className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition"><Pencil size={13} /></button>
+                                                <button onClick={() => eliminarMenuGestItem(item._id)} className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition"><Trash2 size={13} /></button>
                                             </div>
-                                        ))
-                                    }
-                                    {menuGest.filter(i => menuGestCat === "todas" || i.categoria === menuGestCat).filter(i => !menuGestSearch || i.nombre.toLowerCase().includes(menuGestSearch.toLowerCase())).length === 0 && (
-                                        <p className="text-center text-gray-700 py-10">Sin productos en esta categoría.</p>
-                                    )}
-                                </div>
+                                        ))}
+                                        {menuGest.filter(i =>
+                                            menuGestCatActiva === "BEBIDAS" ? BEBIDAS_CATS.includes(i.categoria)
+                                            : menuGestCatActiva === "PICADAS Y FRITURAS" ? PICAR_CATS.includes(i.categoria)
+                                            : i.categoria === menuGestCatActiva
+                                        ).length === 0 && <p className="text-center text-gray-700 py-10">Sin productos.</p>}
+                                    </div>
+                                </>
                             )}
                         </div>
                     )}
@@ -2651,7 +2703,7 @@ export default function CajaPage() {
                         <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl max-h-[92vh] flex flex-col">
                             <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
                                 <h2 className="font-black text-gray-900 flex-1">
-                                    Cobrar {ped.mesa ? `Mesa ${ped.mesa}` : ped.nombreComanda || ""}
+                                    Cobrar {ped.mesa ? mesaLabel(ped.mesa) : ped.nombreComanda || ""}
                                 </h2>
                                 <button onClick={() => setCobrarModal({ open: false, pedido: null })} className="p-1 text-gray-700"><X size={18} /></button>
                             </div>
