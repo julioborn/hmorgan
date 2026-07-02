@@ -1571,9 +1571,12 @@ export default function CajaPage() {
                                         const estadosCliente = ESTADOS.filter(e => e.key !== "cerrado");
                                         const estadosList    = esApp ? estadosCliente : estadosMozo;
 
+                                        const esEvento     = !esApp && !!p.eventoId;
+                                        const eventoNombre = esEvento ? (eventosActivos.find(e => e._id === p.eventoId)?.nombre ?? null) : null;
+
                                         const titulo = esApp
                                             ? (p.userId ? `${p.userId.nombre} ${p.userId.apellido || ""}`.trim() : "Cliente")
-                                            : (p.mesa ? mesaLabel(p.mesa) : p.nombreComanda || (esCaja ? "Caja" : "Sin mesa"));
+                                            : (p.mesa ? mesaLabel(p.mesa) : p.nombreComanda || (eventoNombre ?? (esCaja ? "Caja" : "Sin mesa")));
 
                                         const subtitulo = esApp
                                             ? `${p.numeroDia ? `#${p.numeroDia} · ` : ""}${p.tipoEntrega === "envio" ? "Envío a domicilio" : "Retiro en local"}`
@@ -1581,8 +1584,8 @@ export default function CajaPage() {
                                                 ? `Mozo: ${[p.userId?.nombre, p.userId?.apellido].filter(Boolean).join(" ")}`
                                                 : "Caja";
 
-                                        const accentBg     = esApp ? "bg-red-600"   : "bg-black";
-                                        const cardBorder   = esApp ? "border-red-500" : "border-black";
+                                        const accentBg   = esApp ? "bg-red-600" : esEvento ? "bg-amber-500" : "bg-black";
+                                        const cardBorder = esApp ? "border-red-500" : esEvento ? "border-amber-400" : "border-black";
 
                                         return (
                                             <motion.div key={p._id}
@@ -1594,6 +1597,11 @@ export default function CajaPage() {
                                                     <div className="flex items-start justify-between gap-3">
                                                         <div className="flex-1 min-w-0">
                                                             <p className="font-black text-white text-xl leading-tight tracking-tight truncate">{titulo}</p>
+                                                            {esEvento && eventoNombre && (
+                                                                <span className="inline-block text-[10px] font-black bg-white/20 text-white px-2 py-0.5 rounded-full uppercase tracking-wide mt-0.5 mb-0.5">
+                                                                    🎉 {eventoNombre}
+                                                                </span>
+                                                            )}
                                                             <p className="text-xs text-white/65 font-medium mt-0.5">{subtitulo}</p>
                                                             {esApp && p.tipoEntrega === "envio" && p.direccion && (
                                                                 <div className="flex items-start gap-1 mt-1 text-xs text-white/65">
@@ -1977,124 +1985,129 @@ export default function CajaPage() {
                                     <p className="font-bold text-gray-700">Sin eventos activos</p>
                                 </div>
                             ) : eventosActivos.map(ev => {
-                                const pedidosEv = pedidos.filter(p => p.eventoId === ev._id);
-                                const totalPedidos = pedidosEv.reduce((a, p) => a + (p.total || 0), 0);
-                                const totalVentas  = ev.ventas.reduce((a, v) => a + v.total, 0);
+                                const pedidosEv     = pedidos.filter(p => p.eventoId === ev._id);
+                                const totalPedidos  = pedidosEv.reduce((a, p) => a + (p.total || 0), 0);
+                                const totalVentas   = ev.ventas.reduce((a, v) => a + v.total, 0);
                                 const totalTarjetas = (ev as any).tarjetas?.reduce((a: number, t: any) => a + t.cantidad, 0) ?? 0;
                                 const precioTarjeta = (ev as any).precioTarjeta ?? 0;
+                                const totalEvento   = totalVentas + totalPedidos + totalTarjetas * precioTarjeta;
                                 return (
-                                <div key={ev._id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                                <div key={ev._id} className="bg-white rounded-3xl border-2 border-amber-400 shadow-md overflow-hidden">
 
-                                    {/* Header del evento */}
-                                    <div className="flex items-start justify-between gap-3 px-4 py-4">
-                                        <div>
-                                            <div className="flex items-center gap-2 mb-0.5">
-                                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block" />
-                                                <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wide">Activo</span>
+                                    {/* ── Header ── */}
+                                    <div className="bg-amber-400 px-5 py-4">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="w-2 h-2 rounded-full bg-white animate-pulse inline-block" />
+                                                    <span className="text-xs font-black text-amber-900 uppercase tracking-wide">Evento activo</span>
+                                                </div>
+                                                <h2 className="font-black text-amber-900 text-2xl leading-tight truncate">{ev.nombre}</h2>
+                                                <p className="text-sm font-bold text-amber-800 mt-0.5">Total: <span className="text-amber-900 font-black">{formatMoney(totalEvento)}</span></p>
                                             </div>
-                                            <h2 className="font-black text-gray-900 text-lg">{ev.nombre}</h2>
-                                            <p className="text-xs text-gray-700">Total: {formatMoney(totalVentas + totalPedidos + totalTarjetas * precioTarjeta)}</p>
-                                        </div>
-                                        <button onClick={() => abrirCierreEvento(ev._id)}
-                                            className="text-xs font-bold text-red-600 hover:bg-red-50 border border-red-200 px-3 py-1.5 rounded-xl transition shrink-0">
-                                            Cerrar evento
-                                        </button>
-                                    </div>
-
-                                    {/* Mesas */}
-                                    <div className="px-4 pb-3 border-b border-gray-100">
-                                        <div className="flex items-center justify-between mb-1.5">
-                                            <p className="text-[10px] font-black text-gray-700 uppercase tracking-wider">Mesas del evento</p>
-                                            <button onClick={() => abrirEditMesas(ev._id)} className="text-[10px] font-bold text-blue-600 hover:underline">Editar</button>
-                                        </div>
-                                        {(ev.mesas ?? []).length === 0 ? (
-                                            <button onClick={() => abrirEditMesas(ev._id)} className="text-xs text-gray-700 hover:text-blue-600 transition">+ Asignar mesas</button>
-                                        ) : (
-                                            <div className="flex flex-wrap gap-1.5">
-                                                {ev.mesas.map(m => <span key={m} className="bg-blue-100 text-blue-700 text-xs font-bold px-2.5 py-0.5 rounded-full">{m}</span>)}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Tarjetas */}
-                                    <div className="px-4 py-3 border-b border-gray-100">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <div>
-                                                <p className="text-[10px] font-black text-gray-700 uppercase tracking-wider">Tarjetas</p>
-                                                {precioTarjeta > 0 && <p className="text-xs text-gray-500">{totalTarjetas} tarjetas · {formatMoney(precioTarjeta)} c/u = <span className="font-black text-gray-900">{formatMoney(totalTarjetas * precioTarjeta)}</span></p>}
-                                                {precioTarjeta === 0 && <p className="text-xs text-gray-700">Precio no configurado</p>}
-                                            </div>
-                                            <button onClick={() => abrirTarjetasModal(ev._id)}
-                                                className="text-xs font-bold text-white bg-black hover:bg-gray-700 px-3 py-1.5 rounded-xl transition">
-                                                + Registrar
+                                            <button onClick={() => abrirCierreEvento(ev._id)}
+                                                className="shrink-0 text-sm font-black text-red-700 bg-white hover:bg-red-50 border-2 border-red-300 px-4 py-2 rounded-2xl transition">
+                                                Cerrar
                                             </button>
                                         </div>
-                                        {(ev as any).tarjetas?.length > 0 && (
-                                            <div className="flex flex-wrap gap-1.5 mt-2">
-                                                {[...(ev as any).tarjetas].reverse().slice(0, 8).map((t: any, i: number) => (
-                                                    <span key={i} className="bg-gray-100 text-gray-700 text-xs font-bold px-2.5 py-0.5 rounded-full">
-                                                        {t.cantidad}× · {new Date(t.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        )}
                                     </div>
 
-                                    {/* Comandas vinculadas */}
-                                    {pedidosEv.length > 0 && (
-                                        <div className="px-4 py-3 border-b border-gray-100">
-                                            <p className="text-[10px] font-black text-gray-700 uppercase tracking-wider mb-2">Comandas ({pedidosEv.length})</p>
-                                            <div className="space-y-1">
-                                                {pedidosEv.map(p => (
-                                                    <div key={p._id} className="flex items-center justify-between bg-blue-50 rounded-xl px-3 py-1.5 text-sm">
-                                                        <span className="font-bold text-blue-900">{p.mesa ? mesaLabel(p.mesa) : p.nombreComanda || "Comanda"}</span>
-                                                        <span className="font-black text-blue-900">{formatMoney(p.total)}</span>
-                                                    </div>
-                                                ))}
+                                    <div className="p-4 space-y-4">
+
+                                        {/* ── Stats ── */}
+                                        <div className="grid grid-cols-3 gap-3">
+                                            <div className="bg-amber-50 rounded-2xl p-3 text-center border border-amber-200">
+                                                <p className="text-lg font-black text-amber-900">{totalTarjetas}</p>
+                                                <p className="text-xs font-bold text-amber-700 mt-0.5">Tarjetas</p>
+                                                {precioTarjeta > 0 && <p className="text-[10px] text-amber-600 font-semibold">{formatMoney(totalTarjetas * precioTarjeta)}</p>}
+                                            </div>
+                                            <div className="bg-blue-50 rounded-2xl p-3 text-center border border-blue-200">
+                                                <p className="text-lg font-black text-blue-900">{pedidosEv.length}</p>
+                                                <p className="text-xs font-bold text-blue-700 mt-0.5">Comandas</p>
+                                                {totalPedidos > 0 && <p className="text-[10px] text-blue-600 font-semibold">{formatMoney(totalPedidos)}</p>}
+                                            </div>
+                                            <div className="bg-emerald-50 rounded-2xl p-3 text-center border border-emerald-200">
+                                                <p className="text-lg font-black text-emerald-900">{ev.ventas.length}</p>
+                                                <p className="text-xs font-bold text-emerald-700 mt-0.5">Ventas</p>
+                                                {totalVentas > 0 && <p className="text-[10px] text-emerald-600 font-semibold">{formatMoney(totalVentas)}</p>}
                                             </div>
                                         </div>
-                                    )}
 
-                                    {/* Ventas directas */}
-                                    <div className="px-4 py-3">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <p className="text-[10px] font-black text-gray-700 uppercase tracking-wider">Ventas directas ({ev.ventas.length})</p>
+                                        {/* ── Botones de acción ── */}
+                                        <div className="grid grid-cols-3 gap-2">
                                             <button onClick={() => abrirVentaModal(ev._id)}
-                                                className="text-xs font-bold text-white bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-xl transition">
-                                                + Registrar venta
+                                                className="flex flex-col items-center gap-1 bg-black hover:bg-gray-800 text-white font-bold py-3 rounded-2xl transition text-xs">
+                                                <Plus size={16} /> Venta directa
+                                            </button>
+                                            <button onClick={() => abrirTarjetasModal(ev._id)}
+                                                className="flex flex-col items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-2xl transition text-xs">
+                                                <Star size={16} /> Tarjetas
+                                            </button>
+                                            <button onClick={() => abrirEditMesas(ev._id)}
+                                                className="flex flex-col items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-3 rounded-2xl transition text-xs">
+                                                <Users size={16} /> Mesas
                                             </button>
                                         </div>
-                                        {ev.ventas.length === 0 ? (
-                                            <p className="text-xs text-gray-600 py-2">Sin ventas registradas</p>
-                                        ) : (
-                                            <div className="space-y-1.5">
-                                                {[...ev.ventas].reverse().map(v => {
-                                                    const Icon = METODO_ICON[v.metodoPago] || Banknote;
-                                                    return (
-                                                        <div key={v._id} className="bg-gray-50 rounded-xl px-3 py-2">
-                                                            <div className="flex items-center justify-between mb-1">
-                                                                <span className="flex items-center gap-1 text-[10px] font-bold text-gray-500">
-                                                                    <Icon size={9} /> {METODO_LABEL[v.metodoPago]}
-                                                                    <span className="text-gray-600 font-normal ml-1">{new Date(v.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</span>
-                                                                </span>
-                                                                <span className="font-black text-gray-900 text-sm">{formatMoney(v.total)}</span>
+
+                                        {/* ── Mesas ── */}
+                                        {(ev.mesas ?? []).length > 0 && (
+                                            <div>
+                                                <p className="text-xs font-black text-gray-500 uppercase tracking-wider mb-2">Mesas asignadas</p>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {ev.mesas.map(m => <span key={m} className="bg-gray-900 text-white text-sm font-black px-3 py-1 rounded-full">{m}</span>)}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* ── Comandas ── */}
+                                        {pedidosEv.length > 0 && (
+                                            <div>
+                                                <p className="text-xs font-black text-gray-500 uppercase tracking-wider mb-2">Comandas vinculadas</p>
+                                                <div className="space-y-1.5">
+                                                    {pedidosEv.map(p => (
+                                                        <div key={p._id} className="flex items-center justify-between bg-blue-50 rounded-xl px-4 py-2.5 border border-blue-100">
+                                                            <div>
+                                                                <span className="font-bold text-blue-900 text-sm">{p.mesa ? mesaLabel(p.mesa) : p.nombreComanda || "Comanda"}</span>
+                                                                {p.userId && <span className="text-xs text-blue-600 ml-2">· {p.userId.nombre}</span>}
                                                             </div>
-                                                            <p className="text-xs text-gray-500 mb-2">{v.items.map(it => `${it.cantidad}× ${it.nombre}`).join(", ")}</p>
-                                                            <div className="flex gap-1.5">
-                                                                <button
-                                                                    onClick={() => reimprimirVentaEvento(ev, v)}
-                                                                    className="flex-1 flex items-center justify-center gap-1 bg-black hover:bg-gray-800 text-white text-[10px] font-bold py-1.5 rounded-lg transition">
-                                                                    <Printer size={10} /> Reimprimir
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => eliminarVenta(ev._id, v._id)}
-                                                                    className="flex-1 flex items-center justify-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 text-[10px] font-bold py-1.5 rounded-lg border border-red-200 transition">
-                                                                    <X size={10} /> Eliminar
-                                                                </button>
-                                                            </div>
+                                                            <span className="font-black text-blue-900 text-base">{formatMoney(p.total)}</span>
                                                         </div>
-                                                    );
-                                                })}
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* ── Ventas directas ── */}
+                                        {ev.ventas.length > 0 && (
+                                            <div>
+                                                <p className="text-xs font-black text-gray-500 uppercase tracking-wider mb-2">Ventas directas</p>
+                                                <div className="space-y-2">
+                                                    {[...ev.ventas].reverse().map(v => {
+                                                        const Icon = METODO_ICON[v.metodoPago] || Banknote;
+                                                        return (
+                                                            <div key={v._id} className="bg-gray-50 rounded-2xl px-4 py-3 border border-gray-100">
+                                                                <div className="flex items-center justify-between mb-1.5">
+                                                                    <span className="flex items-center gap-1.5 text-xs font-bold text-gray-500">
+                                                                        <Icon size={11} /> {METODO_LABEL[v.metodoPago]}
+                                                                        <span className="text-gray-400 font-normal">· {new Date(v.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</span>
+                                                                    </span>
+                                                                    <span className="font-black text-gray-900 text-base">{formatMoney(v.total)}</span>
+                                                                </div>
+                                                                <p className="text-xs text-gray-500 mb-2">{v.items.map(it => `${it.cantidad}× ${it.nombre}`).join(", ")}</p>
+                                                                <div className="flex gap-2">
+                                                                    <button onClick={() => reimprimirVentaEvento(ev, v)}
+                                                                        className="flex-1 flex items-center justify-center gap-1.5 bg-black hover:bg-gray-800 text-white text-xs font-bold py-2 rounded-xl transition">
+                                                                        <Printer size={12} /> Reimprimir
+                                                                    </button>
+                                                                    <button onClick={() => eliminarVenta(ev._id, v._id)}
+                                                                        className="flex-1 flex items-center justify-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold py-2 rounded-xl border border-red-200 transition">
+                                                                        <X size={12} /> Eliminar
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
                                             </div>
                                         )}
                                     </div>
