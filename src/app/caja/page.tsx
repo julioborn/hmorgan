@@ -532,6 +532,26 @@ export default function CajaPage() {
         loadData();
     }
 
+    async function eliminarPedidoCaja(p: Pedido) {
+        const titulo = p.mesa ? mesaLabel(p.mesa) : p.nombreComanda || (p.userId ? `${p.userId.nombre}` : "Pedido");
+        const r1 = await swalBase.fire({
+            title: "¿Eliminar pedido?",
+            text: `Se eliminará permanentemente el pedido de ${titulo}.`,
+            icon: "warning", showCancelButton: true,
+            confirmButtonText: "Continuar", cancelButtonText: "Cancelar",
+        });
+        if (!r1.isConfirmed) return;
+        const r2 = await swalBase.fire({
+            title: "Confirmación final",
+            text: "Esta acción no se puede deshacer. ¿Confirmar eliminación?",
+            icon: "error", showCancelButton: true,
+            confirmButtonText: "Sí, eliminar", cancelButtonText: "No, volver",
+        });
+        if (!r2.isConfirmed) return;
+        await fetch(`/api/pedidos?id=${p._id}`, { method: "DELETE", credentials: "include" });
+        loadData();
+    }
+
     async function abrirSelectorProducto(
         pedido: Pedido,
         opts: { modo: "agregar" } | { modo: "reemplazar"; itemId: string; nombreActual: string }
@@ -1592,11 +1612,17 @@ export default function CajaPage() {
                                                                 </a>
                                                             )}
                                                         </div>
-                                                        <div className="shrink-0 text-right">
-                                                            <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider inline-block ${ESTADO_BADGE[p.estado] || "bg-white/20 text-white"}`}>
-                                                                {ESTADOS.find(e => e.key === p.estado)?.label || p.estado}
-                                                            </span>
-                                                            <p className="text-xs text-white/45 mt-1">{fechaHora}</p>
+                                                        <div className="shrink-0 text-right flex flex-col items-end gap-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider inline-block ${ESTADO_BADGE[p.estado] || "bg-white/20 text-white"}`}>
+                                                                    {ESTADOS.find(e => e.key === p.estado)?.label || p.estado}
+                                                                </span>
+                                                                <button onClick={() => eliminarPedidoCaja(p)}
+                                                                    className="p-1.5 rounded-full bg-white/20 hover:bg-white/40 text-white transition">
+                                                                    <Trash2 size={12} />
+                                                                </button>
+                                                            </div>
+                                                            <p className="text-xs text-white/45">{fechaHora}</p>
                                                         </div>
                                                     </div>
                                                 </div>

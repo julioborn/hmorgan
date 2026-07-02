@@ -309,12 +309,19 @@ function CartDrawer({
     );
 }
 
+const CART_DRAFT_KEY = "cliente_cart_draft";
+
 /* ─── Página principal ─────────────────────────────────────────── */
 export default function PedidosClientePage() {
     const categoryConfigMap = useCategoryConfigs();
     const [menu, setMenu] = useState<MenuItem[]>([]);
     const [activo, setActivo] = useState(false);
-    const [items, setItems] = useState<Record<string, number>>({});
+    const [items, setItems] = useState<Record<string, number>>(() => {
+        try {
+            const saved = localStorage.getItem(CART_DRAFT_KEY);
+            return saved ? JSON.parse(saved) : {};
+        } catch { return {}; }
+    });
     const [tipoEntrega, setTipoEntrega] = useState("retira");
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [cargandoConfig, setCargandoConfig] = useState(true);
@@ -334,6 +341,16 @@ export default function PedidosClientePage() {
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
     }, [categoriaSeleccionada]);
+
+    useEffect(() => {
+        try {
+            if (Object.keys(items).length > 0) {
+                localStorage.setItem(CART_DRAFT_KEY, JSON.stringify(items));
+            } else {
+                localStorage.removeItem(CART_DRAFT_KEY);
+            }
+        } catch {}
+    }, [items]);
 
     useEffect(() => {
         (async () => {

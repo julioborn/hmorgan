@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -9,7 +9,7 @@ import { hoyArgentina } from "@/lib/argentina-time";
 import { swalBase } from "@/lib/swalConfig";
 
 const BarMap = dynamic(() => import("@/components/BarMap"), { ssr: false });
-import { QrCode, Users, Bell, PackagePlus, Package, Utensils, Ticket, History, ScanQrCode, ScanText, Settings, Star, BarChart2, ClipboardList, LayoutGrid, Images, CalendarDays, Wallet, MapPin, TrendingUp, UserCog, Truck, Gift, X, Clock } from "lucide-react";
+import { QrCode, Users, Bell, PackagePlus, Package, Utensils, Ticket, History, ScanQrCode, ScanText, Settings, Star, BarChart2, ClipboardList, LayoutGrid, Images, CalendarDays, Wallet, TrendingUp, UserCog, Truck, Gift, X, Clock } from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 import Loader from "@/components/Loader";
@@ -752,67 +752,11 @@ function AdminCard({
 /* =========================
   HOME EMPLEADO
    ========================= */
-type MesaPlanoEmp = { _id: string; nombre: string; activa: boolean; x: number; y: number; forma: string; ancho?: number; alto?: number; rotacion?: number; tipo?: string };
-type ElPlanoEmp   = { _id: string; tipo: string; label: string; x: number; y: number; ancho: number; alto: number; color: string };
-
 function EmployeeHome({ nombre }: { nombre?: string }) {
   const router = useRouter();
   const [hora, setHora] = useState(() => new Date().getHours());
   const [cajaAbierta, setCajaAbierta] = useState<boolean | null>(null);
-  const [asignarModal, setAsignarModal] = useState(false);
-  const [mesasPlano, setMesasPlano]     = useState<MesaPlanoEmp[]>([]);
-  const [elementsPlano, setElementsPlano] = useState<ElPlanoEmp[]>([]);
-  const [ocupadas, setOcupadas]         = useState<Set<string>>(new Set());
-  const [reservadasPlano, setReservadasPlano] = useState<Set<string>>(new Set());
-  const [asignarForm, setAsignarForm]   = useState({ mesa: "", comensales: "2", nombre: "" });
-  const [asignarSaving, setAsignarSaving] = useState(false);
-  const [eventosActivosPlano, setEventosActivosPlano] = useState<{ _id: string; nombre: string; mesas: string[] }[]>([]);
-
-  // Zoom / pan del plano
-  const planoRef  = useRef<HTMLDivElement>(null);
-  const [planoTransform, setPlanoTransform] = useState({ scale: 1, x: 0, y: 0 });
-  const planoTr   = useRef({ scale: 1, x: 0, y: 0 });
-  const gesture   = useRef<{ type: "pinch" | "pan"; startDist: number; startScale: number; startX: number; startY: number; startOx: number; startOy: number } | null>(null);
-
-  useEffect(() => {
-    const el = planoRef.current;
-    if (!el) return;
-    function dist(t: TouchList) { return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); }
-    function onStart(e: TouchEvent) {
-      const tr = planoTr.current;
-      if (e.touches.length === 2) {
-        e.preventDefault();
-        gesture.current = { type: "pinch", startDist: dist(e.touches), startScale: tr.scale, startX: 0, startY: 0, startOx: tr.x, startOy: tr.y };
-      } else if (e.touches.length === 1) {
-        gesture.current = { type: "pan", startDist: 0, startScale: tr.scale, startX: e.touches[0].clientX, startY: e.touches[0].clientY, startOx: tr.x, startOy: tr.y };
-      }
-    }
-    function onMove(e: TouchEvent) {
-      const g = gesture.current;
-      if (!g) return;
-      if (g.type === "pinch" && e.touches.length === 2) {
-        e.preventDefault();
-        const s = Math.min(5, Math.max(1, g.startScale * dist(e.touches) / g.startDist));
-        planoTr.current = { ...planoTr.current, scale: s };
-        setPlanoTransform({ ...planoTr.current });
-      } else if (g.type === "pan" && e.touches.length === 1) {
-        const dx = Math.abs(e.touches[0].clientX - g.startX);
-        const dy = Math.abs(e.touches[0].clientY - g.startY);
-        if (dx > 6 || dy > 6) {
-          e.preventDefault();
-          const nx = g.startOx + e.touches[0].clientX - g.startX;
-          const ny = g.startOy + e.touches[0].clientY - g.startY;
-          planoTr.current = { ...planoTr.current, x: nx, y: ny };
-          setPlanoTransform({ ...planoTr.current });
-        }
-      }
-    }
-    function onEnd() { gesture.current = null; }
-    el.addEventListener("touchstart", onStart, { passive: false });
-    el.addEventListener("touchmove",  onMove,  { passive: false });
-    el.addEventListener("touchend",   onEnd);
-    return () => { el.removeEventListener("touchstart", onStart); el.removeEventListener("touchmove", onMove); el.removeEventListener("touchend", onEnd); };
-  }, [asignarModal]);
+  const [comandasCount, setComandasCount] = useState(0);
 
   useEffect(() => {
     const tick = setInterval(() => setHora(new Date().getHours()), 60000);
@@ -826,62 +770,17 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
       .catch(() => setCajaAbierta(false));
   }, []);
 
-  async function abrirAsignar() {
-    const [mRes, elRes, pRes, evRes, resRes] = await Promise.all([
-      fetch("/api/admin/mesas?all=true", { credentials: "include" }),
-      fetch("/api/superadmin/salon", { credentials: "include" }),
-      fetch("/api/pedidos?activos=true", { credentials: "include" }),
-      fetch("/api/eventos?activo=true", { credentials: "include" }),
-      fetch("/api/reservas", { credentials: "include" }),
-    ]);
-    const [mData, elData, pData, evData, resData] = await Promise.all([
-      mRes.json(), elRes.json(), pRes.json(), evRes.json(), resRes.json(),
-    ]);
-    setMesasPlano(Array.isArray(mData) ? mData : []);
-    setElementsPlano(Array.isArray(elData) ? elData : []);
-    setOcupadas(new Set<string>(Array.isArray(pData) ? pData.map((p: any) => p.mesa).filter(Boolean) : []));
-    setEventosActivosPlano(Array.isArray(evData) ? evData : []);
-    if (Array.isArray(resData)) {
-      // Usar nombre de mesa como clave (más fiable que ObjectId)
-      const hoy = hoyArgentina();
-      setReservadasPlano(new Set<string>(
-        resData
-          .filter((r: any) => r.mesaId && r.estado !== "cancelada" && String(r.fecha).slice(0, 10) === hoy)
-          .map((r: any) => typeof r.mesaId === "object" ? r.mesaId.nombre : "")
-          .filter(Boolean)
-      ));
-    }
-    setAsignarForm({ mesa: "", comensales: "2", nombre: "" });
-    planoTr.current = { scale: 1, x: 0, y: 0 };
-    setPlanoTransform({ scale: 1, x: 0, y: 0 });
-    setAsignarModal(true);
-  }
-
-  async function confirmarAsignar() {
-    if (!asignarForm.mesa) return;
-    setAsignarSaving(true);
-    const eventoDeEsta = eventosActivosPlano.find(e => (e.mesas ?? []).includes(asignarForm.mesa));
-    const esEventoMesa = !!eventoDeEsta;
-    try {
-      await fetch("/api/pedidos", {
-        method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
-        body: JSON.stringify({
-          items: [], fuente: "empleado", mesa: asignarForm.mesa,
-          comensales: Number(asignarForm.comensales) || 0,
-          nombreComanda: asignarForm.nombre.trim() || undefined,
-          tipoEntrega: "retira",
-          eventoId: eventoDeEsta?._id,
-        }),
-      });
-      setAsignarModal(false);
-    } finally { setAsignarSaving(false); }
-  }
+  useEffect(() => {
+    fetch("/api/pedidos?activos=true&fuente=empleado", { credentials: "include" })
+      .then(r => r.json())
+      .then(d => setComandasCount(Array.isArray(d) ? d.length : 0))
+      .catch(() => {});
+  }, []);
 
   const saludo = hora < 12 ? "Buenos días" : hora < 20 ? "Buenas tardes" : "Buenas noches";
   const fechaHoy = new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
 
   return (
-    <>
     <div className={`${container} pb-10 space-y-5`} style={{ paddingBottom: "max(2.5rem, env(safe-area-inset-bottom))" }}>
 
       {/* ── Header ── */}
@@ -896,32 +795,25 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
 
       {/* ── Acciones principales ── */}
       <div className="space-y-3">
-        <button
-          onClick={abrirAsignar}
-          disabled={!cajaAbierta}
-          className="w-full flex items-center gap-4 bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white rounded-2xl px-6 py-5 transition shadow-sm active:scale-[0.98]"
-        >
-          <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-            <MapPin className="h-6 w-6" />
-          </div>
-          <div className="text-left">
-            <p className="font-extrabold text-lg leading-tight">Asignar mesa</p>
-            <p className="text-red-200 text-sm">Marcar una mesa como ocupada</p>
-          </div>
-        </button>
-
-        <Link
-          href="/empleado/anotador"
-          className="w-full flex items-center gap-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl px-6 py-5 transition shadow-sm active:scale-[0.98] block"
-        >
-          <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-            <ClipboardList className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="font-extrabold text-lg leading-tight">Anotador de Pedidos</p>
-            <p className="text-red-200 text-sm">Tomá y gestioná las comandas</p>
-          </div>
-        </Link>
+        <div className="relative">
+          <Link
+            href="/empleado/anotador"
+            className="w-full flex items-center gap-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl px-6 py-5 transition shadow-sm active:scale-[0.98] block"
+          >
+            <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+              <ClipboardList className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="font-extrabold text-lg leading-tight">Anotador de Pedidos</p>
+              <p className="text-red-200 text-sm">Tomá y gestioná las comandas</p>
+            </div>
+          </Link>
+          {comandasCount > 0 && (
+            <span className="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1.5 bg-white text-red-600 text-xs font-black rounded-full flex items-center justify-center shadow-md border border-red-100 pointer-events-none">
+              {comandasCount}
+            </span>
+          )}
+        </div>
 
         <Link
           href="/menu"
@@ -938,140 +830,6 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
       </div>
 
     </div>
-
-    {/* ── Modal asignar mesa (plano) ── */}
-    {asignarModal && (
-      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center" style={{ paddingTop: "calc(env(safe-area-inset-top) + 80px)" }}>
-        <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl max-h-[82vh] flex flex-col mx-3">
-
-          <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
-            <h2 className="font-black text-gray-900 flex-1">Seleccioná una mesa</h2>
-            <button onClick={() => setAsignarModal(false)} className="p-1 text-gray-400"><X size={18} /></button>
-          </div>
-
-          <div className="overflow-y-auto flex-1 min-h-0 px-4 py-4 space-y-4">
-
-            {/* Leyenda */}
-            <div className="flex items-center gap-4 text-xs text-gray-500 flex-wrap">
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-emerald-500 inline-block" />Libre</span>
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-red-500 inline-block" />Ocupada</span>
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-yellow-400 inline-block" />Reservada</span>
-              {eventosActivosPlano.length > 0 && <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-blue-500 inline-block" />Evento</span>}
-              {asignarForm.mesa && <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-gray-900 inline-block" />Seleccionada</span>}
-            </div>
-            {(() => {
-              const ev = eventosActivosPlano.find(e => (e.mesas ?? []).includes(asignarForm.mesa));
-              return ev ? (
-              <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2">
-                <span className="text-lg">🎉</span>
-                <p className="text-xs font-bold text-blue-700">Mesa del evento <span className="font-black">{ev.nombre}</span> — se vinculará automáticamente</p>
-              </div>
-              ) : null;
-            })()}
-
-            {/* Plano con zoom/pan */}
-            <div className="relative">
-              <div
-                ref={planoRef}
-                className="relative w-full rounded-xl overflow-hidden border border-gray-200 select-none"
-                style={{ paddingBottom: "72%", touchAction: "none" }}
-              >
-                <div className="absolute inset-0" style={{ overflow: "hidden" }}>
-                  <div style={{
-                    position: "absolute", inset: 0,
-                    transform: `translate(${planoTransform.x}px, ${planoTransform.y}px) scale(${planoTransform.scale})`,
-                    transformOrigin: "center center",
-                    backgroundColor: "#f9f5ef",
-                    backgroundImage: "linear-gradient(rgba(0,0,0,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.04) 1px,transparent 1px)",
-                    backgroundSize: "30px 30px",
-                  }}>
-                    {elementsPlano.map(el => {
-                      const isLine = el.tipo === "linea_h" || el.tipo === "linea_v";
-                      const isBarra = el.tipo === "barra";
-                      if (isLine) return (
-                        <div key={el._id} style={{ position: "absolute", left: `${el.x}%`, top: `${el.y}%`, width: el.tipo === "linea_h" ? `${el.ancho}%` : "3px", height: el.tipo === "linea_v" ? `${el.alto}%` : "3px", backgroundColor: el.color, borderRadius: "2px", transform: el.tipo === "linea_h" ? "translateY(-50%)" : "translateX(-50%)" }} />
-                      );
-                      return (
-                        <div key={el._id} style={{ position: "absolute", left: `${el.x}%`, top: `${el.y}%`, transform: "translate(-50%,-50%)", width: `${el.ancho}%`, height: `${el.alto}%`, minWidth: "32px", minHeight: "14px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "6px", backgroundColor: isBarra ? "#b45309" : el.color, border: isBarra ? "2px solid #92400e" : `1px solid ${el.color === "#fef3c7" ? "#d97706" : "#9ca3af"}60` }}>
-                          {el.label && <span style={{ fontSize: "clamp(6px,0.9vw,9px)", fontWeight: 700, color: isBarra ? "#fef3c7" : "#374151", whiteSpace: "nowrap" }}>{el.label}</span>}
-                        </div>
-                      );
-                    })}
-                    {mesasPlano.filter(m => m.activa).map(m => {
-                      const ocupada     = ocupadas.has(m.nombre);
-                      const reservada   = !ocupada && reservadasPlano.has(m.nombre);
-                      const esEvento    = !ocupada && !reservada && eventosActivosPlano.some(e => (e.mesas ?? []).includes(m.nombre));
-                      const seleccionada = asignarForm.mesa === m.nombre;
-                      const isRound = m.forma === "round" || m.forma === "oval";
-                      const isBanq  = m.tipo === "banqueta";
-                      const bloqueada = isBanq || ocupada || reservada || esEvento;
-                      const rot = m.rotacion ?? 0;
-                      const w = m.ancho || (m.forma === "oval" ? 11 : m.forma === "round" ? 5.5 : 7);
-                      const h = m.alto  || (m.forma === "oval" ? 5  : m.forma === "round" ? 5.5 : 5);
-                      const bg = isBanq      ? "bg-amber-700 border-amber-800 text-amber-100"
-                        : ocupada            ? "bg-red-500 border-red-600 text-white opacity-70"
-                        : reservada          ? "bg-yellow-400 border-yellow-500 text-gray-900 opacity-80"
-                        : esEvento           ? "bg-blue-500 border-blue-600 text-white opacity-80"
-                        : seleccionada       ? "bg-gray-900 border-gray-700 text-white ring-2 ring-offset-1 ring-gray-900"
-                        :                      "bg-emerald-500 border-emerald-600 text-white";
-                      return (
-                        <div key={m._id}
-                          onClick={() => { if (!bloqueada) setAsignarForm(p => ({ ...p, mesa: m.nombre })); }}
-                          style={{ position: "absolute", left: `${m.x ?? 10}%`, top: `${m.y ?? 10}%`, transform: `translate(-50%,-50%) rotate(${rot}deg)`, width: `min(${w}%,${w * 7}px)`, height: `min(${h}%,${h * 7.5}px)`, minWidth: "22px", minHeight: "16px", borderRadius: isRound ? "50%" : "8px", cursor: bloqueada ? "not-allowed" : "pointer", userSelect: "none", zIndex: 2 }}
-                          className={`flex items-center justify-center border-2 transition-all ${bg} ${!bloqueada ? "active:scale-95" : ""}`}>
-                          <div style={{ transform: `rotate(${-rot}deg)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <span style={{ fontSize: "clamp(5px,0.8vw,9px)", fontWeight: 900 }}>{m.nombre}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-              {planoTransform.scale > 1 && (
-                <button
-                  onClick={() => { planoTr.current = { scale: 1, x: 0, y: 0 }; setPlanoTransform({ scale: 1, x: 0, y: 0 }); }}
-                  className="absolute top-2 right-2 z-10 bg-white text-xs font-bold px-2.5 py-1 rounded-lg shadow border border-gray-200 text-gray-700">
-                  Resetear zoom
-                </button>
-              )}
-            </div>
-
-            {/* Campos */}
-            {asignarForm.mesa && (
-              <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
-                <p className="text-sm font-black text-gray-900">Mesa {asignarForm.mesa} seleccionada</p>
-                <div>
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1.5 block">Comensales</label>
-                  <input type="number" min="1" value={asignarForm.comensales}
-                    onChange={e => setAsignarForm(p => ({ ...p, comensales: e.target.value }))}
-                    style={{ fontSize: "16px" }}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-base font-bold bg-white focus:outline-none focus:ring-2 focus:ring-red-400" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1.5 block">Nombre (opcional)</label>
-                  <input type="text" value={asignarForm.nombre}
-                    onChange={e => setAsignarForm(p => ({ ...p, nombre: e.target.value }))}
-                    placeholder="Ej: García, cumpleaños..."
-                    style={{ fontSize: "16px" }}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-400" />
-                </div>
-              </div>
-            )}
-
-          </div>
-
-          <div className="px-4 py-4 border-t border-gray-100 flex gap-2 shrink-0">
-            <button onClick={() => setAsignarModal(false)} className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
-            <button onClick={confirmarAsignar} disabled={!asignarForm.mesa || asignarSaving}
-              className="flex-1 py-3 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
-              {asignarSaving ? "Asignando..." : "Asignar mesa"}
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
-    </>
   );
 }
 
