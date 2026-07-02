@@ -1415,12 +1415,12 @@ export default function CajaPage() {
                             <div className="px-6 py-6 space-y-4">
                                 <div>
                                     <label className="text-[10px] font-black text-gray-700 uppercase tracking-wider block mb-2">Monto en efectivo</label>
-                                    <div className="flex items-center gap-2 border-2 border-black rounded-2xl px-4 py-3 transition-colors">
+                                    <div className="flex items-center gap-2 border-2 border-black rounded-2xl px-4 py-3 transition-colors overflow-hidden">
                                         <span className="text-2xl font-black text-gray-600">$</span>
                                         <input type="number" min="0" value={openForm.montoInicial}
                                             onChange={e => setOpenForm(p => ({ ...p, montoInicial: e.target.value }))}
                                             placeholder="0" style={{ fontSize: "28px" }}
-                                            className="flex-1 font-black text-gray-900 focus:outline-none bg-transparent text-right" />
+                                            className="flex-1 min-w-0 font-black text-gray-900 focus:outline-none bg-transparent text-right" />
                                     </div>
                                 </div>
                                 <input value={openForm.notas} onChange={e => setOpenForm(p => ({ ...p, notas: e.target.value }))}
@@ -2601,12 +2601,12 @@ export default function CajaPage() {
                             </div>
                             <div>
                                 <label className="text-[10px] font-black text-gray-700 uppercase tracking-wider block mb-1.5">Monto</label>
-                                <div className="flex items-center gap-2 border border-black rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-black">
+                                <div className="flex items-center gap-2 border border-black rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-black overflow-hidden">
                                     <span className="text-gray-700 text-sm font-semibold">$</span>
                                     <input type="number" min="0" placeholder="0"
                                         value={gastoForm.monto}
                                         onChange={e => setGastoForm(p => ({ ...p, monto: e.target.value }))}
-                                        className="flex-1 text-lg font-black focus:outline-none text-gray-900 bg-transparent" />
+                                        className="flex-1 min-w-0 text-lg font-black focus:outline-none text-gray-900 bg-transparent" />
                                 </div>
                             </div>
                             <div>
@@ -2678,13 +2678,13 @@ export default function CajaPage() {
                                 {/* Descuento */}
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-black text-gray-700 uppercase tracking-wider">Descuento en pesos</label>
-                                    <div className="flex items-center gap-2 border border-black rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-black">
+                                    <div className="flex items-center gap-2 border border-black rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-black overflow-hidden">
                                         <span className="text-gray-700 text-sm font-semibold">−$</span>
                                         <input type="number" min="0" max={ped.total}
                                             value={cobrarForm.descuento}
                                             onChange={e => setCobrarForm(p => ({ ...p, descuento: e.target.value }))}
                                             placeholder="0"
-                                            className="flex-1 text-sm font-bold focus:outline-none text-gray-900 bg-transparent" />
+                                            className="flex-1 min-w-0 text-sm font-bold focus:outline-none text-gray-900 bg-transparent" />
                                     </div>
                                     {descuento > 0 && (
                                         <div className="flex justify-between px-1">
