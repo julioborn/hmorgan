@@ -1698,7 +1698,7 @@ export default function CajaPage() {
                                                         </div>
                                                     )}
 
-                                                    {/* WhatsApp para pedidos app */}
+                                                    {/* Whatsapp para pedidos app */}
                                                     {esApp && p.userId?.telefono && (
                                                         <a href={`https://wa.me/${p.userId.telefono.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
                                                             className="shrink-0 mb-2 flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-bold transition">
