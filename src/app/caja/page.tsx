@@ -1151,6 +1151,26 @@ export default function CajaPage() {
         setVentaModal(true);
     }
 
+    async function eliminarVenta(eventoId: string, ventaId: string) {
+        const r = await swalBase.fire({ title: "¿Eliminar venta?", text: "Esta acción no se puede deshacer.", icon: "warning", showCancelButton: true, confirmButtonText: "Sí, eliminar", cancelButtonText: "Cancelar" });
+        if (!r.isConfirmed) return;
+        const res = await fetch(`/api/eventos/${eventoId}`, {
+            method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
+            body: JSON.stringify({ accion: "eliminarVenta", ventaId }),
+        });
+        if (res.ok) {
+            const data = await res.json();
+            setEventosActivos(prev => prev.map(e => e._id === eventoId ? data.evento : e));
+        }
+    }
+
+    function reimprimirVentaEvento(ev: Evento, v: VentaEvento) {
+        const cart: CartItem[] = v.items.map(it => ({
+            menuItemId: "", nombre: it.nombre, precio: it.precio, categoria: it.categoria, cantidad: it.cantidad,
+        }));
+        printVentaEvento(ev, cart, v.metodoPago);
+    }
+
     async function registrarVenta() {
         const eventoActivo = eventosActivos.find(e => e._id === ventaEventoId);
         if (!eventoActivo || ventaCart.length === 0) return;
@@ -1959,7 +1979,19 @@ export default function CajaPage() {
                                                                 </span>
                                                                 <span className="font-black text-gray-900 text-sm">{formatMoney(v.total)}</span>
                                                             </div>
-                                                            <p className="text-xs text-gray-500">{v.items.map(it => `${it.cantidad}× ${it.nombre}`).join(", ")}</p>
+                                                            <p className="text-xs text-gray-500 mb-2">{v.items.map(it => `${it.cantidad}× ${it.nombre}`).join(", ")}</p>
+                                                            <div className="flex gap-1.5">
+                                                                <button
+                                                                    onClick={() => reimprimirVentaEvento(ev, v)}
+                                                                    className="flex-1 flex items-center justify-center gap-1 bg-black hover:bg-gray-800 text-white text-[10px] font-bold py-1.5 rounded-lg transition">
+                                                                    <Printer size={10} /> Reimprimir
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => eliminarVenta(ev._id, v._id)}
+                                                                    className="flex-1 flex items-center justify-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 text-[10px] font-bold py-1.5 rounded-lg border border-red-200 transition">
+                                                                    <X size={10} /> Eliminar
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     );
                                                 })}

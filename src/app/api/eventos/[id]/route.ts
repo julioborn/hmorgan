@@ -82,6 +82,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         return NextResponse.json({ ok: true, evento });
     }
 
+    if (body.accion === "eliminarVenta") {
+        const { ventaId } = body;
+        if (!ventaId) return NextResponse.json({ error: "ventaId requerido" }, { status: 400 });
+        await Evento.findByIdAndUpdate(params.id, { $pull: { ventas: { _id: ventaId } } });
+        const updated = await Evento.findById(params.id);
+        return NextResponse.json({ ok: true, evento: updated });
+    }
+
     if (body.accion === "agregarVenta") {
         const { items, metodoPago, nota, comensalesIds } = body;
         if (!items?.length || !metodoPago) {
