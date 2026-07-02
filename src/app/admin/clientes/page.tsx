@@ -26,6 +26,7 @@ export default function AdminClientsPage() {
     const isAdmin = user?.role === "admin";
 
     const [q, setQ] = useState("");
+    const [debouncedQ, setDebouncedQ] = useState("");
     const [page, setPage] = useState(1);
     const [sort, setSort] = useState<"nombre" | "apellido" | "username" | "puntos">("apellido");
     const [dir, setDir] = useState<"asc" | "desc">("asc");
@@ -39,6 +40,11 @@ export default function AdminClientsPage() {
     const [toDelete, setToDelete] = useState<Client | null>(null);
 
     useEffect(() => {
+        const t = setTimeout(() => { setDebouncedQ(q); setPage(1); }, 400);
+        return () => clearTimeout(t);
+    }, [q]);
+
+    useEffect(() => {
         if (authLoading || !isAdmin) return;
 
         let cancelled = false;
@@ -47,7 +53,7 @@ export default function AdminClientsPage() {
             setError("");
             try {
                 const url = new URL("/api/admin/clientes", window.location.origin);
-                url.searchParams.set("q", q);
+                url.searchParams.set("q", debouncedQ);
                 url.searchParams.set("page", String(page));
                 url.searchParams.set("limit", String(PAGE_SIZE));
                 url.searchParams.set("sort", `${sort}:${dir}`);
@@ -73,7 +79,7 @@ export default function AdminClientsPage() {
         return () => {
             cancelled = true;
         };
-    }, [authLoading, isAdmin, q, page, sort, dir]);
+    }, [authLoading, isAdmin, debouncedQ, page, sort, dir]);
 
     if (authLoading) {
         return (

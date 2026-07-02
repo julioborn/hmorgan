@@ -293,6 +293,7 @@ export default function RegisterPage() {
                       : field.charAt(0).toUpperCase() + field.slice(1)
                 }
                 max={field === "fechaNacimiento" ? hoyStr : undefined}
+                lang={field === "fechaNacimiento" ? "es-AR" : undefined}
                 style={field === "fechaNacimiento" ? { fontSize: "16px" } : undefined}
                 enterKeyHint="next"
                 className={inputClass(field)}

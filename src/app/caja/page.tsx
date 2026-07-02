@@ -55,7 +55,7 @@ type CierreResumen = {
     totalTarjeta: number;
     totalGeneral: number;
 };
-type MenuItemLite = { _id: string; nombre: string; precio: number; categoria: string };
+type MenuItemLite = { _id: string; nombre: string; precio: number; categoria: string; activo?: boolean; descripcion?: string };
 type CajaSession = { _id: string; estado: "abierta" | "cerrada"; montoInicial: number; fechaApertura: string };
 type MesaPlano = { _id: string; nombre: string; activa: boolean; x: number; y: number; forma: string; ancho?: number; alto?: number; rotacion?: number; tipo?: string };
 type SalonElPlano = { _id: string; tipo: string; label: string; x: number; y: number; ancho: number; alto: number; color: string };
@@ -113,7 +113,7 @@ const VISTA_MAP: Record<string, Vista> = {
 
 export default function CajaPage() {
     const router = useRouter();
-    const [tab, setTab]                   = useState<"pedidos" | "caja" | "reservas" | "mesas" | "eventos" | "canjes">("pedidos");
+    const [tab, setTab]                   = useState<"pedidos" | "caja" | "reservas" | "mesas" | "eventos" | "canjes" | "menu">("pedidos");
     const [canjesPendientes, setCanjesPendientes] = useState<CanjePendiente[]>([]);
     const [canjeProcessing, setCanjeProcessing]   = useState<string | null>(null);
     // Gestión de rewards en tab Canjes
@@ -194,6 +194,61 @@ export default function CajaPage() {
     const [ventaQrLooking, setVentaQrLooking]     = useState(false);
     const ventaVideoRef  = useRef<HTMLVideoElement>(null);
     const ventaStreamRef = useRef<MediaStream | null>(null);
+
+    // ── Gestión de menú (tab Menú) ──────────────────────────────────────────
+    const [menuGest, setMenuGest]           = useState<MenuItemLite[]>([]);
+    const [menuGestLoading, setMenuGestLoading] = useState(false);
+    const [menuGestCat, setMenuGestCat]     = useState<string>("todas");
+    const [menuGestSearch, setMenuGestSearch] = useState("");
+    const [menuGestForm, setMenuGestForm]   = useState({ nombre: "", precio: "", descripcion: "", categoria: "" });
+    const [menuGestSelectCat, setMenuGestSelectCat] = useState("");
+    const [menuGestEditId, setMenuGestEditId] = useState<string | null>(null);
+    const [menuGestShowForm, setMenuGestShowForm] = useState(false);
+    const [menuGestSaving, setMenuGestSaving] = useState(false);
+
+    async function loadMenuGest() {
+        setMenuGestLoading(true);
+        const data = await fetch("/api/menu", { credentials: "include" }).then(r => r.json()).catch(() => []);
+        setMenuGest(Array.isArray(data) ? data : []);
+        setMenuGestLoading(false);
+    }
+
+    async function saveMenuGestItem() {
+        const precio = parseFloat(menuGestForm.precio.replace(/\./g, "").replace(",", ".")) || 0;
+        if (!menuGestForm.nombre.trim() || !menuGestForm.categoria.trim() || precio <= 0) {
+            await swalBase.fire({ title: "Completá nombre, precio y categoría", icon: "warning" }); return;
+        }
+        setMenuGestSaving(true);
+        try {
+            const body = { nombre: menuGestForm.nombre.trim(), precio, descripcion: menuGestForm.descripcion.trim(), categoria: menuGestForm.categoria.trim().toUpperCase(), activo: true };
+            if (menuGestEditId) {
+                await fetch(`/api/menu/${menuGestEditId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(body) });
+            } else {
+                await fetch("/api/menu", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(body) });
+            }
+            setMenuGestForm({ nombre: "", precio: "", descripcion: "", categoria: "" }); setMenuGestSelectCat(""); setMenuGestEditId(null); setMenuGestShowForm(false);
+            await loadMenuGest();
+        } finally { setMenuGestSaving(false); }
+    }
+
+    async function toggleMenuGestActivo(item: MenuItemLite) {
+        await fetch(`/api/menu/${item._id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ ...item, activo: !item.activo }) });
+        await loadMenuGest();
+    }
+
+    async function eliminarMenuGestItem(id: string) {
+        const r = await swalBase.fire({ title: "¿Eliminar producto?", text: "Esta acción no se puede deshacer.", icon: "warning", showCancelButton: true, confirmButtonText: "Sí, eliminar", cancelButtonText: "Cancelar" });
+        if (!r.isConfirmed) return;
+        await fetch(`/api/menu/${id}`, { method: "DELETE", credentials: "include" });
+        await loadMenuGest();
+    }
+
+    function abrirEditarMenuGest(item: MenuItemLite) {
+        setMenuGestForm({ nombre: item.nombre, precio: String(item.precio), descripcion: item.descripcion || "", categoria: item.categoria });
+        setMenuGestSelectCat(item.categoria);
+        setMenuGestEditId(item._id);
+        setMenuGestShowForm(true);
+    }
 
     // Ítems cuyo "impreso" ya se está marcando/imprimiendo en este mismo instante,
     // para no dispararlos dos veces si el poll de 5s cae justo en el medio.
@@ -291,6 +346,10 @@ export default function CajaPage() {
         fetch("/api/config/pedidos").then(r => r.json()).then(d => setPedidosActivos(d.activo ?? true));
         fetch("/api/config/reservas").then(r => r.json()).then(d => setReservasActivas(d.activo ?? true));
     }, []);
+
+    useEffect(() => {
+        if (tab === "menu") loadMenuGest();
+    }, [tab]);
 
     // Búsqueda de comensales en modal de venta de evento
     useEffect(() => {
@@ -1360,6 +1419,12 @@ export default function CajaPage() {
                                 </span>
                             )}
                         </button>
+                        <button onClick={() => setTab("menu")}
+                            className={`flex-1 py-3.5 text-sm font-black transition flex items-center justify-center gap-2 ${
+                                tab === "menu" ? "text-gray-900 border-b-2 border-black" : "text-gray-400 hover:text-gray-600"
+                            }`}>
+                            <UtensilsCrossed size={15} /> Menú
+                        </button>
                     </div>
 
                     {/* ── TAB PEDIDOS ── */}
@@ -2182,6 +2247,124 @@ export default function CajaPage() {
                                     </div>
                                 )}
                             </section>
+                        </div>
+                    )}
+
+                    {/* ── TAB MENÚ ── */}
+                    {tab === "menu" && (
+                        <div className="max-w-3xl mx-auto px-4 pt-4 pb-10">
+                            {/* Header + botón agregar */}
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <h2 className="font-black text-gray-900 text-lg">Menú</h2>
+                                    <p className="text-xs text-gray-400">{menuGest.length} productos</p>
+                                </div>
+                                <button
+                                    onClick={() => { setMenuGestShowForm(f => !f); setMenuGestEditId(null); setMenuGestForm({ nombre: "", precio: "", descripcion: "", categoria: "" }); setMenuGestSelectCat(""); }}
+                                    className="flex items-center gap-2 bg-black text-white font-bold px-4 py-2 rounded-xl text-sm hover:bg-gray-900 transition">
+                                    <Plus size={15} /> Agregar
+                                </button>
+                            </div>
+
+                            {/* Formulario agregar / editar */}
+                            <AnimatePresence>
+                                {menuGestShowForm && (
+                                    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                                        className="bg-white border border-gray-200 rounded-2xl p-4 mb-4 space-y-3 shadow-sm">
+                                        <h3 className="font-black text-gray-900">{menuGestEditId ? "Editar producto" : "Nuevo producto"}</h3>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <input className="col-span-2 rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                                                placeholder="Nombre *" value={menuGestForm.nombre}
+                                                onChange={e => setMenuGestForm(f => ({ ...f, nombre: e.target.value }))} />
+                                            <input className="rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                                                placeholder="Precio *" type="text" value={menuGestForm.precio}
+                                                onChange={e => setMenuGestForm(f => ({ ...f, precio: e.target.value.replace(/[^0-9.,]/g, "") }))} />
+                                            <select className="rounded-xl border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-black"
+                                                value={menuGestSelectCat}
+                                                onChange={e => { setMenuGestSelectCat(e.target.value); setMenuGestForm(f => ({ ...f, categoria: e.target.value === "__nueva__" ? "" : e.target.value })); }}>
+                                                <option value="">Categoría *</option>
+                                                {Array.from(new Set(menuGest.map(i => i.categoria))).sort().map(c => (
+                                                    <option key={c} value={c}>{c}</option>
+                                                ))}
+                                                <option value="__nueva__">+ Nueva categoría...</option>
+                                            </select>
+                                        </div>
+                                        {menuGestSelectCat === "__nueva__" && (
+                                            <input className="w-full rounded-xl border border-red-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                                                placeholder="Nombre de la nueva categoría (ej: PASTAS)"
+                                                value={menuGestForm.categoria}
+                                                onChange={e => setMenuGestForm(f => ({ ...f, categoria: e.target.value.toUpperCase() }))} />
+                                        )}
+                                        <textarea className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-black"
+                                            rows={2} placeholder="Descripción (opcional)" value={menuGestForm.descripcion}
+                                            onChange={e => setMenuGestForm(f => ({ ...f, descripcion: e.target.value }))} />
+                                        <div className="flex gap-2 justify-end">
+                                            <button onClick={() => { setMenuGestShowForm(false); setMenuGestEditId(null); }}
+                                                className="px-4 py-2 rounded-xl border border-gray-300 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition">
+                                                Cancelar
+                                            </button>
+                                            <button onClick={saveMenuGestItem} disabled={menuGestSaving}
+                                                className="px-5 py-2 rounded-xl bg-black text-white text-sm font-bold hover:bg-gray-900 transition disabled:opacity-50">
+                                                {menuGestSaving ? "Guardando..." : (menuGestEditId ? "Guardar cambios" : "Agregar")}
+                                            </button>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                            {/* Filtro por categoría + búsqueda */}
+                            <div className="flex gap-2 mb-3">
+                                <input className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                                    placeholder="Buscar producto..." value={menuGestSearch}
+                                    onChange={e => setMenuGestSearch(e.target.value)} />
+                            </div>
+                            <div className="flex gap-2 flex-wrap mb-4">
+                                {["todas", ...Array.from(new Set(menuGest.map(i => i.categoria))).sort()].map(cat => (
+                                    <button key={cat} onClick={() => setMenuGestCat(cat)}
+                                        className={`px-3 py-1 rounded-full text-xs font-bold transition ${menuGestCat === cat ? "bg-black text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                                        {cat === "todas" ? "Todas" : cat}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Lista de productos */}
+                            {menuGestLoading ? (
+                                <div className="flex justify-center py-12"><Loader2 size={32} className="animate-spin text-gray-400" /></div>
+                            ) : (
+                                <div className="space-y-2">
+                                    {menuGest
+                                        .filter(i => menuGestCat === "todas" || i.categoria === menuGestCat)
+                                        .filter(i => !menuGestSearch || i.nombre.toLowerCase().includes(menuGestSearch.toLowerCase()))
+                                        .map(item => (
+                                            <div key={item._id} className={`bg-white border rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm transition ${item.activo === false ? "opacity-50 border-gray-100" : "border-gray-200"}`}>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-bold text-gray-900 text-sm truncate">{item.nombre}</p>
+                                                    <p className="text-xs text-gray-400">{item.categoria} · ${new Intl.NumberFormat("es-AR").format(item.precio)}</p>
+                                                    {item.descripcion && <p className="text-xs text-gray-400 truncate mt-0.5">{item.descripcion}</p>}
+                                                </div>
+                                                {/* Toggle activo */}
+                                                <button onClick={() => toggleMenuGestActivo(item)}
+                                                    className={`relative flex h-5 w-9 shrink-0 cursor-pointer rounded-full items-center transition-colors duration-200 ${item.activo !== false ? "bg-red-500" : "bg-gray-300"}`}>
+                                                    <span className={`absolute h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-200 ${item.activo !== false ? "translate-x-[18px]" : "translate-x-[2px]"}`} />
+                                                </button>
+                                                {/* Editar */}
+                                                <button onClick={() => abrirEditarMenuGest(item)}
+                                                    className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition">
+                                                    <Pencil size={13} />
+                                                </button>
+                                                {/* Eliminar */}
+                                                <button onClick={() => eliminarMenuGestItem(item._id)}
+                                                    className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition">
+                                                    <Trash2 size={13} />
+                                                </button>
+                                            </div>
+                                        ))
+                                    }
+                                    {menuGest.filter(i => menuGestCat === "todas" || i.categoria === menuGestCat).filter(i => !menuGestSearch || i.nombre.toLowerCase().includes(menuGestSearch.toLowerCase())).length === 0 && (
+                                        <p className="text-center text-gray-400 py-10">Sin productos en esta categoría.</p>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
                 </>
