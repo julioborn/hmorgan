@@ -10,7 +10,7 @@ import {
     Wallet, X, Printer, CreditCard, Banknote, Send,
     Loader2, CheckCircle, AlertCircle, Clock, Flame,
     Package, Truck, UtensilsCrossed, CalendarDays,
-    Phone, MessageCircle, Plus, Pencil, Trash2, MapPin, Users, Star, Gift, XCircle, ArrowDownLeft, ArrowLeftRight,
+    MessageCircle, Plus, Pencil, Trash2, MapPin, Users, Star, Gift, XCircle, ArrowDownLeft, ArrowLeftRight,
 } from "lucide-react";
 import ReservasManager from "@/components/ReservasManager";
 import { hoyArgentina } from "@/lib/argentina-time";
@@ -1668,6 +1668,13 @@ export default function CajaPage() {
                                                                 <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider inline-block ${tipoBadge.cls}`}>
                                                                     {tipoBadge.label}
                                                                 </span>
+                                                                {esApp && p.userId?.telefono && (
+                                                                    <a href={`https://wa.me/${p.userId.telefono.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
+                                                                        className="p-1.5 rounded-full bg-white/20 hover:bg-white/40 text-white transition"
+                                                                        title="WhatsApp">
+                                                                        <MessageCircle size={12} />
+                                                                    </a>
+                                                                )}
                                                                 {!esApp && p.mesa && (
                                                                     <button onClick={() => setCambiarMesaModal(p)}
                                                                         className="p-1.5 rounded-full bg-white/20 hover:bg-white/40 text-white transition"
@@ -1700,12 +1707,6 @@ export default function CajaPage() {
                                                                 <div className="flex items-center gap-1 text-xs font-bold text-gray-800">
                                                                     <Clock size={11} className="shrink-0 text-gray-500" /><span>{p.horarioPreferido}</span>
                                                                 </div>
-                                                            )}
-                                                            {p.userId?.telefono && (
-                                                                <a href={`https://wa.me/${p.userId.telefono.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
-                                                                    className="flex items-center gap-1 text-xs text-gray-700 hover:text-black transition">
-                                                                    <Phone size={11} className="shrink-0" />{p.userId.telefono}
-                                                                </a>
                                                             )}
                                                         </div>
                                                     )}
@@ -1764,14 +1765,6 @@ export default function CajaPage() {
                                                             <span className="text-xs font-black text-gray-700 uppercase tracking-wide">Total</span>
                                                             <span className="font-black text-gray-900 text-xl">{formatMoney(p.total)}</span>
                                                         </div>
-                                                    )}
-
-                                                    {/* Whatsapp para pedidos app */}
-                                                    {esApp && p.userId?.telefono && (
-                                                        <a href={`https://wa.me/${p.userId.telefono.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
-                                                            className="shrink-0 mb-2 flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-bold transition">
-                                                            <MessageCircle size={13} /> WhatsApp
-                                                        </a>
                                                     )}
 
                                                     {/* Botones pendiente */}
