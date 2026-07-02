@@ -771,7 +771,7 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
   }, []);
 
   useEffect(() => {
-    fetch("/api/pedidos?activos=true&fuente=empleado", { credentials: "include" })
+    fetch("/api/pedidos?activos=true&fuente=empleado&propias=true", { credentials: "include" })
       .then(r => r.json())
       .then(d => setComandasCount(Array.isArray(d) ? d.length : 0))
       .catch(() => {});
@@ -809,7 +809,7 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
             </div>
           </Link>
           {comandasCount > 0 && (
-            <span className="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1.5 bg-white text-red-600 text-xs font-black rounded-full flex items-center justify-center shadow-md border border-red-100 pointer-events-none">
+            <span className="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1.5 bg-white text-red-600 text-xs font-black rounded-full flex items-center justify-center shadow-md border-2 border-black pointer-events-none">
               {comandasCount}
             </span>
           )}
