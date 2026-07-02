@@ -51,7 +51,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         const cantidad = Number(body.cantidad);
         if (!cantidad || cantidad < 1) return NextResponse.json({ error: "Cantidad inválida" }, { status: 400 });
         const metodoPago = body.metodoPago || "efectivo";
-        evento.tarjetas.push({ cantidad });
+        evento.tarjetas.push({ cantidad, metodoPago });
         await evento.save();
         const precioTarjeta = (evento as any).precioTarjeta ?? 0;
         const totalTarjetas = cantidad * precioTarjeta;
