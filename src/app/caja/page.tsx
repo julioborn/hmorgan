@@ -1584,8 +1584,8 @@ export default function CajaPage() {
                                                 ? `Mozo: ${[p.userId?.nombre, p.userId?.apellido].filter(Boolean).join(" ")}`
                                                 : "Caja";
 
-                                        const accentBg   = esApp ? "bg-red-600" : esEvento ? "bg-amber-500" : "bg-black";
-                                        const cardBorder = esApp ? "border-red-500" : esEvento ? "border-amber-400" : "border-black";
+                                        const accentBg   = esApp ? "bg-red-600" : "bg-black";
+                                        const cardBorder = esApp ? "border-red-500" : "border-black";
 
                                         return (
                                             <motion.div key={p._id}
@@ -1597,9 +1597,9 @@ export default function CajaPage() {
                                                     <div className="flex items-start justify-between gap-3">
                                                         <div className="flex-1 min-w-0">
                                                             <p className="font-black text-white text-xl leading-tight tracking-tight truncate">{titulo}</p>
-                                                            {esEvento && eventoNombre && (
-                                                                <span className="inline-block text-[10px] font-black bg-white/20 text-white px-2 py-0.5 rounded-full uppercase tracking-wide mt-0.5 mb-0.5">
-                                                                    🎉 {eventoNombre}
+                                                            {esEvento && (
+                                                                <span className="inline-block text-[10px] font-black bg-amber-400 text-black px-2 py-0.5 rounded-full uppercase tracking-widest mt-0.5 mb-0.5">
+                                                                    Evento{eventoNombre ? ` · ${eventoNombre}` : ""}
                                                                 </span>
                                                             )}
                                                             <p className="text-xs text-white/65 font-medium mt-0.5">{subtitulo}</p>
