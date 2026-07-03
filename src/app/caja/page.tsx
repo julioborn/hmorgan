@@ -1,6 +1,7 @@
 "use client";
 // v2
 import { useEffect, useState, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { swalBase } from "@/lib/swalConfig";
 import { motion, AnimatePresence } from "framer-motion";
@@ -2820,8 +2821,8 @@ export default function CajaPage() {
                 const hayEfectivo = cobrarForm.pagos.some(p => p.metodo === "efectivo");
                 const vuelto = Math.max(0, totalPagado - totalConDescuento);
                 const esValido = pendiente <= 1;
-                return (
-                    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+                return createPortal(
+                    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
                         <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl max-h-[92vh] flex flex-col">
                             <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
                                 <h2 className="font-black text-gray-900 flex-1">
@@ -2849,55 +2850,46 @@ export default function CajaPage() {
                                     </div>
                                 </div>
 
-                                {/* Descuento */}
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-gray-700 uppercase tracking-wider">Descuento en pesos</label>
-                                    <div className="flex items-center gap-2 border border-black rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-black overflow-hidden">
-                                        <span className="text-gray-700 text-sm font-semibold">−$</span>
-                                        <input type="number" min="0" max={ped.total}
-                                            value={cobrarForm.descuento}
-                                            onChange={e => setCobrarForm(p => ({ ...p, descuento: e.target.value }))}
-                                            placeholder="0"
-                                            className="flex-1 min-w-0 text-sm font-bold focus:outline-none text-gray-900 bg-transparent" />
-                                    </div>
-                                    {descuento > 0 && (
-                                        <div className="flex justify-between px-1">
-                                            <span className="text-xs text-red-600 font-semibold">Total con descuento</span>
-                                            <span className="text-xs text-red-600 font-black">{formatMoney(totalConDescuento)}</span>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Pagos */}
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-gray-700 uppercase tracking-wider">Forma de pago</label>
-                                    {cobrarForm.pagos.map((pago, idx) => (
-                                        <div key={idx} className="flex items-center gap-2">
-                                            <div className="flex gap-1 flex-1">
-                                                {METODOS.map(met => {
-                                                    const Icon = METODO_ICON[met];
-                                                    return (
-                                                        <button key={met}
-                                                            onClick={() => setCobrarForm(p => ({ ...p, pagos: p.pagos.map((pg, i) => i === idx ? { ...pg, metodo: met } : pg) }))}
-                                                            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-0.5 border transition ${pago.metodo === met ? "bg-black text-white border-black" : "bg-white text-gray-700 border-gray-200 hover:border-gray-400"}`}>
-                                                            <Icon size={10} />{METODO_LABEL[met]}
+                                {/* Pagos — sección principal */}
+                                <div className="space-y-3">
+                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Forma de pago</p>
+                                    {cobrarForm.pagos.map((pago, idx) => {
+                                        const multiPago = cobrarForm.pagos.length > 1;
+                                        return (
+                                            <div key={idx} className="rounded-2xl border-2 border-gray-200 overflow-hidden">
+                                                {/* Selector método */}
+                                                <div className="grid grid-cols-3">
+                                                    {METODOS.map(met => {
+                                                        const Icon = METODO_ICON[met];
+                                                        const sel = pago.metodo === met;
+                                                        return (
+                                                            <button key={met}
+                                                                onClick={() => setCobrarForm(p => ({ ...p, pagos: p.pagos.map((pg, i) => i === idx ? { ...pg, metodo: met } : pg) }))}
+                                                                className={`flex flex-col items-center gap-1 py-3 text-xs font-black transition border-b-2 ${sel ? "bg-black text-white border-black" : "bg-white text-gray-500 border-transparent hover:bg-gray-50"}`}>
+                                                                <Icon size={20} />
+                                                                {METODO_LABEL[met]}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                                {/* Input monto */}
+                                                <div className="flex items-center px-4 py-3 gap-2 bg-gray-50">
+                                                    <span className="text-gray-400 font-bold text-lg">$</span>
+                                                    <input type="number" min="0"
+                                                        value={pago.monto}
+                                                        onChange={e => setCobrarForm(p => ({ ...p, pagos: p.pagos.map((pg, i) => i === idx ? { ...pg, monto: e.target.value } : pg) }))}
+                                                        className="flex-1 text-2xl font-black focus:outline-none text-gray-900 bg-transparent text-right"
+                                                        placeholder="0" />
+                                                    {multiPago && (
+                                                        <button onClick={() => setCobrarForm(p => ({ ...p, pagos: p.pagos.filter((_, i) => i !== idx) }))}
+                                                            className="p-1 text-red-400 hover:text-red-600 shrink-0 ml-1">
+                                                            <X size={16} />
                                                         </button>
-                                                    );
-                                                })}
+                                                    )}
+                                                </div>
                                             </div>
-                                            <input type="number" min="0"
-                                                value={pago.monto}
-                                                onChange={e => setCobrarForm(p => ({ ...p, pagos: p.pagos.map((pg, i) => i === idx ? { ...pg, monto: e.target.value } : pg) }))}
-                                                className="w-24 px-2 py-1.5 border border-black rounded-xl text-sm font-bold focus:outline-none focus:ring-1 focus:ring-black text-right bg-transparent"
-                                                placeholder="$0" />
-                                            {cobrarForm.pagos.length > 1 && (
-                                                <button onClick={() => setCobrarForm(p => ({ ...p, pagos: p.pagos.filter((_, i) => i !== idx) }))}
-                                                    className="p-1 text-red-400 hover:text-red-600 shrink-0">
-                                                    <X size={14} />
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                     {cobrarForm.pagos.length < 3 && (
                                         <button
                                             onClick={() => {
@@ -2906,9 +2898,22 @@ export default function CajaPage() {
                                                 const restante = Math.max(0, totalConDescuento - totalPagado);
                                                 setCobrarForm(p => ({ ...p, pagos: [...p.pagos, { metodo: next, monto: restante > 0 ? String(restante) : "" }] }));
                                             }}
-                                            className="w-full py-1.5 border border-dashed border-gray-300 rounded-xl text-xs font-semibold text-gray-700 hover:text-gray-600 hover:border-gray-400 transition">
+                                            className="w-full py-2.5 border border-dashed border-gray-300 rounded-xl text-sm font-semibold text-gray-500 hover:border-gray-400 hover:text-gray-700 transition">
                                             + Agregar método de pago
                                         </button>
+                                    )}
+                                </div>
+
+                                {/* Descuento — sección secundaria */}
+                                <div className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-2.5">
+                                    <span className="text-xs font-bold text-gray-500 shrink-0">Descuento $</span>
+                                    <input type="number" min="0" max={ped.total}
+                                        value={cobrarForm.descuento}
+                                        onChange={e => setCobrarForm(p => ({ ...p, descuento: e.target.value }))}
+                                        placeholder="0"
+                                        className="flex-1 text-sm font-bold focus:outline-none text-gray-900 bg-transparent text-right" />
+                                    {descuento > 0 && (
+                                        <span className="text-xs font-black text-red-600 shrink-0">{formatMoney(totalConDescuento)}</span>
                                     )}
                                 </div>
 
@@ -2940,7 +2945,8 @@ export default function CajaPage() {
                                 </button>
                             </div>
                         </div>
-                    </div>
+                    </div>,
+                    document.body
                 );
             })()}
 
@@ -3674,14 +3680,14 @@ export default function CajaPage() {
             {cpModal && (() => {
                 const cpTotal = cpItems.reduce((s, i) => s + i.precio * i.selected, 0);
                 const titulo  = cpModal.mesa ? mesaLabel(cpModal.mesa) : cpModal.nombreComanda || "Pedido";
-                return (
-                    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/60"
+                return createPortal(
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
                         onClick={() => !cpSaving && setCpModal(null)}>
-                        <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md shadow-2xl overflow-hidden"
+                        <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden max-h-[92vh] flex flex-col"
                             onClick={e => e.stopPropagation()}>
 
                             {/* Header */}
-                            <div className="bg-black px-4 py-3 flex items-center justify-between">
+                            <div className="bg-black px-4 py-3 flex items-center justify-between shrink-0">
                                 <div>
                                     <p className="font-black text-white text-sm">Cobro parcial</p>
                                     <p className="text-xs text-white/60">{titulo}</p>
@@ -3690,30 +3696,19 @@ export default function CajaPage() {
                             </div>
 
                             {/* Items con stepper */}
-                            <div className="px-4 py-3 space-y-3 max-h-72 overflow-y-auto">
+                            <div className="px-4 py-3 space-y-3 overflow-y-auto flex-1 min-h-0">
                                 {cpItems.map(it => (
                                     <div key={it.itemId} className="flex items-center gap-3">
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-semibold text-gray-800 truncate">{it.nombre}</p>
                                             <p className="text-xs text-gray-400">{formatMoney(it.precio)} c/u · hasta {it.max}</p>
                                         </div>
-                                        {/* Stepper */}
                                         <div className="flex items-center gap-2 shrink-0">
-                                            <button
-                                                onClick={() => setCpCantidad(it.itemId, -1)}
-                                                disabled={it.selected === 0}
-                                                className="w-7 h-7 rounded-full border-2 border-gray-300 flex items-center justify-center text-gray-700 font-black disabled:opacity-30 hover:border-black transition">
-                                                −
-                                            </button>
-                                            <span className={`w-6 text-center font-black text-sm ${it.selected > 0 ? "text-black" : "text-gray-300"}`}>
-                                                {it.selected}
-                                            </span>
-                                            <button
-                                                onClick={() => setCpCantidad(it.itemId, +1)}
-                                                disabled={it.selected === it.max}
-                                                className="w-7 h-7 rounded-full border-2 border-gray-300 flex items-center justify-center text-gray-700 font-black disabled:opacity-30 hover:border-black transition">
-                                                +
-                                            </button>
+                                            <button onClick={() => setCpCantidad(it.itemId, -1)} disabled={it.selected === 0}
+                                                className="w-7 h-7 rounded-full border-2 border-gray-300 flex items-center justify-center text-gray-700 font-black disabled:opacity-30 hover:border-black transition">−</button>
+                                            <span className={`w-6 text-center font-black text-sm ${it.selected > 0 ? "text-black" : "text-gray-300"}`}>{it.selected}</span>
+                                            <button onClick={() => setCpCantidad(it.itemId, +1)} disabled={it.selected === it.max}
+                                                className="w-7 h-7 rounded-full border-2 border-gray-300 flex items-center justify-center text-gray-700 font-black disabled:opacity-30 hover:border-black transition">+</button>
                                         </div>
                                         <span className={`text-sm font-black w-16 text-right shrink-0 ${it.selected > 0 ? "text-emerald-600" : "text-gray-200"}`}>
                                             {formatMoney(it.precio * it.selected)}
@@ -3722,37 +3717,38 @@ export default function CajaPage() {
                                 ))}
                             </div>
 
-                            {/* Método de pago */}
-                            <div className="px-4 pb-3 border-t border-gray-100 pt-3">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Método de pago</p>
-                                <div className="flex gap-2">
-                                    {(["efectivo", "tarjeta", "transferencia"] as const).map(m => (
-                                        <button key={m}
-                                            onClick={() => setCpMetodo(m)}
-                                            className={`flex-1 py-2 rounded-xl text-xs font-bold border-2 transition capitalize
-                                                ${cpMetodo === m ? "bg-black text-white border-black" : "bg-white text-gray-700 border-gray-200 hover:border-gray-400"}`}>
-                                            {m === "efectivo" ? "Efectivo" : m === "tarjeta" ? "Tarjeta" : "Transf."}
-                                        </button>
-                                    ))}
+                            {/* Método de pago — diseño grande */}
+                            <div className="border-t border-gray-100 shrink-0">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 px-4 pt-3 mb-2">Método de pago</p>
+                                <div className="grid grid-cols-3 border-b border-gray-100">
+                                    {(["efectivo", "tarjeta", "transferencia"] as const).map(m => {
+                                        const Icon = METODO_ICON[m];
+                                        const sel = cpMetodo === m;
+                                        return (
+                                            <button key={m} onClick={() => setCpMetodo(m)}
+                                                className={`flex flex-col items-center gap-1 py-3 text-xs font-black transition border-b-2
+                                                    ${sel ? "bg-black text-white border-black" : "bg-white text-gray-500 border-transparent hover:bg-gray-50"}`}>
+                                                <Icon size={20} />
+                                                {m === "efectivo" ? "Efectivo" : m === "tarjeta" ? "Tarjeta" : "Transferencia"}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
-                            </div>
-
-                            {/* Total + confirm */}
-                            <div className="px-4 pb-5 pt-2 border-t border-gray-100">
-                                <div className="flex items-center justify-between mb-3">
+                                <div className="px-4 py-3 flex items-center justify-between">
                                     <span className="text-sm font-bold text-gray-600">Total a cobrar</span>
-                                    <span className="text-xl font-black text-gray-900">{formatMoney(cpTotal)}</span>
+                                    <span className="text-2xl font-black text-gray-900">{formatMoney(cpTotal)}</span>
                                 </div>
-                                <button
-                                    onClick={ejecutarCobroParcial}
-                                    disabled={cpSaving || cpTotal === 0}
-                                    className="w-full bg-black text-white font-black py-3 rounded-xl text-base transition disabled:opacity-40 flex items-center justify-center gap-2">
-                                    {cpSaving ? <Loader2 size={18} className="animate-spin" /> : null}
-                                    {cpSaving ? "Procesando…" : `Cobrar ${formatMoney(cpTotal)}`}
-                                </button>
+                                <div className="px-4 pb-5">
+                                    <button onClick={ejecutarCobroParcial} disabled={cpSaving || cpTotal === 0}
+                                        className="w-full bg-black text-white font-black py-3 rounded-xl text-base transition disabled:opacity-40 flex items-center justify-center gap-2">
+                                        {cpSaving ? <Loader2 size={18} className="animate-spin" /> : null}
+                                        {cpSaving ? "Procesando…" : `Cobrar ${formatMoney(cpTotal)}`}
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </div>,
+                    document.body
                 );
             })()}
 
