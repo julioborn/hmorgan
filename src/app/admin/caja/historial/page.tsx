@@ -496,7 +496,9 @@ function DetalleSesion({ s, onRefresh }: { s: Sesion; onRefresh: () => void }) {
     const productos = Object.values(s.productos).sort((a, b) => b.total - a.total);
     const totalExcedente = Object.values(s.totales).reduce((sum, t) => sum + (t.excedente || 0), 0);
 
-    const efectivoSistema = (s.montoInicial || 0) + s.totalIngreso - s.totalEgreso;
+    const efectivoSistema = (s.montoInicial || 0)
+        + (s.totales["efectivo"]?.ingreso || 0)
+        - (s.totales["efectivo"]?.egreso  || 0);
 
     // Estado edición montoCierre
     const [editando,    setEditando]    = useState(false);
