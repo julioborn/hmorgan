@@ -409,6 +409,20 @@ function AnotadorMenuContent() {
     async function enviarPedido() {
         if (cart.length === 0) return;
         const esAgregado = !!(comandaId && comanda);
+
+        // Advertencia si nueva comanda sin mesa
+        if (!esAgregado && mesas.length === 0 && !eventoActivo) {
+            const { isConfirmed } = await swalBase.fire({
+                title: "¿Comanda sin mesa?",
+                text: "No seleccionaste ninguna mesa. ¿Querés continuar igual?",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonText: "Sí, continuar",
+                cancelButtonText: "Elegir mesa",
+            });
+            if (!isConfirmed) return;
+        }
+
         const confirm = await swalBase.fire({
             title: esAgregado ? "¿Agregar a la comanda?" : "¿Enviar pedido a la caja?",
             text: esAgregado
