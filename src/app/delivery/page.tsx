@@ -73,13 +73,33 @@ export default function DeliveryPage() {
         }).catch(() => {});
     }, []);
 
-    // Iniciar tracking
-    function iniciarTracking() {
+    const iniciarTracking = useCallback(() => {
         if (!navigator.geolocation) {
             setTrackingError("Tu dispositivo no soporta geolocalización");
             return;
         }
         setTrackingError("");
+
+        // Primer fix inmediato para que llegue rápido la primera posición
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                setMiUbicacion(coords);
+                lastSentRef.current = coords;
+                enviarUbicacion(coords);
+            },
+            err => {
+                const msg = err.code === 1
+                    ? "Permiso de ubicación denegado. Habilitalo en la configuración del navegador."
+                    : err.code === 2
+                    ? "No se pudo determinar la ubicación. Verificá tu GPS."
+                    : "Tiempo de espera agotado para obtener ubicación.";
+                setTrackingError(msg);
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+
+        // Watch continuo para actualizaciones
         watchIdRef.current = navigator.geolocation.watchPosition(
             pos => {
                 const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -87,17 +107,21 @@ export default function DeliveryPage() {
                 lastSentRef.current = coords;
             },
             err => {
-                setTrackingError("No se pudo obtener la ubicación");
-                console.error(err);
+                if (err.code === 1) {
+                    setTrackingError("Permiso denegado. Habilitá la ubicación en tu navegador.");
+                    detenerTracking();
+                }
             },
-            { enableHighAccuracy: true, maximumAge: 5000 }
+            { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
         );
+
         // Enviar al servidor cada 12 segundos
         sendIntervalRef.current = setInterval(() => {
             if (lastSentRef.current) enviarUbicacion(lastSentRef.current);
         }, 12000);
+
         setTracking(true);
-    }
+    }, [enviarUbicacion]);
 
     // Detener tracking
     async function detenerTracking() {
@@ -109,12 +133,19 @@ export default function DeliveryPage() {
             clearInterval(sendIntervalRef.current);
             sendIntervalRef.current = null;
         }
-        // Borrar ubicación del servidor
         await fetch("/api/delivery/ubicacion", { method: "DELETE", credentials: "include" }).catch(() => {});
         setTracking(false);
         setMiUbicacion(null);
         lastSentRef.current = null;
     }
+
+    // Auto-iniciar tracking al entrar (solo rol delivery, cuando ya cargó el usuario)
+    useEffect(() => {
+        if (!loading && user?.role === "delivery" && !loadingData) {
+            iniciarTracking();
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [loading, loadingData]);
 
     // Limpiar al desmontar
     useEffect(() => {
