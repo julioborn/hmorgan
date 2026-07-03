@@ -598,6 +598,8 @@ export default function CajaPage() {
                 }),
             });
             if (res.ok) {
+                const printItems = selected.map(i => ({ cantidad: i.selected, nombre: i.nombre, precio: i.precio }));
+                printTicket(cpModal, [{ metodo: cpMetodo, monto: total }], 0, total, 0, printItems);
                 setCpModal(null);
                 loadData();
             } else {
@@ -817,9 +819,23 @@ export default function CajaPage() {
         } finally { setCobrarSaving(false); }
     }
 
-    async function printTicket(pedido: Pedido, pagos: { metodo: string; monto: number }[], descuento: number, totalConDescuento: number, vuelto: number) {
+    async function printTicket(
+        pedido: Pedido,
+        pagos: { metodo: string; monto: number }[],
+        descuento: number,
+        totalConDescuento: number,
+        vuelto: number,
+        itemsOverride?: { cantidad: number; nombre: string; precio: number }[],
+    ) {
         const hora  = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
         const fecha = new Date().toLocaleDateString("es-AR");
+
+        const printItems = itemsOverride ?? pedido.items.map(i => ({
+            cantidad: i.cantidad,
+            nombre:   i.menuItemId?.nombre || "Ítem",
+            precio:   i.menuItemId?.precio || 0,
+        }));
+        const displayTotal = itemsOverride ? totalConDescuento : (pedido.total ?? totalConDescuento);
 
         try {
             const res = await fetch("http://localhost:3001/imprimir/ticket", {
@@ -829,9 +845,9 @@ export default function CajaPage() {
                     mesa:      pedido.mesa || "—",
                     fecha,
                     hora,
-                    items:     pedido.items.map(i => ({ cantidad: i.cantidad, nombre: i.menuItemId?.nombre || "Ítem", precio: i.menuItemId?.precio || 0 })),
-                    total:     pedido.total,
-                    costoEnvio: pedido.tipoEntrega === "envio" ? (pedido.costoEnvio ?? 0) : 0,
+                    items:     printItems,
+                    total:     displayTotal,
+                    costoEnvio: !itemsOverride && pedido.tipoEntrega === "envio" ? (pedido.costoEnvio ?? 0) : 0,
                     descuento,
                     pagos,
                     vuelto,
@@ -841,9 +857,9 @@ export default function CajaPage() {
         } catch { /* servidor no disponible → fallback */ }
 
         // Fallback: ventana del navegador
-        const rows = pedido.items.map(i =>
-            `<tr><td>${i.cantidad}x ${i.menuItemId?.nombre || "ítem"}</td><td style="text-align:right">${formatMoney((i.menuItemId?.precio || 0) * i.cantidad)}</td></tr>`
-        ).join("") + (pedido.tipoEntrega === "envio" && (pedido.costoEnvio ?? 0) > 0
+        const rows = printItems.map(i =>
+            `<tr><td>${i.cantidad}x ${i.nombre}</td><td style="text-align:right">${formatMoney(i.precio * i.cantidad)}</td></tr>`
+        ).join("") + (!itemsOverride && pedido.tipoEntrega === "envio" && (pedido.costoEnvio ?? 0) > 0
             ? `<tr><td>Envío a domicilio</td><td style="text-align:right">${formatMoney(pedido.costoEnvio ?? 0)}</td></tr>` : "");
         const descuentoRow = descuento > 0
             ? `<tr><td class="desc">Descuento</td><td class="desc" style="text-align:right">- ${formatMoney(descuento)}</td></tr>
@@ -863,7 +879,7 @@ export default function CajaPage() {
         <h2>TICKET</h2><div class="sub">${fecha} ${hora}</div>
         <hr/><table>${rows}</table><hr/>
         <table>
-            <tr><td class="total">TOTAL</td><td class="total" style="text-align:right">${formatMoney(pedido.total)}</td></tr>
+            <tr><td class="total">TOTAL</td><td class="total" style="text-align:right">${formatMoney(displayTotal)}</td></tr>
             ${descuentoRow}${pagosRows}${vueltoRow}
         </table>
         <div class="legal">Comprobante no válido como factura</div></body></html>`;
