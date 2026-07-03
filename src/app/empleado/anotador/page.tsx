@@ -53,6 +53,8 @@ export default function AnotadorPage() {
     const [mesasDisponibles, setMesasDisponibles] = useState<{ _id: string; nombre: string; tipo?: string; activa: boolean; x: number; y: number; forma: string; ancho?: number; alto?: number; rotacion?: number }[]>([]);
     const [elementsPlano, setElementsPlano] = useState<{ _id: string; tipo: string; label: string; x: number; y: number; ancho: number; alto: number; color: string }[]>([]);
     const [toasts, setToasts] = useState<Toast[]>([]);
+    const [filtro, setFiltro] = useState<"todas" | "preparando" | "listo" | "terminados">("todas");
+    const [comandasTerminadas, setComandasTerminadas] = useState<Comanda[]>([]);
     const prevEstadosRef = useRef<Map<string, string>>(new Map());
 
     useEffect(() => {
@@ -93,9 +95,14 @@ export default function AnotadorPage() {
 
     const fetchComandas = useCallback(async () => {
         const propias = user?.role === "empleado" ? "&propias=true" : "";
-        const r = await fetch(`/api/pedidos?activos=true&fuente=empleado${propias}`, { credentials: "include" });
-        const d = await r.json().catch(() => []);
-        setComandas(Array.isArray(d) ? d : []);
+        const [rActivas, rTerminadas] = await Promise.all([
+            fetch(`/api/pedidos?activos=true&fuente=empleado${propias}`, { credentials: "include" }),
+            fetch(`/api/pedidos?fuente=empleado${propias}&terminadosHoy=true`, { credentials: "include" }),
+        ]);
+        const dActivas = await rActivas.json().catch(() => []);
+        const dTerminadas = await rTerminadas.json().catch(() => []);
+        setComandas(Array.isArray(dActivas) ? dActivas : []);
+        setComandasTerminadas(Array.isArray(dTerminadas) ? dTerminadas : []);
     }, [user?.role]);
 
     useEffect(() => {
@@ -240,26 +247,69 @@ export default function AnotadorPage() {
                     </button>
                 )}
 
-                {/* Comandas activas */}
-                <div>
-                    <div className="flex items-center gap-2 mb-3">
-                        <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Comandas activas</p>
-                        {comandas.length > 0 && (
-                            <span className="bg-red-600 text-white text-xs font-black px-2 py-0.5 rounded-full">{comandas.length}</span>
-                        )}
-                    </div>
-
-                    {comandas.length === 0 ? (
-                        <div className="text-center py-16 bg-gray-50 rounded-2xl">
-                            <UtensilsCrossed size={40} className="mx-auto text-gray-200 mb-3" />
-                            <p className="font-bold text-gray-400 text-sm">Sin comandas activas</p>
-                            {cajaAbierta !== false && (
-                                <p className="text-xs text-gray-300 mt-1">Presioná "Nueva comanda" para empezar</p>
-                            )}
+                {/* Tabs de filtro */}
+                {(() => {
+                    const cPreparando = comandas.filter(c => c.estado === "preparando").length;
+                    const cListos     = comandas.filter(c => c.estado === "listo").length;
+                    const cTerminados = comandasTerminadas.length;
+                    const tabs = [
+                        { key: "todas",      label: "Todas",      count: null },
+                        { key: "preparando", label: "Preparando", count: cPreparando },
+                        { key: "listo",      label: "Listos",     count: cListos },
+                        { key: "terminados", label: "Terminados", count: cTerminados },
+                    ] as const;
+                    return (
+                        <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide">
+                            {tabs.map(t => (
+                                <button key={t.key}
+                                    onClick={() => setFiltro(t.key)}
+                                    className={`relative flex-shrink-0 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wide transition
+                                        ${filtro === t.key
+                                            ? "bg-gray-900 text-white"
+                                            : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+                                    {t.label}
+                                    {t.count != null && t.count > 0 && (
+                                        <span className={`absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 text-[10px] font-black rounded-full flex items-center justify-center
+                                            ${t.key === "listo"      ? "bg-green-500 text-white"
+                                            : t.key === "terminados" ? "bg-purple-500 text-white"
+                                            :                          "bg-orange-500 text-white"}`}>
+                                            {t.count}
+                                        </span>
+                                    )}
+                                </button>
+                            ))}
                         </div>
-                    ) : (
+                    );
+                })()}
+
+                {/* Comandas */}
+                <div>
+                    {(() => {
+                        const lista = filtro === "terminados"
+                            ? comandasTerminadas
+                            : filtro === "preparando"
+                            ? comandas.filter(c => c.estado === "preparando")
+                            : filtro === "listo"
+                            ? comandas.filter(c => c.estado === "listo")
+                            : comandas;
+
+                        const esTerminados = filtro === "terminados";
+
+                        if (lista.length === 0) return (
+                            <div className="text-center py-16 bg-gray-50 rounded-2xl">
+                                <UtensilsCrossed size={40} className="mx-auto text-gray-200 mb-3" />
+                                <p className="font-bold text-gray-400 text-sm">
+                                    {esTerminados ? "Sin comandas terminadas hoy" : "Sin comandas en esta sección"}
+                                </p>
+                                {!esTerminados && cajaAbierta !== false && (
+                                    <p className="text-xs text-gray-300 mt-1">Presioná "Nueva comanda" para empezar</p>
+                                )}
+                            </div>
+                        );
+
+                        return (
                         <div className="space-y-3">
-                            {comandas.map(c => {
+                            {lista.map(c => {
                                 const eventoNombre = c.eventoId ? (eventosActivos.find(e => e._id === c.eventoId)?.nombre ?? null) : null;
                                 const titulo = eventoNombre ?? (c.mesa ? `Mesa ${c.mesa}` : c.nombreComanda || "Sin mesa");
                                 return (
@@ -331,8 +381,8 @@ export default function AnotadorPage() {
                                         )}
                                     </div>
 
-                                    {/* Acciones */}
-                                    {cajaAbierta !== false && (
+                                    {/* Acciones — solo en comandas activas */}
+                                    {cajaAbierta !== false && !esTerminados && (
                                         <div className="px-4 pb-3 flex items-center justify-between gap-2">
                                             <div className="flex items-center gap-2">
                                                 <button
@@ -361,7 +411,8 @@ export default function AnotadorPage() {
                                 );
                             })}
                         </div>
-                    )}
+                        );
+                    })()}
                 </div>
 
             </div>

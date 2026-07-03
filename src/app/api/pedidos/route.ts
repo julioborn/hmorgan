@@ -58,6 +58,7 @@ export async function GET(req: NextRequest) {
         const activosParam = req.nextUrl.searchParams.get("activos");
         const fuenteParam = req.nextUrl.searchParams.get("fuente");
         const propiasParam = req.nextUrl.searchParams.get("propias");
+        const terminadosHoyParam = req.nextUrl.searchParams.get("terminadosHoy");
 
         // El mozo solo ve sus propias comandas en su listado (no las de otros mozos).
         // No se aplica al chequeo de mesas ocupadas, que sigue viendo todas para evitar choques.
@@ -66,6 +67,13 @@ export async function GET(req: NextRequest) {
         if (mesaParam && payload.role !== "cliente") query.mesa = mesaParam;
         if (activosParam === "true") query.estado = { $nin: ["cerrado", "cancelado"] };
         if (fuenteParam && (payload.role === "admin" || payload.role === "superadmin")) query.fuente = fuenteParam;
+        if (terminadosHoyParam === "true") {
+            const hoy = hoyArgentina(); // "YYYY-MM-DD" en Argentina
+            const inicioHoy = new Date(`${hoy}T03:00:00.000Z`); // medianoche ART = UTC-3
+            const finHoy = new Date(inicioHoy.getTime() + 24 * 60 * 60 * 1000);
+            query.estado = { $in: ["cobrado", "cerrado"] };
+            query.createdAt = { $gte: inicioHoy, $lt: finHoy };
+        }
 
         const pedidos = await Pedido.find(query)
             .populate("userId", "nombre apellido role telefono")
