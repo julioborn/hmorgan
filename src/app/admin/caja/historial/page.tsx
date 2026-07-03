@@ -7,7 +7,7 @@ import {
     ChevronLeft, ChevronDown, ChevronUp, X,
     TrendingUp, TrendingDown, Banknote, CreditCard, Send,
     Package, ArrowDownCircle, ArrowUpCircle, UtensilsCrossed,
-    Star, AlertCircle, Clock, Receipt, Ticket,
+    Star, AlertCircle, Clock, Receipt, Ticket, Pencil, Check,
 } from "lucide-react";
 import Loader from "@/components/Loader";
 
@@ -492,31 +492,131 @@ function MovimientosSection({ movimientos }: { movimientos: Movement[] }) {
 
 // ── Detalle Sesion ────────────────────────────────────────────────────────────
 
-function DetalleSesion({ s }: { s: Sesion }) {
+function DetalleSesion({ s, onRefresh }: { s: Sesion; onRefresh: () => void }) {
     const productos = Object.values(s.productos).sort((a, b) => b.total - a.total);
     const totalExcedente = Object.values(s.totales).reduce((sum, t) => sum + (t.excedente || 0), 0);
+
+    const efectivoSistema = (s.montoInicial || 0) + s.totalIngreso - s.totalEgreso;
+
+    // Estado edición montoCierre
+    const [editando,    setEditando]    = useState(false);
+    const [editValor,   setEditValor]   = useState("");
+    const [confirmando, setConfirmando] = useState(false);
+    const [saving,      setSaving]      = useState(false);
+
+    function abrirEditor() {
+        setEditValor(String(s.montoCierre ?? ""));
+        setConfirmando(false);
+        setEditando(true);
+    }
+    function cancelar() { setEditando(false); setConfirmando(false); }
+
+    async function guardar() {
+        setSaving(true);
+        const res = await fetch(`/api/superadmin/caja/sesion/${s._id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ accion: "editarCierre", montoCierre: Number(editValor) }),
+        });
+        setSaving(false);
+        if (res.ok) { setEditando(false); setConfirmando(false); onRefresh(); }
+    }
+
+    const nuevoMonto     = Number(editValor) || 0;
+    const nuevaDiferencia = nuevoMonto - efectivoSistema;
 
     return (
         <div className="border-t border-gray-100 divide-y divide-gray-100">
 
             {/* Apertura / Cierre */}
-            <div className="px-4 py-3 flex gap-6">
-                <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Apertura</p>
-                    <p className="font-black text-gray-900 text-base">{fmt(s.montoInicial || 0)}</p>
-                </div>
-                {s.montoCierre != null && (
+            <div className="px-4 py-3 space-y-3">
+                <div className="flex gap-6">
                     <div>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Contado al cierre</p>
-                        <p className="font-black text-gray-900 text-base">{fmt(s.montoCierre)}</p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Apertura</p>
+                        <p className="font-black text-gray-900 text-base">{fmt(s.montoInicial || 0)}</p>
                     </div>
-                )}
-                {s.montoCierre != null && (
                     <div>
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Sistema al cierre</p>
-                        <p className={`font-black text-base ${(s.montoInicial + s.totalIngreso - s.totalEgreso) >= 0 ? "text-gray-900" : "text-red-600"}`}>
-                            {fmt(s.montoInicial + s.totalIngreso - s.totalEgreso)}
-                        </p>
+                        <p className="font-black text-gray-900 text-base">{fmt(efectivoSistema)}</p>
+                    </div>
+                    {s.montoCierre != null && !editando && (
+                        <div>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Contado al cierre</p>
+                            <div className="flex items-center gap-1.5">
+                                <p className="font-black text-gray-900 text-base">{fmt(s.montoCierre)}</p>
+                                {s.estado === "cerrada" && (
+                                    <button onClick={abrirEditor} className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition">
+                                        <Pencil size={13} />
+                                    </button>
+                                )}
+                            </div>
+                            <p className={`text-xs font-bold mt-0.5 ${(s.montoCierre - efectivoSistema) === 0 ? "text-emerald-600" : "text-red-500"}`}>
+                                {s.montoCierre - efectivoSistema === 0 ? "Sin diferencia" : `Dif: ${fmt(s.montoCierre - efectivoSistema)}`}
+                            </p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Editor inline */}
+                {editando && (
+                    <div className="rounded-2xl border-2 border-black bg-gray-50 p-4 space-y-3">
+                        <p className="text-xs font-black text-gray-700 uppercase tracking-wide">Corregir contado al cierre</p>
+
+                        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2.5">
+                            <span className="text-gray-400 font-bold">$</span>
+                            <input
+                                type="number" min="0" autoFocus
+                                value={editValor}
+                                onChange={e => { setEditValor(e.target.value); setConfirmando(false); }}
+                                className="flex-1 text-xl font-black focus:outline-none text-gray-900 bg-transparent text-right"
+                                placeholder="0"
+                            />
+                        </div>
+
+                        {/* Cálculo automático */}
+                        {editValor !== "" && (
+                            <div className="space-y-1 text-xs">
+                                <div className="flex justify-between text-gray-500">
+                                    <span>Sistema (efectivo)</span>
+                                    <span className="font-bold">{fmt(efectivoSistema)}</span>
+                                </div>
+                                <div className="flex justify-between text-gray-500">
+                                    <span>Contado nuevo</span>
+                                    <span className="font-bold">{fmt(nuevoMonto)}</span>
+                                </div>
+                                <div className={`flex justify-between font-black border-t border-gray-200 pt-1 ${nuevaDiferencia === 0 ? "text-emerald-600" : nuevaDiferencia > 0 ? "text-blue-600" : "text-red-500"}`}>
+                                    <span>Diferencia</span>
+                                    <span>{nuevaDiferencia > 0 ? "+" : ""}{fmt(nuevaDiferencia)}</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Botones */}
+                        {!confirmando ? (
+                            <div className="flex gap-2">
+                                <button onClick={cancelar} className="flex-1 py-2 border border-gray-300 rounded-xl text-xs font-bold text-gray-600 hover:border-gray-500 transition">
+                                    Cancelar
+                                </button>
+                                <button onClick={() => setConfirmando(true)} disabled={!editValor || nuevoMonto === s.montoCierre}
+                                    className="flex-1 py-2 bg-black text-white rounded-xl text-xs font-bold disabled:opacity-40 transition">
+                                    Guardar
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                <p className="text-xs text-center font-bold text-gray-700">¿Confirmás el cambio?</p>
+                                <div className="flex gap-2">
+                                    <button onClick={() => setConfirmando(false)} className="flex-1 py-2 border border-gray-300 rounded-xl text-xs font-bold text-gray-600">
+                                        No, revisar
+                                    </button>
+                                    <button onClick={guardar} disabled={saving}
+                                        className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition disabled:opacity-50">
+                                        <Check size={13} /> {saving ? "Guardando…" : "Sí, confirmar"}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
@@ -806,7 +906,7 @@ export default function CajaHistorialPage() {
                                     </div>
                                 </div>
 
-                                {open && <DetalleSesion s={s} />}
+                                {open && <DetalleSesion s={s} onRefresh={reloadSesiones} />}
 
                                 <button
                                     onClick={() => toggle(s._id)}
