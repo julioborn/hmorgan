@@ -846,25 +846,25 @@ function AnotadorMenuContent() {
                     {/* Vista: ítems de categoría */}
                     {categoriaActiva && categoriaActiva !== "BEBIDAS" && (
                         <AnimatePresence mode="wait">
-                            <motion.div key={categoriaActiva} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.22 }} className="px-4 py-3 space-y-2 max-w-2xl mx-auto">
+                            <motion.div key={categoriaActiva} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.22 }} className="px-4 py-3 grid grid-cols-2 gap-2 max-w-2xl mx-auto">
                                 {itemsCat.map(item => {
                                     const qty = getQty(item._id);
                                     return (
-                                        <div key={item._id} className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex items-center justify-between">
-                                            <div className="flex-1 min-w-0 mr-3">
+                                        <div key={item._id} className="bg-white rounded-xl border border-gray-100 shadow-sm px-3 py-3 flex flex-col gap-2">
+                                            <div className="flex-1 min-w-0">
                                                 <p className="font-semibold text-gray-900 text-sm leading-tight">{item.nombre}</p>
                                                 {item.descripcion && <p className="text-xs text-gray-500 truncate mt-0.5">{item.descripcion}</p>}
                                                 <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full mt-1 inline-block">${formatPrice(item.precio)}</span>
                                             </div>
-                                            <div className="flex items-center gap-2 shrink-0">
+                                            <div className="flex items-center justify-end gap-1.5 shrink-0">
                                                 {qty > 0 ? (
                                                     <>
-                                                        <button onClick={() => removeFromCart(item._id)} className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition"><Minus className="w-4 h-4 text-gray-700" /></button>
-                                                        <span className="w-6 text-center font-bold text-gray-900 text-sm">{qty}</span>
-                                                        <button onClick={() => addToCart(item)} className="w-8 h-8 rounded-full bg-red-600 hover:bg-red-700 flex items-center justify-center transition"><Plus className="w-4 h-4 text-white" /></button>
+                                                        <button onClick={() => removeFromCart(item._id)} className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition"><Minus className="w-3.5 h-3.5 text-gray-700" /></button>
+                                                        <span className="w-5 text-center font-bold text-gray-900 text-sm">{qty}</span>
+                                                        <button onClick={() => addToCart(item)} className="w-7 h-7 rounded-full bg-red-600 hover:bg-red-700 flex items-center justify-center transition"><Plus className="w-3.5 h-3.5 text-white" /></button>
                                                     </>
                                                 ) : (
-                                                    <button onClick={() => addToCart(item)} className="w-8 h-8 rounded-full bg-red-600 hover:bg-red-700 flex items-center justify-center transition"><Plus className="w-4 h-4 text-white" /></button>
+                                                    <button onClick={() => addToCart(item)} className="w-7 h-7 rounded-full bg-red-600 hover:bg-red-700 flex items-center justify-center transition"><Plus className="w-3.5 h-3.5 text-white" /></button>
                                                 )}
                                             </div>
                                         </div>
