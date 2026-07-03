@@ -1,5 +1,6 @@
 "use client";
 // v2
+const PRINT_SERVER = process.env.NEXT_PUBLIC_PRINT_SERVER_URL ?? "http://localhost:3001";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
@@ -838,7 +839,7 @@ export default function CajaPage() {
         const displayTotal = itemsOverride ? totalConDescuento : (pedido.total ?? totalConDescuento);
 
         try {
-            const res = await fetch("http://localhost:3001/imprimir/ticket", {
+            const res = await fetch(`${PRINT_SERVER}/imprimir/ticket`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -961,7 +962,7 @@ export default function CajaPage() {
         try {
             const promesas: Promise<Response>[] = [];
             if (comida.length > 0) promesas.push(
-                fetch("http://localhost:3001/imprimir/comanda", {
+                fetch(`${PRINT_SERVER}/imprimir/comanda`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
@@ -972,7 +973,7 @@ export default function CajaPage() {
                 })
             );
             if (bebidas.length > 0) promesas.push(
-                fetch("http://localhost:3001/imprimir/comanda", {
+                fetch(`${PRINT_SERVER}/imprimir/comanda`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
@@ -1008,7 +1009,7 @@ export default function CajaPage() {
         try {
             const promesas: Promise<Response>[] = [];
             if (comida.length > 0) promesas.push(
-                fetch("http://localhost:3001/imprimir/comanda", {
+                fetch(`${PRINT_SERVER}/imprimir/comanda`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
@@ -1019,7 +1020,7 @@ export default function CajaPage() {
                 })
             );
             if (bebidas.length > 0) promesas.push(
-                fetch("http://localhost:3001/imprimir/comanda", {
+                fetch(`${PRINT_SERVER}/imprimir/comanda`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
@@ -1300,7 +1301,7 @@ export default function CajaPage() {
         try {
             const promesas: Promise<Response>[] = [];
             if (comida.length > 0) promesas.push(
-                fetch("http://localhost:3001/imprimir/comanda", {
+                fetch(`${PRINT_SERVER}/imprimir/comanda`, {
                     method: "POST", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         impresora: "Cocina", titulo,
@@ -1310,7 +1311,7 @@ export default function CajaPage() {
                 })
             );
             if (bebidas.length > 0) promesas.push(
-                fetch("http://localhost:3001/imprimir/comanda", {
+                fetch(`${PRINT_SERVER}/imprimir/comanda`, {
                     method: "POST", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         impresora: "Barra", titulo,
