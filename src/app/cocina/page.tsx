@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { CheckCircle, ChefHat, LogOut, Clock, X } from "lucide-react";
 
@@ -128,7 +129,6 @@ export default function CocinaPage() {
                 <div className="flex flex-col items-center justify-center py-32 space-y-3 text-gray-300">
                     <ChefHat size={52} />
                     <p className="text-lg font-semibold text-gray-400">Sin comandas en preparación</p>
-                    <p className="text-sm text-gray-300">Actualizando cada 5 segundos...</p>
                 </div>
             ) : (
                 <div className="max-w-2xl mx-auto px-3 pt-4 space-y-4">
@@ -206,9 +206,9 @@ export default function CocinaPage() {
                 </div>
             )}
 
-            {/* Modal doble confirmación */}
-            {confirmarId && pedidoAConfirmar && (
-                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm px-4"
+            {/* Modal doble confirmación — portal para escapar del will-change:transform del LayoutWrapper */}
+            {confirmarId && pedidoAConfirmar && createPortal(
+                <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm px-4"
                     onClick={() => setConfirmarId(null)}>
                     <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden"
                         onClick={e => e.stopPropagation()}>
@@ -242,7 +242,8 @@ export default function CocinaPage() {
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );
