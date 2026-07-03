@@ -21,6 +21,7 @@ export default function MenuDelDiaPage() {
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [saved, setSaved] = useState(false);
+    const [uploadError, setUploadError] = useState<string | null>(null);
     const fileRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -66,6 +67,7 @@ export default function MenuDelDiaPage() {
         const file = e.target.files?.[0];
         if (!file) return;
         setUploading(true);
+        setUploadError(null);
         try {
             const fd = new FormData();
             fd.append("file", file);
@@ -75,8 +77,17 @@ export default function MenuDelDiaPage() {
                 body: fd,
             });
             const data = await res.json();
+            if (!res.ok) {
+                setUploadError(data.error || `Error ${res.status}`);
+                return;
+            }
             if (data.url) setDoc(d => ({ ...d, imagen: data.url }));
-        } finally { setUploading(false); if (fileRef.current) fileRef.current.value = ""; }
+        } catch (err: any) {
+            setUploadError(err?.message || "Error al subir la imagen");
+        } finally {
+            setUploading(false);
+            if (fileRef.current) fileRef.current.value = "";
+        }
     }
 
     if (loading) return (
@@ -124,6 +135,11 @@ export default function MenuDelDiaPage() {
                     </button>
                 )}
                 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={uploadImage} />
+                {uploadError && (
+                    <div className="flex items-center justify-center gap-2 py-2 px-4 text-xs text-red-600 font-semibold bg-red-50">
+                        Error: {uploadError}
+                    </div>
+                )}
                 {uploading && (
                     <div className="flex items-center justify-center gap-2 py-2 text-xs text-gray-500">
                         <Loader2 size={14} className="animate-spin" /> Subiendo imagen...

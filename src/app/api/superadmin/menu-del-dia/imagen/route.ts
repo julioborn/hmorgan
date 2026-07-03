@@ -5,6 +5,8 @@ import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import jwt from "jsonwebtoken";
 
+export const dynamic = "force-dynamic";
+
 const SECRET = process.env.NEXTAUTH_SECRET!;
 const IMG_DIR = path.join(process.cwd(), "public", "menu-del-dia");
 
