@@ -48,6 +48,7 @@ export default function AnotadorPage() {
     }, [user?.role]);
 
     useEffect(() => {
+        if (loading) return;
         Promise.all([
             fetchComandas(),
             fetch("/api/caja/status", { credentials: "include" })
@@ -62,7 +63,7 @@ export default function AnotadorPage() {
 
         const iv = setInterval(fetchComandas, 8000);
         return () => clearInterval(iv);
-    }, [fetchComandas]);
+    }, [fetchComandas, loading]);
 
     async function abrirCambiarMesa(c: Comanda) {
         if (mesasDisponibles.length === 0) {
