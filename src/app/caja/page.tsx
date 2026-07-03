@@ -231,6 +231,7 @@ export default function CajaPage() {
     const ventaStreamRef = useRef<MediaStream | null>(null);
 
     // ── Gestión de menú (tab Menú) ──────────────────────────────────────────
+    const [menuDelDiaActivo, setMenuDelDiaActivo] = useState<boolean | null>(null);
     const [menuGest, setMenuGest]           = useState<MenuItemLite[]>([]);
     const [menuGestLoading, setMenuGestLoading] = useState(false);
     const [menuGestCat, setMenuGestCat]     = useState<string>("todas");
@@ -244,9 +245,24 @@ export default function CajaPage() {
 
     async function loadMenuGest() {
         setMenuGestLoading(true);
-        const data = await fetch("/api/menu", { credentials: "include" }).then(r => r.json()).catch(() => []);
+        const [data, mdd] = await Promise.all([
+            fetch("/api/menu", { credentials: "include" }).then(r => r.json()).catch(() => []),
+            fetch("/api/superadmin/menu-del-dia", { credentials: "include" }).then(r => r.json()).catch(() => null),
+        ]);
         setMenuGest(Array.isArray(data) ? data : []);
+        if (mdd) setMenuDelDiaActivo(!!mdd.activo);
         setMenuGestLoading(false);
+    }
+
+    async function toggleMenuDelDia() {
+        const nuevo = !menuDelDiaActivo;
+        setMenuDelDiaActivo(nuevo);
+        await fetch("/api/superadmin/menu-del-dia", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ activo: nuevo }),
+        });
     }
 
     async function saveMenuGestItem() {
@@ -2574,6 +2590,20 @@ export default function CajaPage() {
                     {/* ── TAB MENÚ ── */}
                     {tab === "menu" && (
                         <div className="max-w-3xl mx-auto px-4 pt-4 pb-10">
+                            {/* Menú del Día toggle */}
+                            {menuDelDiaActivo !== null && (
+                                <div className="flex items-center justify-between bg-white border border-gray-200 rounded-2xl px-4 py-3 mb-4 shadow-sm">
+                                    <div>
+                                        <p className="text-sm font-black text-gray-900">Menú del Día</p>
+                                        <p className="text-xs text-gray-400">{menuDelDiaActivo ? "Visible en el menú" : "Oculto en el menú"}</p>
+                                    </div>
+                                    <button onClick={toggleMenuDelDia}
+                                        className={`relative w-12 h-6 rounded-full transition-colors ${menuDelDiaActivo ? "bg-black" : "bg-gray-200"}`}>
+                                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${menuDelDiaActivo ? "translate-x-6" : "translate-x-0"}`} />
+                                    </button>
+                                </div>
+                            )}
+
                             {/* Header + botón agregar */}
                             <div className="flex items-center justify-between mb-4">
                                 <div>
