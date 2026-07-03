@@ -11,7 +11,7 @@ import {
     Wallet, X, Printer, CreditCard, Banknote, Send,
     Loader2, CheckCircle, AlertCircle, Clock, Flame,
     Package, Truck, UtensilsCrossed, CalendarDays,
-    MessageCircle, Plus, Pencil, Trash2, MapPin, Users, User, Star, Gift, XCircle, ArrowDownLeft, ArrowLeftRight, Ticket,
+    MessageCircle, Plus, Pencil, Trash2, MapPin, Users, User, Star, Gift, XCircle, ArrowDownLeft, ArrowLeftRight, Ticket, ChevronDown,
 } from "lucide-react";
 import ReservasManager from "@/components/ReservasManager";
 import { hoyArgentina } from "@/lib/argentina-time";
@@ -155,6 +155,9 @@ export default function CajaPage() {
     const [cpItems,  setCpItems]  = useState<CPItem[]>([]);
     const [cpMetodo, setCpMetodo] = useState<typeof METODOS[number]>("efectivo");
     const [cpSaving, setCpSaving] = useState(false);
+    const [ventasExpandidas, setVentasExpandidas] = useState<Record<string, Set<string>>>({});
+    const [ventasPagina,     setVentasPagina]     = useState<Record<string, number>>({});
+    const VENTAS_PAGE = 5;
     const [closeModal, setCloseModal]     = useState(false);
     const [closeForm, setCloseForm]       = useState({ montoCierre: "", notas: "" });
     const [closeSaving, setCloseSaving]   = useState(false);
@@ -2299,38 +2302,81 @@ export default function CajaPage() {
                                         )}
 
                                         {/* ── Ventas directas ── */}
-                                        {ev.ventas.length > 0 && (
-                                            <div>
-                                                <p className="text-xs font-black text-gray-500 uppercase tracking-wider mb-2">Ventas directas</p>
-                                                <div className="space-y-2">
-                                                    {[...ev.ventas].reverse().map(v => {
-                                                        const Icon = METODO_ICON[v.metodoPago] || Banknote;
-                                                        return (
-                                                            <div key={v._id} className="bg-gray-50 rounded-2xl px-4 py-3 border border-gray-100">
-                                                                <div className="flex items-center justify-between mb-1.5">
-                                                                    <span className="flex items-center gap-1.5 text-xs font-bold text-gray-500">
-                                                                        <Icon size={11} /> {METODO_LABEL[v.metodoPago]}
-                                                                        <span className="text-gray-400 font-normal">· {new Date(v.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</span>
-                                                                    </span>
-                                                                    <span className="font-black text-gray-900 text-base">{formatMoney(v.total)}</span>
-                                                                </div>
-                                                                <p className="text-xs text-gray-500 mb-2">{v.items.map(it => `${it.cantidad}× ${it.nombre}`).join(", ")}</p>
-                                                                <div className="flex gap-2">
-                                                                    <button onClick={() => reimprimirVentaEvento(ev, v)}
-                                                                        className="flex-1 flex items-center justify-center gap-1.5 bg-black hover:bg-gray-800 text-white text-xs font-bold py-2 rounded-xl transition">
-                                                                        <Printer size={12} /> Reimprimir
-                                                                    </button>
-                                                                    <button onClick={() => eliminarVenta(ev._id, v._id)}
-                                                                        className="flex-1 flex items-center justify-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold py-2 rounded-xl border border-red-200 transition">
-                                                                        <X size={12} /> Eliminar
-                                                                    </button>
-                                                                </div>
+                                        {ev.ventas.length > 0 && (() => {
+                                            const ventasRev = [...ev.ventas].reverse();
+                                            const pagina    = ventasPagina[ev._id] ?? 0;
+                                            const totalPags = Math.ceil(ventasRev.length / VENTAS_PAGE);
+                                            const slice     = ventasRev.slice(pagina * VENTAS_PAGE, (pagina + 1) * VENTAS_PAGE);
+                                            const expanded  = ventasExpandidas[ev._id] ?? new Set<string>();
+                                            const toggleV   = (vid: string) => setVentasExpandidas(prev => {
+                                                const s = new Set(prev[ev._id] ?? []);
+                                                s.has(vid) ? s.delete(vid) : s.add(vid);
+                                                return { ...prev, [ev._id]: s };
+                                            });
+                                            return (
+                                                <div>
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <p className="text-xs font-black text-gray-500 uppercase tracking-wider">
+                                                            Ventas directas · {ev.ventas.length}
+                                                        </p>
+                                                        {totalPags > 1 && (
+                                                            <div className="flex items-center gap-1">
+                                                                <button disabled={pagina === 0}
+                                                                    onClick={() => setVentasPagina(p => ({ ...p, [ev._id]: pagina - 1 }))}
+                                                                    className="w-6 h-6 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 disabled:opacity-30 hover:border-gray-400 transition text-xs font-bold">‹</button>
+                                                                <span className="text-[10px] text-gray-400 font-bold">{pagina + 1}/{totalPags}</span>
+                                                                <button disabled={pagina >= totalPags - 1}
+                                                                    onClick={() => setVentasPagina(p => ({ ...p, [ev._id]: pagina + 1 }))}
+                                                                    className="w-6 h-6 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 disabled:opacity-30 hover:border-gray-400 transition text-xs font-bold">›</button>
                                                             </div>
-                                                        );
-                                                    })}
+                                                        )}
+                                                    </div>
+                                                    <div className="space-y-1.5">
+                                                        {slice.map(v => {
+                                                            const Icon  = METODO_ICON[v.metodoPago] || Banknote;
+                                                            const isExp = expanded.has(v._id);
+                                                            return (
+                                                                <div key={v._id} className="rounded-xl border border-gray-200 overflow-hidden">
+                                                                    {/* Fila header — siempre visible */}
+                                                                    <div className="flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-gray-50 transition"
+                                                                        onClick={() => toggleV(v._id)}>
+                                                                        <Icon size={13} className="text-gray-400 shrink-0" />
+                                                                        <span className="text-xs font-bold text-gray-700 flex-1 truncate">
+                                                                            {METODO_LABEL[v.metodoPago]}
+                                                                            <span className="text-gray-400 font-normal ml-1">
+                                                                                · {new Date(v.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                                                                            </span>
+                                                                        </span>
+                                                                        <span className="font-black text-gray-900 text-sm shrink-0">{formatMoney(v.total)}</span>
+                                                                        <button onClick={e => { e.stopPropagation(); reimprimirVentaEvento(ev, v); }}
+                                                                            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-black transition shrink-0">
+                                                                            <Printer size={13} />
+                                                                        </button>
+                                                                        <button onClick={e => { e.stopPropagation(); eliminarVenta(ev._id, v._id); }}
+                                                                            className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition shrink-0">
+                                                                            <Trash2 size={13} />
+                                                                        </button>
+                                                                        <ChevronDown size={13} className={`text-gray-400 shrink-0 transition-transform ${isExp ? "rotate-180" : ""}`} />
+                                                                    </div>
+                                                                    {/* Detalle de ítems — colapsable */}
+                                                                    {isExp && (
+                                                                        <div className="border-t border-gray-100 px-3 py-2 bg-gray-50 space-y-1">
+                                                                            {v.items.map((it, i) => (
+                                                                                <div key={i} className="flex justify-between text-xs text-gray-600">
+                                                                                    <span>{it.cantidad}× {it.nombre}</span>
+                                                                                    <span className="font-semibold">{formatMoney(it.precio * it.cantidad)}</span>
+                                                                                </div>
+                                                                            ))}
+                                                                            {v.nota && <p className="text-[10px] text-amber-600 italic pt-1">{v.nota}</p>}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        )}
+                                            );
+                                        })()}
                                     </div>
                                 </div>
                                 );
