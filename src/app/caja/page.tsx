@@ -31,6 +31,7 @@ type Pedido = {
     costoEnvio?: number;
     estado: string;
     metodoPago?: string;
+    mpEstadoPago?: string;
     tipoEntrega?: string;
     direccion?: string;
     createdAt: string;
@@ -1877,6 +1878,21 @@ export default function CajaPage() {
                                                                 <div className="flex items-center gap-1 text-xs font-bold text-gray-800">
                                                                     <Clock size={11} className="shrink-0 text-gray-500" /><span>{p.horarioPreferido}</span>
                                                                 </div>
+                                                            )}
+                                                            {p.metodoPago === "mercadopago" && (
+                                                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wide ${
+                                                                    p.mpEstadoPago === "aprobado" ? "bg-green-100 text-green-700"
+                                                                    : p.mpEstadoPago === "rechazado" ? "bg-red-100 text-red-700"
+                                                                    : p.mpEstadoPago === "en_proceso" ? "bg-amber-100 text-amber-700"
+                                                                    : "bg-blue-100 text-blue-700"
+                                                                }`}>
+                                                                    💳 MP {p.mpEstadoPago === "aprobado" ? "Pagado" : p.mpEstadoPago === "rechazado" ? "Rechazado" : p.mpEstadoPago === "en_proceso" ? "En proceso" : "Pendiente"}
+                                                                </span>
+                                                            )}
+                                                            {p.metodoPago === "efectivo" && (
+                                                                <span className="text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wide bg-gray-100 text-gray-600">
+                                                                    💵 Efectivo
+                                                                </span>
                                                             )}
                                                         </div>
                                                     )}

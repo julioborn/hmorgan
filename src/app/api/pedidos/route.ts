@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const { items, tipoEntrega, direccion, fuente, mesa, comensales, nombreComanda, notaEmpleado, notaCliente, horarioPreferido, lat, lng, clienteId, eventoId, comensalesIds } = await req.json();
+        const { items, tipoEntrega, direccion, fuente, mesa, comensales, nombreComanda, notaEmpleado, notaCliente, horarioPreferido, lat, lng, clienteId, eventoId, comensalesIds, metodoPago } = await req.json();
         const esEmpleado = ["empleado", "cajero", "admin", "superadmin"].includes(payload.role);
         // Clientes siempre necesitan ítems; empleados pueden crear pedidos sin ítems (asignación de mesa)
         if (!items?.length && !esEmpleado)
@@ -213,6 +213,8 @@ export async function POST(req: NextRequest) {
             clienteId:     clienteId || undefined,
             eventoId:      eventoId  || undefined,
             comensalesIds: Array.isArray(comensalesIds) && comensalesIds.length > 0 ? comensalesIds : undefined,
+            metodoPago:    metodoPago || undefined,
+            mpEstadoPago:  metodoPago === "mercadopago" ? "pendiente" : undefined,
         });
 
         // Pedidos de mozo no generan notificación al admin (ya está en el local)

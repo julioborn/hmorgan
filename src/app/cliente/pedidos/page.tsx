@@ -339,6 +339,23 @@ export default function PedidosClientePage() {
     const [costoEnvio, setCostoEnvio] = useState<number>(0);
     const router = useRouter();
 
+    // Manejo de regreso desde Mercado Pago
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const pago = params.get("pago");
+        if (!pago) return;
+        window.history.replaceState({}, "", "/cliente/pedidos");
+        if (pago === "ok") {
+            setItems({});
+            try { localStorage.removeItem(CART_DRAFT_KEY); } catch {}
+            swalBase.fire({ icon: "success", title: "¡Pago exitoso!", text: "Tu pedido fue pagado con Mercado Pago.", timer: 3000, showConfirmButton: false });
+        } else if (pago === "error") {
+            swalBase.fire({ icon: "error", title: "Pago rechazado", text: "Hubo un problema con el pago. Podés intentar de nuevo." });
+        } else if (pago === "pendiente") {
+            swalBase.fire({ icon: "warning", title: "Pago pendiente", text: "Tu pago está siendo procesado. Te avisaremos cuando esté confirmado." });
+        }
+    }, []);
+
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
     }, [categoriaSeleccionada]);
@@ -438,11 +455,28 @@ export default function PedidosClientePage() {
         if (tipoEntrega === "envio" && !(direccionEnvio || direccionPrincipal))
             return swalBase.fire("⚠️", "Ingresá una dirección de envío", "warning");
 
+        // Selección de método de pago
+        const { value: metodoPago } = await swalBase.fire({
+            title: "¿Cómo querés pagar?",
+            input: "radio",
+            inputOptions: {
+                efectivo: "💵  Efectivo",
+                mercadopago: "💳  Mercado Pago",
+            },
+            inputValue: "efectivo",
+            showCancelButton: true,
+            confirmButtonText: "Continuar",
+            cancelButtonText: "Volver",
+            inputValidator: (value) => (!value ? "Seleccioná un método de pago" : undefined),
+        });
+        if (!metodoPago) return;
+
         // Doble confirmación
         const totalFinalConfirm = total + (tipoEntrega === "envio" ? costoEnvio : 0);
+        const metodoLabel = metodoPago === "mercadopago" ? "💳 Mercado Pago" : "💵 Efectivo";
         const { isConfirmed } = await swalBase.fire({
             title: "¿Confirmás el pedido?",
-            html: `<p class="text-gray-600 text-sm">Total: <strong>$${formatPrice(totalFinalConfirm)}</strong>${tipoEntrega === "envio" ? " · Con envío a domicilio" : " · Retirás en el bar"}</p>`,
+            html: `<p class="text-gray-600 text-sm">Total: <strong>$${formatPrice(totalFinalConfirm)}</strong>${tipoEntrega === "envio" ? " · Con envío a domicilio" : " · Retirás en el bar"}<br/><span class="text-gray-500">Pago: ${metodoLabel}</span></p>`,
             icon: "question",
             showCancelButton: true,
             confirmButtonText: "Sí, confirmar",
@@ -469,9 +503,30 @@ export default function PedidosClientePage() {
                     lat: tipoEntrega === "envio" && mapLat ? mapLat : undefined,
                     lng: tipoEntrega === "envio" && mapLng ? mapLng : undefined,
                     horarioPreferido: horarioPreferido.trim() || undefined,
+                    metodoPago,
                 }),
             });
-            if (res.ok) {
+
+            if (!res.ok) {
+                swalBase.fire("❌", "Error al enviar el pedido", "error");
+                return;
+            }
+
+            const { pedido } = await res.json();
+
+            if (metodoPago === "mercadopago") {
+                const prefRes = await fetch("/api/pagos/mp/preference", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ pedidoId: pedido._id }),
+                });
+                if (!prefRes.ok) {
+                    swalBase.fire("❌", "No se pudo iniciar el pago. Intentá de nuevo.", "error");
+                    return;
+                }
+                const { init_point } = await prefRes.json();
+                window.location.href = init_point;
+            } else {
                 setDrawerOpen(false);
                 await swalBase.fire({ icon: "success", title: "Pedido enviado correctamente", timer: 2000, showConfirmButton: false });
                 setItems({});
@@ -479,8 +534,6 @@ export default function PedidosClientePage() {
                 setNotasProducto({});
                 setMapLat(null);
                 setMapLng(null);
-            } else {
-                swalBase.fire("❌", "Error al enviar el pedido", "error");
             }
         } catch {
             swalBase.fire("❌", "Error de conexión", "error");
