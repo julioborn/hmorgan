@@ -830,8 +830,9 @@ export default function CajaPage() {
         const pagos = cobrarForm.pagos.map(p => ({ metodo: p.metodo, monto: Number(p.monto) || 0 }));
         const totalPagado = pagos.reduce((a, p) => a + p.monto, 0);
         const metodoPago = pagos.length === 1 ? pagos[0].metodo : "mixto";
-        const hayEfectivo = pagos.some(p => p.metodo === "efectivo");
-        const vuelto = hayEfectivo ? Math.max(0, totalPagado - totalConDescuento) : 0;
+        const efectivoPagado = pagos.filter(p => p.metodo === "efectivo").reduce((a, p) => a + p.monto, 0);
+        const noEfectivoPagado = pagos.filter(p => p.metodo !== "efectivo").reduce((a, p) => a + p.monto, 0);
+        const vuelto = Math.max(0, efectivoPagado - Math.max(0, totalConDescuento - noEfectivoPagado));
         try {
             const res = await fetch("/api/superadmin/caja/cobrar", {
                 method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
@@ -2909,8 +2910,10 @@ export default function CajaPage() {
                 const totalConDescuento = Math.max(0, ped.total - descuento);
                 const totalPagado = cobrarForm.pagos.reduce((a, p) => a + (Number(p.monto) || 0), 0);
                 const pendiente = totalConDescuento - totalPagado;
-                const hayEfectivo = cobrarForm.pagos.some(p => p.metodo === "efectivo");
-                const vuelto = Math.max(0, totalPagado - totalConDescuento);
+                const efectivoPagadoModal = cobrarForm.pagos.filter(p => p.metodo === "efectivo").reduce((a, p) => a + (Number(p.monto) || 0), 0);
+                const noEfectivoPagadoModal = cobrarForm.pagos.filter(p => p.metodo !== "efectivo").reduce((a, p) => a + (Number(p.monto) || 0), 0);
+                const excedente = Math.max(0, noEfectivoPagadoModal - totalConDescuento);
+                const vuelto = Math.max(0, efectivoPagadoModal - Math.max(0, totalConDescuento - noEfectivoPagadoModal));
                 const esValido = pendiente <= 1;
                 return createPortal(
                     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
@@ -3015,16 +3018,16 @@ export default function CajaPage() {
                                         <span className="text-sm font-black text-amber-700">{formatMoney(pendiente)}</span>
                                     </div>
                                 )}
-                                {vuelto > 0 && hayEfectivo && (
+                                {vuelto > 0 && (
                                     <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5 flex justify-between items-center">
-                                        <span className="text-sm font-semibold text-emerald-700">Vuelto</span>
+                                        <span className="text-sm font-semibold text-emerald-700">Vuelto efectivo</span>
                                         <span className="text-sm font-black text-emerald-700">{formatMoney(vuelto)}</span>
                                     </div>
                                 )}
-                                {vuelto > 0 && !hayEfectivo && (
-                                    <div className="bg-orange-50 border border-orange-200 rounded-xl px-4 py-2.5 flex justify-between items-center">
-                                        <span className="text-sm font-semibold text-orange-700">Excede en</span>
-                                        <span className="text-sm font-black text-orange-700">{formatMoney(vuelto)}</span>
+                                {excedente > 0 && (
+                                    <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 flex justify-between items-center">
+                                        <span className="text-sm font-semibold text-amber-700">Excedente / Propina</span>
+                                        <span className="text-sm font-black text-amber-700">{formatMoney(excedente)}</span>
                                     </div>
                                 )}
                             </div>

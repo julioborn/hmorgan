@@ -70,6 +70,11 @@ export default function AnotadorPage() {
         }
     }, []);
 
+    // Si la caja cierra mientras el mozo está en "terminados", volver a "todas"
+    useEffect(() => {
+        if (cajaAbierta === false && filtro === "terminados") setFiltro("todas");
+    }, [cajaAbierta, filtro]);
+
     // Detectar cambios de estado y notificar
     useEffect(() => {
         const prev = prevEstadosRef.current;
@@ -253,9 +258,9 @@ export default function AnotadorPage() {
                     const cListos     = comandas.filter(c => c.estado === "listo").length;
                     const cTerminados = comandasTerminadas.length;
                     const fila1 = [
-                        { key: "todas",      label: "Todas",      count: null },
-                        { key: "terminados", label: "Terminadas", count: cTerminados },
-                    ] as const;
+                        { key: "todas",      label: "Todas",      count: null as number | null },
+                        ...(cajaAbierta !== false ? [{ key: "terminados", label: "Terminadas", count: cTerminados as number | null }] : []),
+                    ];
                     const fila2 = [
                         { key: "preparando", label: "Preparando", count: cPreparando },
                         { key: "listo",      label: "Listas",     count: cListos },
@@ -273,7 +278,7 @@ export default function AnotadorPage() {
                         <div className="space-y-2">
                             <div className="flex gap-2">
                                 {fila1.map(t => (
-                                    <button key={t.key} onClick={() => setFiltro(t.key)} className={tabClass(t.key)}>
+                                    <button key={t.key} onClick={() => setFiltro(t.key as typeof filtro)} className={tabClass(t.key)}>
                                         {t.label}
                                         {t.count != null && t.count > 0 && bubble(t.key, t.count)}
                                     </button>

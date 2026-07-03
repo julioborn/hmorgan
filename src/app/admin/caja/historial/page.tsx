@@ -563,8 +563,12 @@ function DetalleSesion({ s, onRefresh }: { s: Sesion; onRefresh: () => void }) {
                                     </button>
                                 )}
                             </div>
-                            <p className={`text-xs font-bold mt-0.5 ${(s.montoCierre - efectivoSistema) === 0 ? "text-emerald-600" : "text-red-500"}`}>
-                                {s.montoCierre - efectivoSistema === 0 ? "Sin diferencia" : `Dif: ${fmt(s.montoCierre - efectivoSistema)}`}
+                            <p className={`text-xs font-bold mt-0.5 ${(s.montoCierre - efectivoSistema) >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                                {(() => {
+                                    const dif = s.montoCierre - efectivoSistema;
+                                    if (dif === 0) return "Sin diferencia";
+                                    return `Dif: ${dif > 0 ? "+" : ""}${fmt(dif)}`;
+                                })()}
                             </p>
                         </div>
                     )}
