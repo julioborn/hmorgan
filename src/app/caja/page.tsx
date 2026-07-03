@@ -1939,35 +1939,46 @@ export default function CajaPage() {
                                                             </button>
                                                         </div>
                                                     ) : estadoIdx < estadosList.length - 1 ? (
-                                                        <div className="shrink-0 relative w-full flex justify-between items-center mt-1">
-                                                            <div className="absolute top-[16px] left-0 w-full h-[3px] bg-gray-200 rounded-full" />
-                                                            <motion.div
-                                                                className={`absolute top-[16px] left-0 h-[3px] ${BAR_COLORS[color] || "bg-gray-400"} rounded-full`}
-                                                                initial={{ width: 0 }}
-                                                                animate={{ width: `${(estadoIdx / (estadosList.length - 1)) * 100}%` }}
-                                                                transition={{ duration: 0.4 }}
-                                                            />
-                                                            {estadosList.map((est) => {
-                                                                const Icon = est.icon;
-                                                                const isActive = estadoIdx >= getEstadoIdx(est.key);
-                                                                const canClick = getEstadoIdx(est.key) > estadoIdx;
-                                                                return (
-                                                                    <div key={est.key} className="flex flex-col items-center text-xs w-full relative z-10">
-                                                                        <motion.button
-                                                                            disabled={!canClick || isUpdating}
-                                                                            onClick={() => canClick && avanzarEstado(p, est.key)}
-                                                                            whileTap={canClick ? { scale: 0.9 } : undefined}
-                                                                            className={`flex items-center justify-center w-8 h-8 rounded-full border-2 transition-all
-                                                                                ${isActive ? COLOR_CLASSES[est.color] : "border-gray-300 bg-white text-gray-700"}
-                                                                                ${!canClick ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}`}>
-                                                                            <Icon className="w-3.5 h-3.5" />
-                                                                        </motion.button>
-                                                                        <span className={`mt-1 font-medium ${isActive ? "text-gray-700" : "text-gray-700"}`}>
-                                                                            {est.label}
-                                                                        </span>
-                                                                    </div>
-                                                                );
-                                                            })}
+                                                        <div className="shrink-0 mt-1 space-y-3">
+                                                            {/* Camino visual de estados */}
+                                                            <div className="relative w-full flex justify-between items-start">
+                                                                <div className="absolute top-[18px] left-0 w-full h-1 bg-gray-200 rounded-full" />
+                                                                <motion.div
+                                                                    className={`absolute top-[18px] left-0 h-1 ${BAR_COLORS[color] || "bg-gray-400"} rounded-full`}
+                                                                    initial={{ width: 0 }}
+                                                                    animate={{ width: `${(estadoIdx / (estadosList.length - 1)) * 100}%` }}
+                                                                    transition={{ duration: 0.4 }}
+                                                                />
+                                                                {estadosList.map((est) => {
+                                                                    const Icon = est.icon;
+                                                                    const isActive = estadoIdx >= getEstadoIdx(est.key);
+                                                                    return (
+                                                                        <div key={est.key} className="flex flex-col items-center w-full relative z-10">
+                                                                            <div className={`flex items-center justify-center w-9 h-9 rounded-full border-2 transition-all
+                                                                                ${isActive ? COLOR_CLASSES[est.color] : "border-gray-200 bg-gray-100 text-gray-300"}`}>
+                                                                                <Icon className="w-4 h-4" />
+                                                                            </div>
+                                                                            <span className={`mt-1 text-[10px] font-bold ${isActive ? "text-gray-900" : "text-gray-400"}`}>
+                                                                                {est.label}
+                                                                            </span>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                            {/* Botón pasar a listo — solo cuando está preparando */}
+                                                            {p.estado === "preparando" && (
+                                                                <button
+                                                                    disabled={isUpdating}
+                                                                    onClick={async () => {
+                                                                        const ok = await swalBase.fire({ title: "¿Pasar a listo?", text: "El mozo o el cliente serán notificados.", icon: "question", showCancelButton: true, confirmButtonText: "Sí, listo", cancelButtonText: "Cancelar" });
+                                                                        if (ok.isConfirmed) await avanzarEstado(p, "listo");
+                                                                    }}
+                                                                    className="w-full flex items-center justify-center gap-2 bg-black hover:bg-gray-800 disabled:opacity-50 text-white font-black py-2.5 rounded-xl transition text-sm"
+                                                                >
+                                                                    {isUpdating ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+                                                                    Pasar a listo
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     ) : null}
 
