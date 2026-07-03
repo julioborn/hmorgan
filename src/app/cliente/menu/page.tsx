@@ -58,7 +58,7 @@ const categoryIcons: Record<string, React.ElementType> = {
 };
 
 export default function ClienteMenuPage() {
-    const { data: items } = useSWR<MenuItem[]>("/api/menu", fetcher);
+    const { data: items } = useSWR<MenuItem[]>("/api/menu?cliente=true", fetcher);
     const categoryConfigMap = useCategoryConfigs();
     const [categoriaActiva, setCategoriaActiva] = useState<string | null>(null);
     const isPopNav = useRef(false);

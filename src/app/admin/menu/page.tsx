@@ -22,6 +22,7 @@ type MenuItem = {
     categoria: string;
     imagen?: string;
     activo: boolean;
+    activoCliente?: boolean;
     ruleta?: boolean;
     order?: number;
 };
@@ -333,11 +334,14 @@ export default function AdminMenuPage() {
         mutateItems();
     }
 
-    async function toggleActivo(item: MenuItem) {
+    async function toggleActivo(item: MenuItem, campo: "activo" | "activoCliente") {
+        const patch = campo === "activo"
+            ? { activo: !item.activo }
+            : { activoCliente: item.activoCliente === false ? true : false };
         await fetch(`/api/menu/${item._id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...item, activo: !item.activo }),
+            body: JSON.stringify({ ...item, ...patch }),
         });
         mutateItems();
     }
@@ -610,16 +614,21 @@ export default function AdminMenuPage() {
                                         <p className="text-sm text-gray-600">{i.descripcion}</p>
                                         <p className="text-sm font-semibold text-red-600">${formatPrice(i.precio)}</p>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <label className="text-sm text-gray-700">
-                                            <input
-                                                type="checkbox"
-                                                checked={i.activo}
-                                                onChange={() => toggleActivo(i)}
-                                                className="accent-red-600 w-4 h-4 cursor-pointer"
-                                            />{" "}
-                                            Pedidos
-                                        </label>
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex flex-col items-center gap-0.5">
+                                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-wide">Bar</span>
+                                            <button onClick={() => toggleActivo(i, "activo")}
+                                                className={`relative flex h-5 w-9 cursor-pointer rounded-full items-center transition-colors duration-200 ${i.activo !== false ? "bg-black" : "bg-gray-200"}`}>
+                                                <span className={`absolute h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${i.activo !== false ? "translate-x-[18px]" : "translate-x-[2px]"}`} />
+                                            </button>
+                                        </div>
+                                        <div className="flex flex-col items-center gap-0.5">
+                                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-wide">App</span>
+                                            <button onClick={() => toggleActivo(i, "activoCliente")}
+                                                className={`relative flex h-5 w-9 cursor-pointer rounded-full items-center transition-colors duration-200 ${i.activoCliente !== false ? "bg-emerald-500" : "bg-gray-200"}`}>
+                                                <span className={`absolute h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${i.activoCliente !== false ? "translate-x-[18px]" : "translate-x-[2px]"}`} />
+                                            </button>
+                                        </div>
                                     </div>
                                     {i.categoria === "COCKTAILS" && (
                                         <div className="flex-shrink-0">

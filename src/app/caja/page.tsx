@@ -58,7 +58,7 @@ type CierreResumen = {
     totalTarjeta: number;
     totalGeneral: number;
 };
-type MenuItemLite = { _id: string; nombre: string; precio: number; categoria: string; activo?: boolean; descripcion?: string };
+type MenuItemLite = { _id: string; nombre: string; precio: number; categoria: string; activo?: boolean; activoCliente?: boolean; descripcion?: string };
 type CajaSession = { _id: string; estado: "abierta" | "cerrada"; montoInicial: number; fechaApertura: string };
 type MesaPlano = { _id: string; nombre: string; activa: boolean; x: number; y: number; forma: string; ancho?: number; alto?: number; rotacion?: number; tipo?: string };
 type SalonElPlano = { _id: string; tipo: string; label: string; x: number; y: number; ancho: number; alto: number; color: string };
@@ -267,8 +267,11 @@ export default function CajaPage() {
         } finally { setMenuGestSaving(false); }
     }
 
-    async function toggleMenuGestActivo(item: MenuItemLite) {
-        await fetch(`/api/menu/${item._id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ ...item, activo: !item.activo }) });
+    async function toggleMenuGestActivo(item: MenuItemLite, campo: "activo" | "activoCliente") {
+        const patch = campo === "activo"
+            ? { activo: !item.activo }
+            : { activoCliente: item.activoCliente === false ? true : false };
+        await fetch(`/api/menu/${item._id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ ...item, ...patch }) });
         await loadMenuGest();
     }
 
@@ -1515,6 +1518,43 @@ export default function CajaPage() {
         </button>
     );
 
+    function MenuGestCard({ item, onToggle, onEdit, onDelete }: {
+        item: MenuItemLite;
+        onToggle: (item: MenuItemLite, campo: "activo" | "activoCliente") => void;
+        onEdit: (item: MenuItemLite) => void;
+        onDelete: (id: string) => void;
+    }) {
+        const barOn = item.activo !== false;
+        const appOn = item.activoCliente !== false;
+        return (
+            <div className={`bg-white border rounded-xl px-3 py-2.5 flex items-center gap-2 shadow-sm transition ${!barOn && !appOn ? "opacity-40 border-gray-200" : "border-gray-300"}`}>
+                <div className="flex-1 min-w-0">
+                    <p className="font-bold text-gray-900 text-sm truncate">{item.nombre}</p>
+                    <p className="text-xs text-gray-500">{item.categoria} · ${new Intl.NumberFormat("es-AR").format(item.precio)}</p>
+                    {item.descripcion && <p className="text-xs text-gray-400 truncate mt-0.5">{item.descripcion}</p>}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex flex-col items-center gap-0.5">
+                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-wide">Bar</span>
+                        <button onClick={() => onToggle(item, "activo")}
+                            className={`relative flex h-5 w-9 cursor-pointer rounded-full items-center transition-colors duration-200 ${barOn ? "bg-black" : "bg-gray-200"}`}>
+                            <span className={`absolute h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${barOn ? "translate-x-[18px]" : "translate-x-[2px]"}`} />
+                        </button>
+                    </div>
+                    <div className="flex flex-col items-center gap-0.5">
+                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-wide">App</span>
+                        <button onClick={() => onToggle(item, "activoCliente")}
+                            className={`relative flex h-5 w-9 cursor-pointer rounded-full items-center transition-colors duration-200 ${appOn ? "bg-emerald-500" : "bg-gray-200"}`}>
+                            <span className={`absolute h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${appOn ? "translate-x-[18px]" : "translate-x-[2px]"}`} />
+                        </button>
+                    </div>
+                    <button onClick={() => onEdit(item)} className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition"><Pencil size={13} /></button>
+                    <button onClick={() => onDelete(item._id)} className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition"><Trash2 size={13} /></button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-gray-50 pb-24">
             {/* Header */}
@@ -2646,19 +2686,7 @@ export default function CajaPage() {
                                 /* Resultados de búsqueda */
                                 <div className="space-y-2">
                                     {menuGest.filter(i => i.nombre.toLowerCase().includes(menuGestSearch.toLowerCase())).map(item => (
-                                        <div key={item._id} className={`bg-white border rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm transition ${item.activo === false ? "opacity-50 border-gray-200" : "border-black"}`}>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-bold text-gray-900 text-sm truncate">{item.nombre}</p>
-                                                <p className="text-xs text-gray-700">{item.categoria} · ${new Intl.NumberFormat("es-AR").format(item.precio)}</p>
-                                                {item.descripcion && <p className="text-xs text-gray-700 truncate mt-0.5">{item.descripcion}</p>}
-                                            </div>
-                                            <button onClick={() => toggleMenuGestActivo(item)}
-                                                className={`relative flex h-5 w-9 shrink-0 cursor-pointer rounded-full items-center transition-colors duration-200 ${item.activo !== false ? "bg-red-500" : "bg-gray-300"}`}>
-                                                <span className={`absolute h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-200 ${item.activo !== false ? "translate-x-[18px]" : "translate-x-[2px]"}`} />
-                                            </button>
-                                            <button onClick={() => abrirEditarMenuGest(item)} className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition"><Pencil size={13} /></button>
-                                            <button onClick={() => eliminarMenuGestItem(item._id)} className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition"><Trash2 size={13} /></button>
-                                        </div>
+                                        <MenuGestCard key={item._id} item={item} onToggle={toggleMenuGestActivo} onEdit={abrirEditarMenuGest} onDelete={eliminarMenuGestItem} />
                                     ))}
                                     {menuGest.filter(i => i.nombre.toLowerCase().includes(menuGestSearch.toLowerCase())).length === 0 && (
                                         <p className="text-center text-gray-700 py-10">Sin resultados.</p>
@@ -2717,19 +2745,7 @@ export default function CajaPage() {
                                             : menuGestCatActiva === "PICADAS Y FRITURAS" ? PICAR_CATS.includes(i.categoria)
                                             : i.categoria === menuGestCatActiva
                                         ).map(item => (
-                                            <div key={item._id} className={`bg-white border rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm transition ${item.activo === false ? "opacity-50 border-gray-200" : "border-black"}`}>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="font-bold text-gray-900 text-sm truncate">{item.nombre}</p>
-                                                    <p className="text-xs text-gray-700">{item.categoria} · ${new Intl.NumberFormat("es-AR").format(item.precio)}</p>
-                                                    {item.descripcion && <p className="text-xs text-gray-700 truncate mt-0.5">{item.descripcion}</p>}
-                                                </div>
-                                                <button onClick={() => toggleMenuGestActivo(item)}
-                                                    className={`relative flex h-5 w-9 shrink-0 cursor-pointer rounded-full items-center transition-colors duration-200 ${item.activo !== false ? "bg-red-500" : "bg-gray-300"}`}>
-                                                    <span className={`absolute h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-200 ${item.activo !== false ? "translate-x-[18px]" : "translate-x-[2px]"}`} />
-                                                </button>
-                                                <button onClick={() => abrirEditarMenuGest(item)} className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition"><Pencil size={13} /></button>
-                                                <button onClick={() => eliminarMenuGestItem(item._id)} className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition"><Trash2 size={13} /></button>
-                                            </div>
+                                            <MenuGestCard key={item._id} item={item} onToggle={toggleMenuGestActivo} onEdit={abrirEditarMenuGest} onDelete={eliminarMenuGestItem} />
                                         ))}
                                         {menuGest.filter(i =>
                                             menuGestCatActiva === "BEBIDAS" ? BEBIDAS_CATS.includes(i.categoria)

@@ -16,9 +16,14 @@ export async function GET(req: NextRequest) {
         query = { categoria: "COCKTAILS", ruleta: true };
     }
 
-    // 🟢 nuevo filtro: activo
+    // filtro activo (bar) / activoCliente
     if (activo === "true") query.activo = true;
     if (activo === "false") query.activo = false;
+
+    const bar = searchParams.get("bar");
+    const cliente = searchParams.get("cliente");
+    if (bar === "true") query.activo = true;
+    if (cliente === "true") query.activoCliente = { $ne: false };
 
     const items = await MenuItem.find(query).sort({ categoria: 1, nombre: 1 });
     return NextResponse.json(items);

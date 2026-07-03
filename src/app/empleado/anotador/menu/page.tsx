@@ -166,7 +166,7 @@ function AnotadorMenuContent() {
     }, [categoriaActiva]);
 
     useEffect(() => {
-        fetch("/api/menu").then(r => r.json()).then(d => {
+        fetch("/api/menu?bar=true").then(r => r.json()).then(d => {
             setMenuItems(Array.isArray(d) ? d : []);
         }).catch(() => {}).finally(() => setLoadingMenu(false));
     }, []);

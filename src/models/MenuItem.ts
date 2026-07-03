@@ -8,6 +8,7 @@ const MenuItemSchema = new Schema(
         categoria: { type: String, required: true },
         imagen: String,
         activo: { type: Boolean, default: true },
+        activoCliente: { type: Boolean, default: true },
         ruleta: { type: Boolean, default: false },
         order: { type: Number, default: 0 },
     },
