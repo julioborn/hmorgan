@@ -1842,15 +1842,23 @@ export default function CajaPage() {
 
                                                     {/* Reimprimir / Cobrar */}
                                                     {p.estado !== "pendiente" && (
-                                                        <div className="shrink-0 mt-2 flex gap-2">
-                                                            <button onClick={() => printComanda(p)}
-                                                                className="flex-1 flex items-center justify-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-1.5 rounded-xl text-xs transition">
-                                                                <Printer size={12} /> Reimprimir
-                                                            </button>
-                                                            {(p.estado === "listo" || p.estado === "entregado") && (
-                                                                <button onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", pagos: [{ metodo: "efectivo", monto: String(p.total) }] }); }}
-                                                                    className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 rounded-xl text-xs transition">
-                                                                    <Wallet size={12} /> Cobrar
+                                                        <div className="shrink-0 mt-2 flex flex-col gap-2">
+                                                            <div className="flex gap-2">
+                                                                <button onClick={() => printComanda(p)}
+                                                                    className="flex-1 flex items-center justify-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-1.5 rounded-xl text-xs transition">
+                                                                    <Printer size={12} /> Reimprimir
+                                                                </button>
+                                                                {(p.estado === "listo" || p.estado === "entregado") && (
+                                                                    <button onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", pagos: [{ metodo: "efectivo", monto: String(p.total) }] }); }}
+                                                                        className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 rounded-xl text-xs transition">
+                                                                        <Wallet size={12} /> Cobrar
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                            {!esApp && (
+                                                                <button onClick={() => abrirCobroParcial(p)}
+                                                                    className="w-full flex items-center justify-center gap-1.5 border-2 border-black text-black font-bold py-1.5 rounded-xl text-xs hover:bg-black hover:text-white transition">
+                                                                    Cobro parcial
                                                                 </button>
                                                             )}
                                                         </div>
@@ -1980,11 +1988,13 @@ export default function CajaPage() {
                                                 className={`w-full text-white font-black py-3 rounded-xl text-base tracking-wide transition ${cobrarBg}`}>
                                                 Cobrar todo
                                             </button>
-                                            <button
-                                                onClick={() => abrirCobroParcial(p)}
-                                                className="w-full border-2 border-black text-black font-bold py-2 rounded-xl text-sm tracking-wide hover:bg-black hover:text-white transition">
-                                                Cobro parcial
-                                            </button>
+                                            {!esApp && (
+                                                <button
+                                                    onClick={() => abrirCobroParcial(p)}
+                                                    className="w-full border-2 border-black text-black font-bold py-2 rounded-xl text-sm tracking-wide hover:bg-black hover:text-white transition">
+                                                    Cobro parcial
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 );
