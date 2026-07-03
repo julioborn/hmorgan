@@ -47,6 +47,7 @@ export default function Home() {
 
   if (user.role === "cajero") { if (typeof window !== "undefined") window.location.replace("/caja"); return null; }
   if (user.role === "delivery") { if (typeof window !== "undefined") window.location.replace("/delivery"); return null; }
+  if (user.role === "cocina") { if (typeof window !== "undefined") window.location.replace("/cocina"); return null; }
   if (user.role === "admin" || user.role === "superadmin") return <AdminHome />;
   if (user.role === "empleado") return <EmployeeHome nombre={user.nombre} />;
   return <ClientHome nombre={user.nombre} puntos={user.puntos ?? 0} />;

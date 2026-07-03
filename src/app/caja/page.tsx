@@ -142,6 +142,8 @@ export default function CajaPage() {
     const [reservasPendientes, setReservasPendientes] = useState(0);
     const [pedidos, setPedidos]           = useState<Pedido[]>([]);
     const [loading, setLoading]           = useState(true);
+    const prevPedidoStatesRef             = useRef<Record<string, string>>({});
+    const [listosToast, setListosToast]   = useState<{ id: string; label: string; ts: number }[]>([]);
     const [vista, setVista]               = useState<Vista>("pendientes");
     const hoyStr = new Date().toISOString().slice(0, 10);
     const [updatingId, setUpdatingId]     = useState<string | null>(null);
@@ -365,9 +367,34 @@ export default function CajaPage() {
                 );
                 setPedidos(filtrados);
                 detectarAgregados(filtrados);
+
+                // Detectar pedidos que pasaron a "listo" desde otro estado
+                const newStates: Record<string, string> = {};
+                const recienListos: { id: string; label: string; ts: number }[] = [];
+                for (const p of filtrados) {
+                    newStates[p._id] = p.estado;
+                    const prev = prevPedidoStatesRef.current[p._id];
+                    if (p.estado === "listo" && prev && prev !== "listo") {
+                        const label = p.mesa ? `Mesa ${p.mesa}` : (p.nombreComanda || `Comanda #${p.numeroDia || ""}`);
+                        recienListos.push({ id: p._id, label, ts: Date.now() });
+                    }
+                }
+                prevPedidoStatesRef.current = newStates;
+                if (recienListos.length > 0) {
+                    setListosToast(prev => [...prev, ...recienListos]);
+                }
             }
         } finally { setLoading(false); }
     }, []);
+
+    useEffect(() => {
+        if (listosToast.length === 0) return;
+        const timer = setTimeout(() => {
+            const cutoff = Date.now() - 7000;
+            setListosToast(prev => prev.filter(t => t.ts > cutoff));
+        }, 7000);
+        return () => clearTimeout(timer);
+    }, [listosToast]);
 
     useEffect(() => {
         loadData();
@@ -3900,6 +3927,27 @@ export default function CajaPage() {
                             )}
                         </div>
                     </div>
+                </div>
+            )}
+
+            {/* Toast: pedido listo notificación */}
+            {listosToast.length > 0 && (
+                <div className="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none">
+                    {listosToast.map(t => (
+                        <div key={`${t.id}-${t.ts}`}
+                            className="pointer-events-auto flex items-center gap-3 bg-black border-2 border-white text-white px-4 py-3 rounded-2xl shadow-2xl min-w-[220px] animate-in slide-in-from-right fade-in duration-300">
+                            <CheckCircle size={18} className="text-white shrink-0" />
+                            <div className="flex-1 min-w-0">
+                                <p className="text-xs font-bold uppercase tracking-wide opacity-60">¡Listo!</p>
+                                <p className="text-sm font-black truncate">{t.label}</p>
+                            </div>
+                            <button
+                                onClick={() => setListosToast(prev => prev.filter(x => x.id !== t.id || x.ts !== t.ts))}
+                                className="ml-1 text-white/50 hover:text-white transition shrink-0">
+                                <X size={15} />
+                            </button>
+                        </div>
+                    ))}
                 </div>
             )}
         </div>

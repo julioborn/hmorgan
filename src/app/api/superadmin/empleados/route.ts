@@ -20,7 +20,7 @@ async function authorize(req: NextRequest) {
 export async function GET(req: NextRequest) {
     if (!await authorize(req)) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     await connectMongoDB();
-    const empleados = await User.find({ role: { $in: ["empleado", "delivery"] } })
+    const empleados = await User.find({ role: { $in: ["empleado", "delivery", "cocina"] } })
         .select("nombre apellido username role createdAt")
         .sort({ nombre: 1 })
         .lean();
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     if (!nombre || !apellido || !username || !password)
         return NextResponse.json({ error: "Faltan datos" }, { status: 400 });
 
-    const finalRole = role === "delivery" ? "delivery" : "empleado";
+    const finalRole = role === "delivery" ? "delivery" : role === "cocina" ? "cocina" : "empleado";
 
     await connectMongoDB();
     const existe = await User.findOne({ username: username.toLowerCase().trim() });

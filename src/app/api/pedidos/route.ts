@@ -49,6 +49,8 @@ export async function GET(req: NextRequest) {
         let query: any =
             payload.role === "admin" || payload.role === "superadmin" || payload.role === "cajero"
                 ? {}
+                : payload.role === "cocina"
+                ? { estado: { $in: ["pendiente", "preparando"] } }
                 : payload.role === "empleado"
                 ? { fuente: "empleado" }
                 : payload.role === "delivery"
@@ -257,14 +259,17 @@ export async function PUT(req: NextRequest) {
             return NextResponse.json({ message: "No autorizado" }, { status: 401 });
 
         const payload = jwt.verify(token, NEXTAUTH_SECRET) as any;
-        if (payload.role !== "admin" && payload.role !== "cajero" && payload.role !== "delivery")
+        if (!["admin", "cajero", "delivery", "cocina"].includes(payload.role))
             return NextResponse.json(
-                { message: "Solo admin, cajero o delivery puede cambiar estados" },
+                { message: "Solo admin, cajero, delivery o cocina puede cambiar estados" },
                 { status: 403 }
             );
 
         await connectMongoDB();
         const { id, estado, repartidorAfuera } = await req.json();
+
+        if (payload.role === "cocina" && estado !== "listo")
+            return NextResponse.json({ message: "Cocina solo puede marcar como listo" }, { status: 403 });
 
         // 🛵 El repartidor avisa al cliente que está afuera de su domicilio
         if (repartidorAfuera !== undefined && estado === undefined) {

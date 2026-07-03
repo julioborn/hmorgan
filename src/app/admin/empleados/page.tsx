@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { UserPlus, Trash2, KeyRound, X, Eye, EyeOff, ChevronLeft, Truck, UtensilsCrossed } from "lucide-react";
+import { UserPlus, Trash2, KeyRound, X, Eye, EyeOff, ChevronLeft, Truck, UtensilsCrossed, ChefHat } from "lucide-react";
 import Link from "next/link";
 
 type Empleado = {
@@ -8,7 +8,7 @@ type Empleado = {
     nombre: string;
     apellido: string;
     username: string;
-    role: "empleado" | "delivery";
+    role: "empleado" | "delivery" | "cocina";
 };
 
 type Modal =
@@ -84,6 +84,10 @@ export default function EmpleadosPage() {
                                         <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200">
                                             <Truck size={10} /> Repartidor
                                         </span>
+                                    ) : emp.role === "cocina" ? (
+                                        <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                                            <ChefHat size={10} /> Cocina
+                                        </span>
                                     ) : (
                                         <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200">
                                             <UtensilsCrossed size={10} /> Mozo
@@ -153,7 +157,7 @@ export default function EmpleadosPage() {
 
 /* ── Modal: Nuevo empleado ── */
 function NuevoEmpleadoModal({ onClose, onCreado }: { onClose: () => void; onCreado: () => void }) {
-    const [form, setForm] = useState({ nombre: "", apellido: "", username: "", password: "", role: "empleado" as "empleado" | "delivery" });
+    const [form, setForm] = useState({ nombre: "", apellido: "", username: "", password: "", role: "empleado" as "empleado" | "delivery" | "cocina" });
     const [showPass, setShowPass] = useState(false);
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
@@ -187,7 +191,7 @@ function NuevoEmpleadoModal({ onClose, onCreado }: { onClose: () => void; onCrea
                 <form onSubmit={submit} className="space-y-3">
                     <div>
                         <label className="text-xs font-semibold text-gray-500 mb-1 block">Rol</label>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-3 gap-2">
                             <button type="button" onClick={() => setForm(f => ({ ...f, role: "empleado" }))}
                                 className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold border transition ${form.role === "empleado" ? "bg-black text-white border-black" : "border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
                                 <UtensilsCrossed size={15} /> Mozo
@@ -195,6 +199,10 @@ function NuevoEmpleadoModal({ onClose, onCreado }: { onClose: () => void; onCrea
                             <button type="button" onClick={() => setForm(f => ({ ...f, role: "delivery" }))}
                                 className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold border transition ${form.role === "delivery" ? "bg-black text-white border-black" : "border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
                                 <Truck size={15} /> Repartidor
+                            </button>
+                            <button type="button" onClick={() => setForm(f => ({ ...f, role: "cocina" }))}
+                                className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold border transition ${form.role === "cocina" ? "bg-amber-500 text-white border-amber-500" : "border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
+                                <ChefHat size={15} /> Cocina
                             </button>
                         </div>
                     </div>
