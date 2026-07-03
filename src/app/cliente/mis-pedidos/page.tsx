@@ -1,14 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Clock, Flame, CheckCircle, Truck, ChevronLeft, ChevronRight, X, Navigation } from "lucide-react";
+import { Clock, Flame, CheckCircle, Truck, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import Loader from "@/components/Loader";
 import { swalBase } from "@/lib/swalConfig";
-import dynamic from "next/dynamic";
-
-const DeliveryMap = dynamic(() => import("@/components/DeliveryMap"), { ssr: false });
 
 type EstadoColor = "yellow" | "orange" | "blue" | "emerald";
 
@@ -240,8 +237,6 @@ function PedidosLista({
     const getEstadoIndex = (estado: string) =>
         estados.findIndex((e) => e.key === estado);
 
-    const [mapaDelivery, setMapaDelivery] = useState<any | null>(null);
-
     const barColors: Record<EstadoColor, string> = {
         yellow: "bg-yellow-500",
         orange: "bg-orange-500",
@@ -324,16 +319,6 @@ function PedidosLista({
                                 </div>
                             )}
 
-                            {/* Ver delivery en mapa — solo envíos en estado listo */}
-                            {p.tipoEntrega === "envio" && p.estado === "listo" && (
-                                <button
-                                    onClick={() => setMapaDelivery(p)}
-                                    className="w-full mb-3 flex items-center justify-center gap-2 bg-black text-white font-bold py-2.5 rounded-xl text-sm transition active:scale-95 hover:bg-gray-800">
-                                    <Navigation size={15} />
-                                    Ver por dónde viene el delivery
-                                </button>
-                            )}
-
                             {/* Cancelación (solo si es pendiente y dentro del tiempo límite) */}
                             {p.estado === "pendiente" && p.cancelableUntil && (
                                 <CancelButton pedidoId={p._id} cancelableUntil={p.cancelableUntil} />
@@ -389,30 +374,6 @@ function PedidosLista({
                 })}
             </AnimatePresence>
 
-            {/* Modal mapa delivery */}
-            {mapaDelivery && (
-                <div className="fixed inset-0 z-50 bg-black/70 flex items-end justify-center p-0"
-                    onClick={() => setMapaDelivery(null)}>
-                    <div className="bg-white w-full max-w-lg rounded-t-3xl overflow-hidden shadow-2xl"
-                        onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                            <div>
-                                <p className="font-black text-gray-900 text-sm">Delivery en camino 🏍️</p>
-                                <p className="text-xs text-gray-400">La ubicación se actualiza cada ~12 segundos</p>
-                            </div>
-                            <button onClick={() => setMapaDelivery(null)} className="p-1 text-gray-400 hover:text-gray-700">
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <div className="relative" style={{ height: "340px" }}>
-                            <DeliveryMap
-                                destLat={mapaDelivery.lat}
-                                destLng={mapaDelivery.lng}
-                            />
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
