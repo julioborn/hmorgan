@@ -26,6 +26,8 @@ type PedidoDetail = {
     fuente: string;
     items: PedidoItem[];
     total?: number;
+    userId?:    { nombre?: string; apellido?: string } | null;
+    clienteId?: { nombre?: string; apellido?: string; telefono?: string } | null;
 };
 
 type Movement = {
@@ -189,39 +191,73 @@ function buildGroups(movimientos: Movement[]): MovGroup[] {
 
 // ── Pedido Modal ──────────────────────────────────────────────────────────────
 
-function PedidoModal({ pedido, onClose }: { pedido: PedidoDetail; onClose: () => void }) {
+function PedidoModal({ group, onClose }: { group: MovGroup; onClose: () => void }) {
+    const pedido = group.pedido!;
     const titulo = pedido.mesa
         ? `Mesa ${pedido.mesa}${pedido.nombreComanda ? ` · ${pedido.nombreComanda}` : ""}`
         : pedido.nombreComanda || "Pedido";
 
+    const esApp   = pedido.fuente === "app";
+    const cliente = nombreU(pedido.clienteId);
+    const cajero  = nombreU(pedido.userId);
+
     return createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={onClose}>
             <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
+
+                {/* Header */}
                 <div className="bg-black px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <UtensilsCrossed size={15} className="text-white/60" />
-                        <p className="font-black text-white text-sm">{titulo}</p>
+                        <div>
+                            <p className="font-black text-white text-sm leading-tight">{titulo}</p>
+                            <p className="text-[10px] text-white/40 mt-0.5">
+                                {esApp ? "Pedido app" : "Barra / mesa"} · {formatHora(group.createdAt)}
+                            </p>
+                        </div>
                     </div>
                     <button onClick={onClose} className="text-white/60 hover:text-white transition">
                         <X size={18} />
                     </button>
                 </div>
 
-                <div className="divide-y divide-gray-100 max-h-72 overflow-y-auto">
+                {/* Cliente / cajero */}
+                {(cliente || cajero) && (
+                    <div className="border-b border-gray-100 px-4 py-2.5 flex gap-6 bg-gray-50">
+                        {cliente && (
+                            <div>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Cliente</p>
+                                <p className="text-sm font-black text-gray-800">{cliente}</p>
+                                {pedido.clienteId?.telefono && (
+                                    <p className="text-[11px] text-gray-400">{pedido.clienteId.telefono}</p>
+                                )}
+                            </div>
+                        )}
+                        {cajero && (
+                            <div>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Cajero</p>
+                                <p className="text-sm font-semibold text-gray-700">{cajero}</p>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Ítems */}
+                <div className="divide-y divide-gray-100 max-h-60 overflow-y-auto">
                     {pedido.items.map((it, i) => {
                         const nombre = it.menuItemId?.nombre || "Ítem";
                         const precio = it.menuItemId?.precio || 0;
                         return (
-                            <div key={i} className="flex items-center gap-3 px-4 py-3">
+                            <div key={i} className="flex items-center gap-3 px-4 py-2.5">
                                 <span className="w-6 h-6 rounded-full bg-gray-100 text-gray-600 text-xs font-black flex items-center justify-center shrink-0">
                                     {it.cantidad}
                                 </span>
                                 <div className="flex-1 min-w-0">
                                     <p className="font-semibold text-gray-800 text-sm truncate">{nombre}</p>
                                     {it.menuItemId?.categoria && (
-                                        <p className="text-[10px] text-gray-400 mt-0.5">{it.menuItemId.categoria}</p>
+                                        <p className="text-[10px] text-gray-400">{it.menuItemId.categoria}</p>
                                     )}
-                                    {it.nota && <p className="text-xs text-amber-600 italic mt-0.5">{it.nota}</p>}
+                                    {it.nota && <p className="text-xs text-amber-600 italic">{it.nota}</p>}
                                 </div>
                                 <span className="font-black text-gray-900 text-sm shrink-0">{fmt(precio * it.cantidad)}</span>
                             </div>
@@ -229,12 +265,36 @@ function PedidoModal({ pedido, onClose }: { pedido: PedidoDetail; onClose: () =>
                     })}
                 </div>
 
-                {pedido.total != null && (
-                    <div className="border-t border-gray-200 px-4 py-3 flex justify-between items-center bg-gray-50">
-                        <span className="font-black text-gray-700 text-sm">Total</span>
-                        <span className="font-black text-gray-900 text-base">{fmt(pedido.total)}</span>
+                {/* Métodos de pago y totales */}
+                <div className="border-t border-gray-200 px-4 py-3 space-y-1.5 bg-gray-50">
+                    {group.descuento > 0 && (
+                        <div className="flex justify-between text-xs text-orange-500 font-bold">
+                            <span>Descuento</span>
+                            <span>-{fmt(group.descuento)}</span>
+                        </div>
+                    )}
+                    {group.pagos.map((p, i) => {
+                        const Icon = METODO_ICON[p.metodo] || Banknote;
+                        return (
+                            <div key={i} className={`flex items-center justify-between rounded-lg px-2.5 py-1.5 border ${METODO_COLOR[p.metodo] || "bg-gray-100 border-gray-200 text-gray-600"}`}>
+                                <span className="flex items-center gap-1.5 text-xs font-bold">
+                                    <Icon size={12} />{METODO_LABEL[p.metodo] || p.metodo}
+                                </span>
+                                <span className="text-sm font-black">{fmt(p.monto)}</span>
+                            </div>
+                        );
+                    })}
+                    {group.excedente > 0 && (
+                        <div className="flex justify-between text-xs text-amber-600 font-bold">
+                            <span>Propina / excedente</span>
+                            <span>+{fmt(group.excedente)}</span>
+                        </div>
+                    )}
+                    <div className="flex justify-between items-center pt-1 border-t border-gray-200">
+                        <span className="text-xs font-black text-gray-500 uppercase tracking-wide">Total cobrado</span>
+                        <span className="text-base font-black text-gray-900">{fmt(group.total)}</span>
                     </div>
-                )}
+                </div>
             </div>
         </div>,
         document.body
@@ -243,20 +303,13 @@ function PedidoModal({ pedido, onClose }: { pedido: PedidoDetail; onClose: () =>
 
 // ── Movimiento Card ───────────────────────────────────────────────────────────
 
-function MovCard({ g, onOpenPedido }: { g: MovGroup; onOpenPedido: (p: PedidoDetail) => void }) {
+function MovCard({ g, onOpenGroup }: { g: MovGroup; onOpenGroup: (g: MovGroup) => void }) {
     const [expanded, setExpanded] = useState(false);
     const esIngreso = g.tipo === "ingreso";
     const hasPedido = !!g.pedido?.items?.length;
     const hasItems  = !!g.items?.length;
 
-    // Cobro parcial sin pedido pero con items guardados
-    const itemsToShow = hasPedido ? g.pedido!.items.map(it => ({
-        nombre: it.menuItemId?.nombre || "Ítem",
-        cantidad: it.cantidad,
-        precio: it.menuItemId?.precio || 0,
-        categoria: it.menuItemId?.categoria,
-    })) : (g.items ?? []);
-
+    const itemsToShow = (g.items ?? []);
     const canExpand = hasPedido || hasItems;
 
     return (
@@ -265,7 +318,7 @@ function MovCard({ g, onOpenPedido }: { g: MovGroup; onOpenPedido: (p: PedidoDet
             <div
                 className={`flex items-center gap-3 px-3 py-2.5 ${canExpand ? "cursor-pointer hover:bg-gray-50" : ""} ${esIngreso ? "bg-white" : "bg-red-50"}`}
                 onClick={() => {
-                    if (hasPedido) onOpenPedido(g.pedido!);
+                    if (hasPedido) onOpenGroup(g);
                     else if (hasItems) setExpanded(v => !v);
                 }}
             >
@@ -331,17 +384,17 @@ function MovCard({ g, onOpenPedido }: { g: MovGroup; onOpenPedido: (p: PedidoDet
 // ── Movimientos Section ───────────────────────────────────────────────────────
 
 function MovimientosSection({ movimientos }: { movimientos: Movement[] }) {
-    const [modalPedido, setModalPedido] = useState<PedidoDetail | null>(null);
+    const [modalGroup, setModalGroup] = useState<MovGroup | null>(null);
     const groups = buildGroups(movimientos);
 
     return (
         <>
             <div className="space-y-2">
                 {groups.map(g => (
-                    <MovCard key={g.key} g={g} onOpenPedido={setModalPedido} />
+                    <MovCard key={g.key} g={g} onOpenGroup={setModalGroup} />
                 ))}
             </div>
-            {modalPedido && <PedidoModal pedido={modalPedido} onClose={() => setModalPedido(null)} />}
+            {modalGroup && <PedidoModal group={modalGroup} onClose={() => setModalGroup(null)} />}
         </>
     );
 }

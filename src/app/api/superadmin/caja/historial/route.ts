@@ -31,8 +31,12 @@ export async function GET(req: NextRequest) {
             .populate("userId", "nombre apellido")
             .populate({
                 path: "pedidoId",
-                select: "mesa nombreComanda fuente items total eventoId",
-                populate: { path: "items.menuItemId", select: "nombre precio categoria" },
+                select: "mesa nombreComanda fuente items total eventoId userId clienteId",
+                populate: [
+                    { path: "items.menuItemId", select: "nombre precio categoria" },
+                    { path: "userId",    select: "nombre apellido" },
+                    { path: "clienteId", select: "nombre apellido telefono" },
+                ],
             })
             .sort({ createdAt: 1 })
             .lean<any[]>(),
