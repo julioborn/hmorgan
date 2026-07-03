@@ -120,14 +120,14 @@ export default function ClienteMenuPage() {
                 initial={{ opacity: 0, y: 18 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.04 }}
-                className={`relative w-full h-36 rounded-2xl overflow-hidden shadow-md active:scale-[0.97] transition-transform ${isSpecial ? "col-span-2" : ""}`}
+                className={`relative w-full rounded-2xl overflow-hidden shadow-md active:scale-[0.97] transition-transform ${isSpecial ? "col-span-2 h-56" : "h-36"}`}
             >
                 {bg ? (
                     <MenuImg src={bg} alt={cat} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: imagePosition }} />
                 ) : (
                     <div className={`absolute inset-0 ${isSpecial ? "bg-gradient-to-br from-amber-400 to-amber-600" : "bg-gradient-to-br from-gray-800 to-gray-600"}`} />
                 )}
-                <div className={`absolute inset-0 bg-gradient-to-t ${isSpecial ? "from-amber-900/85 via-amber-800/30 to-transparent" : "from-black/85 via-black/30 to-black/10"}`} />
+                <div className={`absolute inset-0 bg-gradient-to-t ${isSpecial ? "from-black/75 via-black/10 to-transparent" : "from-black/85 via-black/30 to-black/10"}`} />
                 {isSpecial && <span className="absolute top-3 left-3 bg-white/90 text-amber-700 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">Hoy</span>}
                 <div className="absolute bottom-3 left-0 right-0 px-2 text-center">
                     <p className="text-white font-black text-sm tracking-tight leading-tight">{cat}</p>

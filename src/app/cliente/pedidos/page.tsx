@@ -46,6 +46,7 @@ const categoryImages: Record<string, string> = {
     COCKTAILS: "/subcategoria-bebidas/cocktails.png",
     WHISKY: "/subcategoria-bebidas/whisky.png",
     MEDIDAS: "/subcategoria-bebidas/medidas.png",
+    "MENÚ DEL DÍA": "/menu-del-dia.jpeg",
 };
 
 const categoryIcons: Record<string, React.ElementType> = {
@@ -383,7 +384,7 @@ export default function PedidosClientePage() {
                 const cfg = await fetch("/api/config/pedidos", { cache: "no-store" }).then((r) => r.json());
                 setActivo(cfg.activo);
                 if (cfg.activo) {
-                    const data = await fetch("/api/menu?activo=true").then(r => r.json());
+                    const data = await fetch("/api/menu?cliente=true").then(r => r.json());
                     setMenu(data);
                 }
             } catch (error) {
@@ -520,10 +521,13 @@ export default function PedidosClientePage() {
     };
     const getPosition = (cat: string) => categoryConfigMap[cat]?.imagePosition || "50% 50%";
 
-    const categoriasNavegacion = MAIN_ORDER.filter(cat => {
-        if (cat === "BEBIDAS") return BEBIDAS_CATS.some(bc => menu.some(i => i.categoria === bc));
-        return menu.some(i => i.categoria === cat);
-    });
+    const categoriasNavegacion = [
+        ...(menu.some(i => i.categoria === "MENÚ DEL DÍA") ? ["MENÚ DEL DÍA"] : []),
+        ...MAIN_ORDER.filter(cat => {
+            if (cat === "BEBIDAS") return BEBIDAS_CATS.some(bc => menu.some(i => i.categoria === bc));
+            return menu.some(i => i.categoria === cat);
+        }),
+    ];
 
     const cartDrawerProps: CartDrawerProps = {
         items, menu, tipoEntrega, setTipoEntrega,
@@ -570,14 +574,16 @@ export default function PedidosClientePage() {
     function CategoryCard({ cat, idx, onClick }: { cat: string; idx: number; onClick: () => void }) {
         const bg = getImage(cat);
         const pos = getPosition(cat);
+        const isSpecial = cat === "MENÚ DEL DÍA";
         const count = cat === "BEBIDAS"
             ? menu.filter(i => BEBIDAS_CATS.includes(i.categoria)).length
             : menu.filter(i => i.categoria === cat).length;
         return (
             <motion.button onClick={onClick} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.04 }}
-                className="relative w-full h-36 rounded-2xl overflow-hidden shadow-md active:scale-[0.97] transition-transform">
-                {bg ? <MenuImg src={bg} alt={cat} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: pos }} /> : <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-600" />}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/10" />
+                className={`relative w-full rounded-2xl overflow-hidden shadow-md active:scale-[0.97] transition-transform ${isSpecial ? "col-span-2 h-56" : "h-36"}`}>
+                {bg ? <MenuImg src={bg} alt={cat} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: pos }} /> : <div className={`absolute inset-0 ${isSpecial ? "bg-gradient-to-br from-amber-400 to-amber-600" : "bg-gradient-to-br from-gray-800 to-gray-600"}`} />}
+                <div className={`absolute inset-0 bg-gradient-to-t ${isSpecial ? "from-black/75 via-black/10 to-transparent" : "from-black/85 via-black/30 to-black/10"}`} />
+                {isSpecial && <span className="absolute top-3 left-3 bg-white/90 text-amber-700 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">Hoy</span>}
                 <div className="absolute bottom-3 left-0 right-0 px-2 text-center">
                     <p className="text-white font-black text-sm tracking-tight leading-tight">{cat}</p>
                     <p className="text-white/60 text-[11px] font-medium mt-0.5">{count} {count === 1 ? "producto" : "productos"}</p>
