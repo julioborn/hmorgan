@@ -107,10 +107,13 @@ function Landing() {
 /* =========================
   HOME CLIENTE
    ========================= */
+type MenuDelDiaItem = { _id: string; nombre: string; descripcion?: string; precio: number };
+
 function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [carouselImages, setCarouselImages] = useState<CarouselImg[]>([]);
   const [loadingRewards, setLoadingRewards] = useState(true);
+  const [menuDelDia, setMenuDelDia] = useState<MenuDelDiaItem[]>([]);
   const [pedidosActivosCount, setPedidosActivosCount] = useState(0);
   const [pedidosActivos, setPedidosActivos] = useState(true);
   const [reservasActivas, setReservasActivas] = useState(true);
@@ -163,8 +166,18 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
       }
     };
 
+    const fetchMenuDelDia = async () => {
+      try {
+        const res = await fetch("/api/menu?cliente=true", { cache: "no-store" });
+        if (!res.ok) return;
+        const data: any[] = await res.json();
+        setMenuDelDia(data.filter(i => i.categoria === "MENÚ DEL DÍA"));
+      } catch {}
+    };
+
     fetchRewards();
     fetchCarousel();
+    fetchMenuDelDia();
   }, []);
 
   useEffect(() => {
@@ -279,6 +292,32 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
           </>
         </div>
       </section>
+      )}
+
+      {/* Menú del Día */}
+      {menuDelDia.length > 0 && (
+        <Link href="/cliente/menu" className="block">
+          <div className="relative rounded-2xl overflow-hidden shadow-lg">
+            <img src="/menu-del-dia.jpeg" alt="Menú del Día" className="w-full h-40 object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-amber-900/90 via-amber-800/40 to-transparent" />
+            <span className="absolute top-3 left-3 bg-white/90 text-amber-700 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">Hoy</span>
+            <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-2">
+              <p className="text-white font-black text-base tracking-tight mb-2">MENÚ DEL DÍA</p>
+              <div className="flex flex-wrap gap-1.5">
+                {menuDelDia.slice(0, 4).map(item => (
+                  <span key={item._id} className="bg-white/20 backdrop-blur-sm text-white text-[11px] font-semibold px-2 py-0.5 rounded-full border border-white/30">
+                    {item.nombre}
+                  </span>
+                ))}
+                {menuDelDia.length > 4 && (
+                  <span className="bg-white/20 backdrop-blur-sm text-white text-[11px] font-semibold px-2 py-0.5 rounded-full border border-white/30">
+                    +{menuDelDia.length - 4} más
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </Link>
       )}
 
       {/* Botonera */}

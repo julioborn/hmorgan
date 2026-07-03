@@ -12,8 +12,9 @@ import {
     Wallet, X, Printer, CreditCard, Banknote, Send,
     Loader2, CheckCircle, AlertCircle, Clock, Flame,
     Package, Truck, UtensilsCrossed, CalendarDays,
-    MessageCircle, Plus, Pencil, Trash2, MapPin, Users, User, Star, Gift, XCircle, ArrowDownLeft, ArrowLeftRight, Ticket, ChevronDown,
+    MessageCircle, Plus, Pencil, Trash2, MapPin, Users, User, Star, Gift, XCircle, ArrowDownLeft, ArrowLeftRight, Ticket, ChevronDown, Camera,
 } from "lucide-react";
+import { useCategoryConfigs } from "@/hooks/useCategoryConfigs";
 import ReservasManager from "@/components/ReservasManager";
 import { hoyArgentina } from "@/lib/argentina-time";
 import MenuImg from "@/components/MenuImg";
@@ -84,6 +85,7 @@ const categoryImages: Record<string, string> = {
     PARRILLA: "/parrilla.jpg", PIZZAS: "/pizzas.jpg", HAMBURGUESAS: "/hamburguesas.jpg",
     SANDWICHES: "/sandwiches.jpg", "PICADAS Y FRITURAS": "/picada.jpg", ENSALADAS: "/ensaladas.jpg",
     BEBIDAS: "/bebidas.jpeg", "POSTRE Y CAFE": "/postreycafe.jpeg",
+    "MENÚ DEL DÍA": "/menu-del-dia.jpeg",
     CERVEZAS: "/subcategoria-bebidas/cervezas.png", VINOS: "/subcategoria-bebidas/vinos.png",
     GASEOSAS: "/subcategoria-bebidas/gaseosas.png", JARROS: "/subcategoria-bebidas/jarros.png",
     COCKTAILS: "/subcategoria-bebidas/cocktails.png", WHISKY: "/subcategoria-bebidas/whisky.png",
@@ -127,6 +129,7 @@ const VISTA_MAP: Record<string, Vista> = {
 
 export default function CajaPage() {
     const router = useRouter();
+    const categoryConfigMap = useCategoryConfigs();
     const [tab, setTab]                   = useState<"pedidos" | "caja" | "reservas" | "mesas" | "eventos" | "canjes" | "menu">("pedidos");
     const [canjesPendientes, setCanjesPendientes] = useState<CanjePendiente[]>([]);
     const [canjeProcessing, setCanjeProcessing]   = useState<string | null>(null);
@@ -241,6 +244,23 @@ export default function CajaPage() {
     const [menuGestEditId, setMenuGestEditId] = useState<string | null>(null);
     const [menuGestShowForm, setMenuGestShowForm] = useState(false);
     const [menuGestSaving, setMenuGestSaving] = useState(false);
+    const [menuGestImgUploading, setMenuGestImgUploading] = useState(false);
+    const menuGestImgRef = useRef<HTMLInputElement>(null);
+
+    async function uploadMenuDelDiaImg(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setMenuGestImgUploading(true);
+        try {
+            const fd = new FormData();
+            fd.append("file", file);
+            const res = await fetch("/api/superadmin/menu/imagen", { method: "POST", credentials: "include", body: fd });
+            const data = await res.json();
+            if (!res.ok) { swalBase.fire({ title: "Error", text: data.error || "No se pudo subir la imagen", icon: "error" }); return; }
+            await fetch("/api/categories/config", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ categoria: "MENÚ DEL DÍA", imageUrl: data.url }) });
+        } catch { swalBase.fire({ title: "Error", text: "No se pudo conectar", icon: "error" }); }
+        finally { setMenuGestImgUploading(false); if (menuGestImgRef.current) menuGestImgRef.current.value = ""; }
+    }
 
     async function loadMenuGest() {
         setMenuGestLoading(true);
@@ -2709,22 +2729,33 @@ export default function CajaPage() {
                                             }),
                                         ];
                                         return sorted.map(cat => {
-                                            const img = categoryImages[cat];
+                                            const dynImg = categoryConfigMap[cat]?.imageUrl;
+                                            const img = dynImg || categoryImages[cat];
                                             const isSpecial = cat === "MENÚ DEL DÍA";
                                             const count = cat === "BEBIDAS" ? menuGest.filter(i => BEBIDAS_CATS.includes(i.categoria)).length
                                                 : cat === "PICADAS Y FRITURAS" ? menuGest.filter(i => PICAR_CATS.includes(i.categoria)).length
                                                 : menuGest.filter(i => i.categoria === cat).length;
                                             return (
-                                                <button key={cat} onClick={() => setMenuGestCatActiva(cat)}
-                                                    className="relative h-32 rounded-2xl overflow-hidden shadow-sm active:scale-[0.97] transition-transform">
-                                                    {img ? <MenuImg src={img} alt={cat} className="absolute inset-0 w-full h-full object-cover" /> : <div className={`absolute inset-0 ${isSpecial ? "bg-gradient-to-br from-amber-400 to-amber-600" : "bg-gradient-to-br from-gray-800 to-gray-600"}`} />}
-                                                    <div className={`absolute inset-0 bg-gradient-to-t ${isSpecial ? "from-amber-900/80 via-amber-800/20 to-transparent" : "from-black/80 via-black/25 to-black/10"}`} />
-                                                    {isSpecial && <span className="absolute top-2 left-2 bg-white/90 text-amber-700 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full">Hoy</span>}
-                                                    <div className="absolute bottom-3 left-0 right-0 px-2 text-center">
-                                                        <p className="text-white font-black text-sm tracking-tight leading-tight">{cat}</p>
-                                                        <p className="text-white/70 text-[11px] mt-0.5">{count} productos</p>
-                                                    </div>
-                                                </button>
+                                                <div key={cat} className={`relative h-32 rounded-2xl overflow-hidden shadow-sm ${isSpecial ? "col-span-2" : ""}`}>
+                                                    <button onClick={() => setMenuGestCatActiva(cat)} className="absolute inset-0 w-full h-full active:scale-[0.97] transition-transform">
+                                                        {img ? <MenuImg src={img} alt={cat} className="absolute inset-0 w-full h-full object-cover" /> : <div className={`absolute inset-0 ${isSpecial ? "bg-gradient-to-br from-amber-400 to-amber-600" : "bg-gradient-to-br from-gray-800 to-gray-600"}`} />}
+                                                        <div className={`absolute inset-0 bg-gradient-to-t ${isSpecial ? "from-amber-900/80 via-amber-800/20 to-transparent" : "from-black/80 via-black/25 to-black/10"}`} />
+                                                        {isSpecial && <span className="absolute top-2 left-2 bg-white/90 text-amber-700 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full">Hoy</span>}
+                                                        <div className="absolute bottom-3 left-0 right-0 px-2 text-center">
+                                                            <p className="text-white font-black text-sm tracking-tight leading-tight">{cat}</p>
+                                                            <p className="text-white/70 text-[11px] mt-0.5">{count} productos</p>
+                                                        </div>
+                                                    </button>
+                                                    {isSpecial && (
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); menuGestImgRef.current?.click(); }}
+                                                            disabled={menuGestImgUploading}
+                                                            className="absolute top-2 right-2 z-10 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition"
+                                                        >
+                                                            {menuGestImgUploading ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
+                                                        </button>
+                                                    )}
+                                                </div>
                                             );
                                         });
                                     })()}
@@ -2759,6 +2790,9 @@ export default function CajaPage() {
                     )}
                 </>
             )}
+
+            {/* Input oculto para subir imagen de MENÚ DEL DÍA */}
+            <input ref={menuGestImgRef} type="file" accept="image/*" className="hidden" onChange={uploadMenuDelDiaImg} />
 
             {/* Modal cerrar caja */}
             {closeModal && (

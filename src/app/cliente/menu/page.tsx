@@ -46,6 +46,7 @@ const categoryImages: Record<string, string> = {
     COCKTAILS: "/subcategoria-bebidas/cocktails.png",
     WHISKY: "/subcategoria-bebidas/whisky.png",
     MEDIDAS: "/subcategoria-bebidas/medidas.png",
+    "MENÚ DEL DÍA": "/menu-del-dia.jpeg",
 };
 
 const categoryIcons: Record<string, React.ElementType> = {

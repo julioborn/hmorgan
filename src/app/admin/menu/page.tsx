@@ -50,6 +50,7 @@ const categoryImages: Record<string, string> = {
     COCKTAILS: "/subcategoria-bebidas/cocktails.png",
     WHISKY: "/subcategoria-bebidas/whisky.png",
     MEDIDAS: "/subcategoria-bebidas/medidas.png",
+    "MENÚ DEL DÍA": "/menu-del-dia.jpeg",
 };
 
 const categoryIcons: Record<string, React.ElementType> = {
@@ -183,7 +184,7 @@ export default function AdminMenuPage() {
         try {
             const fd = new FormData();
             fd.append("file", file);
-            const res = await fetch("/api/superadmin/menu/imagen", { method: "POST", body: fd });
+            const res = await fetch("/api/superadmin/menu/imagen", { method: "POST", credentials: "include", body: fd });
             const data = await res.json();
             if (!res.ok) { setUploadImgError(data.error || `Error ${res.status}`); return; }
             setEditingConfig(c => ({ ...c, imageUrl: data.url }));
