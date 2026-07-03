@@ -61,6 +61,7 @@ type CierreResumen = {
 };
 type MenuItemLite = { _id: string; nombre: string; precio: number; categoria: string; activo?: boolean; activoCliente?: boolean; descripcion?: string };
 type CajaSession = { _id: string; estado: "abierta" | "cerrada"; montoInicial: number; fechaApertura: string };
+type Egreso = { _id: string; concepto: string; monto: number; metodoPago: string; createdAt: string };
 type MesaPlano = { _id: string; nombre: string; activa: boolean; x: number; y: number; forma: string; ancho?: number; alto?: number; rotacion?: number; tipo?: string };
 type SalonElPlano = { _id: string; tipo: string; label: string; x: number; y: number; ancho: number; alto: number; color: string };
 type VentaEvento = { _id: string; items: { nombre: string; precio: number; categoria: string; cantidad: number }[]; total: number; metodoPago: string; createdAt: string; nota?: string };
@@ -177,6 +178,8 @@ export default function CajaPage() {
     const [gastoModal,  setGastoModal]  = useState(false);
     const [gastoForm,   setGastoForm]   = useState<{ concepto: string; monto: string; metodo: typeof METODOS[number] }>({ concepto: "", monto: "", metodo: "efectivo" });
     const [gastoSaving, setGastoSaving] = useState(false);
+    const [gastoEditId, setGastoEditId] = useState<string | null>(null);
+    const [egresos,     setEgresos]     = useState<Egreso[]>([]);
     const [menuItemsAll, setMenuItemsAll] = useState<MenuItemLite[]>([]);
     const [editItemModal, setEditItemModal] = useState<
         { pedido: Pedido; modo: "agregar" } | { pedido: Pedido; modo: "reemplazar"; itemId: string; nombreActual: string } | null
@@ -377,6 +380,7 @@ export default function CajaPage() {
             if (!cajaRes.ok) return;
             const [cajaData, pedData] = await Promise.all([cajaRes.json(), pedRes.json()]);
             setSesion(cajaData.sesion || null);
+            setEgresos((cajaData.movimientos || []).filter((m: any) => m.tipo === "egreso"));
             if (Array.isArray(pedData)) {
                 const sesionApertura = cajaData.sesion?.fechaApertura
                     ? new Date(cajaData.sesion.fechaApertura)
@@ -816,16 +820,28 @@ export default function CajaPage() {
         if (!gastoForm.concepto.trim() || !gastoForm.monto) return;
         setGastoSaving(true);
         try {
-            const res = await fetch("/api/superadmin/caja/movimiento", {
-                method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
-                body: JSON.stringify({ tipo: "egreso", concepto: gastoForm.concepto.trim(), monto: Number(gastoForm.monto), metodoPago: gastoForm.metodo }),
-            });
+            const url = gastoEditId
+                ? `/api/superadmin/caja/movimiento/${gastoEditId}`
+                : "/api/superadmin/caja/movimiento";
+            const method = gastoEditId ? "PUT" : "POST";
+            const body = gastoEditId
+                ? { concepto: gastoForm.concepto.trim(), monto: Number(gastoForm.monto), metodoPago: gastoForm.metodo }
+                : { tipo: "egreso", concepto: gastoForm.concepto.trim(), monto: Number(gastoForm.monto), metodoPago: gastoForm.metodo };
+            const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(body) });
             if (res.ok) {
                 setGastoModal(false);
+                setGastoEditId(null);
                 setGastoForm({ concepto: "", monto: "", metodo: "efectivo" });
                 loadData();
             }
         } finally { setGastoSaving(false); }
+    }
+
+    async function eliminarEgreso(id: string, concepto: string) {
+        const ok = await swalBase.fire({ title: `¿Eliminar egreso?`, text: `"${concepto}" será eliminado.`, icon: "warning", showCancelButton: true, confirmButtonText: "Sí, eliminar", cancelButtonText: "Cancelar" });
+        if (!ok.isConfirmed) return;
+        await fetch(`/api/superadmin/caja/movimiento/${id}`, { method: "DELETE", credentials: "include" });
+        loadData();
     }
 
     async function avanzarEstado(p: Pedido, estado: string) {
@@ -2017,17 +2033,51 @@ export default function CajaPage() {
                     {/* ── TAB COBRAR ── */}
                     {tab === "caja" && (
                         <div className="max-w-screen-2xl mx-auto px-4 pt-4">
+
+                            {/* ── Egresos ── */}
+                            <div className="mb-5">
+                                <div className="flex items-center justify-between mb-2">
+                                    <h2 className="font-black text-gray-900 text-base tracking-tight flex items-center gap-1.5">
+                                        <ArrowDownLeft size={16} className="text-red-500" /> Egresos
+                                        {egresos.length > 0 && <span className="text-xs font-black text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{egresos.length}</span>}
+                                    </h2>
+                                    <button
+                                        onClick={() => { setGastoEditId(null); setGastoModal(true); setGastoForm({ concepto: "", monto: "", metodo: "efectivo" }); }}
+                                        className="flex items-center gap-1.5 bg-black hover:bg-gray-800 text-white text-xs font-bold px-3 py-2 rounded-xl transition">
+                                        <ArrowDownLeft size={13} /> Registrar egreso
+                                    </button>
+                                </div>
+                                {egresos.length === 0 ? (
+                                    <p className="text-xs text-gray-400 py-2">Sin egresos registrados en esta sesión.</p>
+                                ) : (
+                                    <div className="space-y-1.5">
+                                        {egresos.map(e => (
+                                            <div key={e._id} className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2.5 shadow-sm">
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-bold text-gray-900 truncate">{e.concepto}</p>
+                                                    <p className="text-xs text-gray-400">{METODO_LABEL[e.metodoPago as typeof METODOS[number]] || e.metodoPago} · {new Date(e.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</p>
+                                                </div>
+                                                <span className="text-sm font-black text-red-600 shrink-0">−{formatMoney(e.monto)}</span>
+                                                <button onClick={() => { setGastoEditId(e._id); setGastoForm({ concepto: e.concepto, monto: String(e.monto), metodo: (e.metodoPago as typeof METODOS[number]) || "efectivo" }); setGastoModal(true); }}
+                                                    className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 transition shrink-0">
+                                                    <Pencil size={12} />
+                                                </button>
+                                                <button onClick={() => eliminarEgreso(e._id, e.concepto)}
+                                                    className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition shrink-0">
+                                                    <Trash2 size={12} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
                             <div className="flex items-center justify-between mb-4">
                                 <h2 className="font-black text-gray-900 text-lg tracking-tight">Para cobrar</h2>
                                 <div className="flex items-center gap-2">
                                     {paraCobrar.length > 0 && (
                                         <span className="text-xs font-black text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">{paraCobrar.length}</span>
                                     )}
-                                    <button
-                                        onClick={() => { setGastoModal(true); setGastoForm({ concepto: "", monto: "", metodo: "efectivo" }); }}
-                                        className="flex items-center gap-1.5 bg-black hover:bg-gray-800 text-white text-xs font-bold px-3 py-2 rounded-xl transition">
-                                        <ArrowDownLeft size={13} /> Registrar gasto
-                                    </button>
                                 </div>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 items-start">
@@ -2926,8 +2976,8 @@ export default function CajaPage() {
                     <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl">
                         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
                             <ArrowDownLeft size={18} className="text-red-500" />
-                            <h2 className="font-black text-gray-900 flex-1">Registrar gasto</h2>
-                            <button onClick={() => setGastoModal(false)} className="p-1 text-gray-700"><X size={18} /></button>
+                            <h2 className="font-black text-gray-900 flex-1">{gastoEditId ? "Editar egreso" : "Registrar egreso"}</h2>
+                            <button onClick={() => { setGastoModal(false); setGastoEditId(null); }} className="p-1 text-gray-700"><X size={18} /></button>
                         </div>
                         <div className="px-5 py-4 space-y-3">
                             <div>
@@ -2966,10 +3016,10 @@ export default function CajaPage() {
                             </div>
                         </div>
                         <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
-                            <button onClick={() => setGastoModal(false)} className="flex-1 py-2.5 border border-black rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
+                            <button onClick={() => { setGastoModal(false); setGastoEditId(null); }} className="flex-1 py-2.5 border border-black rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
                             <button onClick={registrarGasto} disabled={gastoSaving || !gastoForm.concepto.trim() || !gastoForm.monto}
                                 className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
-                                {gastoSaving ? "Guardando..." : "Registrar egreso"}
+                                {gastoSaving ? "Guardando..." : gastoEditId ? "Guardar cambios" : "Registrar egreso"}
                             </button>
                         </div>
                     </div>
