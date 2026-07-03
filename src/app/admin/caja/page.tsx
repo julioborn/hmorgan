@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
     TrendingUp, TrendingDown,
-    CreditCard, Banknote, Send, Loader2, CheckCircle, History,
+    CreditCard, Banknote, Send, Loader2, CheckCircle, History, MonitorCog,
 } from "lucide-react";
 
 type CajaSession = {
@@ -100,8 +100,12 @@ export default function CajaPage() {
                         </Link>
                     </div>
 
-                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 space-y-4">
                         <p className="text-sm text-gray-500 text-center">Sin sesión activa.</p>
+                        <Link href="/caja"
+                            className="flex items-center justify-center gap-2 w-full bg-black text-white font-bold py-3 rounded-xl text-sm transition hover:bg-gray-800 active:scale-[0.98]">
+                            <MonitorCog size={16} /> Abrir y operar caja
+                        </Link>
                     </div>
                 </div>
             </div>
@@ -116,10 +120,16 @@ export default function CajaPage() {
             <div className="px-4 max-w-2xl mx-auto">
                 <div className="flex items-center justify-between py-6">
                     <h1 className="text-3xl font-extrabold text-black">Caja</h1>
-                    <Link href="/admin/caja/historial"
-                        className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 px-3 py-1.5 rounded-xl text-xs font-semibold transition text-gray-600">
-                        <History size={13} /> Historial
-                    </Link>
+                    <div className="flex items-center gap-2">
+                        <Link href="/caja"
+                            className="flex items-center gap-1.5 bg-black text-white hover:bg-gray-800 px-3 py-1.5 rounded-xl text-xs font-bold transition">
+                            <MonitorCog size={13} /> Operar
+                        </Link>
+                        <Link href="/admin/caja/historial"
+                            className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 px-3 py-1.5 rounded-xl text-xs font-semibold transition text-gray-600">
+                            <History size={13} /> Historial
+                        </Link>
+                    </div>
                 </div>
 
                 <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 flex items-center gap-3 mb-4">
