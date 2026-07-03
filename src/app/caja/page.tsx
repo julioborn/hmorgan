@@ -10,7 +10,7 @@ import {
     Wallet, X, Printer, CreditCard, Banknote, Send,
     Loader2, CheckCircle, AlertCircle, Clock, Flame,
     Package, Truck, UtensilsCrossed, CalendarDays,
-    MessageCircle, Plus, Pencil, Trash2, MapPin, Users, Star, Gift, XCircle, ArrowDownLeft, ArrowLeftRight, Ticket,
+    MessageCircle, Plus, Pencil, Trash2, MapPin, Users, User, Star, Gift, XCircle, ArrowDownLeft, ArrowLeftRight, Ticket,
 } from "lucide-react";
 import ReservasManager from "@/components/ReservasManager";
 import { hoyArgentina } from "@/lib/argentina-time";
@@ -1918,7 +1918,7 @@ export default function CajaPage() {
                                                     <p className="text-xs text-white/45 mt-0.5">
                                                         {format(new Date(p.createdAt), "HH:mm", { locale: es })}
                                                         {p.tipoEntrega === "envio" ? " · Envío" : ""}
-                                                        {p.comensales ? ` · ${p.comensales} pers.` : ""}
+                                                        {p.comensales ? <span className="inline-flex items-center gap-0.5 ml-1">{p.comensales}<User size={10} /></span> : ""}
                                                     </p>
                                                     {esApp && p.horarioPreferido && (
                                                         <div className="flex items-center gap-1 mt-0.5 text-xs font-bold text-white/85">
@@ -3416,7 +3416,7 @@ export default function CajaPage() {
                                 </span>
                                 {mesaDetalle.pedido.comensales ? (
                                     <span className="flex items-center gap-1 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-semibold">
-                                        <Users size={11} />{mesaDetalle.pedido.comensales}p
+                                        {mesaDetalle.pedido.comensales}<User size={11} />
                                     </span>
                                 ) : null}
                             </div>

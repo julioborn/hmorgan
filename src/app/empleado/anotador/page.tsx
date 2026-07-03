@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
-import { Plus, UtensilsCrossed, ChevronRight, Trash2, LockKeyhole, Star, X, ArrowLeftRight } from "lucide-react";
+import { Plus, UtensilsCrossed, ChevronRight, Trash2, LockKeyhole, Star, X, ArrowLeftRight, User } from "lucide-react";
 import Loader from "@/components/Loader";
 import { swalBase } from "@/lib/swalConfig";
 
@@ -336,8 +336,8 @@ export default function AnotadorPage() {
                                             <div className="flex items-center gap-2 flex-wrap">
                                                 <p className="font-black text-gray-900 text-base leading-tight">{titulo}</p>
                                                 {!!c.comensales && (
-                                                    <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full font-semibold">
-                                                        {c.comensales}p
+                                                    <span className="flex items-center gap-1 text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full font-semibold">
+                                                        {c.comensales}<User size={11} />
                                                     </span>
                                                 )}
                                             </div>
