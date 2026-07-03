@@ -758,13 +758,7 @@ export default function CajaHistorialPage() {
             </div>
 
             {/* ── Sesiones ── */}
-            {loadingSesiones && <div className="flex justify-center py-20"><Loader size={40} /></div>}
-            {!loadingSesiones && errSesiones && (
-                <div className="text-center py-10">
-                    <p className="text-red-500 font-bold mb-3">Error al cargar el historial</p>
-                    <button onClick={recargar} className="text-sm font-bold text-gray-600 underline">Reintentar</button>
-                </div>
-            )}
+            {(loadingSesiones || errSesiones) && <div className="flex justify-center py-20"><Loader size={40} /></div>}
             {!loadingSesiones && !errSesiones && Array.isArray(sesiones) && sesiones.length === 0 && (
                 <p className="text-center text-gray-400 py-10">Sin sesiones registradas</p>
             )}
@@ -837,13 +831,7 @@ export default function CajaHistorialPage() {
             <div className="mb-6">
                 <h2 className="text-xl font-extrabold text-black mb-4">Historial de Eventos</h2>
 
-                {loadingEventos && <div className="flex justify-center py-10"><Loader size={36} /></div>}
-                {!loadingEventos && errEventos && (
-                    <div className="text-center py-6">
-                        <p className="text-red-500 font-bold mb-2 text-sm">Error al cargar eventos</p>
-                        <button onClick={recargar} className="text-sm font-bold text-gray-600 underline">Reintentar</button>
-                    </div>
-                )}
+                {(loadingEventos || errEventos) && <div className="flex justify-center py-10"><Loader size={36} /></div>}
                 {!loadingEventos && !errEventos && eventosCerrados.length === 0 && (
                     <p className="text-center text-gray-400 py-10">Sin eventos cerrados</p>
                 )}
