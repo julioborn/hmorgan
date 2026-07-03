@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle, ChefHat, LogOut, Clock } from "lucide-react";
+import { CheckCircle, ChefHat, LogOut, Clock, X } from "lucide-react";
 
 const BEBIDAS_CATS = new Set(["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"]);
 
@@ -34,6 +34,7 @@ export default function CocinaPage() {
     const [pedidos, setPedidos] = useState<Pedido[]>([]);
     const [loading, setLoading] = useState(true);
     const [marcando, setMarcando] = useState<string | null>(null);
+    const [confirmarId, setConfirmarId] = useState<string | null>(null);
     const prevIdsRef = useRef<Set<string>>(new Set());
     const [nuevosIds, setNuevosIds] = useState<Set<string>>(new Set());
 
@@ -63,7 +64,7 @@ export default function CocinaPage() {
                         recienLlegados.forEach(id => next.delete(id));
                         return next;
                     });
-                }, 4000);
+                }, 5000);
             }
 
             setPedidos(conComida);
@@ -77,7 +78,10 @@ export default function CocinaPage() {
         return () => clearInterval(iv);
     }, [loadPedidos]);
 
-    async function marcarListo(id: string) {
+    async function confirmarListo() {
+        if (!confirmarId) return;
+        const id = confirmarId;
+        setConfirmarId(null);
         setMarcando(id);
         try {
             await fetch("/api/pedidos", {
@@ -96,33 +100,35 @@ export default function CocinaPage() {
             .finally(() => router.replace("/login"));
     }
 
+    const pedidoAConfirmar = confirmarId ? pedidos.find(p => p._id === confirmarId) : null;
+
     return (
-        <div className="min-h-screen bg-zinc-950 text-white pb-8">
+        <div className="min-h-screen bg-white pb-10">
             {/* Header */}
-            <div className="sticky top-0 z-10 bg-zinc-900 border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
+            <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm">
                 <div className="flex items-center gap-2">
-                    <ChefHat size={22} className="text-amber-400" />
-                    <span className="text-lg font-black tracking-tight">Cocina</span>
+                    <ChefHat size={22} className="text-black" />
+                    <span className="text-lg font-black tracking-tight text-black">Cocina</span>
                 </div>
                 <div className="flex items-center gap-3">
-                    <span className="text-sm text-zinc-400">
+                    <span className="text-sm text-gray-400 font-medium">
                         {pedidos.length} comanda{pedidos.length !== 1 ? "s" : ""}
                     </span>
-                    <button onClick={logout} className="p-2 rounded-lg hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition">
+                    <button onClick={logout} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition">
                         <LogOut size={18} />
                     </button>
                 </div>
             </div>
 
             {loading ? (
-                <div className="flex items-center justify-center py-32 text-zinc-500 text-sm">
+                <div className="flex items-center justify-center py-32 text-gray-400 text-sm">
                     Cargando...
                 </div>
             ) : pedidos.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-32 space-y-3 text-zinc-600">
-                    <ChefHat size={52} className="opacity-30" />
-                    <p className="text-lg font-semibold">Sin comandas pendientes</p>
-                    <p className="text-sm">Actualizando cada 5 segundos...</p>
+                <div className="flex flex-col items-center justify-center py-32 space-y-3 text-gray-300">
+                    <ChefHat size={52} />
+                    <p className="text-lg font-semibold text-gray-400">Sin comandas en preparación</p>
+                    <p className="text-sm text-gray-300">Actualizando cada 5 segundos...</p>
                 </div>
             ) : (
                 <div className="max-w-2xl mx-auto px-3 pt-4 space-y-4">
@@ -130,9 +136,7 @@ export default function CocinaPage() {
                         const comida = foodItems(p.items);
                         const mesaLabel = p.mesa
                             ? `Mesa ${p.mesa}`
-                            : p.nombreComanda
-                            ? p.nombreComanda
-                            : "Sin mesa";
+                            : p.nombreComanda || "Sin mesa";
                         const mozo = p.userId ? `${p.userId.nombre} ${p.userId.apellido}` : null;
                         const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
                         const isNuevo = nuevosIds.has(p._id);
@@ -141,44 +145,42 @@ export default function CocinaPage() {
                         return (
                             <div
                                 key={p._id}
-                                className={`rounded-2xl border transition-all duration-500 overflow-hidden ${
-                                    isNuevo
-                                        ? "border-amber-400 bg-zinc-900 shadow-lg shadow-amber-400/20"
-                                        : "border-zinc-800 bg-zinc-900"
+                                className={`rounded-2xl border shadow-sm overflow-hidden transition-all duration-500 ${
+                                    isNuevo ? "border-red-300 ring-2 ring-red-200" : "border-gray-200"
                                 }`}
                             >
                                 {/* Card header */}
-                                <div className={`px-4 py-3 flex items-center justify-between border-b border-zinc-800 ${isNuevo ? "bg-amber-400/10" : ""}`}>
-                                    <div className="flex items-center gap-3">
+                                <div className={`px-4 py-3 flex items-center justify-between border-b ${isNuevo ? "bg-red-50 border-red-100" : "bg-gray-50 border-gray-100"}`}>
+                                    <div className="flex items-center gap-2 flex-wrap">
                                         {isNuevo && (
-                                            <span className="text-[10px] font-black uppercase tracking-widest bg-amber-400 text-black px-2 py-0.5 rounded-full animate-pulse">
+                                            <span className="text-[10px] font-black uppercase tracking-widest bg-red-600 text-white px-2 py-0.5 rounded-full animate-pulse">
                                                 Nuevo
                                             </span>
                                         )}
-                                        <span className="text-xl font-black text-white">{mesaLabel}</span>
+                                        <span className="text-xl font-black text-black">{mesaLabel}</span>
                                         {mozo && (
-                                            <span className="text-sm text-zinc-400">{mozo}</span>
+                                            <span className="text-sm text-gray-400">{mozo}</span>
                                         )}
                                     </div>
-                                    <div className="flex items-center gap-1.5 text-zinc-500">
+                                    <div className="flex items-center gap-1.5 text-gray-400">
                                         <Clock size={13} />
                                         <span className="text-sm">{hora}</span>
                                     </div>
                                 </div>
 
                                 {/* Food items */}
-                                <div className="px-4 py-3 space-y-2">
+                                <div className="px-4 py-4 space-y-3 bg-white">
                                     {comida.map((it, idx) => (
                                         <div key={idx} className="flex items-start gap-3">
-                                            <span className="text-2xl font-black text-white min-w-[2rem] text-center leading-tight">
+                                            <span className="text-2xl font-black text-black min-w-[2rem] text-center leading-tight">
                                                 {it.cantidad}
                                             </span>
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-lg font-bold text-white leading-tight">
+                                                <p className="text-lg font-bold text-black leading-tight">
                                                     {it.menuItemId?.nombre || "Ítem"}
                                                 </p>
                                                 {it.nota && (
-                                                    <p className="text-sm text-amber-300 mt-0.5 italic">
+                                                    <p className="text-sm text-amber-600 mt-0.5 italic">
                                                         ✏ {it.nota}
                                                     </p>
                                                 )}
@@ -188,19 +190,58 @@ export default function CocinaPage() {
                                 </div>
 
                                 {/* Listo button */}
-                                <div className="px-4 pb-4">
+                                <div className="px-4 pb-4 bg-white">
                                     <button
-                                        onClick={() => marcarListo(p._id)}
+                                        onClick={() => setConfirmarId(p._id)}
                                         disabled={isMarcando}
-                                        className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black font-black text-lg py-4 rounded-xl transition active:scale-[0.98]"
+                                        className="w-full flex items-center justify-center gap-2 bg-black hover:bg-gray-800 disabled:bg-gray-200 disabled:text-gray-400 text-white font-black text-base py-3.5 rounded-xl transition active:scale-[0.98]"
                                     >
-                                        <CheckCircle size={22} />
-                                        {isMarcando ? "Marcando..." : "LISTO"}
+                                        <CheckCircle size={20} />
+                                        {isMarcando ? "Marcando..." : "Marcar como listo"}
                                     </button>
                                 </div>
                             </div>
                         );
                     })}
+                </div>
+            )}
+
+            {/* Modal doble confirmación */}
+            {confirmarId && pedidoAConfirmar && (
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm px-4"
+                    onClick={() => setConfirmarId(null)}>
+                    <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden"
+                        onClick={e => e.stopPropagation()}>
+                        <div className="px-5 pt-5 pb-3 flex items-center justify-between border-b border-gray-100">
+                            <div className="flex items-center gap-2">
+                                <CheckCircle size={18} className="text-black" />
+                                <p className="font-black text-gray-900">Confirmar</p>
+                            </div>
+                            <button onClick={() => setConfirmarId(null)} className="p-1 text-gray-400 hover:text-gray-600">
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className="px-5 py-4">
+                            <p className="text-base font-semibold text-gray-900">
+                                ¿Marcar como listo?
+                            </p>
+                            <p className="text-sm text-gray-500 mt-1">
+                                {pedidoAConfirmar.mesa ? `Mesa ${pedidoAConfirmar.mesa}` : pedidoAConfirmar.nombreComanda || "Comanda"} — esto avisará al mozo.
+                            </p>
+                        </div>
+                        <div className="px-5 pb-5 flex gap-3">
+                            <button
+                                onClick={() => setConfirmarId(null)}
+                                className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-semibold hover:bg-gray-50 transition">
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={confirmarListo}
+                                className="flex-1 py-3 rounded-xl bg-black text-white text-sm font-black hover:bg-gray-800 transition">
+                                Sí, listo
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
