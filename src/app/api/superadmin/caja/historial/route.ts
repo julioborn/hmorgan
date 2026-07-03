@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { CajaSession } from "@/models/CajaSession";
 import { CajaMovement } from "@/models/CajaMovement";
-import { Pedido } from "@/models/Pedido";
 import { Evento } from "@/models/Evento";
 import jwt from "jsonwebtoken";
 
@@ -27,47 +26,26 @@ export async function GET(req: NextRequest) {
 
     const sesionIds = sesiones.map(s => s._id);
 
-    const [movimientos, pedidos] = await Promise.all([
-        CajaMovement.find({ sesionId: { $in: sesionIds } })
-            .populate("userId", "nombre apellido")
-            .populate({
-                path: "pedidoId",
-                select: "mesa nombreComanda fuente items total eventoId userId clienteId",
-                populate: [
-                    { path: "items.menuItemId", select: "nombre precio categoria" },
-                    { path: "userId",    select: "nombre apellido" },
-                    { path: "clienteId", select: "nombre apellido telefono" },
-                    { path: "eventoId",  select: "nombre" },
-                ],
-            })
-            .sort({ createdAt: 1 })
-            .lean<any[]>(),
-        Pedido.find({ estado: "cerrado" })
-            .populate("items.menuItemId", "nombre precio categoria")
-            .lean<any[]>(),
-    ]);
+    const movimientos = await CajaMovement.find({ sesionId: { $in: sesionIds } })
+        .populate("userId", "nombre apellido")
+        .populate({
+            path: "pedidoId",
+            select: "mesa nombreComanda fuente items total eventoId userId clienteId",
+            populate: [
+                { path: "items.menuItemId", select: "nombre precio categoria" },
+                { path: "userId",    select: "nombre apellido" },
+                { path: "clienteId", select: "nombre apellido telefono" },
+                { path: "eventoId",  select: "nombre" },
+            ],
+        })
+        .sort({ createdAt: 1 })
+        .lean<any[]>();
 
     const movPorSesion: Record<string, any[]> = {};
     for (const m of movimientos) {
         const key = String(m.sesionId);
         if (!movPorSesion[key]) movPorSesion[key] = [];
         movPorSesion[key].push(m);
-    }
-
-    // Match each pedido to its session by updatedAt timestamp
-    const pedidosPorSesion: Record<string, any[]> = {};
-    for (const p of pedidos) {
-        const ts = new Date(p.updatedAt).getTime();
-        for (const s of sesiones) {
-            const ini = new Date(s.fechaApertura).getTime();
-            const fin = s.fechaCierre ? new Date(s.fechaCierre).getTime() : Date.now();
-            if (ts >= ini && ts <= fin) {
-                const key = String(s._id);
-                if (!pedidosPorSesion[key]) pedidosPorSesion[key] = [];
-                pedidosPorSesion[key].push(p);
-                break;
-            }
-        }
     }
 
     const result = sesiones.map(s => {
@@ -83,26 +61,33 @@ export async function GET(req: NextRequest) {
         const totalIngreso = movs.filter((m: any) => m.tipo === "ingreso").reduce((sum: number, m: any) => sum + m.monto, 0);
         const totalEgreso  = movs.filter((m: any) => m.tipo === "egreso").reduce((sum: number, m: any) => sum + m.monto, 0);
 
-        // Aggregate products from pedidos cerrados in this session
+        // Aggregate products from movements (avoids expensive full Pedido scan)
         const productosMap: Record<string, { nombre: string; categoria: string; cantidad: number; total: number }> = {};
-        for (const p of pedidosPorSesion[String(s._id)] || []) {
-            for (const it of p.items) {
-                const mi = it.menuItemId as any;
-                if (!mi) continue;
-                const k = String(mi._id);
-                if (!productosMap[k]) productosMap[k] = { nombre: mi.nombre || "Ítem", categoria: mi.categoria || "", cantidad: 0, total: 0 };
-                productosMap[k].cantidad += it.cantidad;
-                productosMap[k].total += (mi.precio || 0) * it.cantidad;
-            }
-        }
-        // También sumar ítems de cobros parciales (guardados en CajaMovement.items)
+        const pedidosContados = new Set<string>();
         for (const m of movs) {
-            if (!Array.isArray(m.items) || m.items.length === 0) continue;
-            for (const it of m.items) {
-                const k = it.nombre;
-                if (!productosMap[k]) productosMap[k] = { nombre: it.nombre, categoria: it.categoria || "", cantidad: 0, total: 0 };
-                productosMap[k].cantidad += it.cantidad;
-                productosMap[k].total += (it.precio || 0) * it.cantidad;
+            const pedido = m.pedidoId as any;
+            const pid = pedido?._id ? String(pedido._id) : null;
+            const isParcial = (m.concepto || "").toLowerCase().includes("parcial");
+
+            if (pid && !isParcial && !pedidosContados.has(pid)) {
+                // Cobro final: contar ítems del pedido una sola vez
+                pedidosContados.add(pid);
+                for (const it of (pedido.items ?? [])) {
+                    const mi = it.menuItemId as any;
+                    if (!mi) continue;
+                    const k = String(mi._id);
+                    if (!productosMap[k]) productosMap[k] = { nombre: mi.nombre || "Ítem", categoria: mi.categoria || "", cantidad: 0, total: 0 };
+                    productosMap[k].cantidad += it.cantidad;
+                    productosMap[k].total += (mi.precio || 0) * it.cantidad;
+                }
+            } else if (Array.isArray(m.items) && m.items.length > 0) {
+                // Cobro parcial o venta directa: usar ítems del movimiento
+                for (const it of m.items) {
+                    const k = it.nombre;
+                    if (!productosMap[k]) productosMap[k] = { nombre: it.nombre, categoria: it.categoria || "", cantidad: 0, total: 0 };
+                    productosMap[k].cantidad += it.cantidad;
+                    productosMap[k].total += (it.precio || 0) * it.cantidad;
+                }
             }
         }
 
