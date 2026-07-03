@@ -190,6 +190,9 @@ export default function CajaPage() {
     const [nuevoEventoPrecio, setNuevoEventoPrecio]   = useState("");
     const [nuevoEventoMesas, setNuevoEventoMesas]     = useState<string[]>([]);
     const [crearEventoSaving, setCrearEventoSaving]   = useState(false);
+    const [editPrecioEventoId, setEditPrecioEventoId] = useState<string | null>(null);
+    const [editPrecioValue, setEditPrecioValue]       = useState("");
+    const [editPrecioSaving, setEditPrecioSaving]     = useState(false);
     const [editMesasModal, setEditMesasModal]     = useState(false);
     const [editMesasEventoId, setEditMesasEventoId] = useState<string | null>(null);
     const [editMesasList, setEditMesasList]       = useState<string[]>([]);
@@ -1014,6 +1017,21 @@ export default function CajaPage() {
         // Fallback: ventana del navegador
         if (comida.length > 0)  abrirEImprimir(comandaHtml(p, "COCINA", comida));
         if (bebidas.length > 0) setTimeout(() => abrirEImprimir(comandaHtml(p, "BARRA", bebidas)), 600);
+    }
+
+    async function guardarPrecioTarjeta(eventoId: string) {
+        setEditPrecioSaving(true);
+        try {
+            const res = await fetch(`/api/eventos/${eventoId}`, {
+                method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
+                body: JSON.stringify({ accion: "editarPrecioTarjeta", precio: Number(editPrecioValue) || 0 }),
+            });
+            if (res.ok) {
+                const { evento: updated } = await res.json();
+                setEventosActivos(prev => prev.map(e => e._id === eventoId ? updated : e));
+                setEditPrecioEventoId(null);
+            }
+        } finally { setEditPrecioSaving(false); }
     }
 
     async function crearEvento() {
@@ -2108,6 +2126,34 @@ export default function CajaPage() {
                                                 </div>
                                                 <h2 className="font-black text-white text-2xl leading-tight truncate">{ev.nombre}</h2>
                                                 <p className="text-sm font-bold text-white/50 mt-0.5">Total: <span className="text-white font-black">{formatMoney(totalEvento)}</span></p>
+                                                {/* Precio tarjeta con edición inline */}
+                                                {editPrecioEventoId === ev._id ? (
+                                                    <div className="flex items-center gap-2 mt-2">
+                                                        <input
+                                                            type="number" inputMode="numeric" autoFocus
+                                                            value={editPrecioValue}
+                                                            onChange={e => setEditPrecioValue(e.target.value)}
+                                                            onKeyDown={e => { if (e.key === "Enter") guardarPrecioTarjeta(ev._id); if (e.key === "Escape") setEditPrecioEventoId(null); }}
+                                                            className="w-32 px-2 py-1 rounded-lg text-sm font-bold text-black bg-white border-0 outline-none"
+                                                            placeholder="Precio entrada"
+                                                        />
+                                                        <button onClick={() => guardarPrecioTarjeta(ev._id)} disabled={editPrecioSaving}
+                                                            className="text-xs font-bold text-white bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg transition">
+                                                            {editPrecioSaving ? "..." : "Guardar"}
+                                                        </button>
+                                                        <button onClick={() => setEditPrecioEventoId(null)} className="text-white/50 hover:text-white transition">
+                                                            <X size={14} />
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => { setEditPrecioEventoId(ev._id); setEditPrecioValue(String(precioTarjeta || "")); }}
+                                                        className="flex items-center gap-1.5 mt-1.5 text-xs font-bold text-white/50 hover:text-white/80 transition">
+                                                        <Ticket size={11} />
+                                                        {precioTarjeta > 0 ? `Entrada: ${formatMoney(precioTarjeta)}` : "Sin precio de entrada"}
+                                                        <Pencil size={10} />
+                                                    </button>
+                                                )}
                                             </div>
                                             <button onClick={() => abrirCierreEvento(ev._id)}
                                                 className="shrink-0 text-sm font-bold text-white/70 hover:text-white border border-white/30 hover:border-white/60 px-4 py-2 rounded-xl transition">
