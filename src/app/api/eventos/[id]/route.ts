@@ -53,6 +53,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         const metodoPago = body.metodoPago || "efectivo";
         evento.tarjetas.push({ cantidad, metodoPago });
         await evento.save();
+        const nuevaTarjeta = (evento.tarjetas as any[])[(evento.tarjetas as any[]).length - 1];
         const precioTarjeta = (evento as any).precioTarjeta ?? 0;
         const totalTarjetas = cantidad * precioTarjeta;
         if (totalTarjetas > 0) {
@@ -62,6 +63,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
                     sesionId: sesion._id, tipo: "ingreso",
                     concepto: `Entradas evento: ${evento.nombre} (${cantidad}×)`,
                     monto: totalTarjetas, metodoPago, userId: payload.sub,
+                    tarjetaId: nuevaTarjeta._id,
                 });
             }
         }
@@ -76,6 +78,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         if (idx === -1) return NextResponse.json({ error: "Tarjeta no encontrada" }, { status: 404 });
         tarjetas.splice(idx, 1);
         await evento.save();
+        // Borrar el movimiento de caja asociado a esta entrada
+        await CajaMovement.deleteMany({ tarjetaId });
         return NextResponse.json({ ok: true, evento });
     }
 
