@@ -126,7 +126,11 @@ type MovGroup = {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-const fetcher = (url: string) => fetch(url, { credentials: "include" }).then(r => r.json());
+const fetcher = (url: string) =>
+    fetch(url, { credentials: "include" }).then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+    });
 
 const fmt = (n: number) =>
     new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", minimumFractionDigits: 0 }).format(n);
@@ -713,13 +717,18 @@ function DetalleEvento({ ev }: { ev: EventoCerrado }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function CajaHistorialPage() {
-    const { data: sesiones, isLoading: loadingSesiones } = useSWR<Sesion[]>("/api/superadmin/caja/historial", fetcher);
-    const { data: eventosData, isLoading: loadingEventos } = useSWR<EventoCerrado[]>("/api/eventos?cerrado=true", fetcher);
+    const SWR_OPTS = { revalidateOnFocus: false, shouldRetryOnError: true, errorRetryCount: 4 };
+
+    const { data: sesiones, isLoading: loadingSesiones, isValidating: valSesiones, error: errSesiones, mutate: reloadSesiones } =
+        useSWR<Sesion[]>("/api/superadmin/caja/historial", fetcher, SWR_OPTS);
+    const { data: eventosData, isLoading: loadingEventos, isValidating: valEventos, error: errEventos, mutate: reloadEventos } =
+        useSWR<EventoCerrado[]>("/api/eventos?cerrado=true", fetcher, SWR_OPTS);
 
     const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
     const [expandidosEv, setExpandidosEv] = useState<Set<string>>(new Set());
 
     const eventosCerrados = Array.isArray(eventosData) ? eventosData : [];
+    const isRefreshing = (!loadingSesiones && valSesiones) || (!loadingEventos && valEventos);
 
     function toggle(id: string) {
         setExpandidas(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -727,6 +736,7 @@ export default function CajaHistorialPage() {
     function toggleEv(id: string) {
         setExpandidosEv(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
     }
+    function recargar() { reloadSesiones(); reloadEventos(); }
 
     return (
         <div className="max-w-3xl mx-auto py-6 px-4">
@@ -734,12 +744,28 @@ export default function CajaHistorialPage() {
                 <Link href="/admin/caja" className="p-2 rounded-xl hover:bg-gray-100 transition">
                     <ChevronLeft size={20} />
                 </Link>
-                <h1 className="text-3xl font-extrabold text-black">Historial de Caja</h1>
+                <h1 className="text-3xl font-extrabold text-black flex-1">Historial de Caja</h1>
+                <button
+                    onClick={recargar}
+                    disabled={isRefreshing || loadingSesiones || loadingEventos}
+                    className="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-gray-800 disabled:opacity-40 transition px-3 py-1.5 rounded-xl border border-gray-200 hover:border-gray-400"
+                >
+                    <svg className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    {isRefreshing ? "Actualizando…" : "Actualizar"}
+                </button>
             </div>
 
             {/* ── Sesiones ── */}
             {loadingSesiones && <div className="flex justify-center py-20"><Loader size={40} /></div>}
-            {!loadingSesiones && (!sesiones || sesiones.length === 0) && (
+            {!loadingSesiones && errSesiones && (
+                <div className="text-center py-10">
+                    <p className="text-red-500 font-bold mb-3">Error al cargar el historial</p>
+                    <button onClick={recargar} className="text-sm font-bold text-gray-600 underline">Reintentar</button>
+                </div>
+            )}
+            {!loadingSesiones && !errSesiones && Array.isArray(sesiones) && sesiones.length === 0 && (
                 <p className="text-center text-gray-400 py-10">Sin sesiones registradas</p>
             )}
 
@@ -812,7 +838,13 @@ export default function CajaHistorialPage() {
                 <h2 className="text-xl font-extrabold text-black mb-4">Historial de Eventos</h2>
 
                 {loadingEventos && <div className="flex justify-center py-10"><Loader size={36} /></div>}
-                {!loadingEventos && eventosCerrados.length === 0 && (
+                {!loadingEventos && errEventos && (
+                    <div className="text-center py-6">
+                        <p className="text-red-500 font-bold mb-2 text-sm">Error al cargar eventos</p>
+                        <button onClick={recargar} className="text-sm font-bold text-gray-600 underline">Reintentar</button>
+                    </div>
+                )}
+                {!loadingEventos && !errEventos && eventosCerrados.length === 0 && (
                     <p className="text-center text-gray-400 py-10">Sin eventos cerrados</p>
                 )}
 
