@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
                     { path: "items.menuItemId", select: "nombre precio categoria" },
                     { path: "userId",    select: "nombre apellido" },
                     { path: "clienteId", select: "nombre apellido telefono" },
+                    { path: "eventoId",  select: "nombre" },
                 ],
             })
             .sort({ createdAt: 1 })

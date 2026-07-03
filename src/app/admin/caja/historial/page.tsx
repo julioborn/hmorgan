@@ -28,6 +28,7 @@ type PedidoDetail = {
     total?: number;
     userId?:    { nombre?: string; apellido?: string } | null;
     clienteId?: { nombre?: string; apellido?: string; telefono?: string } | null;
+    eventoId?:  { nombre?: string } | null;
 };
 
 type Movement = {
@@ -171,9 +172,11 @@ function buildGroups(movimientos: Movement[]): MovGroup[] {
 
         if (pid) {
             if (!byPedido[pid]) {
-                const label = pedido!.mesa
+                const eventoNombre = (pedido!.eventoId as any)?.nombre;
+                const baseLabel = pedido!.mesa
                     ? `Mesa ${pedido!.mesa}${pedido!.nombreComanda ? ` · ${pedido!.nombreComanda}` : ""}`
                     : pedido!.nombreComanda || m.concepto;
+                const label = eventoNombre ? `${baseLabel} · Evento: ${eventoNombre}` : baseLabel;
                 const g: MovGroup = {
                     key: pid, pedido: pedido!, concepto: label,
                     tipo: m.tipo, total: 0, excedente: 0, descuento: 0,
@@ -253,9 +256,10 @@ function PedidoModal({ group, onClose }: { group: MovGroup; onClose: () => void 
         ? `Mesa ${pedido.mesa}${pedido.nombreComanda ? ` · ${pedido.nombreComanda}` : ""}`
         : pedido.nombreComanda || "Pedido";
 
-    const esApp   = pedido.fuente === "app";
-    const cliente = nombreU(pedido.clienteId);
-    const cajero  = nombreU(pedido.userId);
+    const esApp      = pedido.fuente === "app";
+    const cliente    = nombreU(pedido.clienteId);
+    const cajero     = nombreU(pedido.userId);
+    const evento     = (pedido.eventoId as any)?.nombre as string | undefined;
     const multiCobro = group.cobros.length > 1;
 
     return createPortal(
@@ -269,9 +273,12 @@ function PedidoModal({ group, onClose }: { group: MovGroup; onClose: () => void 
                         <div>
                             <p className="font-black text-white text-sm leading-tight">{titulo}</p>
                             <p className="text-[10px] text-white/40 mt-0.5">
-                                {esApp ? "Pedido app" : "Barra / mesa"} · {formatHora(group.createdAt)}
+                                {esApp ? "Pedido app" : evento ? `Comanda evento` : "Barra / mesa"} · {formatHora(group.createdAt)}
                                 {multiCobro && ` · ${group.cobros.length} cobros`}
                             </p>
+                            {evento && (
+                                <p className="text-[10px] text-amber-400 font-bold mt-0.5">Evento: {evento}</p>
+                            )}
                         </div>
                     </div>
                     <button onClick={onClose} className="text-white/60 hover:text-white transition">
