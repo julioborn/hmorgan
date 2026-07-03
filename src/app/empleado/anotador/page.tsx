@@ -33,7 +33,7 @@ function estadoBadgeClass(estado: string) {
     switch (estado) {
         case "pendiente":  return "bg-gray-200 text-gray-600";
         case "aceptado":   return "bg-blue-100 text-blue-700";
-        case "preparando": return "bg-orange-100 text-orange-700";
+        case "preparando": return "bg-red-100 text-red-700";
         case "listo":      return "bg-green-500 text-white";
         case "cobrado":    return "bg-purple-500 text-white";
         case "cancelado":  return "bg-red-100 text-red-600";
@@ -247,37 +247,46 @@ export default function AnotadorPage() {
                     </button>
                 )}
 
-                {/* Tabs de filtro */}
+                {/* Tabs de filtro — 2 filas */}
                 {(() => {
                     const cPreparando = comandas.filter(c => c.estado === "preparando").length;
                     const cListos     = comandas.filter(c => c.estado === "listo").length;
                     const cTerminados = comandasTerminadas.length;
-                    const tabs = [
+                    const fila1 = [
                         { key: "todas",      label: "Todas",      count: null },
-                        { key: "preparando", label: "Preparando", count: cPreparando },
-                        { key: "listo",      label: "Listos",     count: cListos },
                         { key: "terminados", label: "Terminados", count: cTerminados },
                     ] as const;
+                    const fila2 = [
+                        { key: "preparando", label: "Preparando", count: cPreparando },
+                        { key: "listo",      label: "Listos",     count: cListos },
+                    ] as const;
+                    const tabClass = (key: string) =>
+                        `relative flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wide transition
+                        ${filtro === key ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`;
+                    const bubble = (key: string, count: number) => (
+                        <span className={`absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 text-[10px] font-black rounded-full flex items-center justify-center
+                            ${key === "listo" ? "bg-green-500 text-white" : key === "terminados" ? "bg-purple-500 text-white" : "bg-red-600 text-white"}`}>
+                            {count}
+                        </span>
+                    );
                     return (
-                        <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide">
-                            {tabs.map(t => (
-                                <button key={t.key}
-                                    onClick={() => setFiltro(t.key)}
-                                    className={`relative flex-shrink-0 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wide transition
-                                        ${filtro === t.key
-                                            ? "bg-gray-900 text-white"
-                                            : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
-                                    {t.label}
-                                    {t.count != null && t.count > 0 && (
-                                        <span className={`absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 text-[10px] font-black rounded-full flex items-center justify-center
-                                            ${t.key === "listo"      ? "bg-green-500 text-white"
-                                            : t.key === "terminados" ? "bg-purple-500 text-white"
-                                            :                          "bg-orange-500 text-white"}`}>
-                                            {t.count}
-                                        </span>
-                                    )}
-                                </button>
-                            ))}
+                        <div className="space-y-2">
+                            <div className="flex gap-2">
+                                {fila1.map(t => (
+                                    <button key={t.key} onClick={() => setFiltro(t.key)} className={tabClass(t.key)}>
+                                        {t.label}
+                                        {t.count != null && t.count > 0 && bubble(t.key, t.count)}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="flex gap-2">
+                                {fila2.map(t => (
+                                    <button key={t.key} onClick={() => setFiltro(t.key)} className={tabClass(t.key)}>
+                                        {t.label}
+                                        {t.count > 0 && bubble(t.key, t.count)}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     );
                 })()}
