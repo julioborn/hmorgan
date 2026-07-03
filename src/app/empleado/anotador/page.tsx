@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 import { Plus, UtensilsCrossed, ChevronRight, LockKeyhole, Star, X, ArrowLeftRight, User } from "lucide-react";
@@ -46,6 +46,7 @@ export default function AnotadorPage() {
     const router = useRouter();
     const [comandas, setComandas] = useState<Comanda[]>([]);
     const [cajaAbierta, setCajaAbierta] = useState<boolean | null>(null);
+    const [cajaFechaApertura, setCajaFechaApertura] = useState<Date | null>(null);
     const [loadingData, setLoadingData] = useState(true);
     const [eventosActivos, setEventosActivos] = useState<EventoActivo[]>([]);
     const [eventoPickerModal, setEventoPickerModal] = useState(false);
@@ -56,6 +57,14 @@ export default function AnotadorPage() {
     const [filtro, setFiltro] = useState<"todas" | "preparando" | "listo" | "terminados">("todas");
     const [comandasTerminadas, setComandasTerminadas] = useState<Comanda[]>([]);
     const prevEstadosRef = useRef<Map<string, string>>(new Map());
+
+    // Solo las terminadas cobradas dentro de la sesión de caja actual
+    const terminadasSesion = useMemo(() =>
+        cajaFechaApertura
+            ? comandasTerminadas.filter(c => new Date((c as any).updatedAt || (c as any).createdAt) >= cajaFechaApertura)
+            : [],
+        [comandasTerminadas, cajaFechaApertura]
+    );
 
     useEffect(() => {
         if (!loading && user && !["empleado", "cajero", "admin", "superadmin"].includes(user.role)) {
@@ -116,7 +125,10 @@ export default function AnotadorPage() {
             fetchComandas(),
             fetch("/api/caja/status", { credentials: "include" })
                 .then(r => r.json())
-                .then(d => setCajaAbierta(!!d.abierta))
+                .then(d => {
+                    setCajaAbierta(!!d.abierta);
+                    setCajaFechaApertura(d.fechaApertura ? new Date(d.fechaApertura) : null);
+                })
                 .catch(() => setCajaAbierta(false)),
             fetch("/api/eventos?activo=true", { credentials: "include" })
                 .then(r => r.json())
@@ -256,7 +268,7 @@ export default function AnotadorPage() {
                 {(() => {
                     const cPreparando = comandas.filter(c => c.estado === "preparando").length;
                     const cListos     = comandas.filter(c => c.estado === "listo").length;
-                    const cTerminados = comandasTerminadas.length;
+                    const cTerminados = terminadasSesion.length;
                     const fila1 = [
                         { key: "todas",      label: "Todas",      count: null as number | null },
                         ...(cajaAbierta !== false ? [{ key: "terminados", label: "Terminadas", count: cTerminados as number | null }] : []),
@@ -300,7 +312,7 @@ export default function AnotadorPage() {
                 <div>
                     {(() => {
                         const lista = filtro === "terminados"
-                            ? comandasTerminadas
+                            ? terminadasSesion
                             : filtro === "preparando"
                             ? comandas.filter(c => c.estado === "preparando")
                             : filtro === "listo"

@@ -11,6 +11,6 @@ export async function GET(req: NextRequest) {
     try { jwt.verify(token, SECRET); } catch { return NextResponse.json({ error: "No autorizado" }, { status: 401 }); }
 
     await connectMongoDB();
-    const sesion = await CajaSession.findOne({ estado: "abierta" }).lean();
-    return NextResponse.json({ abierta: !!sesion });
+    const sesion = await CajaSession.findOne({ estado: "abierta" }).select("fechaApertura").lean<{ fechaApertura: Date } | null>();
+    return NextResponse.json({ abierta: !!sesion, fechaApertura: sesion?.fechaApertura ?? null });
 }
