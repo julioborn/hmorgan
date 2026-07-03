@@ -39,6 +39,8 @@ const PedidoSchema = new Schema(
         mpPreferenceId: { type: String },
         mpPaymentId: { type: String },
         mpEstadoPago: { type: String, enum: ["pendiente", "aprobado", "rechazado", "en_proceso"] },
+        deliveryNumero: { type: Number },
+        telefonoContacto: { type: String },
         clienteId:      { type: Schema.Types.ObjectId, ref: "User" },
         eventoId:       { type: Schema.Types.ObjectId, ref: "Evento" },
         comensalesIds:  [{ type: Schema.Types.ObjectId, ref: "User" }],

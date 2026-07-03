@@ -110,7 +110,11 @@ function AnotadorMenuContent() {
     const searchParams        = useSearchParams();
     const comandaId           = searchParams.get("id");      // null = nueva comanda
     const eventoIdParam       = searchParams.get("eventoId"); // null = comanda normal
-    const [step, setStep]    = useState<"info"|"menu">(comandaId ? "menu" : "info");
+    const isDelivery          = searchParams.get("delivery") === "1";
+    const [step, setStep]    = useState<"info"|"menu">(comandaId || isDelivery ? "menu" : "info");
+
+    type DeliveryDraft = { nombre: string; telefono: string; direccion: string };
+    const [deliveryDraft, setDeliveryDraft] = useState<DeliveryDraft | null>(null);
 
     const [menuItems, setMenuItems]     = useState<MenuItem[]>([]);
     const [loadingMenu, setLoadingMenu] = useState(true);
@@ -160,6 +164,14 @@ function AnotadorMenuContent() {
     useEffect(() => {
         if (!loading && user && !["empleado", "cajero", "admin", "superadmin"].includes(user.role)) router.replace("/");
     }, [user, loading, router]);
+
+    useEffect(() => {
+        if (!isDelivery) return;
+        try {
+            const saved = sessionStorage.getItem("caja_delivery_draft");
+            if (saved) setDeliveryDraft(JSON.parse(saved));
+        } catch {}
+    }, [isDelivery]);
 
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
@@ -410,8 +422,8 @@ function AnotadorMenuContent() {
         if (cart.length === 0) return;
         const esAgregado = !!(comandaId && comanda);
 
-        // Advertencia si nueva comanda sin mesa
-        if (!esAgregado && mesas.length === 0 && !eventoActivo) {
+        // Advertencia si nueva comanda sin mesa (no aplica a delivery manual)
+        if (!esAgregado && mesas.length === 0 && !eventoActivo && !isDelivery) {
             const { isConfirmed } = await swalBase.fire({
                 title: "¿Comanda sin mesa?",
                 text: "No seleccionaste ninguna mesa. ¿Querés continuar igual?",
@@ -454,18 +466,21 @@ function AnotadorMenuContent() {
                     credentials: "include",
                     body: JSON.stringify({
                         items: cart.map(c => ({ menuItemId: c.menuItemId, cantidad: c.cantidad, nota: c.nota?.trim() || undefined })),
-                        tipoEntrega: "retira",
-                        fuente: "empleado",
-                        mesa:          eventoActivo ? undefined : (mesas.join(", ") || undefined),
-                        comensales:    eventoActivo ? undefined : (totalComensales || undefined),
-                        nombreComanda: clienteNombre.trim() || undefined,
-                        eventoId:      eventoActivo?._id || undefined,
-                        comensalesIds: comensalesSeleccionados.length > 0 ? comensalesSeleccionados.map(c => c._id) : undefined,
+                        tipoEntrega:      isDelivery ? "envio" : "retira",
+                        fuente:           "empleado",
+                        mesa:             isDelivery || eventoActivo ? undefined : (mesas.join(", ") || undefined),
+                        comensales:       isDelivery || eventoActivo ? undefined : (totalComensales || undefined),
+                        nombreComanda:    isDelivery ? (deliveryDraft?.nombre || undefined) : (clienteNombre.trim() || undefined),
+                        direccion:        isDelivery ? (deliveryDraft?.direccion || undefined) : undefined,
+                        telefonoContacto: isDelivery ? (deliveryDraft?.telefono || undefined) : undefined,
+                        eventoId:         eventoActivo?._id || undefined,
+                        comensalesIds:    comensalesSeleccionados.length > 0 ? comensalesSeleccionados.map(c => c._id) : undefined,
                     }),
                 });
             }
             if (!res.ok) { const e = await res.json().catch(() => ({})); setError(e.message || e.error || "Error"); return; }
             sessionStorage.removeItem(CART_KEY);
+            if (isDelivery) sessionStorage.removeItem("caja_delivery_draft");
             setLastOrder({ items: [...cart], mesa: mesas.join(", ") || comanda?.mesa || "", timestamp: new Date() });
             setCart([]);
             // Volver a comandas después de un momento
@@ -826,6 +841,20 @@ function AnotadorMenuContent() {
             {/* ── STEP 2: Menú ── */}
             {step === "menu" && (
                 <>
+                    {/* Banner delivery manual */}
+                    {isDelivery && deliveryDraft && (
+                        <div className="mx-4 mt-3 mb-1 bg-blue-50 border border-blue-200 rounded-2xl px-4 py-3 flex items-start gap-3">
+                            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shrink-0 mt-0.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-xs font-black text-blue-600 uppercase tracking-wide mb-0.5">Delivery manual</p>
+                                <p className="text-sm font-bold text-gray-900 truncate">{deliveryDraft.nombre}</p>
+                                <p className="text-xs text-gray-500 truncate">{deliveryDraft.telefono} · {deliveryDraft.direccion}</p>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Sticky header + strip de categorías + CartPanel */}
                     <div className="sticky z-20" style={{ top: "calc(env(safe-area-inset-top) + 98px)" }}>
                         {makeStickyHeader(stickyTitle, stickyBack, stickyIcon)}

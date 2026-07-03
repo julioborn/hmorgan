@@ -33,6 +33,8 @@ type Pedido = {
     metodoPago?: string;
     mpEstadoPago?: string;
     tipoEntrega?: string;
+    deliveryNumero?: number;
+    telefonoContacto?: string;
     direccion?: string;
     createdAt: string;
     notaEmpleado?: string;
@@ -176,6 +178,8 @@ export default function CajaPage() {
     const [cierreMontoCierre,  setCierreMontoCierre]  = useState(0);
     const [cierreEfectivoSistema, setCierreEfectivoSistema] = useState(0);
     const [cierreDiferencia, setCierreDiferencia] = useState(0);
+    const [deliveryModal, setDeliveryModal] = useState(false);
+    const [deliveryForm,  setDeliveryForm]  = useState({ nombre: "", telefono: "", direccion: "" });
     const [gastoModal,  setGastoModal]  = useState(false);
     const [gastoForm,   setGastoForm]   = useState<{ concepto: string; monto: string; metodo: typeof METODOS[number] }>({ concepto: "", monto: "", metodo: "efectivo" });
     const [gastoSaving, setGastoSaving] = useState(false);
@@ -1771,10 +1775,16 @@ export default function CajaPage() {
                     {tab === "pedidos" && (
                         <div className="max-w-screen-2xl mx-auto px-4 pt-4">
                             {/* Nueva comanda (cajero actuando como mozo) */}
-                            <button onClick={() => router.push("/empleado/anotador/menu")}
-                                className="w-full mb-4 flex items-center justify-center gap-2 bg-black text-white font-bold py-3 rounded-2xl transition shadow-sm active:scale-[0.98]">
-                                <Plus size={18} /> Nueva comanda
-                            </button>
+                            <div className="flex gap-2 mb-4">
+                                <button onClick={() => router.push("/empleado/anotador/menu")}
+                                    className="flex-1 flex items-center justify-center gap-2 bg-black text-white font-bold py-3 rounded-2xl transition shadow-sm active:scale-[0.98]">
+                                    <Plus size={18} /> Nueva comanda
+                                </button>
+                                <button onClick={() => { setDeliveryForm({ nombre: "", telefono: "", direccion: "" }); setDeliveryModal(true); }}
+                                    className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-2xl transition shadow-sm active:scale-[0.98]">
+                                    <Plus size={18} /> Delivery
+                                </button>
+                            </div>
 
                             {/* Sub-tabs estado */}
                             <div className="flex gap-2 mb-5">
@@ -1789,9 +1799,10 @@ export default function CajaPage() {
                                     {lista.length === 0 ? (
                                         <p className="col-span-full text-center text-gray-700 py-12">Sin pedidos en este estado.</p>
                                     ) : lista.map(p => {
-                                        const esApp     = p.fuente !== "empleado";
-                                        const esMozo    = !esApp && p.userId?.role === "empleado";
-                                        const esCaja    = !esApp && !esMozo;
+                                        const esApp          = p.fuente !== "empleado";
+                                        const esMozo         = !esApp && p.userId?.role === "empleado";
+                                        const esCaja         = !esApp && !esMozo;
+                                        const esCajaDelivery = esCaja && p.tipoEntrega === "envio" && !!p.telefonoContacto;
                                         const estadoIdx = getEstadoIdx(p.estado);
                                         const color     = ESTADOS[estadoIdx]?.color || "gray";
                                         const fechaHora = p.createdAt ? format(new Date(p.createdAt), "dd/MM HH:mm", { locale: es }) : "";
@@ -1806,19 +1817,23 @@ export default function CajaPage() {
 
                                         const titulo = esApp
                                             ? (p.userId ? `${p.userId.nombre} ${p.userId.apellido || ""}`.trim() : "Cliente")
-                                            : (p.mesa ? mesaLabel(p.mesa) : p.nombreComanda || (eventoNombre ?? (esCaja ? "Caja" : "Sin mesa")));
+                                            : (p.mesa ? mesaLabel(p.mesa) : p.nombreComanda || (eventoNombre ?? (esCajaDelivery ? "Delivery" : esCaja ? "Caja" : "Sin mesa")));
 
                                         const subtitulo = esApp
                                             ? `${p.numeroDia ? `#${p.numeroDia} · ` : ""}${p.tipoEntrega === "envio" ? "Envío a domicilio" : "Retiro en local"}`
-                                            : esMozo
-                                                ? `Mozo: ${[p.userId?.nombre, p.userId?.apellido].filter(Boolean).join(" ")}`
-                                                : "Caja";
+                                            : esCajaDelivery
+                                                ? `Delivery${p.deliveryNumero ? ` #${p.deliveryNumero}` : ""}${p.direccion ? ` · ${p.direccion}` : ""}`
+                                                : esMozo
+                                                    ? `Mozo: ${[p.userId?.nombre, p.userId?.apellido].filter(Boolean).join(" ")}`
+                                                    : "Caja";
 
                                         const tipoBadge = esEvento
                                             ? { label: "Evento", cls: "bg-amber-400 text-black" }
-                                            : esApp
-                                                ? { label: "Pedido", cls: "bg-red-500 text-white" }
-                                                : { label: "Bar", cls: "bg-white text-black" };
+                                            : esCajaDelivery
+                                                ? { label: "Delivery", cls: "bg-blue-600 text-white" }
+                                                : esApp
+                                                    ? { label: "Pedido", cls: "bg-red-500 text-white" }
+                                                    : { label: "Bar", cls: "bg-white text-black" };
 
                                         return (
                                             <motion.div key={p._id}
@@ -1865,6 +1880,24 @@ export default function CajaPage() {
 
                                                 {/* ── Cuerpo ── */}
                                                 <div className="p-3 flex flex-col flex-1 min-h-0 bg-white">
+
+                                                    {/* Info extra delivery manual */}
+                                                    {esCajaDelivery && (
+                                                        <div className="shrink-0 mb-2 flex flex-wrap gap-x-3 gap-y-1">
+                                                            {p.direccion && (
+                                                                <div className="flex items-start gap-1 text-xs text-gray-700">
+                                                                    <MapPin size={11} className="shrink-0 mt-0.5 text-gray-500" /><span>{p.direccion}</span>
+                                                                </div>
+                                                            )}
+                                                            {p.telefonoContacto && (
+                                                                <a href={`https://wa.me/${p.telefonoContacto.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
+                                                                    className="flex items-center gap-1 text-xs text-blue-600 font-semibold">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" fill="#2563eb" viewBox="0 0 16 16"><path d="M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.9 7.9 0 0 0 13.6 2.326zM7.994 14.521a6.6 6.6 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.56 6.56 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592m3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.73.73 0 0 0-.529.247c-.182.198-.691.677-.691 1.654s.71 1.916.81 2.049c.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232"/></svg>
+                                                                    {p.telefonoContacto}
+                                                                </a>
+                                                            )}
+                                                        </div>
+                                                    )}
 
                                                     {/* Info extra pedidos app */}
                                                     {esApp && (
@@ -2987,6 +3020,73 @@ export default function CajaPage() {
             )}
 
             {/* Modal gastos */}
+            {/* ── Modal nuevo delivery ── */}
+            {deliveryModal && (
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl">
+                        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+                            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                            </div>
+                            <h2 className="font-black text-gray-900 flex-1">Nuevo delivery</h2>
+                            <button onClick={() => setDeliveryModal(false)} className="p-1 text-gray-400"><X size={18} /></button>
+                        </div>
+                        <div className="px-5 py-4 space-y-3">
+                            <div>
+                                <label className="text-xs font-black text-gray-400 uppercase tracking-wide mb-1 block">Nombre del cliente *</label>
+                                <input
+                                    type="text"
+                                    placeholder="Ej: Juan Pérez"
+                                    value={deliveryForm.nombre}
+                                    onChange={e => setDeliveryForm(f => ({ ...f, nombre: e.target.value }))}
+                                    style={{ fontSize: "16px" }}
+                                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-black text-gray-400 uppercase tracking-wide mb-1 block">Teléfono *</label>
+                                <input
+                                    type="tel"
+                                    placeholder="Ej: 3492123456"
+                                    value={deliveryForm.telefono}
+                                    onChange={e => setDeliveryForm(f => ({ ...f, telefono: e.target.value }))}
+                                    style={{ fontSize: "16px" }}
+                                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-black text-gray-400 uppercase tracking-wide mb-1 block">Dirección *</label>
+                                <input
+                                    type="text"
+                                    placeholder="Ej: Av. San Martín 456"
+                                    value={deliveryForm.direccion}
+                                    onChange={e => setDeliveryForm(f => ({ ...f, direccion: e.target.value }))}
+                                    style={{ fontSize: "16px" }}
+                                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                />
+                            </div>
+                        </div>
+                        <div className="px-5 pb-5 flex gap-2">
+                            <button onClick={() => setDeliveryModal(false)}
+                                className="flex-1 py-2.5 text-sm text-gray-500 font-semibold border border-gray-200 rounded-xl hover:bg-gray-50 transition">
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={() => {
+                                    if (!deliveryForm.nombre.trim() || !deliveryForm.telefono.trim() || !deliveryForm.direccion.trim()) return;
+                                    sessionStorage.setItem("caja_delivery_draft", JSON.stringify(deliveryForm));
+                                    setDeliveryModal(false);
+                                    router.push("/empleado/anotador/menu?delivery=1");
+                                }}
+                                disabled={!deliveryForm.nombre.trim() || !deliveryForm.telefono.trim() || !deliveryForm.direccion.trim()}
+                                className="flex-1 bg-blue-600 disabled:opacity-40 text-white font-black py-2.5 rounded-xl transition hover:bg-blue-700">
+                                Elegir productos →
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {gastoModal && (
                 <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
                     <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl">

@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const { items, tipoEntrega, direccion, fuente, mesa, comensales, nombreComanda, notaEmpleado, notaCliente, horarioPreferido, lat, lng, clienteId, eventoId, comensalesIds, metodoPago } = await req.json();
+        const { items, tipoEntrega, direccion, fuente, mesa, comensales, nombreComanda, notaEmpleado, notaCliente, horarioPreferido, lat, lng, clienteId, eventoId, comensalesIds, metodoPago, telefonoContacto } = await req.json();
         const esEmpleado = ["empleado", "cajero", "admin", "superadmin"].includes(payload.role);
         // Clientes siempre necesitan ítems; empleados pueden crear pedidos sin ítems (asignación de mesa)
         if (!items?.length && !esEmpleado)
@@ -183,6 +183,15 @@ export async function POST(req: NextRequest) {
         const esPedidoApp = fuente !== "empleado";
         const numeroDia = esPedidoApp ? await siguienteNumeroDelDia() : undefined;
 
+        // Delivery manual desde caja: numeración diaria independiente
+        const esDeliveryManual = !esPedidoApp && tipoEntrega === "envio" && telefonoContacto;
+        let deliveryNumero: number | undefined;
+        if (esDeliveryManual) {
+            const keyDel = `delivery-${hoyArgentina()}`;
+            const cnt = await Counter.findOneAndUpdate({ _id: keyDel }, { $inc: { seq: 1 } }, { upsert: true, new: true });
+            deliveryNumero = cnt.seq;
+        }
+
         const pedido = await Pedido.create({
             userId: user._id,
             items,
@@ -205,8 +214,10 @@ export async function POST(req: NextRequest) {
             clienteId:     clienteId || undefined,
             eventoId:      eventoId  || undefined,
             comensalesIds: Array.isArray(comensalesIds) && comensalesIds.length > 0 ? comensalesIds : undefined,
-            metodoPago:    metodoPago || undefined,
-            mpEstadoPago:  metodoPago === "mercadopago" ? "pendiente" : undefined,
+            metodoPago:       metodoPago || undefined,
+            mpEstadoPago:     metodoPago === "mercadopago" ? "pendiente" : undefined,
+            deliveryNumero:   deliveryNumero,
+            telefonoContacto: telefonoContacto || undefined,
         });
 
         // Pedidos de mozo no generan notificación al admin (ya está en el local)
