@@ -97,6 +97,17 @@ type EventoCerrado = {
     }>;
 };
 
+type SubCobro = {
+    concepto: string;
+    metodo: string;
+    monto: number;
+    excedente: number;
+    descuento: number;
+    createdAt: string;
+    isParcial: boolean;
+    items: { nombre: string; cantidad: number; precio: number; categoria?: string }[];
+};
+
 type MovGroup = {
     key: string;
     pedido?: PedidoDetail;
@@ -106,6 +117,7 @@ type MovGroup = {
     excedente: number;
     descuento: number;
     pagos: { metodo: string; monto: number }[];
+    cobros: SubCobro[];
     userId?: { nombre?: string; apellido?: string };
     createdAt: string;
     items?: { nombre: string; cantidad: number; precio: number; categoria?: string }[];
@@ -155,32 +167,53 @@ function buildGroups(movimientos: Movement[]): MovGroup[] {
 
     for (const m of movimientos) {
         const pedido = m.pedidoId && typeof m.pedidoId === "object" ? m.pedidoId : null;
-        const pid = pedido?._id;
+        const pid = pedido?._id ? String(pedido._id) : null;
 
         if (pid) {
             if (!byPedido[pid]) {
-                const label = pedido.mesa
-                    ? `Mesa ${pedido.mesa}${pedido.nombreComanda ? ` · ${pedido.nombreComanda}` : ""}`
-                    : pedido.nombreComanda || m.concepto;
+                const label = pedido!.mesa
+                    ? `Mesa ${pedido!.mesa}${pedido!.nombreComanda ? ` · ${pedido!.nombreComanda}` : ""}`
+                    : pedido!.nombreComanda || m.concepto;
                 const g: MovGroup = {
-                    key: pid, pedido, concepto: label,
+                    key: pid, pedido: pedido!, concepto: label,
                     tipo: m.tipo, total: 0, excedente: 0, descuento: 0,
-                    pagos: [], userId: m.userId, createdAt: m.createdAt,
+                    pagos: [], cobros: [], userId: m.userId, createdAt: m.createdAt,
                 };
                 byPedido[pid] = g;
                 groups.push(g);
             }
-            byPedido[pid].total    += m.monto;
-            byPedido[pid].excedente += m.excedente || 0;
-            byPedido[pid].descuento += m.descuento || 0;
-            byPedido[pid].pagos.push({ metodo: m.metodoPago, monto: m.monto });
+            const g = byPedido[pid];
+            const isParcial = m.concepto.toLowerCase().includes("parcial");
+            // Items de cobro parcial vienen en m.items; cobro final usa items del pedido
+            const subItems = isParcial
+                ? (m.items ?? [])
+                : (pedido!.items ?? []).map(it => ({
+                    nombre: (it.menuItemId as any)?.nombre ?? "Ítem",
+                    cantidad: it.cantidad,
+                    precio: (it.menuItemId as any)?.precio ?? 0,
+                    categoria: (it.menuItemId as any)?.categoria ?? "",
+                }));
+            g.cobros.push({
+                concepto: m.concepto,
+                metodo: m.metodoPago,
+                monto: m.monto,
+                excedente: m.excedente || 0,
+                descuento: m.descuento || 0,
+                createdAt: m.createdAt,
+                isParcial,
+                items: subItems,
+            });
+            g.total     += m.monto;
+            g.excedente += m.excedente || 0;
+            g.descuento += m.descuento || 0;
+            g.pagos.push({ metodo: m.metodoPago, monto: m.monto });
         } else {
             groups.push({
                 key: m._id, concepto: m.concepto,
                 tipo: m.tipo, total: m.monto,
                 excedente: m.excedente || 0, descuento: m.descuento || 0,
                 pagos: [{ metodo: m.metodoPago, monto: m.monto }],
-                userId: m.userId, createdAt: m.createdAt,
+                cobros: [], userId: m.userId, createdAt: m.createdAt,
                 items: m.items,
             });
         }
@@ -189,9 +222,32 @@ function buildGroups(movimientos: Movement[]): MovGroup[] {
     return groups;
 }
 
+// ── Sub-items list (reusable) ─────────────────────────────────────────────────
+
+function ItemsList({ items }: { items: { nombre: string; cantidad: number; precio: number; categoria?: string }[] }) {
+    if (!items.length) return <p className="px-4 py-3 text-xs text-gray-400 italic">Sin detalle de ítems registrado</p>;
+    return (
+        <div className="divide-y divide-gray-50">
+            {items.map((it, i) => (
+                <div key={i} className="flex items-center gap-3 px-4 py-2 bg-gray-50">
+                    <span className="w-5 h-5 rounded-full bg-gray-200 text-gray-600 text-[10px] font-black flex items-center justify-center shrink-0">
+                        {it.cantidad}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-gray-700 truncate">{it.nombre}</p>
+                        {it.categoria && <p className="text-[10px] text-gray-400">{it.categoria}</p>}
+                    </div>
+                    <span className="text-xs font-black text-gray-700 shrink-0">{fmt(it.precio * it.cantidad)}</span>
+                </div>
+            ))}
+        </div>
+    );
+}
+
 // ── Pedido Modal ──────────────────────────────────────────────────────────────
 
 function PedidoModal({ group, onClose }: { group: MovGroup; onClose: () => void }) {
+    const [openCobro, setOpenCobro] = useState<number | null>(null);
     const pedido = group.pedido!;
     const titulo = pedido.mesa
         ? `Mesa ${pedido.mesa}${pedido.nombreComanda ? ` · ${pedido.nombreComanda}` : ""}`
@@ -200,19 +256,21 @@ function PedidoModal({ group, onClose }: { group: MovGroup; onClose: () => void 
     const esApp   = pedido.fuente === "app";
     const cliente = nombreU(pedido.clienteId);
     const cajero  = nombreU(pedido.userId);
+    const multiCobro = group.cobros.length > 1;
 
     return createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={onClose}>
-            <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
 
                 {/* Header */}
-                <div className="bg-black px-4 py-3 flex items-center justify-between">
+                <div className="bg-black px-4 py-3 flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-2">
                         <UtensilsCrossed size={15} className="text-white/60" />
                         <div>
                             <p className="font-black text-white text-sm leading-tight">{titulo}</p>
                             <p className="text-[10px] text-white/40 mt-0.5">
                                 {esApp ? "Pedido app" : "Barra / mesa"} · {formatHora(group.createdAt)}
+                                {multiCobro && ` · ${group.cobros.length} cobros`}
                             </p>
                         </div>
                     </div>
@@ -223,7 +281,7 @@ function PedidoModal({ group, onClose }: { group: MovGroup; onClose: () => void 
 
                 {/* Cliente / cajero */}
                 {(cliente || cajero) && (
-                    <div className="border-b border-gray-100 px-4 py-2.5 flex gap-6 bg-gray-50">
+                    <div className="border-b border-gray-100 px-4 py-2.5 flex gap-6 bg-gray-50 shrink-0">
                         {cliente && (
                             <div>
                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Cliente</p>
@@ -242,58 +300,85 @@ function PedidoModal({ group, onClose }: { group: MovGroup; onClose: () => void 
                     </div>
                 )}
 
-                {/* Ítems */}
-                <div className="divide-y divide-gray-100 max-h-60 overflow-y-auto">
-                    {pedido.items.map((it, i) => {
-                        const nombre = it.menuItemId?.nombre || "Ítem";
-                        const precio = it.menuItemId?.precio || 0;
-                        return (
-                            <div key={i} className="flex items-center gap-3 px-4 py-2.5">
-                                <span className="w-6 h-6 rounded-full bg-gray-100 text-gray-600 text-xs font-black flex items-center justify-center shrink-0">
-                                    {it.cantidad}
-                                </span>
-                                <div className="flex-1 min-w-0">
-                                    <p className="font-semibold text-gray-800 text-sm truncate">{nombre}</p>
-                                    {it.menuItemId?.categoria && (
-                                        <p className="text-[10px] text-gray-400">{it.menuItemId.categoria}</p>
-                                    )}
-                                    {it.nota && <p className="text-xs text-amber-600 italic">{it.nota}</p>}
-                                </div>
-                                <span className="font-black text-gray-900 text-sm shrink-0">{fmt(precio * it.cantidad)}</span>
-                            </div>
-                        );
-                    })}
-                </div>
+                {/* Cuerpo scrollable */}
+                <div className="overflow-y-auto flex-1">
 
-                {/* Métodos de pago y totales */}
-                <div className="border-t border-gray-200 px-4 py-3 space-y-1.5 bg-gray-50">
-                    {group.descuento > 0 && (
-                        <div className="flex justify-between text-xs text-orange-500 font-bold">
-                            <span>Descuento</span>
-                            <span>-{fmt(group.descuento)}</span>
-                        </div>
-                    )}
-                    {group.pagos.map((p, i) => {
-                        const Icon = METODO_ICON[p.metodo] || Banknote;
-                        return (
-                            <div key={i} className={`flex items-center justify-between rounded-lg px-2.5 py-1.5 border ${METODO_COLOR[p.metodo] || "bg-gray-100 border-gray-200 text-gray-600"}`}>
-                                <span className="flex items-center gap-1.5 text-xs font-bold">
-                                    <Icon size={12} />{METODO_LABEL[p.metodo] || p.metodo}
-                                </span>
-                                <span className="text-sm font-black">{fmt(p.monto)}</span>
+                    {/* CASO: un solo cobro → mostrar ítems directamente */}
+                    {!multiCobro && (
+                        <>
+                            <ItemsList items={group.cobros[0]?.items ?? []} />
+                            <div className="border-t border-gray-200 px-4 py-3 space-y-1.5 bg-gray-50">
+                                {group.cobros[0]?.descuento > 0 && (
+                                    <div className="flex justify-between text-xs text-orange-500 font-bold">
+                                        <span>Descuento</span><span>-{fmt(group.cobros[0].descuento)}</span>
+                                    </div>
+                                )}
+                                {group.pagos.map((p, i) => {
+                                    const Icon = METODO_ICON[p.metodo] || Banknote;
+                                    return (
+                                        <div key={i} className={`flex items-center justify-between rounded-lg px-2.5 py-1.5 border ${METODO_COLOR[p.metodo] || "bg-gray-100 border-gray-200 text-gray-600"}`}>
+                                            <span className="flex items-center gap-1.5 text-xs font-bold"><Icon size={12} />{METODO_LABEL[p.metodo] || p.metodo}</span>
+                                            <span className="text-sm font-black">{fmt(p.monto)}</span>
+                                        </div>
+                                    );
+                                })}
+                                {group.excedente > 0 && (
+                                    <div className="flex justify-between text-xs text-amber-600 font-bold">
+                                        <span>Propina / excedente</span><span>+{fmt(group.excedente)}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between items-center pt-1 border-t border-gray-200">
+                                    <span className="text-xs font-black text-gray-500 uppercase tracking-wide">Total cobrado</span>
+                                    <span className="text-base font-black text-gray-900">{fmt(group.total)}</span>
+                                </div>
                             </div>
-                        );
-                    })}
-                    {group.excedente > 0 && (
-                        <div className="flex justify-between text-xs text-amber-600 font-bold">
-                            <span>Propina / excedente</span>
-                            <span>+{fmt(group.excedente)}</span>
-                        </div>
+                        </>
                     )}
-                    <div className="flex justify-between items-center pt-1 border-t border-gray-200">
-                        <span className="text-xs font-black text-gray-500 uppercase tracking-wide">Total cobrado</span>
-                        <span className="text-base font-black text-gray-900">{fmt(group.total)}</span>
-                    </div>
+
+                    {/* CASO: múltiples cobros (parcial + final) → acordeón */}
+                    {multiCobro && (
+                        <>
+                            <div className="divide-y divide-gray-100">
+                                {group.cobros.map((c, idx) => {
+                                    const Icon = METODO_ICON[c.metodo] || Banknote;
+                                    const isOpen = openCobro === idx;
+                                    return (
+                                        <div key={idx}>
+                                            <button
+                                                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition text-left"
+                                                onClick={() => setOpenCobro(isOpen ? null : idx)}
+                                            >
+                                                <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full shrink-0 ${c.isParcial ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
+                                                    {c.isParcial ? "PARCIAL" : "FINAL"}
+                                                </span>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <Icon size={11} className="shrink-0 text-gray-500" />
+                                                        <span className="text-xs font-bold text-gray-700">{METODO_LABEL[c.metodo] || c.metodo}</span>
+                                                        <span className="text-[10px] text-gray-400 flex items-center gap-0.5"><Clock size={9} />{formatHora(c.createdAt)}</span>
+                                                    </div>
+                                                    {c.excedente > 0 && (
+                                                        <p className="text-[10px] text-amber-600 font-bold mt-0.5">+{fmt(c.excedente)} propina</p>
+                                                    )}
+                                                </div>
+                                                <span className="font-black text-gray-900 text-sm shrink-0">{fmt(c.monto)}</span>
+                                                {isOpen ? <ChevronUp size={13} className="text-gray-400 shrink-0" /> : <ChevronDown size={13} className="text-gray-400 shrink-0" />}
+                                            </button>
+                                            {isOpen && (
+                                                <div className="border-t border-gray-100">
+                                                    <ItemsList items={c.items} />
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <div className="border-t border-gray-200 px-4 py-3 bg-gray-50 flex justify-between items-center">
+                                <span className="text-xs font-black text-gray-500 uppercase tracking-wide">Total cobrado</span>
+                                <span className="text-base font-black text-gray-900">{fmt(group.total)}</span>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
         </div>,
@@ -305,12 +390,11 @@ function PedidoModal({ group, onClose }: { group: MovGroup; onClose: () => void 
 
 function MovCard({ g, onOpenGroup }: { g: MovGroup; onOpenGroup: (g: MovGroup) => void }) {
     const [expanded, setExpanded] = useState(false);
-    const esIngreso = g.tipo === "ingreso";
-    const hasPedido = !!g.pedido?.items?.length;
-    const hasItems  = !!g.items?.length;
-
-    const itemsToShow = (g.items ?? []);
-    const canExpand = hasPedido || hasItems;
+    const esIngreso  = g.tipo === "ingreso";
+    const hasPedido  = !!g.pedido;
+    const hasItems   = !!g.items?.length;
+    const multiCobro = g.cobros.length > 1;
+    const canExpand  = hasPedido || hasItems;
 
     return (
         <div className={`rounded-xl border overflow-hidden ${esIngreso ? "border-gray-200" : "border-red-100"}`}>
@@ -327,7 +411,14 @@ function MovCard({ g, onOpenGroup }: { g: MovGroup; onOpenGroup: (g: MovGroup) =
                     : <ArrowUpCircle  size={16} className="text-red-400 shrink-0" />
                 }
                 <div className="flex-1 min-w-0">
-                    <p className="font-bold text-gray-800 text-sm truncate leading-tight">{g.concepto}</p>
+                    <div className="flex items-center gap-1.5">
+                        <p className="font-bold text-gray-800 text-sm truncate leading-tight">{g.concepto}</p>
+                        {multiCobro && (
+                            <span className="text-[9px] font-black px-1 py-0.5 rounded bg-amber-100 text-amber-700 shrink-0">
+                                {g.cobros.length} COBROS
+                            </span>
+                        )}
+                    </div>
                     <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         <span className="flex items-center gap-1 text-[10px] text-gray-400">
                             <Clock size={9} />{formatHora(g.createdAt)}
@@ -360,21 +451,10 @@ function MovCard({ g, onOpenGroup }: { g: MovGroup; onOpenGroup: (g: MovGroup) =
                 </div>
             </div>
 
-            {/* Items expandidos (cobros parciales con items) */}
+            {/* Items expandidos (movimientos sin pedido: gastos, entradas, etc.) */}
             {hasItems && expanded && (
-                <div className="border-t border-gray-100 divide-y divide-gray-50">
-                    {itemsToShow.map((it, i) => (
-                        <div key={i} className="flex items-center gap-3 px-4 py-2 bg-gray-50">
-                            <span className="w-5 h-5 rounded-full bg-gray-200 text-gray-600 text-[10px] font-black flex items-center justify-center shrink-0">
-                                {it.cantidad}
-                            </span>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-xs font-semibold text-gray-700 truncate">{it.nombre}</p>
-                                {it.categoria && <p className="text-[10px] text-gray-400">{it.categoria}</p>}
-                            </div>
-                            <span className="text-xs font-black text-gray-700">{fmt(it.precio * it.cantidad)}</span>
-                        </div>
-                    ))}
+                <div className="border-t border-gray-100">
+                    <ItemsList items={g.items!} />
                 </div>
             )}
         </div>
