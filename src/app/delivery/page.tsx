@@ -1,10 +1,13 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
-import { Truck, MapPin, Phone, Clock, PackageCheck, Loader2, Bell, BellRing } from "lucide-react";
+import { Truck, MapPin, Phone, Clock, PackageCheck, Loader2, Bell, BellRing, Navigation, NavigationOff } from "lucide-react";
 import Loader from "@/components/Loader";
 import { swalBase } from "@/lib/swalConfig";
+import dynamic from "next/dynamic";
+
+const DeliveryMap = dynamic(() => import("@/components/DeliveryMap"), { ssr: false });
 
 type Pedido = {
     _id: string;
@@ -22,6 +25,8 @@ type Pedido = {
     repartidorAfuera?: boolean;
 };
 
+type MiUbicacion = { lat: number; lng: number };
+
 const fmt = (n: number) => new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0 }).format(n);
 
 export default function DeliveryPage() {
@@ -31,6 +36,14 @@ export default function DeliveryPage() {
     const [loadingData, setLoadingData] = useState(true);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
     const [avisandoId, setAvisandoId] = useState<string | null>(null);
+
+    // Tracking
+    const [tracking, setTracking] = useState(false);
+    const [miUbicacion, setMiUbicacion] = useState<MiUbicacion | null>(null);
+    const [trackingError, setTrackingError] = useState("");
+    const watchIdRef = useRef<number | null>(null);
+    const sendIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const lastSentRef = useRef<MiUbicacion | null>(null);
 
     useEffect(() => {
         if (!loading && user && user.role !== "delivery" && user.role !== "admin" && user.role !== "superadmin") {
@@ -50,6 +63,67 @@ export default function DeliveryPage() {
         return () => clearInterval(iv);
     }, [fetchPedidos]);
 
+    // Enviar ubicación al servidor
+    const enviarUbicacion = useCallback(async (pos: MiUbicacion) => {
+        await fetch("/api/delivery/ubicacion", {
+            method: "PUT",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(pos),
+        }).catch(() => {});
+    }, []);
+
+    // Iniciar tracking
+    function iniciarTracking() {
+        if (!navigator.geolocation) {
+            setTrackingError("Tu dispositivo no soporta geolocalización");
+            return;
+        }
+        setTrackingError("");
+        watchIdRef.current = navigator.geolocation.watchPosition(
+            pos => {
+                const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                setMiUbicacion(coords);
+                lastSentRef.current = coords;
+            },
+            err => {
+                setTrackingError("No se pudo obtener la ubicación");
+                console.error(err);
+            },
+            { enableHighAccuracy: true, maximumAge: 5000 }
+        );
+        // Enviar al servidor cada 12 segundos
+        sendIntervalRef.current = setInterval(() => {
+            if (lastSentRef.current) enviarUbicacion(lastSentRef.current);
+        }, 12000);
+        setTracking(true);
+    }
+
+    // Detener tracking
+    async function detenerTracking() {
+        if (watchIdRef.current !== null) {
+            navigator.geolocation.clearWatch(watchIdRef.current);
+            watchIdRef.current = null;
+        }
+        if (sendIntervalRef.current) {
+            clearInterval(sendIntervalRef.current);
+            sendIntervalRef.current = null;
+        }
+        // Borrar ubicación del servidor
+        await fetch("/api/delivery/ubicacion", { method: "DELETE", credentials: "include" }).catch(() => {});
+        setTracking(false);
+        setMiUbicacion(null);
+        lastSentRef.current = null;
+    }
+
+    // Limpiar al desmontar
+    useEffect(() => {
+        return () => {
+            if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+            if (sendIntervalRef.current) clearInterval(sendIntervalRef.current);
+        };
+    }, []);
+
     async function avisarCliente(p: Pedido) {
         setAvisandoId(p._id);
         try {
@@ -67,7 +141,6 @@ export default function DeliveryPage() {
 
     async function marcarEntregado(p: Pedido) {
         const nombreCliente = `${p.userId?.nombre ?? ""} ${p.userId?.apellido ?? ""}`.trim() || "el cliente";
-
         const r1 = await swalBase.fire({
             title: "¿Envío completado?",
             html: `Vas a marcar como <b>entregado</b> el pedido de <b>${nombreCliente}</b>.`,
@@ -77,7 +150,6 @@ export default function DeliveryPage() {
             cancelButtonText: "Cancelar",
         });
         if (!r1.isConfirmed) return;
-
         const r2 = await swalBase.fire({
             title: "Confirmar entrega",
             text: "Esta acción no se puede deshacer. ¿Confirmás que el pedido ya fue entregado?",
@@ -87,7 +159,6 @@ export default function DeliveryPage() {
             cancelButtonText: "Cancelar",
         });
         if (!r2.isConfirmed) return;
-
         setUpdatingId(p._id);
         try {
             await fetch("/api/pedidos", {
@@ -105,23 +176,58 @@ export default function DeliveryPage() {
     if (loading || loadingData) return <div className="flex justify-center py-20"><Loader size={64} /></div>;
     if (!user) return null;
 
-    const enCamino = pedidos.filter(p => p.estado === "listo");
+    const enCamino  = pedidos.filter(p => p.estado === "listo");
     const entregados = pedidos.filter(p => p.estado === "entregado");
 
     return (
         <div className="min-h-screen bg-white pb-24">
-            <div className="max-w-2xl mx-auto px-4">
+            <div className="max-w-2xl mx-auto px-4 pt-4 space-y-4">
 
-                <div className="flex items-center gap-3 mb-5">
+                <div className="flex items-center gap-3">
                     <div className="bg-black rounded-xl p-2.5">
                         <Truck size={20} className="text-white" />
                     </div>
-                    <div>
+                    <div className="flex-1">
                         <h1 className="text-xl font-black text-gray-900 leading-none">Entregas</h1>
-                        <p className="text-sm text-gray-400 mt-1">
+                        <p className="text-sm text-gray-400 mt-0.5">
                             {enCamino.length === 0 ? "Sin envíos en camino" : `${enCamino.length} envío${enCamino.length !== 1 ? "s" : ""} en camino`}
                         </p>
                     </div>
+                </div>
+
+                {/* Control de localización */}
+                <div className={`rounded-2xl border-2 px-4 py-3 ${tracking ? "border-emerald-300 bg-emerald-50" : "border-gray-200 bg-gray-50"}`}>
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                            {tracking
+                                ? <Navigation size={18} className="text-emerald-600 shrink-0 animate-pulse" />
+                                : <NavigationOff size={18} className="text-gray-400 shrink-0" />}
+                            <div className="min-w-0">
+                                <p className={`text-sm font-black ${tracking ? "text-emerald-700" : "text-gray-600"}`}>
+                                    {tracking ? "Compartiendo ubicación" : "Ubicación desactivada"}
+                                </p>
+                                {tracking && miUbicacion && (
+                                    <p className="text-xs text-emerald-500 font-mono truncate">
+                                        {miUbicacion.lat.toFixed(5)}, {miUbicacion.lng.toFixed(5)}
+                                    </p>
+                                )}
+                                {trackingError && <p className="text-xs text-red-500">{trackingError}</p>}
+                            </div>
+                        </div>
+                        <button
+                            onClick={tracking ? detenerTracking : iniciarTracking}
+                            className={`shrink-0 px-4 py-2 rounded-xl text-sm font-black transition active:scale-95
+                                ${tracking
+                                    ? "bg-gray-900 text-white hover:bg-gray-700"
+                                    : "bg-emerald-600 text-white hover:bg-emerald-700"}`}>
+                            {tracking ? "Detener" : "Activar"}
+                        </button>
+                    </div>
+                    {!tracking && (
+                        <p className="text-xs text-gray-400 mt-2">
+                            Activá para que el bar y los clientes vean tu posición en tiempo real 🏍️
+                        </p>
+                    )}
                 </div>
 
                 {enCamino.length === 0 ? (
@@ -156,14 +262,10 @@ export default function DeliveryPage() {
                                         </div>
                                     )}
                                     {p.lat && p.lng && (
-                                        <a
-                                            href={`https://www.google.com/maps?q=${p.lat},${p.lng}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex items-center gap-2 text-sm text-blue-600 font-semibold"
-                                        >
+                                        <a href={`https://www.google.com/maps?q=${p.lat},${p.lng}`} target="_blank" rel="noopener noreferrer"
+                                            className="flex items-center gap-2 text-sm text-blue-600 font-semibold">
                                             <MapPin size={15} className="text-blue-500 shrink-0" />
-                                            Ver en Google Maps
+                                            Ver destino en Google Maps
                                         </a>
                                     )}
                                     {p.userId?.telefono && (
@@ -172,7 +274,6 @@ export default function DeliveryPage() {
                                             <span className="font-semibold">{p.userId.telefono}</span>
                                         </a>
                                     )}
-
                                     <ul className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden mt-1">
                                         {p.items.map((it, idx) => (
                                             <li key={idx} className="flex justify-between items-center px-3 py-2 bg-gray-50 text-sm">
@@ -183,32 +284,24 @@ export default function DeliveryPage() {
                                             </li>
                                         ))}
                                     </ul>
-
                                     {(p.notaCliente || p.notaEmpleado) && (
                                         <p className="text-xs text-amber-600 italic">📝 {p.notaCliente || p.notaEmpleado}</p>
                                     )}
-
                                     <div className="flex justify-between items-center text-sm font-black text-gray-900 pt-2 border-t border-gray-100">
                                         <span>TOTAL</span>
                                         <span>${fmt(p.total)}</span>
                                     </div>
 
                                     {p.tipoEntrega === "envio" && (
-                                        <button
-                                            disabled={avisandoId === p._id || p.repartidorAfuera}
+                                        <button disabled={avisandoId === p._id || p.repartidorAfuera}
                                             onClick={() => avisarCliente(p)}
-                                            className="w-full mt-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition active:scale-95"
-                                        >
+                                            className="w-full mt-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition active:scale-95">
                                             {avisandoId === p._id ? <Loader2 size={16} className="animate-spin" /> : p.repartidorAfuera ? <BellRing size={16} /> : <Bell size={16} />}
                                             {p.repartidorAfuera ? "Cliente avisado" : "Avisar al cliente"}
                                         </button>
                                     )}
-
-                                    <button
-                                        disabled={updatingId === p._id}
-                                        onClick={() => marcarEntregado(p)}
-                                        className="w-full mt-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition active:scale-95"
-                                    >
+                                    <button disabled={updatingId === p._id} onClick={() => marcarEntregado(p)}
+                                        className="w-full mt-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition active:scale-95">
                                         {updatingId === p._id ? <Loader2 size={16} className="animate-spin" /> : <PackageCheck size={16} />}
                                         Envío completado
                                     </button>

@@ -15,6 +15,8 @@ import {
 import ReservasManager from "@/components/ReservasManager";
 import { hoyArgentina } from "@/lib/argentina-time";
 import MenuImg from "@/components/MenuImg";
+import dynamic from "next/dynamic";
+const DeliveryMap = dynamic(() => import("@/components/DeliveryMap"), { ssr: false });
 
 type Pedido = {
     _id: string;
@@ -198,6 +200,8 @@ export default function CajaPage() {
     const [eventoModalMesasPlano, setEventoModalMesasPlano] = useState<MesaPlano[]>([]);
     const [eventoModalElementos, setEventoModalElementos]   = useState<SalonElPlano[]>([]);
     const [ventaEventoId, setVentaEventoId]       = useState<string | null>(null);
+    const [deliveryMapPedido, setDeliveryMapPedido] = useState<Pedido | null>(null);
+    const [deliveryMapUsers, setDeliveryMapUsers]   = useState<any[]>([]);
     const [tarjetasModal, setTarjetasModal]       = useState(false);
     const [tarjetasMetodo, setTarjetasMetodo]     = useState<"efectivo" | "transferencia" | "tarjeta">("efectivo");
     const [tarjetasEventoId, setTarjetasEventoId] = useState<string | null>(null);
@@ -1975,6 +1979,18 @@ export default function CajaPage() {
 
                                         {/* ── Botones cobrar ── */}
                                         <div className="px-3 pb-3 flex flex-col gap-2">
+                                            {esApp && p.tipoEntrega === "envio" && (
+                                                <button
+                                                    onClick={async () => {
+                                                        const res = await fetch("/api/delivery/ubicacion", { credentials: "include" });
+                                                        const data = res.ok ? await res.json() : [];
+                                                        setDeliveryMapUsers(Array.isArray(data) ? data : []);
+                                                        setDeliveryMapPedido(p);
+                                                    }}
+                                                    className="w-full flex items-center justify-center gap-2 border-2 border-blue-600 text-blue-600 font-bold py-2 rounded-xl text-sm hover:bg-blue-600 hover:text-white transition">
+                                                    🏍️ Ver delivery en mapa
+                                                </button>
+                                            )}
                                             <button
                                                 onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", pagos: [{ metodo: "efectivo", monto: String(p.total) }] }); }}
                                                 className={`w-full text-white font-black py-3 rounded-xl text-base tracking-wide transition ${cobrarBg}`}>
@@ -3701,6 +3717,41 @@ export default function CajaPage() {
                     </div>
                 );
             })()}
+
+            {/* ── Modal mapa delivery ── */}
+            {deliveryMapPedido && (
+                <div className="fixed inset-0 z-50 bg-black/70 flex items-end justify-center p-0"
+                    onClick={() => setDeliveryMapPedido(null)}>
+                    <div className="bg-white w-full max-w-lg rounded-t-3xl overflow-hidden shadow-2xl"
+                        onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                            <div>
+                                <p className="font-black text-gray-900 text-sm">Delivery en mapa 🏍️</p>
+                                <p className="text-xs text-gray-400">
+                                    {deliveryMapUsers.length === 0 ? "El delivery aún no compartió su ubicación" : "Ubicación en tiempo real"}
+                                </p>
+                            </div>
+                            <button onClick={() => setDeliveryMapPedido(null)} className="p-1 text-gray-400 hover:text-gray-700">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div style={{ height: "360px" }}>
+                            {deliveryMapUsers.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-2">
+                                    <span className="text-4xl">🏍️</span>
+                                    <p className="text-sm font-semibold">El delivery no activó su ubicación todavía</p>
+                                </div>
+                            ) : (
+                                <DeliveryMap
+                                    deliveries={deliveryMapUsers}
+                                    destLat={(deliveryMapPedido as any).lat}
+                                    destLng={(deliveryMapPedido as any).lng}
+                                />
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* ── Modal transferir mesa ── */}
             {cambiarMesaModal && (

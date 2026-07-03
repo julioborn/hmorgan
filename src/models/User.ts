@@ -49,6 +49,12 @@ export interface IUser extends Document {
   }[];
 
   needsReview?: boolean;
+
+  ubicacionDelivery?: {
+    lat: number;
+    lng: number;
+    updatedAt: Date;
+  };
 }
 
 const UserSchema = new Schema<IUser>({
@@ -88,6 +94,11 @@ const UserSchema = new Schema<IUser>({
   },
 
   needsReview: { type: Boolean, default: false },
+
+  ubicacionDelivery: {
+    type: new Schema({ lat: Number, lng: Number, updatedAt: Date }, { _id: false }),
+    default: undefined,
+  },
 });
 
 // 🧨 Forzar recarga del modelo
