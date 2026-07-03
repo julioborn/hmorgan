@@ -2,9 +2,24 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { CheckCircle, ChefHat, LogOut, Clock, X } from "lucide-react";
+import { CheckCircle, ChefHat, LogOut, Clock, X, UtensilsCrossed, ChevronLeft } from "lucide-react";
+import MenuImg from "@/components/MenuImg";
+import { useCategoryConfigs } from "@/hooks/useCategoryConfigs";
 
 const BEBIDAS_CATS = new Set(["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"]);
+const PICAR_CATS   = ["PICADAS", "FRITURAS"];
+const MENU_ORDER   = ["PARRILLA","PIZZAS","HAMBURGUESAS","SANDWICHES","PICADAS Y FRITURAS","ENSALADAS","BEBIDAS","POSTRE Y CAFE"];
+
+const categoryImages: Record<string, string> = {
+    PARRILLA: "/parrilla.jpg", PIZZAS: "/pizzas.jpg", HAMBURGUESAS: "/hamburguesas.jpg",
+    SANDWICHES: "/sandwiches.jpg", "PICADAS Y FRITURAS": "/picada.jpg", ENSALADAS: "/ensaladas.jpg",
+    BEBIDAS: "/bebidas.jpeg", "POSTRE Y CAFE": "/postreycafe.jpeg",
+    "MENÚ DEL DÍA": "/menu-del-dia.jpeg",
+    CERVEZAS: "/subcategoria-bebidas/cervezas.png", VINOS: "/subcategoria-bebidas/vinos.png",
+    GASEOSAS: "/subcategoria-bebidas/gaseosas.png", JARROS: "/subcategoria-bebidas/jarros.png",
+    COCKTAILS: "/subcategoria-bebidas/cocktails.png", WHISKY: "/subcategoria-bebidas/whisky.png",
+    MEDIDAS: "/subcategoria-bebidas/medidas.png",
+};
 
 type Item = {
     menuItemId: { nombre: string; precio: number; categoria?: string };
@@ -23,6 +38,16 @@ type Pedido = {
     userId?: { nombre: string; apellido: string };
 };
 
+type MenuItemLite = {
+    _id: string;
+    nombre: string;
+    precio: number;
+    categoria: string;
+    activo?: boolean;
+    activoCliente?: boolean;
+    descripcion?: string;
+};
+
 function foodItems(items: Item[]) {
     return items.filter(it => {
         const cat = (it.menuItemId?.categoria || "").toUpperCase();
@@ -32,6 +57,10 @@ function foodItems(items: Item[]) {
 
 export default function CocinaPage() {
     const router = useRouter();
+    const categoryConfigMap = useCategoryConfigs();
+    const [tab, setTab] = useState<"comandas" | "menu">("comandas");
+
+    // ── Comandas ──────────────────────────────────────────────────────────────
     const [pedidos, setPedidos] = useState<Pedido[]>([]);
     const [loading, setLoading] = useState(true);
     const [marcando, setMarcando] = useState<string | null>(null);
@@ -67,9 +96,8 @@ export default function CocinaPage() {
                     });
                 }, 5000);
             }
-
             setPedidos(conComida);
-        } catch { /* silencioso */ }
+        } catch { }
         finally { setLoading(false); }
     }, [router]);
 
@@ -92,7 +120,7 @@ export default function CocinaPage() {
                 body: JSON.stringify({ id, estado: "listo" }),
             });
             setPedidos(prev => prev.filter(p => p._id !== id));
-        } catch { /* silencioso */ }
+        } catch { }
         finally { setMarcando(null); }
     }
 
@@ -100,6 +128,64 @@ export default function CocinaPage() {
         fetch("/api/auth/logout", { method: "POST", credentials: "include" })
             .finally(() => router.replace("/login"));
     }
+
+    // ── Menú ──────────────────────────────────────────────────────────────────
+    const [menuItems, setMenuItems] = useState<MenuItemLite[]>([]);
+    const [menuLoading, setMenuLoading] = useState(false);
+    const [catActiva, setCatActiva] = useState<string | null>(null);
+    const [toggling, setToggling] = useState<string | null>(null);
+
+    async function loadMenu() {
+        setMenuLoading(true);
+        try {
+            const data = await fetch("/api/menu", { credentials: "include" }).then(r => r.json()).catch(() => []);
+            setMenuItems(Array.isArray(data) ? data : []);
+        } finally { setMenuLoading(false); }
+    }
+
+    useEffect(() => {
+        if (tab === "menu" && menuItems.length === 0) loadMenu();
+    }, [tab]);
+
+    async function toggleDisponible(item: MenuItemLite) {
+        const disponible = item.activo !== false && item.activoCliente !== false;
+        setToggling(item._id);
+        await fetch(`/api/menu/${item._id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(disponible
+                ? { activo: false, activoCliente: false }
+                : { activo: true, activoCliente: true }),
+        });
+        setMenuItems(prev => prev.map(i => i._id === item._id
+            ? { ...i, activo: !disponible, activoCliente: !disponible }
+            : i
+        ));
+        setToggling(null);
+    }
+
+    const getImage    = (cat: string) => categoryConfigMap[cat]?.imageUrl || categoryImages[cat] || null;
+    const getPosition = (cat: string) => categoryConfigMap[cat]?.imagePosition || "50% 50%";
+
+    const todasCats = Array.from(new Set(menuItems.map(i => {
+        if (BEBIDAS_CATS.has(i.categoria)) return "BEBIDAS";
+        if (PICAR_CATS.includes(i.categoria)) return "PICADAS Y FRITURAS";
+        return i.categoria;
+    })));
+    const catsSorted = [
+        ...(todasCats.includes("MENÚ DEL DÍA") ? ["MENÚ DEL DÍA"] : []),
+        ...todasCats.filter(c => c !== "MENÚ DEL DÍA").sort((a, b) => {
+            const ai = MENU_ORDER.indexOf(a), bi = MENU_ORDER.indexOf(b);
+            return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+        }),
+    ];
+
+    const productosCat = catActiva ? menuItems.filter(i =>
+        catActiva === "BEBIDAS" ? BEBIDAS_CATS.has(i.categoria)
+        : catActiva === "PICADAS Y FRITURAS" ? PICAR_CATS.includes(i.categoria)
+        : i.categoria === catActiva
+    ) : [];
 
     const pedidoAConfirmar = confirmarId ? pedidos.find(p => p._id === confirmarId) : null;
 
@@ -112,134 +198,200 @@ export default function CocinaPage() {
                     <span className="text-lg font-black tracking-tight text-black">Cocina</span>
                 </div>
                 <div className="flex items-center gap-3">
-                    <span className="text-sm text-gray-400 font-medium">
-                        {pedidos.length} comanda{pedidos.length !== 1 ? "s" : ""}
-                    </span>
+                    {tab === "comandas" && (
+                        <span className="text-sm text-gray-400 font-medium">
+                            {pedidos.length} comanda{pedidos.length !== 1 ? "s" : ""}
+                        </span>
+                    )}
                     <button onClick={logout} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition">
                         <LogOut size={18} />
                     </button>
                 </div>
             </div>
 
-            {loading ? (
-                <div className="flex items-center justify-center py-32 text-gray-400 text-sm">
-                    Cargando...
-                </div>
-            ) : pedidos.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-32 space-y-3 text-gray-300">
-                    <ChefHat size={52} />
-                    <p className="text-lg font-semibold text-gray-400">Sin comandas en preparación</p>
-                </div>
-            ) : (
-                <div className="max-w-2xl mx-auto px-3 pt-4 space-y-4">
-                    {pedidos.map(p => {
-                        const comida = foodItems(p.items);
-                        const mesaLabel = p.mesa
-                            ? `Mesa ${p.mesa}`
-                            : p.nombreComanda || "Sin mesa";
-                        const mozo = p.userId ? `${p.userId.nombre} ${p.userId.apellido}` : null;
-                        const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
-                        const isNuevo = nuevosIds.has(p._id);
-                        const isMarcando = marcando === p._id;
+            {/* Tabs */}
+            <div className="flex border-b border-gray-100 bg-white">
+                {(["comandas", "menu"] as const).map(t => (
+                    <button key={t} onClick={() => { setTab(t); setCatActiva(null); }}
+                        className={`flex-1 py-3 text-sm font-black uppercase tracking-wide transition ${tab === t ? "text-black border-b-2 border-black" : "text-gray-400"}`}>
+                        {t === "comandas" ? "Comandas" : "Menú"}
+                    </button>
+                ))}
+            </div>
 
-                        return (
-                            <div
-                                key={p._id}
-                                className={`rounded-2xl border shadow-sm overflow-hidden transition-all duration-500 ${
-                                    isNuevo ? "border-red-300 ring-2 ring-red-200" : "border-gray-200"
-                                }`}
-                            >
-                                {/* Card header */}
-                                <div className={`px-4 py-3 flex items-center justify-between border-b ${isNuevo ? "bg-red-50 border-red-100" : "bg-gray-50 border-gray-100"}`}>
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                        {isNuevo && (
-                                            <span className="text-[10px] font-black uppercase tracking-widest bg-red-600 text-white px-2 py-0.5 rounded-full animate-pulse">
-                                                Nuevo
-                                            </span>
-                                        )}
-                                        <span className="text-xl font-black text-black">{mesaLabel}</span>
-                                        {mozo && (
-                                            <span className="text-sm text-gray-400">{mozo}</span>
-                                        )}
+            {/* ── COMANDAS ── */}
+            {tab === "comandas" && (
+                loading ? (
+                    <div className="flex items-center justify-center py-32 text-gray-400 text-sm">Cargando...</div>
+                ) : pedidos.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-32 space-y-3 text-gray-300">
+                        <ChefHat size={52} />
+                        <p className="text-lg font-semibold text-gray-400">Sin comandas en preparación</p>
+                    </div>
+                ) : (
+                    <div className="max-w-2xl mx-auto px-3 pt-4 space-y-4">
+                        {pedidos.map(p => {
+                            const comida = foodItems(p.items);
+                            const mesaLabel = p.mesa ? `Mesa ${p.mesa}` : p.nombreComanda || "Sin mesa";
+                            const mozo = p.userId ? `${p.userId.nombre} ${p.userId.apellido}` : null;
+                            const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+                            const isNuevo = nuevosIds.has(p._id);
+                            const isMarcando = marcando === p._id;
+
+                            return (
+                                <div key={p._id}
+                                    className={`rounded-2xl border shadow-sm overflow-hidden transition-all duration-500 ${isNuevo ? "border-red-300 ring-2 ring-red-200" : "border-gray-200"}`}>
+                                    <div className={`px-4 py-3 flex items-center justify-between border-b ${isNuevo ? "bg-red-50 border-red-100" : "bg-gray-50 border-gray-100"}`}>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            {isNuevo && <span className="text-[10px] font-black uppercase tracking-widest bg-red-600 text-white px-2 py-0.5 rounded-full animate-pulse">Nuevo</span>}
+                                            <span className="text-xl font-black text-black">{mesaLabel}</span>
+                                            {mozo && <span className="text-sm text-gray-400">{mozo}</span>}
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-gray-400">
+                                            <Clock size={13} />
+                                            <span className="text-sm">{hora}</span>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-1.5 text-gray-400">
-                                        <Clock size={13} />
-                                        <span className="text-sm">{hora}</span>
+                                    <div className="px-4 py-4 space-y-3 bg-white">
+                                        {comida.map((it, idx) => (
+                                            <div key={idx} className="flex items-start gap-3">
+                                                <span className="text-2xl font-black text-black min-w-[2rem] text-center leading-tight">{it.cantidad}</span>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-lg font-bold text-black leading-tight">{it.menuItemId?.nombre || "Ítem"}</p>
+                                                    {it.nota && <p className="text-sm text-amber-600 mt-0.5 italic">✏ {it.nota}</p>}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="px-4 pb-4 bg-white">
+                                        <button onClick={() => setConfirmarId(p._id)} disabled={isMarcando}
+                                            className="w-full flex items-center justify-center gap-2 bg-black hover:bg-gray-800 disabled:bg-gray-200 disabled:text-gray-400 text-white font-black text-base py-3.5 rounded-xl transition active:scale-[0.98]">
+                                            <CheckCircle size={20} />
+                                            {isMarcando ? "Marcando..." : "Marcar como listo"}
+                                        </button>
                                     </div>
                                 </div>
+                            );
+                        })}
+                    </div>
+                )
+            )}
 
-                                {/* Food items */}
-                                <div className="px-4 py-4 space-y-3 bg-white">
-                                    {comida.map((it, idx) => (
-                                        <div key={idx} className="flex items-start gap-3">
-                                            <span className="text-2xl font-black text-black min-w-[2rem] text-center leading-tight">
-                                                {it.cantidad}
-                                            </span>
+            {/* ── MENÚ ── */}
+            {tab === "menu" && (
+                <div className="max-w-2xl mx-auto px-3 pt-4">
+                    {menuLoading ? (
+                        <div className="flex justify-center py-20 text-gray-400 text-sm">Cargando menú...</div>
+                    ) : !catActiva ? (
+                        /* Grilla de categorías */
+                        <div className="grid grid-cols-2 gap-3">
+                            {catsSorted.map(cat => {
+                                const img = getImage(cat);
+                                const pos = getPosition(cat);
+                                const isSpecial = cat === "MENÚ DEL DÍA";
+                                const count = cat === "BEBIDAS"
+                                    ? menuItems.filter(i => BEBIDAS_CATS.has(i.categoria)).length
+                                    : cat === "PICADAS Y FRITURAS"
+                                    ? menuItems.filter(i => PICAR_CATS.includes(i.categoria)).length
+                                    : menuItems.filter(i => i.categoria === cat).length;
+                                const off = cat === "BEBIDAS"
+                                    ? menuItems.filter(i => BEBIDAS_CATS.has(i.categoria) && (i.activo === false || i.activoCliente === false)).length
+                                    : cat === "PICADAS Y FRITURAS"
+                                    ? menuItems.filter(i => PICAR_CATS.includes(i.categoria) && (i.activo === false || i.activoCliente === false)).length
+                                    : menuItems.filter(i => i.categoria === cat && (i.activo === false || i.activoCliente === false)).length;
+                                return (
+                                    <button key={cat} onClick={() => setCatActiva(cat)}
+                                        className={`relative h-32 rounded-2xl overflow-hidden shadow-sm active:scale-[0.97] transition-transform ${isSpecial ? "col-span-2" : ""}`}>
+                                        {img
+                                            ? <MenuImg src={img} alt={cat} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: pos }} />
+                                            : <div className={`absolute inset-0 ${isSpecial ? "bg-gradient-to-br from-amber-400 to-amber-600" : "bg-gradient-to-br from-gray-800 to-gray-600"}`} />
+                                        }
+                                        <div className={`absolute inset-0 bg-gradient-to-t ${isSpecial ? "from-amber-900/80 via-amber-800/20 to-transparent" : "from-black/80 via-black/25 to-black/10"}`} />
+                                        {isSpecial && <span className="absolute top-2 left-2 bg-white/90 text-amber-700 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full">Hoy</span>}
+                                        {off > 0 && (
+                                            <span className="absolute top-2 right-2 bg-red-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">{off} fuera</span>
+                                        )}
+                                        <div className="absolute bottom-3 left-0 right-0 px-2 text-center">
+                                            <p className="text-white font-black text-sm tracking-tight leading-tight">{cat}</p>
+                                            <p className="text-white/70 text-[11px] mt-0.5">{count} productos</p>
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        /* Lista de productos */
+                        <>
+                            <button onClick={() => setCatActiva(null)}
+                                className="flex items-center gap-1.5 text-sm font-bold text-gray-600 hover:text-black mb-4 transition">
+                                <ChevronLeft size={16} /> Categorías
+                            </button>
+                            <div className="flex items-center gap-2 mb-4">
+                                <UtensilsCrossed size={18} className="text-gray-400" />
+                                <h2 className="font-black text-lg text-black">{catActiva}</h2>
+                            </div>
+                            <div className="space-y-2">
+                                {productosCat.map(item => {
+                                    const disponible = item.activo !== false && item.activoCliente !== false;
+                                    const isToggling = toggling === item._id;
+                                    return (
+                                        <div key={item._id}
+                                            className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl border transition-all ${disponible ? "bg-white border-gray-100 shadow-sm" : "bg-gray-50 border-gray-200 opacity-60"}`}>
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-lg font-bold text-black leading-tight">
-                                                    {it.menuItemId?.nombre || "Ítem"}
+                                                <p className={`font-bold text-base leading-tight ${disponible ? "text-black" : "text-gray-400 line-through"}`}>
+                                                    {item.nombre}
                                                 </p>
-                                                {it.nota && (
-                                                    <p className="text-sm text-amber-600 mt-0.5 italic">
-                                                        ✏ {it.nota}
-                                                    </p>
+                                                {item.descripcion && (
+                                                    <p className="text-xs text-gray-400 mt-0.5 truncate">{item.descripcion}</p>
                                                 )}
                                             </div>
+                                            <button
+                                                onClick={() => !isToggling && toggleDisponible(item)}
+                                                disabled={isToggling}
+                                                className="shrink-0 flex flex-col items-center gap-0.5"
+                                            >
+                                                <span className={`text-[9px] font-black uppercase tracking-wide ${disponible ? "text-emerald-600" : "text-red-500"}`}>
+                                                    {disponible ? "Disponible" : "Agotado"}
+                                                </span>
+                                                <div className={`relative flex h-6 w-11 cursor-pointer rounded-full items-center transition-colors duration-200 ${disponible ? "bg-emerald-500" : "bg-red-400"} ${isToggling ? "opacity-50" : ""}`}>
+                                                    <span className={`absolute h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ${disponible ? "translate-x-[22px]" : "translate-x-[2px]"}`} />
+                                                </div>
+                                            </button>
                                         </div>
-                                    ))}
-                                </div>
-
-                                {/* Listo button */}
-                                <div className="px-4 pb-4 bg-white">
-                                    <button
-                                        onClick={() => setConfirmarId(p._id)}
-                                        disabled={isMarcando}
-                                        className="w-full flex items-center justify-center gap-2 bg-black hover:bg-gray-800 disabled:bg-gray-200 disabled:text-gray-400 text-white font-black text-base py-3.5 rounded-xl transition active:scale-[0.98]"
-                                    >
-                                        <CheckCircle size={20} />
-                                        {isMarcando ? "Marcando..." : "Marcar como listo"}
-                                    </button>
-                                </div>
+                                    );
+                                })}
+                                {productosCat.length === 0 && (
+                                    <p className="text-center text-gray-400 py-12">Sin productos en esta categoría.</p>
+                                )}
                             </div>
-                        );
-                    })}
+                        </>
+                    )}
                 </div>
             )}
 
-            {/* Modal doble confirmación — portal para escapar del will-change:transform del LayoutWrapper */}
+            {/* Modal confirmación listo */}
             {confirmarId && pedidoAConfirmar && createPortal(
                 <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm px-4"
                     onClick={() => setConfirmarId(null)}>
-                    <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden"
-                        onClick={e => e.stopPropagation()}>
+                    <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
                         <div className="px-5 pt-5 pb-3 flex items-center justify-between border-b border-gray-100">
                             <div className="flex items-center gap-2">
                                 <CheckCircle size={18} className="text-black" />
                                 <p className="font-black text-gray-900">Confirmar</p>
                             </div>
-                            <button onClick={() => setConfirmarId(null)} className="p-1 text-gray-400 hover:text-gray-600">
-                                <X size={18} />
-                            </button>
+                            <button onClick={() => setConfirmarId(null)} className="p-1 text-gray-400 hover:text-gray-600"><X size={18} /></button>
                         </div>
                         <div className="px-5 py-4">
-                            <p className="text-base font-semibold text-gray-900">
-                                ¿Marcar como listo?
-                            </p>
+                            <p className="text-base font-semibold text-gray-900">¿Marcar como listo?</p>
                             <p className="text-sm text-gray-500 mt-1">
                                 {pedidoAConfirmar.mesa ? `Mesa ${pedidoAConfirmar.mesa}` : pedidoAConfirmar.nombreComanda || "Comanda"} — esto avisará al mozo.
                             </p>
                         </div>
                         <div className="px-5 pb-5 flex gap-3">
-                            <button
-                                onClick={() => setConfirmarId(null)}
-                                className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-semibold hover:bg-gray-50 transition">
-                                Cancelar
-                            </button>
-                            <button
-                                onClick={confirmarListo}
-                                className="flex-1 py-3 rounded-xl bg-black text-white text-sm font-black hover:bg-gray-800 transition">
-                                Sí, listo
-                            </button>
+                            <button onClick={() => setConfirmarId(null)}
+                                className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-semibold hover:bg-gray-50 transition">Cancelar</button>
+                            <button onClick={confirmarListo}
+                                className="flex-1 py-3 rounded-xl bg-black text-white text-sm font-black hover:bg-gray-800 transition">Sí, listo</button>
                         </div>
                     </div>
                 </div>,
