@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
         const totalIngreso = movs.filter((m: any) => m.tipo === "ingreso").reduce((sum: number, m: any) => sum + m.monto, 0);
         const totalEgreso  = movs.filter((m: any) => m.tipo === "egreso").reduce((sum: number, m: any) => sum + m.monto, 0);
 
-        // Aggregate products from pedidos in this session
+        // Aggregate products from pedidos cerrados in this session
         const productosMap: Record<string, { nombre: string; categoria: string; cantidad: number; total: number }> = {};
         for (const p of pedidosPorSesion[String(s._id)] || []) {
             for (const it of p.items) {
@@ -87,6 +87,16 @@ export async function GET(req: NextRequest) {
                 if (!productosMap[k]) productosMap[k] = { nombre: mi.nombre || "Ítem", categoria: mi.categoria || "", cantidad: 0, total: 0 };
                 productosMap[k].cantidad += it.cantidad;
                 productosMap[k].total += (mi.precio || 0) * it.cantidad;
+            }
+        }
+        // También sumar ítems de cobros parciales (guardados en CajaMovement.items)
+        for (const m of movs) {
+            if (!Array.isArray(m.items) || m.items.length === 0) continue;
+            for (const it of m.items) {
+                const k = it.nombre;
+                if (!productosMap[k]) productosMap[k] = { nombre: it.nombre, categoria: it.categoria || "", cantidad: 0, total: 0 };
+                productosMap[k].cantidad += it.cantidad;
+                productosMap[k].total += (it.precio || 0) * it.cantidad;
             }
         }
 

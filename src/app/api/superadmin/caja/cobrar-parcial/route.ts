@@ -24,15 +24,23 @@ export async function POST(req: NextRequest) {
     if (!pedidoId || !items?.length || !metodoPago)
         return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
 
-    const pedido = await Pedido.findById(pedidoId).populate("items.menuItemId", "nombre precio");
+    const pedido = await Pedido.findById(pedidoId).populate("items.menuItemId", "nombre precio categoria");
     if (!pedido) return NextResponse.json({ error: "Pedido no encontrado" }, { status: 404 });
     if (pedido.estado === "cerrado") return NextResponse.json({ error: "Ya cerrado" }, { status: 400 });
 
-    // Subtract partial quantities from the order
+    // Snapshot de los ítems cobrados (antes de borrarlos del pedido)
+    const itemsCobrados: { nombre: string; cantidad: number; precio: number; categoria: string }[] = [];
     for (const { itemId, cantidad } of (items as { itemId: string; cantidad: number }[])) {
         const list = pedido.items as any[];
         const idx = list.findIndex(i => i._id.toString() === itemId);
         if (idx === -1) continue;
+        const mi = list[idx].menuItemId as any;
+        itemsCobrados.push({
+            nombre:    mi?.nombre    ?? "Ítem",
+            cantidad,
+            precio:    mi?.precio    ?? 0,
+            categoria: mi?.categoria ?? "",
+        });
         list[idx].cantidad -= cantidad;
         if (list[idx].cantidad <= 0) list.splice(idx, 1);
     }
@@ -65,6 +73,7 @@ export async function POST(req: NextRequest) {
             metodoPago,
             pedidoId: pedido._id,
             userId: payload.sub,
+            items: itemsCobrados,
         });
     }
 
