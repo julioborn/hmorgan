@@ -254,11 +254,11 @@ export default function AnotadorPage() {
                     const cTerminados = comandasTerminadas.length;
                     const fila1 = [
                         { key: "todas",      label: "Todas",      count: null },
-                        { key: "terminados", label: "Terminados", count: cTerminados },
+                        { key: "terminados", label: "Terminadas", count: cTerminados },
                     ] as const;
                     const fila2 = [
                         { key: "preparando", label: "Preparando", count: cPreparando },
-                        { key: "listo",      label: "Listos",     count: cListos },
+                        { key: "listo",      label: "Listas",     count: cListos },
                     ] as const;
                     const tabClass = (key: string) =>
                         `relative flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wide transition
