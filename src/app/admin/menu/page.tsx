@@ -624,7 +624,7 @@ export default function AdminMenuPage() {
                                             </button>
                                         </div>
                                         <div className="flex flex-col items-center gap-0.5">
-                                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-wide">App</span>
+                                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-wide">Pedidos</span>
                                             <button onClick={() => toggleActivo(i, "activoCliente")}
                                                 className={`relative flex h-5 w-9 cursor-pointer rounded-full items-center transition-colors duration-200 ${i.activoCliente !== false ? "bg-emerald-500" : "bg-gray-200"}`}>
                                                 <span className={`absolute h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${i.activoCliente !== false ? "translate-x-[18px]" : "translate-x-[2px]"}`} />
