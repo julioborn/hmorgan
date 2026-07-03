@@ -251,7 +251,7 @@ export default function AnotadorPage() {
                                             <button
                                                 onClick={() => router.push(`/empleado/anotador/menu?id=${c._id}`)}
                                                 className="flex items-center gap-1.5 bg-gray-900 hover:bg-gray-700 text-white font-bold px-4 py-2 rounded-xl text-sm transition active:scale-95">
-                                                <Plus size={14} /> Agregar ítems
+                                                <Plus size={14} /> Agregar
                                                 <ChevronRight size={13} className="opacity-60" />
                                             </button>
                                         </div>
