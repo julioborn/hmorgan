@@ -556,7 +556,7 @@ function AnotadorMenuContent() {
                 {comandaId && comanda && (
                     <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-xs">
                         <span className="font-bold text-amber-800">
-                            {comanda.mesa ? `Mesa ${comanda.mesa}` : "Sin mesa"}
+                            {comanda.mesa ? `Mesa ${comanda.mesa} -` : "Sin mesa -"}
                             {comanda.comensales ? <span className="inline-flex items-center gap-0.5 ml-1">{comanda.comensales}<User size={11} /></span> : ""}
                         </span>
                         <span className="text-amber-600">· comanda activa · ${formatPrice(comanda.total)}</span>
