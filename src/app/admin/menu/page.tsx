@@ -337,12 +337,12 @@ export default function AdminMenuPage() {
 
     async function toggleActivo(item: MenuItem, campo: "activo" | "activoCliente") {
         const patch = campo === "activo"
-            ? { activo: !item.activo }
+            ? { activo: item.activo === false ? true : false }
             : { activoCliente: item.activoCliente === false ? true : false };
         await fetch(`/api/menu/${item._id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...item, ...patch }),
+            body: JSON.stringify(patch),
         });
         mutateItems();
     }

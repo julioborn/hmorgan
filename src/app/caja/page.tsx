@@ -289,9 +289,9 @@ export default function CajaPage() {
 
     async function toggleMenuGestActivo(item: MenuItemLite, campo: "activo" | "activoCliente") {
         const patch = campo === "activo"
-            ? { activo: !item.activo }
+            ? { activo: item.activo === false ? true : false }
             : { activoCliente: item.activoCliente === false ? true : false };
-        await fetch(`/api/menu/${item._id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ ...item, ...patch }) });
+        await fetch(`/api/menu/${item._id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(patch) });
         await loadMenuGest();
     }
 

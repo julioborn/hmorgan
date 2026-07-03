@@ -6,7 +6,7 @@ import { MenuItem } from "@/models/MenuItem";
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
     await connectMongoDB();
     const data = await req.json();
-    const updated = await MenuItem.findByIdAndUpdate(params.id, data, { new: true });
+    const updated = await MenuItem.findByIdAndUpdate(params.id, { $set: data }, { new: true });
     return NextResponse.json(updated);
 }
 
