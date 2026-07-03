@@ -846,18 +846,19 @@ export default function CajaPage() {
         ).join("") + (pedido.tipoEntrega === "envio" && (pedido.costoEnvio ?? 0) > 0
             ? `<tr><td>Envío a domicilio</td><td style="text-align:right">${formatMoney(pedido.costoEnvio ?? 0)}</td></tr>` : "");
         const descuentoRow = descuento > 0
-            ? `<tr><td style="color:#dc2626">Descuento</td><td style="text-align:right;color:#dc2626">−${formatMoney(descuento)}</td></tr>
+            ? `<tr><td class="desc">Descuento</td><td class="desc" style="text-align:right">- ${formatMoney(descuento)}</td></tr>
                <tr><td class="total">A COBRAR</td><td class="total" style="text-align:right">${formatMoney(totalConDescuento)}</td></tr>` : "";
         const pagosRows = pagos.map(p => `<tr><td>${METODO_LABEL[p.metodo] || p.metodo}</td><td style="text-align:right">${formatMoney(p.monto)}</td></tr>`).join("");
-        const vueltoRow = vuelto > 0 ? `<tr><td class="vuelto">Vuelto</td><td class="vuelto" style="text-align:right">${formatMoney(vuelto)}</td></tr>` : "";
+        const vueltoRow = vuelto > 0 ? `<tr><td class="vuelto">** VUELTO **</td><td class="vuelto" style="text-align:right">${formatMoney(vuelto)}</td></tr>` : "";
         const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Ticket</title><style>
             *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Courier New',monospace;font-size:12px;padding:12px;max-width:280px}
             h2{text-align:center;font-size:15px;letter-spacing:2px;margin-bottom:2px}
-            .sub{text-align:center;font-size:11px;color:#555;margin-bottom:4px}
+            .sub{text-align:center;font-size:11px;color:#000;margin-bottom:4px}
             hr{border:none;border-top:1px dashed #000;margin:5px 0}
             table{width:100%;border-collapse:collapse}td{padding:2px 0;font-size:12px}
-            .total{font-size:14px;font-weight:bold}.vuelto{font-weight:bold;color:#16a34a}
-            .legal{text-align:center;font-size:9px;color:#aaa;margin-top:10px}
+            .total{font-size:14px;font-weight:bold}.vuelto{font-weight:bold}
+            .desc{font-weight:bold;text-decoration:underline}
+            .legal{text-align:center;font-size:9px;color:#000;margin-top:10px}
         </style></head><body>
         <h2>TICKET</h2><div class="sub">${fecha} ${hora}</div>
         <hr/><table>${rows}</table><hr/>
