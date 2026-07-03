@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
-import { Plus, UtensilsCrossed, ChevronRight, Trash2, LockKeyhole, Star, X, ArrowLeftRight, User } from "lucide-react";
+import { Plus, UtensilsCrossed, ChevronRight, LockKeyhole, Star, X, ArrowLeftRight, User } from "lucide-react";
 import Loader from "@/components/Loader";
 import { swalBase } from "@/lib/swalConfig";
 
@@ -394,11 +394,6 @@ export default function AnotadorPage() {
                                     {cajaAbierta !== false && !esTerminados && (
                                         <div className="px-4 pb-3 flex items-center justify-between gap-2">
                                             <div className="flex items-center gap-2">
-                                                <button
-                                                    onClick={() => eliminarComanda(c._id)}
-                                                    className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-2 rounded-xl text-sm transition active:scale-95">
-                                                    <Trash2 size={14} /> Eliminar
-                                                </button>
                                                 {c.mesa && (
                                                     <button
                                                         onClick={() => abrirCambiarMesa(c)}
