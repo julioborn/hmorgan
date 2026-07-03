@@ -114,6 +114,8 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
   const [carouselImages, setCarouselImages] = useState<CarouselImg[]>([]);
   const [loadingRewards, setLoadingRewards] = useState(true);
   const [menuDelDia, setMenuDelDia] = useState<MenuDelDiaItem[]>([]);
+  const [menuDelDiaLoading, setMenuDelDiaLoading] = useState(true);
+  const [menuDelDiaTiene, setMenuDelDiaTiene] = useState(false);
   const [pedidosActivosCount, setPedidosActivosCount] = useState(0);
   const [pedidosActivos, setPedidosActivos] = useState(true);
   const [reservasActivas, setReservasActivas] = useState(true);
@@ -171,8 +173,11 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
         const res = await fetch("/api/menu?cliente=true", { cache: "no-store" });
         if (!res.ok) return;
         const data: any[] = await res.json();
-        setMenuDelDia(data.filter(i => i.categoria === "MENÚ DEL DÍA"));
+        const items = data.filter(i => i.categoria === "MENÚ DEL DÍA");
+        setMenuDelDia(items);
+        setMenuDelDiaTiene(items.length > 0);
       } catch {}
+      finally { setMenuDelDiaLoading(false); }
     };
 
     fetchRewards();
@@ -295,29 +300,33 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
       )}
 
       {/* Menú del Día */}
-      {menuDelDia.length > 0 && (
-        <Link href="/cliente/menu" className="block">
-          <div className="relative rounded-2xl overflow-hidden shadow-lg">
-            <img src="/menu-del-dia.jpeg" alt="Menú del Día" className="w-full h-56 object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
-            <span className="absolute top-3 left-3 bg-white/90 text-amber-700 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">Hoy</span>
-            <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-2">
-              <p className="text-white font-black text-base tracking-tight mb-2">MENÚ DEL DÍA</p>
-              <div className="flex flex-wrap gap-1.5">
-                {menuDelDia.slice(0, 4).map(item => (
-                  <span key={item._id} className="bg-white/20 backdrop-blur-sm text-white text-[11px] font-semibold px-2 py-0.5 rounded-full border border-white/30">
-                    {item.nombre}
-                  </span>
-                ))}
-                {menuDelDia.length > 4 && (
-                  <span className="bg-white/20 backdrop-blur-sm text-white text-[11px] font-semibold px-2 py-0.5 rounded-full border border-white/30">
-                    +{menuDelDia.length - 4} más
-                  </span>
-                )}
+      {(menuDelDiaLoading || menuDelDiaTiene) && (
+        menuDelDiaLoading ? (
+          <div className="w-full h-56 rounded-2xl overflow-hidden bg-gray-200 animate-pulse" />
+        ) : (
+          <Link href="/cliente/menu" className="block">
+            <div className="relative rounded-2xl overflow-hidden shadow-lg h-56">
+              <img src="/menu-del-dia.jpeg" alt="Menú del Día" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
+              <span className="absolute top-3 left-3 bg-white/90 text-amber-700 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">Hoy</span>
+              <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-2">
+                <p className="text-white font-black text-base tracking-tight mb-2">MENÚ DEL DÍA</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {menuDelDia.slice(0, 4).map(item => (
+                    <span key={item._id} className="bg-white/20 backdrop-blur-sm text-white text-[11px] font-semibold px-2 py-0.5 rounded-full border border-white/30">
+                      {item.nombre}
+                    </span>
+                  ))}
+                  {menuDelDia.length > 4 && (
+                    <span className="bg-white/20 backdrop-blur-sm text-white text-[11px] font-semibold px-2 py-0.5 rounded-full border border-white/30">
+                      +{menuDelDia.length - 4} más
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        </Link>
+          </Link>
+        )
       )}
 
       {/* Botonera */}
