@@ -298,7 +298,7 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
       {menuDelDia.length > 0 && (
         <Link href="/cliente/menu" className="block">
           <div className="relative rounded-2xl overflow-hidden shadow-lg">
-            <img src="/menu-del-dia.jpeg" alt="Menú del Día" className="w-full h-40 object-cover" />
+            <img src="/menu-del-dia.jpeg" alt="Menú del Día" className="w-full h-56 object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-amber-900/90 via-amber-800/40 to-transparent" />
             <span className="absolute top-3 left-3 bg-white/90 text-amber-700 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">Hoy</span>
             <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-2">
