@@ -7,7 +7,7 @@ import {
     UtensilsCrossed, Pizza, Beef, Sandwich, Salad, Beer,
     BottleWine, Milk, CupSoda, Martini, GlassWater, Beaker,
     CakeSlice, Hamburger, ChevronDown, ChevronUp, ChevronLeft,
-    Settings, X,
+    Settings, X, Upload, Loader2,
 } from "lucide-react";
 import Loader from "@/components/Loader";
 import { useCategoryConfigs } from "@/hooks/useCategoryConfigs";
@@ -121,6 +121,9 @@ export default function AdminMenuPage() {
     const [configurandoCat, setConfigurandoCat] = useState<string | null>(null);
     const [editingConfig, setEditingConfig] = useState({ imageUrl: "", imagePosition: "50% 50%" });
     const [isDragging, setIsDragging] = useState(false);
+    const [uploadingImg, setUploadingImg] = useState(false);
+    const [uploadImgError, setUploadImgError] = useState<string | null>(null);
+    const imgFileRef = useRef<HTMLInputElement>(null);
     const dragRef = useRef<{ x: number; y: number; posX: number; posY: number } | null>(null);
 
     function parsePosition(pos: string): [number, number] {
@@ -169,6 +172,26 @@ export default function AdminMenuPage() {
         });
         mutate("/api/categories/config");
         setConfigurandoCat(null);
+    }
+
+    async function uploadCatImage(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setUploadingImg(true);
+        setUploadImgError(null);
+        try {
+            const fd = new FormData();
+            fd.append("file", file);
+            const res = await fetch("/api/superadmin/menu/imagen", { method: "POST", body: fd });
+            const data = await res.json();
+            if (!res.ok) { setUploadImgError(data.error || `Error ${res.status}`); return; }
+            setEditingConfig(c => ({ ...c, imageUrl: data.url }));
+        } catch (err: any) {
+            setUploadImgError(err?.message || "Error al subir");
+        } finally {
+            setUploadingImg(false);
+            if (imgFileRef.current) imgFileRef.current.value = "";
+        }
     }
 
     /* ── Config bottom sheet ── */
@@ -224,15 +247,24 @@ export default function AdminMenuPage() {
                     </div>
                 </div>
 
-                {/* URL de imagen */}
-                <div className="mb-4 mt-4">
-                    <label className="text-xs font-bold text-gray-600 uppercase tracking-widest mb-1.5 block">
-                        URL de imagen (opcional)
+                {/* Subir imagen */}
+                <div className="mb-4 mt-4 space-y-2">
+                    <label className="text-xs font-bold text-gray-600 uppercase tracking-widest block">
+                        Imagen de la categoría
                     </label>
+                    <button
+                        onClick={() => imgFileRef.current?.click()}
+                        disabled={uploadingImg}
+                        className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-xl py-3 text-sm font-semibold text-gray-500 hover:border-red-400 hover:text-red-500 transition disabled:opacity-50">
+                        {uploadingImg ? <><Loader2 size={15} className="animate-spin" /> Subiendo...</> : <><Upload size={15} /> Subir desde el dispositivo</>}
+                    </button>
+                    <input ref={imgFileRef} type="file" accept="image/*" className="hidden" onChange={uploadCatImage} />
+                    {uploadImgError && <p className="text-xs text-red-500 font-semibold">{uploadImgError}</p>}
+                    <p className="text-xs text-gray-400 text-center">— o pegá una URL —</p>
                     <input
                         value={editingConfig.imageUrl}
                         onChange={(e) => setEditingConfig({ ...editingConfig, imageUrl: e.target.value })}
-                        placeholder="Dejar vacío para usar imagen por defecto"
+                        placeholder="https://... o dejar vacío"
                         className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500"
                     />
                 </div>
