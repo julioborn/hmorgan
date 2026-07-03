@@ -262,11 +262,11 @@ export default function CajaPage() {
         finally { setMenuGestImgUploading(false); if (menuGestImgRef.current) menuGestImgRef.current.value = ""; }
     }
 
-    async function loadMenuGest() {
-        setMenuGestLoading(true);
+    async function loadMenuGest(silent = false) {
+        if (!silent) setMenuGestLoading(true);
         const data = await fetch("/api/menu", { credentials: "include" }).then(r => r.json()).catch(() => []);
         setMenuGest(Array.isArray(data) ? data : []);
-        setMenuGestLoading(false);
+        if (!silent) setMenuGestLoading(false);
     }
 
     async function saveMenuGestItem() {
@@ -436,7 +436,10 @@ export default function CajaPage() {
     }, []);
 
     useEffect(() => {
-        if (tab === "menu") loadMenuGest();
+        if (tab !== "menu") return;
+        loadMenuGest();
+        const iv = setInterval(() => loadMenuGest(true), 5000);
+        return () => clearInterval(iv);
     }, [tab]);
 
     // Cargar elementos del plano cuando se abre el modal de transferir mesa
