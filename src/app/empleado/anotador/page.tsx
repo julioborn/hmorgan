@@ -265,7 +265,7 @@ export default function AnotadorPage() {
                         ${filtro === key ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`;
                     const bubble = (key: string, count: number) => (
                         <span className={`absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 text-[10px] font-black rounded-full flex items-center justify-center
-                            ${key === "listo" ? "bg-green-500 text-white" : key === "terminados" ? "bg-purple-500 text-white" : "bg-red-600 text-white"}`}>
+                            ${key === "listo" ? "bg-green-500 text-white" : key === "terminados" ? "bg-black text-white" : "bg-red-600 text-white"}`}>
                             {count}
                         </span>
                     );
