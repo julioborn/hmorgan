@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 import { Plus, UtensilsCrossed, ChevronRight, Trash2, LockKeyhole, Star, X, ArrowLeftRight } from "lucide-react";
@@ -20,8 +20,26 @@ type Comanda = {
 };
 
 type EventoActivo = { _id: string; nombre: string };
+type Toast = { id: string; msg: string; tipo: string };
 
 const fmt = (n: number) => new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0 }).format(n);
+
+const ESTADO_LABEL: Record<string, string> = {
+    pendiente: "Pendiente", aceptado: "Aceptado", preparando: "Preparando",
+    listo: "¡Listo!", cobrado: "Cobrado", cancelado: "Cancelado",
+};
+
+function estadoBadgeClass(estado: string) {
+    switch (estado) {
+        case "pendiente":  return "bg-gray-200 text-gray-600";
+        case "aceptado":   return "bg-blue-100 text-blue-700";
+        case "preparando": return "bg-orange-100 text-orange-700";
+        case "listo":      return "bg-green-500 text-white";
+        case "cobrado":    return "bg-purple-500 text-white";
+        case "cancelado":  return "bg-red-100 text-red-600";
+        default:           return "bg-gray-100 text-gray-500";
+    }
+}
 
 export default function AnotadorPage() {
     const { user, loading } = useAuth();
@@ -34,12 +52,44 @@ export default function AnotadorPage() {
     const [cambiarMesaModal, setCambiarMesaModal] = useState<Comanda | null>(null);
     const [mesasDisponibles, setMesasDisponibles] = useState<{ _id: string; nombre: string; tipo?: string; activa: boolean; x: number; y: number; forma: string; ancho?: number; alto?: number; rotacion?: number }[]>([]);
     const [elementsPlano, setElementsPlano] = useState<{ _id: string; tipo: string; label: string; x: number; y: number; ancho: number; alto: number; color: string }[]>([]);
+    const [toasts, setToasts] = useState<Toast[]>([]);
+    const prevEstadosRef = useRef<Map<string, string>>(new Map());
 
     useEffect(() => {
         if (!loading && user && !["empleado", "cajero", "admin", "superadmin"].includes(user.role)) {
             router.replace("/");
         }
     }, [user, loading, router]);
+
+    // Pedir permiso de notificaciones al montar
+    useEffect(() => {
+        if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
+            Notification.requestPermission();
+        }
+    }, []);
+
+    // Detectar cambios de estado y notificar
+    useEffect(() => {
+        const prev = prevEstadosRef.current;
+        if (prev.size > 0) {
+            for (const c of comandas) {
+                const prevEstado = prev.get(c._id);
+                if (prevEstado && prevEstado !== c.estado && ["listo", "cobrado"].includes(c.estado)) {
+                    const label = c.mesa ? `Mesa ${c.mesa}` : c.nombreComanda || "tu comanda";
+                    const msg = c.estado === "listo"
+                        ? `El pedido de ${label} está listo para retirar`
+                        : `El pedido de ${label} fue cobrado`;
+                    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+                        new Notification("Anotador", { body: msg, icon: "/icon.png" });
+                    }
+                    const toastId = Math.random().toString(36).slice(2);
+                    setToasts(t => [...t, { id: toastId, msg, tipo: c.estado }]);
+                    setTimeout(() => setToasts(t => t.filter(x => x.id !== toastId)), 5000);
+                }
+            }
+        }
+        prevEstadosRef.current = new Map(comandas.map(c => [c._id, c.estado]));
+    }, [comandas]);
 
     const fetchComandas = useCallback(async () => {
         const propias = user?.role === "empleado" ? "&propias=true" : "";
@@ -141,6 +191,19 @@ export default function AnotadorPage() {
 
     return (
         <div className="min-h-screen bg-white pb-24">
+
+            {/* Toasts de notificación */}
+            <div className="fixed top-4 left-0 right-0 z-[100] flex flex-col items-center gap-2 px-4 pointer-events-none">
+                {toasts.map(t => (
+                    <div key={t.id}
+                        className={`w-full max-w-sm px-4 py-3 rounded-2xl shadow-xl font-bold text-sm pointer-events-auto flex items-center gap-3
+                            ${t.tipo === "listo" ? "bg-green-500 text-white" : "bg-purple-600 text-white"}`}>
+                        <span className="text-lg">{t.tipo === "listo" ? "🟢" : "✅"}</span>
+                        <span>{t.msg}</span>
+                    </div>
+                ))}
+            </div>
+
             <div className="max-w-2xl mx-auto px-4 pt-4 space-y-5">
 
                 {eventosActivos.length > 0 && (
@@ -198,36 +261,51 @@ export default function AnotadorPage() {
                         <div className="space-y-3">
                             {comandas.map(c => {
                                 const eventoNombre = c.eventoId ? (eventosActivos.find(e => e._id === c.eventoId)?.nombre ?? null) : null;
+                                const titulo = eventoNombre ?? (c.mesa ? `Mesa ${c.mesa}` : c.nombreComanda || "Sin mesa");
                                 return (
                                 <div key={c._id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                                    <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
-                                        <div className="min-w-0 flex-1">
+
+                                    {/* Header de la card */}
+                                    <div className="relative px-4 pt-3 pb-2.5 bg-gray-50 border-b border-gray-100">
+                                        {/* Estado — esquina superior derecha */}
+                                        <span className={`absolute top-3 right-4 text-[11px] font-black px-2.5 py-1 rounded-full uppercase tracking-wide ${estadoBadgeClass(c.estado)}`}>
+                                            {ESTADO_LABEL[c.estado] ?? c.estado}
+                                        </span>
+
+                                        {/* Título principal */}
+                                        <div className="pr-24 min-w-0">
                                             <div className="flex items-center gap-2 flex-wrap">
-                                                <p className="font-black text-gray-900">
-                                                    {c.mesa ? `Mesa ${c.mesa}` : "Sin mesa"}
-                                                </p>
+                                                <p className="font-black text-gray-900 text-base leading-tight">{titulo}</p>
                                                 {!!c.comensales && (
                                                     <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full font-semibold">
                                                         {c.comensales}p
                                                     </span>
                                                 )}
-                                                {eventoNombre && (
-                                                    <span className="text-[10px] font-black bg-amber-400 text-black px-2 py-0.5 rounded-full uppercase tracking-wide">
-                                                        Evento · {eventoNombre}
-                                                    </span>
-                                                )}
                                             </div>
-                                            {c.nombreComanda && (
-                                                <p className="text-base font-bold text-gray-800 mt-0.5 truncate">{c.nombreComanda}</p>
+
+                                            {/* Badge evento */}
+                                            {eventoNombre && (
+                                                <span className="inline-block mt-1 text-[10px] font-black bg-amber-400 text-black px-2 py-0.5 rounded-full uppercase tracking-wide">
+                                                    Evento
+                                                </span>
                                             )}
-                                            <p className="text-xs text-gray-400 mt-0.5">
-                                                {new Date(c.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
-                                                {" · "}{c.estado}
-                                            </p>
+
+                                            {/* Nombre comanda (solo si hay mesa y nombre adicional) */}
+                                            {!eventoNombre && c.nombreComanda && c.mesa && (
+                                                <p className="text-sm text-gray-500 font-semibold mt-0.5 truncate">{c.nombreComanda}</p>
+                                            )}
                                         </div>
-                                        <p className="text-lg font-black text-gray-900 shrink-0 ml-3">${fmt(c.total)}</p>
+
+                                        {/* Hora + total en fila inferior */}
+                                        <div className="flex items-center justify-between mt-2 pr-1">
+                                            <p className="text-xs text-gray-400">
+                                                {new Date(c.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                                            </p>
+                                            <p className="text-base font-black text-gray-900">${fmt(c.total)}</p>
+                                        </div>
                                     </div>
 
+                                    {/* Items */}
                                     <div className="px-4 py-3 space-y-1">
                                         {c.items.length === 0 ? (
                                             <p className="text-xs text-gray-400 italic">Sin ítems todavía</p>
@@ -253,12 +331,13 @@ export default function AnotadorPage() {
                                         )}
                                     </div>
 
+                                    {/* Acciones */}
                                     {cajaAbierta !== false && (
                                         <div className="px-4 pb-3 flex items-center justify-between gap-2">
                                             <div className="flex items-center gap-2">
                                                 <button
                                                     onClick={() => eliminarComanda(c._id)}
-                                                    className="flex items-center gap-1.5 text-red-500 hover:bg-red-50 border border-red-200 px-3 py-2 rounded-xl text-sm transition active:scale-95">
+                                                    className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-2 rounded-xl text-sm transition active:scale-95">
                                                     <Trash2 size={14} /> Eliminar
                                                 </button>
                                                 {c.mesa && (
@@ -296,7 +375,6 @@ export default function AnotadorPage() {
                             <button onClick={() => setEventoPickerModal(false)} className="p-1 text-gray-400"><X size={18} /></button>
                         </div>
                         <div className="px-4 py-4 space-y-2.5">
-                            {/* Opción cliente normal */}
                             <button onClick={() => irAMenu()}
                                 className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border-2 border-gray-200 hover:border-gray-400 bg-white transition active:scale-95 text-left">
                                 <div>
@@ -305,8 +383,6 @@ export default function AnotadorPage() {
                                 </div>
                                 <ChevronRight size={18} className="text-gray-300 shrink-0" />
                             </button>
-
-                            {/* Un botón por cada evento activo */}
                             {eventosActivos.map(ev => (
                                 <button key={ev._id} onClick={() => irAMenu(ev._id)}
                                     className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border-2 border-amber-300 hover:border-amber-500 bg-amber-50 transition active:scale-95 text-left">
@@ -364,7 +440,6 @@ export default function AnotadorPage() {
                             ) : (
                                 <div className="relative w-full rounded-xl overflow-hidden border border-gray-200" style={{ paddingBottom: "72%" }}>
                                     <div className="absolute inset-0" style={{ backgroundColor: "#f9f5ef", backgroundImage: "linear-gradient(rgba(0,0,0,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.04) 1px,transparent 1px)", backgroundSize: "30px 30px" }}>
-                                        {/* Elementos decorativos */}
                                         {elementsPlano.map(el => {
                                             const isLine = el.tipo === "linea_h" || el.tipo === "linea_v";
                                             const isBarra = el.tipo === "barra";
@@ -377,7 +452,6 @@ export default function AnotadorPage() {
                                                 </div>
                                             );
                                         })}
-                                        {/* Mesas */}
                                         {mesasDisponibles.filter(m => m.activa).map(m => {
                                             const esActual  = m.nombre === cambiarMesaModal.mesa;
                                             const ocupada   = !esActual && !!comandas.find(c =>
