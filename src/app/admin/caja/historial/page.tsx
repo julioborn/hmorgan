@@ -122,6 +122,8 @@ type MovGroup = {
     userId?: { nombre?: string; apellido?: string };
     createdAt: string;
     items?: { nombre: string; cantidad: number; precio: number; categoria?: string }[];
+    isEvento?: boolean;
+    eventoNombre?: string;
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -176,15 +178,15 @@ function buildGroups(movimientos: Movement[]): MovGroup[] {
 
         if (pid) {
             if (!byPedido[pid]) {
-                const eventoNombre = (pedido!.eventoId as any)?.nombre;
+                const eventoNombre = (pedido!.eventoId as any)?.nombre as string | undefined;
                 const baseLabel = pedido!.mesa
                     ? `Mesa ${pedido!.mesa}${pedido!.nombreComanda ? ` · ${pedido!.nombreComanda}` : ""}`
                     : pedido!.nombreComanda || m.concepto;
-                const label = eventoNombre ? `${baseLabel} · Evento: ${eventoNombre}` : baseLabel;
                 const g: MovGroup = {
-                    key: pid, pedido: pedido!, concepto: label,
+                    key: pid, pedido: pedido!, concepto: baseLabel,
                     tipo: m.tipo, total: 0, excedente: 0, descuento: 0,
                     pagos: [], cobros: [], userId: m.userId, createdAt: m.createdAt,
+                    isEvento: !!eventoNombre, eventoNombre,
                 };
                 byPedido[pid] = g;
                 groups.push(g);
@@ -408,10 +410,10 @@ function MovCard({ g, onOpenGroup }: { g: MovGroup; onOpenGroup: (g: MovGroup) =
     const canExpand  = hasPedido || hasItems;
 
     return (
-        <div className={`rounded-xl border overflow-hidden ${esIngreso ? "border-gray-200" : "border-red-100"}`}>
+        <div className={`rounded-xl overflow-hidden border ${g.isEvento ? "border-amber-200 border-l-4 border-l-amber-400" : esIngreso ? "border-gray-200" : "border-red-100"}`}>
             {/* Fila principal */}
             <div
-                className={`flex items-center gap-3 px-3 py-2.5 ${canExpand ? "cursor-pointer hover:bg-gray-50" : ""} ${esIngreso ? "bg-white" : "bg-red-50"}`}
+                className={`flex items-center gap-3 px-3 py-2.5 ${canExpand ? "cursor-pointer hover:bg-gray-50 active:bg-gray-100" : ""} ${g.isEvento ? "bg-amber-50/40" : esIngreso ? "bg-white" : "bg-red-50"}`}
                 onClick={() => {
                     if (hasPedido) onOpenGroup(g);
                     else if (hasItems) setExpanded(v => !v);
@@ -422,14 +424,22 @@ function MovCard({ g, onOpenGroup }: { g: MovGroup; onOpenGroup: (g: MovGroup) =
                     : <ArrowUpCircle  size={16} className="text-red-400 shrink-0" />
                 }
                 <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                         <p className="font-bold text-gray-800 text-sm truncate leading-tight">{g.concepto}</p>
+                        {g.isEvento && (
+                            <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 shrink-0 flex items-center gap-0.5">
+                                <Star size={7} />EVENTO
+                            </span>
+                        )}
                         {multiCobro && (
                             <span className="text-[9px] font-black px-1 py-0.5 rounded bg-amber-100 text-amber-700 shrink-0">
                                 {g.cobros.length} COBROS
                             </span>
                         )}
                     </div>
+                    {g.eventoNombre && (
+                        <p className="text-[10px] text-amber-600 font-bold leading-tight mt-0.5 truncate">{g.eventoNombre}</p>
+                    )}
                     <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         <span className="flex items-center gap-1 text-[10px] text-gray-400">
                             <Clock size={9} />{formatHora(g.createdAt)}
@@ -533,20 +543,20 @@ function DetalleSesion({ s, onRefresh }: { s: Sesion; onRefresh: () => void }) {
 
             {/* Apertura / Cierre */}
             <div className="px-4 py-3 space-y-3">
-                <div className="flex gap-6">
+                <div className="flex flex-wrap gap-4">
                     <div>
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Apertura</p>
-                        <p className="font-black text-gray-900 text-base">{fmt(s.montoInicial || 0)}</p>
+                        <p className="font-black text-gray-900 text-sm sm:text-base">{fmt(s.montoInicial || 0)}</p>
                     </div>
                     <div>
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Sistema al cierre</p>
-                        <p className="font-black text-gray-900 text-base">{fmt(efectivoSistema)}</p>
+                        <p className="font-black text-gray-900 text-sm sm:text-base">{fmt(efectivoSistema)}</p>
                     </div>
                     {s.montoCierre != null && !editando && (
                         <div>
                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Contado al cierre</p>
                             <div className="flex items-center gap-1.5">
-                                <p className="font-black text-gray-900 text-base">{fmt(s.montoCierre)}</p>
+                                <p className="font-black text-gray-900 text-sm sm:text-base">{fmt(s.montoCierre)}</p>
                                 {s.estado === "cerrada" && (
                                     <button onClick={abrirEditor} className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition">
                                         <Pencil size={13} />
@@ -684,7 +694,7 @@ function DetalleSesion({ s, onRefresh }: { s: Sesion; onRefresh: () => void }) {
                                     {p.categoria && <p className="text-[10px] text-gray-400">{p.categoria}</p>}
                                 </div>
                                 <span className="text-sm font-black text-gray-500 shrink-0">×{p.cantidad}</span>
-                                <span className="text-sm font-black text-gray-900 w-20 text-right shrink-0">{fmt(p.total)}</span>
+                                <span className="text-sm font-black text-gray-900 shrink-0 text-right">{fmt(p.total)}</span>
                             </div>
                         ))}
                         <div className="flex items-center justify-between px-3 py-2.5 bg-gray-50 border-t border-gray-200">
@@ -802,7 +812,7 @@ function DetalleEvento({ ev }: { ev: EventoCerrado }) {
                                     {p.categoria && <p className="text-[10px] text-gray-400">{p.categoria}</p>}
                                 </div>
                                 <span className="text-sm font-black text-gray-500 shrink-0">×{p.cantidad}</span>
-                                <span className="text-sm font-black text-gray-900 w-20 text-right shrink-0">{fmt(p.total)}</span>
+                                <span className="text-sm font-black text-gray-900 shrink-0 text-right">{fmt(p.total)}</span>
                             </div>
                         ))}
                         <div className="flex items-center justify-between px-3 py-2.5 bg-gray-50 border-t border-gray-200">
@@ -841,12 +851,12 @@ export default function CajaHistorialPage() {
     function recargar() { reloadSesiones(); reloadEventos(); }
 
     return (
-        <div className="max-w-3xl mx-auto py-6 px-4">
-            <div className="flex items-center gap-3 mb-8">
-                <Link href="/admin/caja" className="p-2 rounded-xl hover:bg-gray-100 transition">
+        <div className="max-w-3xl mx-auto py-4 sm:py-6 px-3 sm:px-4">
+            <div className="flex items-center gap-2 sm:gap-3 mb-6 sm:mb-8">
+                <Link href="/admin/caja" className="p-2 rounded-xl hover:bg-gray-100 transition shrink-0">
                     <ChevronLeft size={20} />
                 </Link>
-                <h1 className="text-3xl font-extrabold text-black flex-1">Historial de Caja</h1>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-black flex-1">Historial de Caja</h1>
                 <button
                     onClick={recargar}
                     disabled={isRefreshing || loadingSesiones || loadingEventos}
@@ -866,7 +876,13 @@ export default function CajaHistorialPage() {
             )}
 
             {sesiones && sesiones.length > 0 && (
-                <div className="space-y-4 mb-10">
+                <div className="mb-10">
+                    <div className="flex items-center gap-3 mb-4">
+                        <Receipt size={16} className="text-gray-500 shrink-0" />
+                        <h2 className="text-lg font-extrabold text-black whitespace-nowrap">Sesiones de Caja</h2>
+                        <div className="flex-1 h-px bg-gray-200" />
+                    </div>
+                <div className="space-y-4">
                     {sesiones.map(s => {
                         const open = expandidas.has(s._id);
                         return (
@@ -876,13 +892,15 @@ export default function CajaHistorialPage() {
                                 <div className={`px-4 py-3 border-b ${s.estado === "abierta" ? "bg-emerald-50 border-emerald-100" : "bg-gray-900 border-gray-800"}`}>
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <p className={`font-black text-base ${s.estado === "abierta" ? "text-emerald-800" : "text-white"}`}>
+                                            <p className={`font-black text-base leading-tight ${s.estado === "abierta" ? "text-emerald-800" : "text-white"}`}>
                                                 {formatFecha(s.fechaApertura)}
                                             </p>
                                             <p className={`text-xs mt-0.5 ${s.estado === "abierta" ? "text-emerald-600" : "text-white/50"}`}>
                                                 {formatHora(s.fechaApertura)}
                                                 {s.fechaCierre && ` → ${formatHora(s.fechaCierre)}`}
-                                                {" · "}Abrió: {nombreU(s.abiertaPor) ?? "—"}
+                                            </p>
+                                            <p className={`text-[10px] mt-0.5 ${s.estado === "abierta" ? "text-emerald-500" : "text-white/40"}`}>
+                                                Abrió: {nombreU(s.abiertaPor) ?? "—"}
                                                 {s.cerradaPor && ` · Cerró: ${nombreU(s.cerradaPor) ?? "—"}`}
                                             </p>
                                         </div>
@@ -927,11 +945,16 @@ export default function CajaHistorialPage() {
                         );
                     })}
                 </div>
+                </div>
             )}
 
             {/* ── Eventos ── */}
             <div className="mb-6">
-                <h2 className="text-xl font-extrabold text-black mb-4">Historial de Eventos</h2>
+                <div className="flex items-center gap-3 mb-4">
+                    <Star size={16} className="text-amber-500 shrink-0" />
+                    <h2 className="text-lg font-extrabold text-black whitespace-nowrap">Historial de Eventos</h2>
+                    <div className="flex-1 h-px bg-amber-200" />
+                </div>
 
                 {(loadingEventos || errEventos) && <div className="flex justify-center py-10"><Loader size={36} /></div>}
                 {!loadingEventos && !errEventos && eventosCerrados.length === 0 && (
@@ -947,31 +970,44 @@ export default function CajaHistorialPage() {
                             const horaCierre  = cd?.fecha ? formatHora(cd.fecha)  : formatHora(ev.updatedAt);
 
                             return (
-                                <div key={ev._id} className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-                                    <div className="bg-black px-4 py-3 flex items-center justify-between">
-                                        <div>
-                                            <p className="text-[10px] font-bold text-white/40 uppercase tracking-wide">
+                                <div key={ev._id} className="bg-white border border-gray-200 border-t-2 border-t-amber-400 rounded-2xl shadow-sm overflow-hidden">
+                                    <div className="bg-black px-4 py-3 flex items-center justify-between gap-3">
+                                        <div className="min-w-0">
+                                            <p className="text-[10px] font-bold text-amber-400/80 uppercase tracking-wide flex items-center gap-1">
+                                                <Star size={8} className="text-amber-400 shrink-0" />
                                                 Cerrado · {fechaCierre} {horaCierre}
                                             </p>
-                                            <p className="font-black text-white text-base leading-tight">{ev.nombre}</p>
+                                            <p className="font-black text-white text-base leading-tight truncate">{ev.nombre}</p>
                                         </div>
-                                        {cd && <span className="font-black text-white text-xl">{fmt(cd.totalGeneral)}</span>}
+                                        {cd && <span className="font-black text-white text-lg shrink-0">{fmt(cd.totalGeneral)}</span>}
                                     </div>
 
                                     {cd && (
-                                        <div className="px-4 py-3 grid grid-cols-3 gap-2 border-b border-gray-100">
-                                            <div className="text-center">
-                                                <p className="text-[10px] text-gray-400 uppercase font-bold">Efectivo</p>
-                                                <p className="text-base font-black text-gray-800">{fmt(cd.totalEfectivo)}</p>
-                                            </div>
-                                            <div className="text-center">
-                                                <p className="text-[10px] text-gray-400 uppercase font-bold">Transf.</p>
-                                                <p className="text-base font-black text-gray-800">{fmt(cd.totalTransferencia)}</p>
-                                            </div>
-                                            <div className="text-center">
-                                                <p className="text-[10px] text-gray-400 uppercase font-bold">Total</p>
-                                                <p className="text-base font-black text-gray-900">{fmt(cd.totalGeneral)}</p>
-                                            </div>
+                                        <div className="px-4 py-3 flex flex-wrap gap-x-6 gap-y-2 border-b border-gray-100">
+                                            {cd.totalEfectivo > 0 && (
+                                                <div>
+                                                    <p className="text-[10px] text-gray-400 uppercase font-bold">Efectivo</p>
+                                                    <p className="text-sm font-black text-emerald-700">{fmt(cd.totalEfectivo)}</p>
+                                                </div>
+                                            )}
+                                            {cd.totalTransferencia > 0 && (
+                                                <div>
+                                                    <p className="text-[10px] text-gray-400 uppercase font-bold">Transf.</p>
+                                                    <p className="text-sm font-black text-violet-700">{fmt(cd.totalTransferencia)}</p>
+                                                </div>
+                                            )}
+                                            {cd.totalTarjeta > 0 && (
+                                                <div>
+                                                    <p className="text-[10px] text-gray-400 uppercase font-bold">Tarjeta</p>
+                                                    <p className="text-sm font-black text-blue-700">{fmt(cd.totalTarjeta)}</p>
+                                                </div>
+                                            )}
+                                            {cd.entradasCantidad > 0 && (
+                                                <div>
+                                                    <p className="text-[10px] text-gray-400 uppercase font-bold">Entradas</p>
+                                                    <p className="text-sm font-black text-amber-700">{cd.entradasCantidad} × {fmt(cd.entradasPrecio)}</p>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 
