@@ -2,6 +2,7 @@
 import useSWR from "swr";
 import Link from "next/link";
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import {
     ChevronLeft, ChevronDown, ChevronUp, X,
     TrendingUp, TrendingDown, Banknote, CreditCard, Send,
@@ -193,7 +194,7 @@ function PedidoModal({ pedido, onClose }: { pedido: PedidoDetail; onClose: () =>
         ? `Mesa ${pedido.mesa}${pedido.nombreComanda ? ` · ${pedido.nombreComanda}` : ""}`
         : pedido.nombreComanda || "Pedido";
 
-    return (
+    return createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={onClose}>
             <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
                 <div className="bg-black px-4 py-3 flex items-center justify-between">
@@ -235,7 +236,8 @@ function PedidoModal({ pedido, onClose }: { pedido: PedidoDetail; onClose: () =>
                     </div>
                 )}
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
 
