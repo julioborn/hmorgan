@@ -9,7 +9,7 @@ import { hoyArgentina } from "@/lib/argentina-time";
 import { swalBase } from "@/lib/swalConfig";
 
 const BarMap = dynamic(() => import("@/components/BarMap"), { ssr: false });
-import { QrCode, Users, Bell, PackagePlus, Package, Utensils, Ticket, History, ScanQrCode, ScanText, Settings, Star, BarChart2, ClipboardList, LayoutGrid, Images, CalendarDays, Wallet, TrendingUp, UserCog, Truck, Gift, X, Clock, ChefHat } from "lucide-react";
+import { QrCode, Users, Bell, PackagePlus, Package, Utensils, Ticket, History, ScanQrCode, ScanText, Settings, Star, BarChart2, ClipboardList, LayoutGrid, Images, CalendarDays, Wallet, TrendingUp, UserCog, Truck, Gift, X, Clock } from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 import Loader from "@/components/Loader";
@@ -694,10 +694,9 @@ function AdminHome() {
         <section>
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] px-1 mb-2.5">Contenido</p>
           <div className="grid grid-cols-2 gap-2.5">
-            <AdminCard href="/admin/menu"         title="Menú"         Icon={Utensils} />
-            <AdminCard href="/admin/menu-del-dia" title="Menú del Día" Icon={ChefHat} />
-            <AdminCard href="/admin/reviews"      title="Reseñas"      Icon={Star} />
-            <AdminCard href="/admin/carrousel"    title="Fotos"        Icon={Images} />
+            <AdminCard href="/admin/menu"      title="Menú"    Icon={Utensils} />
+            <AdminCard href="/admin/reviews"   title="Reseñas" Icon={Star} />
+            <AdminCard href="/admin/carrousel" title="Fotos"   Icon={Images} />
           </div>
         </section>
 

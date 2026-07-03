@@ -21,14 +21,6 @@ type MenuItem = {
     activo: boolean;
 };
 
-type MenuDelDiaDoc = {
-    titulo: string;
-    descripcion: string;
-    imagen: string | null;
-    precio: number | null;
-    activo: boolean;
-};
-
 const fetcher = (url: string) => fetch(url, { cache: "no-store" }).then((r) => r.json());
 
 const formatPrice = (v: number) =>
@@ -67,7 +59,6 @@ const categoryIcons: Record<string, React.ElementType> = {
 
 export default function ClienteMenuPage() {
     const { data: items } = useSWR<MenuItem[]>("/api/menu", fetcher);
-    const { data: menuDelDia } = useSWR<MenuDelDiaDoc>("/api/menu-del-dia", fetcher);
     const categoryConfigMap = useCategoryConfigs();
     const [categoriaActiva, setCategoriaActiva] = useState<string | null>(null);
     const isPopNav = useRef(false);
@@ -99,11 +90,12 @@ export default function ClienteMenuPage() {
 
     const todasCats = Array.from(new Set(items.map(i => i.categoria)));
     const categoriasNavegacion = [
+        ...(items.some(i => i.categoria === "MENÚ DEL DÍA") ? ["MENÚ DEL DÍA"] : []),
         ...MAIN_ORDER.filter(cat =>
             cat === "BEBIDAS"   ? BEBIDAS_CATS.some(bc => items.some(i => i.categoria === bc)) :
             cat === "PICADAS Y FRITURAS" ? PICAR_CATS.some(pc => items.some(i => i.categoria === pc)) :
             items.some(i => i.categoria === cat)),
-        ...todasCats.filter(cat => !MAIN_ORDER.includes(cat) && !BEBIDAS_CATS.includes(cat) && !PICAR_CATS.includes(cat)),
+        ...todasCats.filter(cat => !MAIN_ORDER.includes(cat) && !BEBIDAS_CATS.includes(cat) && !PICAR_CATS.includes(cat) && cat !== "MENÚ DEL DÍA"),
     ];
 
     const catDbImage = (cat: string) => items.find((i) => i.categoria === cat && i.imagen)?.imagen ?? null;
@@ -114,27 +106,28 @@ export default function ClienteMenuPage() {
     const getPosition = (cat: string) => categoryConfigMap[cat]?.imagePosition || "50% 50%";
 
     function CategoryCard({ cat, idx, onClick }: { cat: string; idx: number; onClick: () => void }) {
-        const Icon = categoryIcons[cat] || UtensilsCrossed;
         const bg = getImage(cat);
         const imagePosition = getPosition(cat);
         const allItems = items ?? [];
         const count = cat === "BEBIDAS"    ? allItems.filter(i => BEBIDAS_CATS.includes(i.categoria)).length
             : cat === "PICADAS Y FRITURAS" ? allItems.filter(i => PICAR_CATS.includes(i.categoria)).length
             : allItems.filter(i => i.categoria === cat).length;
+        const isSpecial = cat === "MENÚ DEL DÍA";
         return (
             <motion.button
                 onClick={onClick}
                 initial={{ opacity: 0, y: 18 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.04 }}
-                className="relative w-full h-36 rounded-2xl overflow-hidden shadow-md active:scale-[0.97] transition-transform"
+                className={`relative w-full h-36 rounded-2xl overflow-hidden shadow-md active:scale-[0.97] transition-transform ${isSpecial ? "col-span-2" : ""}`}
             >
                 {bg ? (
                     <MenuImg src={bg} alt={cat} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: imagePosition }} />
                 ) : (
-                    <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-600" />
+                    <div className={`absolute inset-0 ${isSpecial ? "bg-gradient-to-br from-amber-400 to-amber-600" : "bg-gradient-to-br from-gray-800 to-gray-600"}`} />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/10" />
+                <div className={`absolute inset-0 bg-gradient-to-t ${isSpecial ? "from-amber-900/85 via-amber-800/30 to-transparent" : "from-black/85 via-black/30 to-black/10"}`} />
+                {isSpecial && <span className="absolute top-3 left-3 bg-white/90 text-amber-700 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">Hoy</span>}
                 <div className="absolute bottom-3 left-0 right-0 px-2 text-center">
                     <p className="text-white font-black text-sm tracking-tight leading-tight">{cat}</p>
                     <p className="text-white/60 text-[11px] font-medium mt-0.5">{count} {count === 1 ? "producto" : "productos"}</p>
@@ -145,42 +138,12 @@ export default function ClienteMenuPage() {
 
     /* ── Vista principal ── */
     if (!categoriaActiva) {
-        const fmtPrecio = (n: number) =>
-            new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", minimumFractionDigits: 0 }).format(n);
-
         return (
             <div className="bg-white min-h-screen">
                 <div className="px-5 pt-6 pb-4">
                     <h1 className="text-3xl font-black text-black tracking-tight mb-1">Menú</h1>
                     <p className="text-sm text-gray-400">Elegí una categoría</p>
                 </div>
-
-                {/* Menú del Día */}
-                {menuDelDia?.activo && (
-                    <div className="px-5 mb-5">
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="rounded-2xl overflow-hidden border border-amber-100 shadow-sm bg-amber-50">
-                            {menuDelDia.imagen && (
-                                <img src={menuDelDia.imagen} alt={menuDelDia.titulo} className="w-full h-44 object-cover" />
-                            )}
-                            <div className="px-4 py-3 flex items-start justify-between gap-3">
-                                <div className="flex-1">
-                                    <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Menú del Día</span>
-                                    <p className="font-black text-gray-900 text-base leading-tight mt-0.5">{menuDelDia.titulo}</p>
-                                    {menuDelDia.descripcion && (
-                                        <p className="text-sm text-gray-500 mt-1 leading-relaxed">{menuDelDia.descripcion}</p>
-                                    )}
-                                </div>
-                                {menuDelDia.precio && (
-                                    <p className="text-lg font-black text-black shrink-0">{fmtPrecio(menuDelDia.precio)}</p>
-                                )}
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-
                 <div className="px-5 pb-10 grid grid-cols-2 gap-3">
                     {categoriasNavegacion.map((cat, idx) => (
                         <CategoryCard key={cat} cat={cat} idx={idx} onClick={() => setCategoriaActiva(cat)} />

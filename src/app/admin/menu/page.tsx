@@ -326,40 +326,41 @@ export default function AdminMenuPage() {
 
     const todasCats = Array.from(new Set(items.map(i => i.categoria)));
     const categoriasNavegacion = [
+        ...(items.some(i => i.categoria === "MENÚ DEL DÍA") ? ["MENÚ DEL DÍA"] : []),
         ...MAIN_ORDER.filter(cat =>
             cat === "BEBIDAS"    ? BEBIDAS_CATS.some(bc => items.some(i => i.categoria === bc)) :
             cat === "PICADAS Y FRITURAS" ? PICAR_CATS.some(pc => items.some(i => i.categoria === pc)) :
             items.some(i => i.categoria === cat)),
-        ...todasCats.filter(cat => !MAIN_ORDER.includes(cat) && !BEBIDAS_CATS.includes(cat) && !PICAR_CATS.includes(cat)),
+        ...todasCats.filter(cat => !MAIN_ORDER.includes(cat) && !BEBIDAS_CATS.includes(cat) && !PICAR_CATS.includes(cat) && cat !== "MENÚ DEL DÍA"),
     ];
 
     function CategoryCard({ cat, idx, onClick }: { cat: string; idx: number; onClick: () => void }) {
-        const Icon = categoryIcons[cat] || UtensilsCrossed;
         const bg = getImage(cat);
         const imagePosition = getPosition(cat);
         const allItems = items ?? [];
         const count = cat === "BEBIDAS"    ? allItems.filter(i => BEBIDAS_CATS.includes(i.categoria)).length
             : cat === "PICADAS Y FRITURAS" ? allItems.filter(i => PICAR_CATS.includes(i.categoria)).length
             : allItems.filter(i => i.categoria === cat).length;
+        const isSpecial = cat === "MENÚ DEL DÍA";
         return (
             <motion.button
                 onClick={onClick}
                 initial={{ opacity: 0, y: 18 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.04 }}
-                className="relative w-full h-36 rounded-2xl overflow-hidden shadow-md active:scale-[0.97] transition-transform"
+                className={`relative w-full h-36 rounded-2xl overflow-hidden shadow-md active:scale-[0.97] transition-transform ${isSpecial ? "col-span-2" : ""}`}
             >
                 {bg ? (
                     <img src={bg} alt={cat} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: imagePosition }} />
                 ) : (
-                    <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-600" />
+                    <div className={`absolute inset-0 ${isSpecial ? "bg-gradient-to-br from-amber-400 to-amber-600" : "bg-gradient-to-br from-gray-800 to-gray-600"}`} />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/10" />
+                <div className={`absolute inset-0 bg-gradient-to-t ${isSpecial ? "from-amber-900/85 via-amber-800/30 to-transparent" : "from-black/85 via-black/30 to-black/10"}`} />
+                {isSpecial && <span className="absolute top-3 left-3 bg-white/90 text-amber-700 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">Hoy</span>}
                 <div className="absolute bottom-3 left-0 right-0 px-2 text-center">
                     <p className="text-white font-black text-sm tracking-tight leading-tight">{cat}</p>
                     <p className="text-white/60 text-[11px] font-medium mt-0.5">{count} {count === 1 ? "producto" : "productos"}</p>
                 </div>
-                {/* Botón de configuración */}
                 <button
                     onClick={(e) => { e.stopPropagation(); abrirConfig(cat); }}
                     className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center hover:bg-black/80 transition z-10"

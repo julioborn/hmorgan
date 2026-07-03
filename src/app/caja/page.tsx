@@ -231,7 +231,6 @@ export default function CajaPage() {
     const ventaStreamRef = useRef<MediaStream | null>(null);
 
     // ── Gestión de menú (tab Menú) ──────────────────────────────────────────
-    const [menuDelDiaActivo, setMenuDelDiaActivo] = useState<boolean | null>(null);
     const [menuGest, setMenuGest]           = useState<MenuItemLite[]>([]);
     const [menuGestLoading, setMenuGestLoading] = useState(false);
     const [menuGestCat, setMenuGestCat]     = useState<string>("todas");
@@ -245,24 +244,9 @@ export default function CajaPage() {
 
     async function loadMenuGest() {
         setMenuGestLoading(true);
-        const [data, mdd] = await Promise.all([
-            fetch("/api/menu", { credentials: "include" }).then(r => r.json()).catch(() => []),
-            fetch("/api/superadmin/menu-del-dia", { credentials: "include" }).then(r => r.json()).catch(() => null),
-        ]);
+        const data = await fetch("/api/menu", { credentials: "include" }).then(r => r.json()).catch(() => []);
         setMenuGest(Array.isArray(data) ? data : []);
-        if (mdd) setMenuDelDiaActivo(!!mdd.activo);
         setMenuGestLoading(false);
-    }
-
-    async function toggleMenuDelDia() {
-        const nuevo = !menuDelDiaActivo;
-        setMenuDelDiaActivo(nuevo);
-        await fetch("/api/superadmin/menu-del-dia", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({ activo: nuevo }),
-        });
     }
 
     async function saveMenuGestItem() {
@@ -2590,20 +2574,6 @@ export default function CajaPage() {
                     {/* ── TAB MENÚ ── */}
                     {tab === "menu" && (
                         <div className="max-w-3xl mx-auto px-4 pt-4 pb-10">
-                            {/* Menú del Día toggle */}
-                            {menuDelDiaActivo !== null && (
-                                <div className="flex items-center justify-between bg-white border border-gray-200 rounded-2xl px-4 py-3 mb-4 shadow-sm">
-                                    <div>
-                                        <p className="text-sm font-black text-gray-900">Menú del Día</p>
-                                        <p className="text-xs text-gray-400">{menuDelDiaActivo ? "Visible en el menú" : "Oculto en el menú"}</p>
-                                    </div>
-                                    <button onClick={toggleMenuDelDia}
-                                        className={`relative w-12 h-6 rounded-full transition-colors ${menuDelDiaActivo ? "bg-black" : "bg-gray-200"}`}>
-                                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${menuDelDiaActivo ? "translate-x-6" : "translate-x-0"}`} />
-                                    </button>
-                                </div>
-                            )}
-
                             {/* Header + botón agregar */}
                             <div className="flex items-center justify-between mb-4">
                                 <div>
@@ -2697,30 +2667,39 @@ export default function CajaPage() {
                             ) : !menuGestCatActiva ? (
                                 /* Grid de categorías */
                                 <div className="grid grid-cols-2 gap-3">
-                                    {Array.from(new Set(menuGest.map(i => {
-                                        if (BEBIDAS_CATS.includes(i.categoria)) return "BEBIDAS";
-                                        if (PICAR_CATS.includes(i.categoria)) return "PICADAS Y FRITURAS";
-                                        return i.categoria;
-                                    }))).sort((a, b) => {
-                                        const ai = MENU_ORDER.indexOf(a), bi = MENU_ORDER.indexOf(b);
-                                        return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
-                                    }).map(cat => {
-                                        const img = categoryImages[cat];
-                                        const count = cat === "BEBIDAS" ? menuGest.filter(i => BEBIDAS_CATS.includes(i.categoria)).length
-                                            : cat === "PICADAS Y FRITURAS" ? menuGest.filter(i => PICAR_CATS.includes(i.categoria)).length
-                                            : menuGest.filter(i => i.categoria === cat).length;
-                                        return (
-                                            <button key={cat} onClick={() => setMenuGestCatActiva(cat)}
-                                                className="relative h-32 rounded-2xl overflow-hidden shadow-sm active:scale-[0.97] transition-transform">
-                                                {img ? <MenuImg src={img} alt={cat} className="absolute inset-0 w-full h-full object-cover" /> : <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-600" />}
-                                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/10" />
-                                                <div className="absolute bottom-3 left-0 right-0 px-2 text-center">
-                                                    <p className="text-white font-black text-sm tracking-tight leading-tight">{cat}</p>
-                                                    <p className="text-white/70 text-[11px] mt-0.5">{count} productos</p>
-                                                </div>
-                                            </button>
-                                        );
-                                    })}
+                                    {(() => {
+                                        const allCats = Array.from(new Set(menuGest.map(i => {
+                                            if (BEBIDAS_CATS.includes(i.categoria)) return "BEBIDAS";
+                                            if (PICAR_CATS.includes(i.categoria)) return "PICADAS Y FRITURAS";
+                                            return i.categoria;
+                                        })));
+                                        const sorted = [
+                                            ...(allCats.includes("MENÚ DEL DÍA") ? ["MENÚ DEL DÍA"] : []),
+                                            ...allCats.filter(c => c !== "MENÚ DEL DÍA").sort((a, b) => {
+                                                const ai = MENU_ORDER.indexOf(a), bi = MENU_ORDER.indexOf(b);
+                                                return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+                                            }),
+                                        ];
+                                        return sorted.map(cat => {
+                                            const img = categoryImages[cat];
+                                            const isSpecial = cat === "MENÚ DEL DÍA";
+                                            const count = cat === "BEBIDAS" ? menuGest.filter(i => BEBIDAS_CATS.includes(i.categoria)).length
+                                                : cat === "PICADAS Y FRITURAS" ? menuGest.filter(i => PICAR_CATS.includes(i.categoria)).length
+                                                : menuGest.filter(i => i.categoria === cat).length;
+                                            return (
+                                                <button key={cat} onClick={() => setMenuGestCatActiva(cat)}
+                                                    className="relative h-32 rounded-2xl overflow-hidden shadow-sm active:scale-[0.97] transition-transform">
+                                                    {img ? <MenuImg src={img} alt={cat} className="absolute inset-0 w-full h-full object-cover" /> : <div className={`absolute inset-0 ${isSpecial ? "bg-gradient-to-br from-amber-400 to-amber-600" : "bg-gradient-to-br from-gray-800 to-gray-600"}`} />}
+                                                    <div className={`absolute inset-0 bg-gradient-to-t ${isSpecial ? "from-amber-900/80 via-amber-800/20 to-transparent" : "from-black/80 via-black/25 to-black/10"}`} />
+                                                    {isSpecial && <span className="absolute top-2 left-2 bg-white/90 text-amber-700 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full">Hoy</span>}
+                                                    <div className="absolute bottom-3 left-0 right-0 px-2 text-center">
+                                                        <p className="text-white font-black text-sm tracking-tight leading-tight">{cat}</p>
+                                                        <p className="text-white/70 text-[11px] mt-0.5">{count} productos</p>
+                                                    </div>
+                                                </button>
+                                            );
+                                        });
+                                    })()}
                                 </div>
                             ) : (
                                 /* Lista de productos de la categoría seleccionada */
