@@ -327,6 +327,28 @@ export async function PUT(req: NextRequest) {
             await programarBorradoMensajes(id);
         }
 
+        // 🛵 Notificar a todos los delivery cuando un envío queda listo
+        if (estado === "listo" && pedido.tipoEntrega === "envio") {
+            const deliveryUsers = await User.find({ role: "delivery" });
+            const notifTitle = "¡Pedido listo para llevar! 🛵";
+            const clienteDelivery = pedido.userId ? await User.findById(pedido.userId).lean<any>() : null;
+            const notifBody = `Nuevo envío listo${clienteDelivery?.nombre ? ` — ${clienteDelivery.nombre}` : ""}`;
+            for (const du of deliveryUsers) {
+                if (du.pushSubscriptions?.length) {
+                    await sendPushToSubscriptions(du.pushSubscriptions, {
+                        title: notifTitle, body: notifBody,
+                        url: "/delivery",
+                        icon: "/icon-192.png", badge: "/icon-badge-96x96.png",
+                    });
+                }
+                const fcmTokens = new Set<string>([...(du.fcmTokens ?? []), ...(du.tokenFCM ? [du.tokenFCM] : [])]);
+                for (const t of fcmTokens) {
+                    try { await enviarNotificacionFCM(t, notifTitle, notifBody, "/delivery"); }
+                    catch (err) { if (isFCMTokenInvalid(err)) await User.updateOne({ _id: du._id }, { $pull: { fcmTokens: t } }); }
+                }
+            }
+        }
+
         // 💰 Acreditar puntos al marcar como entregado (solo una vez)
         if (estado === "entregado" && !pedido.puntosAcreditados && pedido.total > 0) {
             const ratio = await getPointsRatio();
