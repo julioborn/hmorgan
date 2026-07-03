@@ -8,7 +8,7 @@ import {
     UtensilsCrossed, Pizza, Beef, Sandwich, Salad, Beer,
     CupSoda, Martini, BottleWine, GlassWater, Beaker,
     CakeSlice, Hamburger, Milk, Plus, Minus, ShoppingCart,
-    Send, ChevronLeft, CheckCircle, Printer, X, MapPin, ChevronDown, Star, QrCode,
+    Send, ChevronLeft, CheckCircle, Printer, X, MapPin, ChevronDown, Star, QrCode, User,
 } from "lucide-react";
 import Loader from "@/components/Loader";
 import MenuImg from "@/components/MenuImg";
@@ -557,7 +557,7 @@ function AnotadorMenuContent() {
                     <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-xs">
                         <span className="font-bold text-amber-800">
                             {comanda.mesa ? `Mesa ${comanda.mesa}` : "Sin mesa"}
-                            {comanda.comensales ? ` · ${comanda.comensales}p` : ""}
+                            {comanda.comensales ? <span className="inline-flex items-center gap-0.5 ml-1">{comanda.comensales}<User size={11} /></span> : ""}
                         </span>
                         <span className="text-amber-600">· comanda activa · ${formatPrice(comanda.total)}</span>
                     </div>
