@@ -6,6 +6,7 @@ import { Truck, MapPin, Phone, Clock, PackageCheck, Loader2, Bell, BellRing, Nav
 import Loader from "@/components/Loader";
 import { swalBase } from "@/lib/swalConfig";
 import dynamic from "next/dynamic";
+import { Capacitor } from "@capacitor/core";
 
 const DeliveryMap = dynamic(() => import("@/components/DeliveryMap"), { ssr: false });
 
@@ -73,60 +74,100 @@ export default function DeliveryPage() {
         }).catch(() => {});
     }, []);
 
-    const iniciarTracking = useCallback(() => {
-        if (!navigator.geolocation) {
-            setTrackingError("Tu dispositivo no soporta geolocalización");
-            return;
-        }
+    const iniciarTracking = useCallback(async () => {
         setTrackingError("");
 
-        // Primer fix inmediato para que llegue rápido la primera posición
-        navigator.geolocation.getCurrentPosition(
-            pos => {
+        try {
+            if (Capacitor.isNativePlatform()) {
+                // ── App nativa Android/iOS ──
+                const { Geolocation } = await import("@capacitor/geolocation");
+
+                // Pedir permisos nativos
+                const perm = await Geolocation.requestPermissions();
+                if (perm.location !== "granted" && perm.coarseLocation !== "granted") {
+                    setTrackingError("Permiso denegado. Andá a Ajustes del teléfono → Aplicaciones → H. Morgan → Permisos → Ubicación → Permitir.");
+                    return;
+                }
+
+                // Primera posición inmediata
+                const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
                 const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
                 setMiUbicacion(coords);
                 lastSentRef.current = coords;
                 enviarUbicacion(coords);
-            },
-            err => {
-                const msg = err.code === 1
-                    ? "Permiso de ubicación denegado. Habilitalo en la configuración del navegador."
-                    : err.code === 2
-                    ? "No se pudo determinar la ubicación. Verificá tu GPS."
-                    : "Tiempo de espera agotado para obtener ubicación.";
-                setTrackingError(msg);
-            },
-            { enableHighAccuracy: true, timeout: 10000 }
-        );
 
-        // Watch continuo para actualizaciones
-        watchIdRef.current = navigator.geolocation.watchPosition(
-            pos => {
-                const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                setMiUbicacion(coords);
-                lastSentRef.current = coords;
-            },
-            err => {
-                if (err.code === 1) {
-                    setTrackingError("Permiso denegado. Habilitá la ubicación en tu navegador.");
-                    detenerTracking();
+                // Watch nativo continuo
+                const id = await Geolocation.watchPosition(
+                    { enableHighAccuracy: true },
+                    (position, err) => {
+                        if (err || !position) return;
+                        const c = { lat: position.coords.latitude, lng: position.coords.longitude };
+                        setMiUbicacion(c);
+                        lastSentRef.current = c;
+                    }
+                );
+                watchIdRef.current = id as any;
+
+            } else {
+                // ── Navegador web ──
+                if (!navigator.geolocation) {
+                    setTrackingError("Tu navegador no soporta geolocalización.");
+                    return;
                 }
-            },
-            { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
-        );
 
-        // Enviar al servidor cada 12 segundos
-        sendIntervalRef.current = setInterval(() => {
-            if (lastSentRef.current) enviarUbicacion(lastSentRef.current);
-        }, 12000);
+                navigator.geolocation.getCurrentPosition(
+                    pos => {
+                        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                        setMiUbicacion(coords);
+                        lastSentRef.current = coords;
+                        enviarUbicacion(coords);
+                    },
+                    err => {
+                        const msg = err.code === 1
+                            ? "Permiso denegado. Tocá el candado 🔒 en la barra del navegador → Ubicación → Permitir."
+                            : "No se pudo obtener la ubicación. Verificá el GPS.";
+                        setTrackingError(msg);
+                    },
+                    { enableHighAccuracy: true, timeout: 10000 }
+                );
 
-        setTracking(true);
+                watchIdRef.current = navigator.geolocation.watchPosition(
+                    pos => {
+                        const c = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                        setMiUbicacion(c);
+                        lastSentRef.current = c;
+                    },
+                    err => {
+                        if (err.code === 1) {
+                            setTrackingError("Permiso denegado. Habilitá la ubicación en tu navegador.");
+                            detenerTracking();
+                        }
+                    },
+                    { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+                );
+            }
+
+            // Enviar al servidor cada 12 segundos
+            sendIntervalRef.current = setInterval(() => {
+                if (lastSentRef.current) enviarUbicacion(lastSentRef.current);
+            }, 12000);
+
+            setTracking(true);
+
+        } catch (e: any) {
+            setTrackingError("No se pudo iniciar el GPS. Intentá de nuevo.");
+        }
     }, [enviarUbicacion]);
 
     // Detener tracking
     async function detenerTracking() {
         if (watchIdRef.current !== null) {
-            navigator.geolocation.clearWatch(watchIdRef.current);
+            if (Capacitor.isNativePlatform()) {
+                const { Geolocation } = await import("@capacitor/geolocation");
+                await Geolocation.clearWatch({ id: watchIdRef.current as any });
+            } else {
+                navigator.geolocation.clearWatch(watchIdRef.current as number);
+            }
             watchIdRef.current = null;
         }
         if (sendIntervalRef.current) {
