@@ -240,18 +240,7 @@ function PedidosLista({
     const getEstadoIndex = (estado: string) =>
         estados.findIndex((e) => e.key === estado);
 
-    const [mapaDelivery, setMapaDelivery] = useState<{ pedido: any; deliveries: any[] } | null>(null);
-
-    async function verUbicacionDelivery(p: any) {
-        const res = await fetch("/api/delivery/ubicacion", { credentials: "include" });
-        if (!res.ok) { swalBase.fire({ title: "Sin delivery activo", icon: "info" }); return; }
-        const data = await res.json();
-        if (!Array.isArray(data) || data.length === 0) {
-            swalBase.fire({ title: "El delivery aún no compartió su ubicación", icon: "info" });
-            return;
-        }
-        setMapaDelivery({ pedido: p, deliveries: data });
-    }
+    const [mapaDelivery, setMapaDelivery] = useState<any | null>(null);
 
     const barColors: Record<EstadoColor, string> = {
         yellow: "bg-yellow-500",
@@ -338,7 +327,7 @@ function PedidosLista({
                             {/* Ver delivery en mapa — solo envíos en estado listo */}
                             {p.tipoEntrega === "envio" && p.estado === "listo" && (
                                 <button
-                                    onClick={() => verUbicacionDelivery(p)}
+                                    onClick={() => setMapaDelivery(p)}
                                     className="w-full mb-3 flex items-center justify-center gap-2 bg-black text-white font-bold py-2.5 rounded-xl text-sm transition active:scale-95 hover:bg-gray-800">
                                     <Navigation size={15} />
                                     Ver por dónde viene el delivery
@@ -415,11 +404,10 @@ function PedidosLista({
                                 <X size={20} />
                             </button>
                         </div>
-                        <div style={{ height: "340px" }}>
+                        <div className="relative" style={{ height: "340px" }}>
                             <DeliveryMap
-                                deliveries={mapaDelivery.deliveries}
-                                destLat={mapaDelivery.pedido.lat}
-                                destLng={mapaDelivery.pedido.lng}
+                                destLat={mapaDelivery.lat}
+                                destLng={mapaDelivery.lng}
                             />
                         </div>
                     </div>
