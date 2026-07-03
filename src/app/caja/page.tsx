@@ -1980,13 +1980,11 @@ export default function CajaPage() {
                                                 className={`w-full text-white font-black py-3 rounded-xl text-base tracking-wide transition ${cobrarBg}`}>
                                                 Cobrar todo
                                             </button>
-                                            {!esApp && (
-                                                <button
-                                                    onClick={() => abrirCobroParcial(p)}
-                                                    className="w-full border-2 border-black text-black font-bold py-2 rounded-xl text-sm tracking-wide hover:bg-black hover:text-white transition">
-                                                    Cobro parcial
-                                                </button>
-                                            )}
+                                            <button
+                                                onClick={() => abrirCobroParcial(p)}
+                                                className="w-full border-2 border-black text-black font-bold py-2 rounded-xl text-sm tracking-wide hover:bg-black hover:text-white transition">
+                                                Cobro parcial
+                                            </button>
                                         </div>
                                     </div>
                                 );
