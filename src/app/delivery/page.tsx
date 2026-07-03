@@ -227,39 +227,65 @@ export default function DeliveryPage() {
                 </div>
 
                 {/* Control de localización */}
-                <div className={`rounded-2xl border-2 px-4 py-3 ${tracking ? "border-emerald-300 bg-emerald-50" : "border-gray-200 bg-gray-50"}`}>
-                    <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                            {tracking
-                                ? <Navigation size={18} className="text-emerald-600 shrink-0 animate-pulse" />
-                                : <NavigationOff size={18} className="text-gray-400 shrink-0" />}
-                            <div className="min-w-0">
-                                <p className={`text-sm font-black ${tracking ? "text-emerald-700" : "text-gray-600"}`}>
-                                    {tracking ? "Compartiendo ubicación" : "Ubicación desactivada"}
-                                </p>
-                                {tracking && miUbicacion && (
-                                    <p className="text-xs text-emerald-500 font-mono truncate">
-                                        {miUbicacion.lat.toFixed(5)}, {miUbicacion.lng.toFixed(5)}
-                                    </p>
-                                )}
-                                {trackingError && <p className="text-xs text-red-500">{trackingError}</p>}
+                {trackingError ? (
+                    <div className="rounded-2xl border-2 border-red-200 bg-red-50 px-4 py-4 space-y-3">
+                        <div className="flex items-start gap-3">
+                            <NavigationOff size={20} className="text-red-500 shrink-0 mt-0.5" />
+                            <div>
+                                <p className="text-sm font-black text-red-700">Ubicación bloqueada</p>
+                                <p className="text-xs text-red-500 mt-0.5">{trackingError}</p>
                             </div>
                         </div>
+
+                        <div className="bg-white rounded-xl border border-red-100 px-3 py-2.5 space-y-1.5 text-xs text-gray-600">
+                            <p className="font-bold text-gray-800">Cómo habilitarla:</p>
+                            <p>📱 <strong>Chrome Android:</strong> Tocá el candado 🔒 en la barra de dirección → Permisos → Ubicación → Permitir</p>
+                            <p>🍎 <strong>Safari iPhone:</strong> Ajustes del iPhone → Safari → Ubicación → Permitir</p>
+                            <p>🌐 <strong>Otros:</strong> Configuración del navegador → Privacidad → Ubicación del sitio</p>
+                        </div>
+
                         <button
-                            onClick={tracking ? detenerTracking : iniciarTracking}
-                            className={`shrink-0 px-4 py-2 rounded-xl text-sm font-black transition active:scale-95
-                                ${tracking
-                                    ? "bg-gray-900 text-white hover:bg-gray-700"
-                                    : "bg-emerald-600 text-white hover:bg-emerald-700"}`}>
-                            {tracking ? "Detener" : "Activar"}
+                            onClick={() => { setTrackingError(""); iniciarTracking(); }}
+                            className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl text-sm transition active:scale-95">
+                            Reintentar
                         </button>
                     </div>
-                    {!tracking && (
-                        <p className="text-xs text-gray-400 mt-2">
-                            Activá para que el bar y los clientes vean tu posición en tiempo real 🏍️
-                        </p>
-                    )}
-                </div>
+                ) : (
+                    <div className={`rounded-2xl border-2 px-4 py-3 ${tracking ? "border-emerald-300 bg-emerald-50" : "border-gray-200 bg-gray-50"}`}>
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                                {tracking
+                                    ? <Navigation size={18} className="text-emerald-600 shrink-0 animate-pulse" />
+                                    : <NavigationOff size={18} className="text-gray-400 shrink-0" />}
+                                <div className="min-w-0">
+                                    <p className={`text-sm font-black ${tracking ? "text-emerald-700" : "text-gray-600"}`}>
+                                        {tracking
+                                            ? miUbicacion ? "Ubicación activa ✓" : "Obteniendo ubicación…"
+                                            : "Ubicación desactivada"}
+                                    </p>
+                                    {tracking && miUbicacion && (
+                                        <p className="text-xs text-emerald-500 font-mono truncate">
+                                            {miUbicacion.lat.toFixed(5)}, {miUbicacion.lng.toFixed(5)}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                            <button
+                                onClick={tracking ? detenerTracking : iniciarTracking}
+                                className={`shrink-0 px-4 py-2 rounded-xl text-sm font-black transition active:scale-95
+                                    ${tracking
+                                        ? "bg-gray-900 text-white hover:bg-gray-700"
+                                        : "bg-emerald-600 text-white hover:bg-emerald-700"}`}>
+                                {tracking ? "Detener" : "Activar"}
+                            </button>
+                        </div>
+                        {!tracking && (
+                            <p className="text-xs text-gray-400 mt-2">
+                                El bar y los clientes ven tu posición en tiempo real 🏍️
+                            </p>
+                        )}
+                    </div>
+                )}
 
                 {enCamino.length === 0 ? (
                     <div className="text-center py-16">
