@@ -2025,7 +2025,7 @@ export default function CajaPage() {
                                                 <div className="shrink-0 px-4 py-3 bg-black">
                                                     <div className="flex items-start justify-between gap-3">
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="font-black text-white text-xl leading-tight tracking-tight truncate">{titulo}</p>
+                                                            <p className="font-black text-white text-xl leading-tight tracking-tight break-words">{titulo}</p>
                                                             <p className="text-xs text-white/65 font-medium mt-0.5">{subtitulo}</p>
                                                         </div>
                                                         <div className="shrink-0 text-right flex flex-col items-end gap-1">
