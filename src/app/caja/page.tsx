@@ -3022,53 +3022,58 @@ export default function CajaPage() {
             {/* Modal gastos */}
             {/* ── Modal nuevo delivery ── */}
             {deliveryModal && (
-                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl">
-                        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
-                            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center pt-16 px-4">
+                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden">
+                        {/* Header */}
+                        <div className="bg-blue-600 px-5 py-4 flex items-center gap-3">
+                            <div className="flex-1">
+                                <p className="font-black text-white text-lg leading-tight">Nuevo delivery</p>
+                                <p className="text-blue-200 text-xs mt-0.5">Completá los datos del cliente</p>
                             </div>
-                            <h2 className="font-black text-gray-900 flex-1">Nuevo delivery</h2>
-                            <button onClick={() => setDeliveryModal(false)} className="p-1 text-gray-400"><X size={18} /></button>
+                            <button onClick={() => setDeliveryModal(false)} className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition">
+                                <X size={16} />
+                            </button>
                         </div>
-                        <div className="px-5 py-4 space-y-3">
+                        {/* Form */}
+                        <div className="px-5 py-5 space-y-4">
                             <div>
-                                <label className="text-xs font-black text-gray-400 uppercase tracking-wide mb-1 block">Nombre del cliente *</label>
+                                <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Nombre</label>
                                 <input
                                     type="text"
-                                    placeholder="Ej: Juan Pérez"
+                                    placeholder="Juan Pérez"
                                     value={deliveryForm.nombre}
                                     onChange={e => setDeliveryForm(f => ({ ...f, nombre: e.target.value }))}
                                     style={{ fontSize: "16px" }}
-                                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                    className="w-full border-2 border-gray-100 focus:border-blue-400 rounded-xl px-4 py-3 focus:outline-none transition font-semibold text-gray-900 placeholder:font-normal placeholder:text-gray-300"
                                 />
                             </div>
                             <div>
-                                <label className="text-xs font-black text-gray-400 uppercase tracking-wide mb-1 block">Teléfono *</label>
+                                <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Teléfono</label>
                                 <input
                                     type="tel"
-                                    placeholder="Ej: 3492123456"
+                                    placeholder="3492 123456"
                                     value={deliveryForm.telefono}
                                     onChange={e => setDeliveryForm(f => ({ ...f, telefono: e.target.value }))}
                                     style={{ fontSize: "16px" }}
-                                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                    className="w-full border-2 border-gray-100 focus:border-blue-400 rounded-xl px-4 py-3 focus:outline-none transition font-semibold text-gray-900 placeholder:font-normal placeholder:text-gray-300"
                                 />
                             </div>
                             <div>
-                                <label className="text-xs font-black text-gray-400 uppercase tracking-wide mb-1 block">Dirección *</label>
+                                <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Dirección</label>
                                 <input
                                     type="text"
-                                    placeholder="Ej: Av. San Martín 456"
+                                    placeholder="Av. San Martín 456"
                                     value={deliveryForm.direccion}
                                     onChange={e => setDeliveryForm(f => ({ ...f, direccion: e.target.value }))}
                                     style={{ fontSize: "16px" }}
-                                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                    className="w-full border-2 border-gray-100 focus:border-blue-400 rounded-xl px-4 py-3 focus:outline-none transition font-semibold text-gray-900 placeholder:font-normal placeholder:text-gray-300"
                                 />
                             </div>
                         </div>
+                        {/* Actions */}
                         <div className="px-5 pb-5 flex gap-2">
                             <button onClick={() => setDeliveryModal(false)}
-                                className="flex-1 py-2.5 text-sm text-gray-500 font-semibold border border-gray-200 rounded-xl hover:bg-gray-50 transition">
+                                className="flex-1 py-3 text-sm text-gray-500 font-bold border-2 border-gray-100 rounded-xl hover:bg-gray-50 transition">
                                 Cancelar
                             </button>
                             <button
@@ -3079,7 +3084,7 @@ export default function CajaPage() {
                                     router.push("/empleado/anotador/menu?delivery=1");
                                 }}
                                 disabled={!deliveryForm.nombre.trim() || !deliveryForm.telefono.trim() || !deliveryForm.direccion.trim()}
-                                className="flex-1 bg-blue-600 disabled:opacity-40 text-white font-black py-2.5 rounded-xl transition hover:bg-blue-700">
+                                className="flex-1 bg-blue-600 disabled:opacity-40 text-white font-black py-3 rounded-xl transition hover:bg-blue-700 flex items-center justify-center gap-1.5">
                                 Elegir productos →
                             </button>
                         </div>
