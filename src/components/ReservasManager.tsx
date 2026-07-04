@@ -1,15 +1,17 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { swalBase } from "@/lib/swalConfig";
 import { hoyArgentina, formatArgDate } from "@/lib/argentina-time";
 import {
     MapPin, MessageCircle, Check, X,
-    Loader2, Phone, ChevronDown,
+    Loader2, Phone, ChevronDown, Plus, Search, Users,
 } from "lucide-react";
 
 type Reserva = {
     _id: string;
-    userId: { _id: string; nombre: string; apellido: string; telefono?: string };
+    userId?: { _id: string; nombre: string; apellido: string; telefono?: string } | null;
+    nombreContacto?: string;
+    telefonoContacto?: string;
     fecha: string;
     hora: string;
     comensales: number;
@@ -21,6 +23,7 @@ type Reserva = {
 };
 type Mesa = { _id: string; nombre: string; forma: string; activa: boolean; tipo?: string; zona?: string; capacidad?: number; x: number; y: number; ancho?: number; alto?: number; rotacion?: number };
 type SalonEl = { _id: string; tipo: string; label: string; x: number; y: number; ancho: number; alto: number; color: string };
+type ClienteResult = { _id: string; nombre: string; apellido: string; telefono?: string };
 
 const ZONA_LABEL: Record<string, string> = { adentro: "Adentro", afuera: "Afuera", indiferente: "Sin preferencia" };
 const ZONA_COLOR: Record<string, string> = { adentro: "bg-blue-100 text-blue-700", afuera: "bg-emerald-100 text-emerald-700", indiferente: "bg-gray-100 text-gray-600" };
@@ -29,18 +32,20 @@ const ESTADO_BADGE: Record<string, string> = {
     confirmada: "bg-white text-black",
     cancelada:  "bg-white/20 text-white/60",
 };
+const HORAS = ["19:00","19:30","20:00","20:30","21:00","21:30","22:00"];
 
 function formatFecha(fechaStr: string) {
     return formatArgDate(fechaStr, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 }
 
 function buildWhatsApp(r: Reserva) {
-    const tel = r.userId.telefono?.replace(/\D/g, "");
+    const tel = (r.userId?.telefono || r.telefonoContacto)?.replace(/\D/g, "");
     if (!tel) return null;
+    const nombre = r.userId ? r.userId.nombre : (r.nombreContacto || "");
     const fecha = formatFecha(r.fecha);
     const mesaLine = r.mesaId?.nombre ? `Mesa: ${r.mesaId.nombre}` : null;
     const msg = [
-        `Hola ${r.userId.nombre}!`,
+        `Hola ${nombre}!`,
         ``,
         `Tu reserva en H. Morgan Bar fue confirmada:`,
         ``,
@@ -71,7 +76,6 @@ function FloorPlanPicker({
                 backgroundImage: "linear-gradient(rgba(0,0,0,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.04) 1px,transparent 1px)",
                 backgroundSize: "30px 30px",
             }}>
-                {/* Elements */}
                 {elements.map(el => {
                     const isLine = el.tipo === "linea_h" || el.tipo === "linea_v";
                     const isBarra = el.tipo === "barra";
@@ -85,7 +89,6 @@ function FloorPlanPicker({
                     );
                 })}
 
-                {/* Mesas */}
                 {mesas.map(mesa => {
                     const isOcupada   = mesa.activa && ocupadas.has(mesa.nombre);
                     const isReservada = mesa.activa && reservadasHoy.has(mesa._id);
@@ -135,12 +138,29 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
     const [pickerReservaId, setPickerReservaId]   = useState<string | null>(null);
     const [pickerSelected, setPickerSelected]     = useState<Mesa | null>(null);
 
+    // ── Crear reserva ──────────────────────────────────────────────
+    const [crearModal, setCrearModal]     = useState(false);
+    const [crearTipo, setCrearTipo]       = useState<"usuario" | "libre">("libre");
+    const [crearBusqueda, setCrearBusqueda] = useState("");
+    const [crearResultados, setCrearResultados] = useState<ClienteResult[]>([]);
+    const [crearUsuario, setCrearUsuario] = useState<ClienteResult | null>(null);
+    const [buscandoUsuario, setBuscandoUsuario] = useState(false);
+    const [crearNombre, setCrearNombre]   = useState("");
+    const [crearTelefono, setCrearTelefono] = useState("");
+    const [crearFecha, setCrearFecha]     = useState("");
+    const [crearHora, setCrearHora]       = useState("");
+    const [crearComensales, setCrearComensales] = useState(2);
+    const [crearZona, setCrearZona]       = useState<"adentro"|"afuera"|"indiferente">("indiferente");
+    const [crearNotas, setCrearNotas]     = useState("");
+    const [crearSaving, setCrearSaving]   = useState(false);
+    const [crearError, setCrearError]     = useState("");
+    const busquedaRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
     const fetchReservas = useCallback(async () => {
         const r = await fetch("/api/reservas", { credentials: "include" });
         const d = await r.json();
         if (Array.isArray(d)) {
             setReservas(d);
-            // Actualizar reservadas hoy
             const hoy = hoyArgentina();
             setReservadasHoy(new Set(
                 d.filter((r: any) => r.estado !== "cancelada" && r.mesaId && r.fecha?.slice(0, 10) === hoy)
@@ -159,7 +179,6 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
             setMesas(Array.isArray(mData) ? mData.filter((m: Mesa) => m.activa) : []);
             setElements(Array.isArray(elData) ? elData : []);
 
-            // pedidos activos para saber mesas ocupadas en el plano
             const pData = await fetch("/api/pedidos?activos=true&fuente=empleado", { credentials: "include" }).then(r => r.json()).catch(() => []);
             if (Array.isArray(pData)) setOcupadas(new Set(pData.filter((p: any) => p.mesa).map((p: any) => String(p.mesa))));
 
@@ -175,6 +194,68 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
         onPendingCountChange?.(reservas.filter(r => r.estado === "pendiente").length);
     }, [reservas, onPendingCountChange]);
 
+    // Búsqueda de usuario con debounce
+    useEffect(() => {
+        if (crearTipo !== "usuario") return;
+        if (busquedaRef.current) clearTimeout(busquedaRef.current);
+        if (crearBusqueda.trim().length < 2) { setCrearResultados([]); return; }
+        busquedaRef.current = setTimeout(async () => {
+            setBuscandoUsuario(true);
+            try {
+                const r = await fetch(`/api/usuarios/buscar?q=${encodeURIComponent(crearBusqueda)}`, { credentials: "include" });
+                const d = await r.json();
+                setCrearResultados(Array.isArray(d) ? d : []);
+            } finally { setBuscandoUsuario(false); }
+        }, 350);
+    }, [crearBusqueda, crearTipo]);
+
+    function resetCrearForm() {
+        setCrearTipo("libre");
+        setCrearBusqueda(""); setCrearResultados([]); setCrearUsuario(null);
+        setCrearNombre(""); setCrearTelefono("");
+        setCrearFecha(""); setCrearHora("");
+        setCrearComensales(2); setCrearZona("indiferente"); setCrearNotas("");
+        setCrearError("");
+    }
+
+    async function crearReserva() {
+        setCrearError("");
+        if (!crearFecha || !crearHora) { setCrearError("Fecha y hora son obligatorias"); return; }
+        if (crearTipo === "usuario" && !crearUsuario) { setCrearError("Seleccioná un usuario"); return; }
+        if (crearTipo === "libre" && !crearNombre.trim()) { setCrearError("El nombre es obligatorio"); return; }
+
+        setCrearSaving(true);
+        try {
+            const body: Record<string, unknown> = {
+                fecha: crearFecha,
+                hora: crearHora,
+                comensales: crearComensales,
+                zona: crearZona,
+                notas: crearNotas.trim() || undefined,
+            };
+            if (crearTipo === "usuario" && crearUsuario) {
+                body.userId = crearUsuario._id;
+            } else {
+                body.nombreContacto = crearNombre.trim();
+                body.telefonoContacto = crearTelefono.trim() || undefined;
+            }
+            const res = await fetch("/api/reservas", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify(body),
+            });
+            if (res.ok) {
+                await fetchReservas();
+                setCrearModal(false);
+                resetCrearForm();
+            } else {
+                const err = await res.json();
+                setCrearError(err.error || "Error al crear la reserva");
+            }
+        } finally { setCrearSaving(false); }
+    }
+
     async function updateReserva(id: string, updates: Record<string, unknown>) {
         setSaving(id);
         try {
@@ -184,7 +265,7 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
     }
 
     async function deleteReserva(id: string) {
-        const r = await swalBase.fire({ title: "¿Cancelar reserva?", text: "Se notificará al cliente.", icon: "warning", showCancelButton: true, confirmButtonText: "Sí, cancelar", cancelButtonText: "No" });
+        const r = await swalBase.fire({ title: "¿Cancelar reserva?", text: "Se notificará al cliente si tiene cuenta.", icon: "warning", showCancelButton: true, confirmButtonText: "Sí, cancelar", cancelButtonText: "No" });
         if (!r.isConfirmed) return;
         await fetch(`/api/reservas?id=${id}`, { method: "DELETE", credentials: "include" });
         setReservas(p => p.filter(r => r._id !== id));
@@ -210,6 +291,13 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
 
     return (
         <div>
+            {/* Botón nueva reserva */}
+            <button
+                onClick={() => { resetCrearForm(); setCrearModal(true); }}
+                className="w-full mb-4 flex items-center justify-center gap-2 bg-black text-white font-bold py-3 rounded-xl text-sm tracking-wide hover:bg-gray-800 transition">
+                <Plus size={16} /> Nueva reserva
+            </button>
+
             {/* Tabs */}
             <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-4">
                 {(["pendiente", "confirmada"] as const).map(t => (
@@ -235,17 +323,24 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
                         const waUrl = buildWhatsApp(r);
                         const isLoading = saving === r._id;
                         const mesaAsignada = mesas.find(m => m._id === r.mesaId?._id);
+                        const nombreMostrado = r.userId ? `${r.userId.nombre} ${r.userId.apellido}` : (r.nombreContacto || "Sin nombre");
+                        const telefonoMostrado = r.userId?.telefono || r.telefonoContacto;
                         return (
                             <div key={r._id} className="bg-white rounded-2xl border-2 border-black shadow-sm overflow-hidden">
                                 {/* Header negro */}
                                 <div className="bg-black px-5 py-3 flex items-center justify-between gap-3">
                                     <div className="flex-1 min-w-0">
-                                        <p className="font-black text-white text-lg leading-tight truncate">
-                                            {r.userId.nombre} {r.userId.apellido}
-                                        </p>
-                                        {r.userId.telefono && (
+                                        <div className="flex items-center gap-2">
+                                            <p className="font-black text-white text-lg leading-tight truncate">
+                                                {nombreMostrado}
+                                            </p>
+                                            {!r.userId && (
+                                                <span className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-white/20 text-white/70 uppercase tracking-wide">Sin app</span>
+                                            )}
+                                        </div>
+                                        {telefonoMostrado && (
                                             <p className="text-xs text-white/50 mt-0.5 flex items-center gap-1">
-                                                <Phone size={10} />{r.userId.telefono}
+                                                <Phone size={10} />{telefonoMostrado}
                                             </p>
                                         )}
                                     </div>
@@ -294,7 +389,7 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
                                     </div>
                                 )}
 
-                                {/* Notas (sin emoji, estilo limpio) */}
+                                {/* Notas */}
                                 {r.notas && (
                                     <div className="px-5 pb-3">
                                         <div className="border-l-2 border-amber-400 pl-3 py-1">
@@ -314,7 +409,6 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
                                             <ChevronDown size={11} className="text-gray-400" />
                                         </button>
 
-                                        {/* Confirm */}
                                         {r.estado === "pendiente" && (
                                             <button onClick={() => updateReserva(r._id, { estado: "confirmada" })} disabled={isLoading}
                                                 className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold transition">
@@ -322,7 +416,6 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
                                             </button>
                                         )}
 
-                                        {/* Eliminar */}
                                         <button onClick={() => deleteReserva(r._id)} disabled={isLoading}
                                             className="flex items-center gap-1.5 px-3 py-2 border border-red-200 text-red-600 hover:bg-red-50 rounded-xl text-xs font-semibold transition ml-auto">
                                             <X size={12} /> Eliminar
@@ -332,6 +425,182 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
                             </div>
                         );
                     })}
+                </div>
+            )}
+
+            {/* ── Modal crear reserva ─────────────────────────────── */}
+            {crearModal && (
+                <div className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4">
+                    <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md shadow-2xl overflow-hidden flex flex-col" style={{ maxHeight: "92vh" }}>
+                        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
+                            <h2 className="font-black text-gray-900 flex-1 text-lg">Nueva reserva</h2>
+                            <button onClick={() => { setCrearModal(false); resetCrearForm(); }} className="p-1 text-gray-400 hover:text-gray-700"><X size={20} /></button>
+                        </div>
+
+                        <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
+                            {/* Toggle tipo */}
+                            <div>
+                                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Tipo de cliente</p>
+                                <div className="flex gap-2">
+                                    <button onClick={() => { setCrearTipo("libre"); setCrearUsuario(null); setCrearBusqueda(""); setCrearResultados([]); }}
+                                        className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold border-2 transition ${crearTipo === "libre" ? "border-black bg-black text-white" : "border-gray-200 text-gray-600"}`}>
+                                        <Phone size={14} /> Sin cuenta
+                                    </button>
+                                    <button onClick={() => { setCrearTipo("usuario"); setCrearNombre(""); setCrearTelefono(""); }}
+                                        className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold border-2 transition ${crearTipo === "usuario" ? "border-black bg-black text-white" : "border-gray-200 text-gray-600"}`}>
+                                        <Users size={14} /> Usuario app
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Sin cuenta: nombre + teléfono */}
+                            {crearTipo === "libre" && (
+                                <div className="space-y-3">
+                                    <div>
+                                        <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Nombre *</label>
+                                        <input
+                                            value={crearNombre}
+                                            onChange={e => setCrearNombre(e.target.value)}
+                                            placeholder="Nombre del cliente"
+                                            className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-black focus:outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Teléfono</label>
+                                        <input
+                                            value={crearTelefono}
+                                            onChange={e => setCrearTelefono(e.target.value)}
+                                            placeholder="Opcional"
+                                            type="tel"
+                                            className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-black focus:outline-none"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Usuario app: buscador */}
+                            {crearTipo === "usuario" && (
+                                <div>
+                                    <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Buscar usuario *</label>
+                                    {crearUsuario ? (
+                                        <div className="flex items-center gap-3 bg-gray-50 border-2 border-black rounded-xl px-3 py-2.5">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-bold text-sm text-gray-900">{crearUsuario.nombre} {crearUsuario.apellido}</p>
+                                                {crearUsuario.telefono && <p className="text-xs text-gray-500">{crearUsuario.telefono}</p>}
+                                            </div>
+                                            <button onClick={() => { setCrearUsuario(null); setCrearBusqueda(""); }}
+                                                className="text-gray-400 hover:text-gray-700"><X size={16} /></button>
+                                        </div>
+                                    ) : (
+                                        <div className="relative">
+                                            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                            <input
+                                                value={crearBusqueda}
+                                                onChange={e => setCrearBusqueda(e.target.value)}
+                                                placeholder="Nombre, apellido o teléfono..."
+                                                className="w-full border-2 border-gray-200 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:border-black focus:outline-none"
+                                            />
+                                            {buscandoUsuario && <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 animate-spin" />}
+                                        </div>
+                                    )}
+                                    {!crearUsuario && crearResultados.length > 0 && (
+                                        <div className="mt-1 border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+                                            {crearResultados.map(u => (
+                                                <button key={u._id}
+                                                    onClick={() => { setCrearUsuario(u); setCrearBusqueda(""); setCrearResultados([]); }}
+                                                    className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 text-left border-b border-gray-100 last:border-0 transition">
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-semibold text-sm text-gray-900">{u.nombre} {u.apellido}</p>
+                                                        {u.telefono && <p className="text-xs text-gray-500">{u.telefono}</p>}
+                                                    </div>
+                                                    <span className="text-xs text-gray-400 shrink-0">Seleccionar</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {!crearUsuario && crearBusqueda.length >= 2 && !buscandoUsuario && crearResultados.length === 0 && (
+                                        <p className="mt-2 text-xs text-gray-400 text-center">Sin resultados</p>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Fecha */}
+                            <div>
+                                <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Fecha *</label>
+                                <input
+                                    type="date"
+                                    min={hoyArgentina()}
+                                    value={crearFecha}
+                                    onChange={e => setCrearFecha(e.target.value)}
+                                    className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-black focus:outline-none"
+                                />
+                            </div>
+
+                            {/* Hora */}
+                            <div>
+                                <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">Horario *</label>
+                                <div className="grid grid-cols-4 gap-1.5">
+                                    {HORAS.map(h => (
+                                        <button key={h}
+                                            onClick={() => setCrearHora(h)}
+                                            className={`py-2 rounded-xl text-sm font-bold border-2 transition ${crearHora === h ? "border-black bg-black text-white" : "border-gray-200 text-gray-700 hover:border-gray-400"}`}>
+                                            {h}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Comensales */}
+                            <div>
+                                <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">Comensales</label>
+                                <div className="flex items-center gap-4">
+                                    <button onClick={() => setCrearComensales(c => Math.max(1, c - 1))}
+                                        className="w-10 h-10 rounded-full border-2 border-gray-200 text-xl font-bold text-gray-700 flex items-center justify-center hover:border-gray-400 transition">−</button>
+                                    <span className="text-2xl font-black text-gray-900 min-w-[2rem] text-center">{crearComensales}</span>
+                                    <button onClick={() => setCrearComensales(c => Math.min(20, c + 1))}
+                                        className="w-10 h-10 rounded-full border-2 border-gray-200 text-xl font-bold text-gray-700 flex items-center justify-center hover:border-gray-400 transition">+</button>
+                                </div>
+                            </div>
+
+                            {/* Zona */}
+                            <div>
+                                <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">Preferencia de zona</label>
+                                <div className="flex gap-2">
+                                    {(["adentro","afuera","indiferente"] as const).map(z => (
+                                        <button key={z}
+                                            onClick={() => setCrearZona(z)}
+                                            className={`flex-1 py-2 rounded-xl text-xs font-bold border-2 transition ${crearZona === z ? "border-black bg-black text-white" : "border-gray-200 text-gray-600 hover:border-gray-400"}`}>
+                                            {ZONA_LABEL[z]}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Notas */}
+                            <div>
+                                <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Observaciones</label>
+                                <textarea
+                                    value={crearNotas}
+                                    onChange={e => setCrearNotas(e.target.value)}
+                                    placeholder="Opcional"
+                                    rows={2}
+                                    className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-black focus:outline-none resize-none"
+                                />
+                            </div>
+
+                            {crearError && (
+                                <p className="text-sm text-red-600 font-semibold text-center bg-red-50 rounded-xl px-3 py-2">{crearError}</p>
+                            )}
+                        </div>
+
+                        <div className="px-5 py-4 border-t border-gray-100 shrink-0">
+                            <button onClick={crearReserva} disabled={crearSaving}
+                                className="w-full flex items-center justify-center gap-2 bg-black text-white font-black py-3.5 rounded-xl text-sm tracking-wide hover:bg-gray-800 disabled:opacity-50 transition">
+                                {crearSaving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                                Crear reserva
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -354,7 +623,6 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
                                 onSelect={m => setPickerSelected(prev => prev?._id === m._id ? null : m)}
                             />
 
-                            {/* Legend */}
                             <div className="flex items-center gap-3 mt-3 text-xs text-gray-500 flex-wrap">
                                 <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-emerald-500 inline-block" />Libre</span>
                                 <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-500 inline-block" />Ocupada/Reservada hoy</span>

@@ -1,7 +1,9 @@
 import { Schema, model, models } from "mongoose";
 
 const ReservaSchema = new Schema({
-    userId:     { type: Schema.Types.ObjectId, ref: "User", required: true },
+    userId:           { type: Schema.Types.ObjectId, ref: "User" },
+    nombreContacto:   { type: String },
+    telefonoContacto: { type: String },
     fecha:      { type: Date, required: true },
     hora:       { type: String, required: true },
     comensales: { type: Number, required: true, min: 1 },

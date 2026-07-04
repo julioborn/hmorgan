@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(reservas);
 }
 
-// POST — cliente crea reserva
+// POST — cliente o staff crea reserva
 export async function POST(req: NextRequest) {
     const payload = getPayload(req);
     if (!payload) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
@@ -66,7 +66,8 @@ export async function POST(req: NextRequest) {
         }
     }
 
-    const { fecha, hora, comensales, zona, notas } = await req.json();
+    const body = await req.json();
+    const { fecha, hora, comensales, zona, notas } = body;
     if (!fecha || !hora || !comensales) return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
 
     // Validar que la fecha no sea pasada (se permite hoy), usando el huso horario de Argentina
@@ -89,8 +90,27 @@ export async function POST(req: NextRequest) {
         }
     }
 
+    // Determinar datos del contacto
+    let reservaUserId: string | undefined;
+    let nombreContacto: string | undefined;
+    let telefonoContacto: string | undefined;
+
+    if (isStaff(payload.role)) {
+        if (body.userId) {
+            reservaUserId = body.userId;
+        } else {
+            nombreContacto = body.nombreContacto?.trim();
+            telefonoContacto = body.telefonoContacto?.trim() || undefined;
+            if (!nombreContacto) return NextResponse.json({ error: "Nombre de contacto requerido" }, { status: 400 });
+        }
+    } else {
+        reservaUserId = payload.sub;
+    }
+
     const reserva = await Reserva.create({
-        userId: payload.sub,
+        userId: reservaUserId || undefined,
+        nombreContacto,
+        telefonoContacto,
         fecha: new Date(fecha),
         hora,
         comensales: Number(comensales),
@@ -98,16 +118,18 @@ export async function POST(req: NextRequest) {
         notas: notas || undefined,
     });
 
-    // Notificar al admin/superadmin
-    const admins = await User.find({ role: { $in: ["admin", "superadmin"] } });
-    for (const admin of admins) {
-        if (admin.pushSubscriptions?.length) {
-            await sendPushToSubscriptions(admin.pushSubscriptions, {
-                title: "Nueva reserva",
-                body: `Reserva para ${comensales} personas el ${formatFecha(new Date(fecha))} a las ${hora}hs`,
-                url: "/admin/reservas",
-                icon: "/icon-192.png",
-            });
+    // Notificar al admin/superadmin solo cuando crea un cliente
+    if (payload.role === "cliente") {
+        const admins = await User.find({ role: { $in: ["admin", "superadmin"] } });
+        for (const admin of admins) {
+            if (admin.pushSubscriptions?.length) {
+                await sendPushToSubscriptions(admin.pushSubscriptions, {
+                    title: "Nueva reserva",
+                    body: `Reserva para ${comensales} personas el ${formatFecha(new Date(fecha))} a las ${hora}hs`,
+                    url: "/admin/reservas",
+                    icon: "/icon-192.png",
+                });
+            }
         }
     }
 
@@ -128,12 +150,8 @@ export async function PATCH(req: NextRequest) {
     Object.assign(reserva, updates);
     await reserva.save();
 
-    // Notificar al cliente cuando cambia el estado
-    if (updates.estado && updates.estado !== prevEstado) {
-        const mesa = updates.mesaId
-            ? await Mesa.findById(updates.mesaId).lean() as any
-            : reserva.mesaId as any;
-
+    // Notificar al cliente cuando cambia el estado (solo si tiene cuenta en la app)
+    if (updates.estado && updates.estado !== prevEstado && reserva.userId) {
         if (updates.estado === "confirmada") {
             await notificarUsuario(
                 reserva.userId.toString(),
@@ -165,7 +183,7 @@ export async function DELETE(req: NextRequest) {
     if (!id) return NextResponse.json({ error: "Falta id" }, { status: 400 });
 
     const reserva = await Reserva.findByIdAndDelete(id);
-    if (reserva) {
+    if (reserva && reserva.userId) {
         await notificarUsuario(
             reserva.userId.toString(),
             "Reserva cancelada",
