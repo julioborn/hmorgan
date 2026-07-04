@@ -180,6 +180,7 @@ export default function CajaPage() {
     const [cierreDiferencia, setCierreDiferencia] = useState(0);
     const [deliveryModal, setDeliveryModal] = useState(false);
     const [deliveryForm,  setDeliveryForm]  = useState({ nombre: "", telefono: "", direccion: "" });
+    const [costoDelivery, setCostoDelivery] = useState<number>(0);
     const [gastoModal,  setGastoModal]  = useState(false);
     const [gastoForm,   setGastoForm]   = useState<{ concepto: string; monto: string; metodo: typeof METODOS[number] }>({ concepto: "", monto: "", metodo: "efectivo" });
     const [gastoSaving, setGastoSaving] = useState(false);
@@ -438,6 +439,10 @@ export default function CajaPage() {
         const iv = setInterval(() => { loadData(); loadCanjes(); }, 5000);
         return () => clearInterval(iv);
     }, [loadData, loadEvento, loadCanjes, loadRewards]);
+
+    useEffect(() => {
+        fetch("/api/config/envio").then(r => r.json()).then(d => setCostoDelivery(d.costoEnvio ?? 0)).catch(() => {});
+    }, []);
 
     useEffect(() => {
         fetch("/api/config/pedidos").then(r => r.json()).then(d => setPedidosActivos(d.activo ?? true));
@@ -819,6 +824,29 @@ export default function CajaPage() {
         } catch {
             setCloseError("Error de conexión");
         } finally { setCloseSaving(false); }
+    }
+
+    async function editarCostoDelivery() {
+        const { value, isConfirmed } = await swalBase.fire({
+            title: "Costo de delivery",
+            input: "number",
+            inputValue: costoDelivery,
+            inputAttributes: { min: "0", step: "100" },
+            inputLabel: "Nuevo monto en pesos",
+            showCancelButton: true,
+            confirmButtonText: "Guardar",
+            cancelButtonText: "Cancelar",
+            inputValidator: v => (!v || Number(v) < 0 ? "Ingresá un monto válido" : undefined),
+        });
+        if (!isConfirmed || value === undefined) return;
+        const nuevo = Number(value);
+        await fetch("/api/config/envio", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ costoEnvio: nuevo }),
+        });
+        setCostoDelivery(nuevo);
     }
 
     async function registrarGasto() {
@@ -1775,7 +1803,7 @@ export default function CajaPage() {
                     {tab === "pedidos" && (
                         <div className="max-w-screen-2xl mx-auto px-4 pt-4">
                             {/* Nueva comanda (cajero actuando como mozo) */}
-                            <div className="flex gap-2 mb-4">
+                            <div className="flex gap-2 mb-2">
                                 <button onClick={() => router.push("/empleado/anotador/menu")}
                                     className="flex-1 flex items-center justify-center gap-2 bg-black text-white font-bold py-3 rounded-2xl transition shadow-sm active:scale-[0.98]">
                                     <Plus size={18} /> Nueva comanda
@@ -1785,6 +1813,14 @@ export default function CajaPage() {
                                     <Plus size={18} /> Delivery
                                 </button>
                             </div>
+                            <button onClick={editarCostoDelivery}
+                                className="w-full mb-4 flex items-center justify-between px-4 py-2 rounded-xl bg-blue-50 border border-blue-100 hover:bg-blue-100 transition">
+                                <span className="text-xs text-blue-600 font-semibold">Recargo delivery</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm font-black text-blue-700">{formatMoney(costoDelivery)}</span>
+                                    <Pencil size={11} className="text-blue-400" />
+                                </div>
+                            </button>
 
                             {/* Sub-tabs estado */}
                             <div className="flex gap-2 mb-5">
