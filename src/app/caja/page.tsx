@@ -12,7 +12,7 @@ import {
     Wallet, X, Printer, CreditCard, Banknote, Send,
     Loader2, CheckCircle, AlertCircle, Clock, Flame,
     Package, Truck, UtensilsCrossed, CalendarDays,
-    MessageCircle, Plus, Pencil, Trash2, MapPin, Users, User, Star, Gift, XCircle, ArrowDownLeft, ArrowLeftRight, Ticket, ChevronDown, Camera,
+    MessageCircle, Plus, Pencil, Trash2, MapPin, Users, User, Star, Gift, XCircle, ArrowDownLeft, ArrowLeftRight, Ticket, ChevronDown, Camera, Search,
 } from "lucide-react";
 import { useCategoryConfigs } from "@/hooks/useCategoryConfigs";
 import ReservasManager from "@/components/ReservasManager";
@@ -159,6 +159,12 @@ export default function CajaPage() {
     const [cobrarModal, setCobrarModal]   = useState<{ open: boolean; pedido: Pedido | null }>({ open: false, pedido: null });
     const [cobrarForm, setCobrarForm]     = useState<{ descuento: string; pagos: { metodo: typeof METODOS[number]; monto: string }[] }>({ descuento: "", pagos: [{ metodo: "efectivo", monto: "" }] });
     const [cobrarSaving, setCobrarSaving] = useState(false);
+    const [comensalesModalCaja, setComensalesModalCaja] = useState<Pedido | null>(null);
+    const [comensalesCountCaja, setComensalesCountCaja] = useState(0);
+    const [comensalesIdsCaja, setComensalesIdsCaja] = useState<{ _id: string; nombre: string; apellido: string }[]>([]);
+    const [busquedaClienteCaja, setBusquedaClienteCaja] = useState("");
+    const [clientesResultadosCaja, setClientesResultadosCaja] = useState<{ _id: string; nombre: string; apellido: string; telefono?: string }[]>([]);
+    const [buscandoClienteCaja, setBuscandoClienteCaja] = useState(false);
 
     type CPItem = { itemId: string; nombre: string; precio: number; max: number; selected: number };
     const [cpModal,  setCpModal]  = useState<Pedido | null>(null);
@@ -895,6 +901,67 @@ export default function CajaPage() {
             }
         } finally { setUpdatingId(null); }
     }
+
+    function abrirComensalesModalCaja(p: Pedido) {
+        setComensalesModalCaja(p);
+        setComensalesCountCaja(p.comensales || 0);
+        setComensalesIdsCaja((p.comensalesIds || []).map(c => ({ _id: c._id, nombre: c.nombre, apellido: c.apellido })));
+        setBusquedaClienteCaja("");
+        setClientesResultadosCaja([]);
+    }
+
+    async function guardarComensalesCaja() {
+        if (!comensalesModalCaja) return;
+        await fetch(`/api/pedidos/${comensalesModalCaja._id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ accion: "actualizarComensales", comensales: comensalesCountCaja }),
+        });
+        setPedidos(prev => prev.map(p => p._id === comensalesModalCaja._id
+            ? { ...p, comensales: comensalesCountCaja, comensalesIds: comensalesIdsCaja }
+            : p
+        ));
+        setComensalesModalCaja(null);
+    }
+
+    async function agregarComensalCaja(cliente: { _id: string; nombre: string; apellido: string; telefono?: string }) {
+        if (!comensalesModalCaja) return;
+        if (comensalesIdsCaja.find(c => c._id === cliente._id)) return;
+        await fetch(`/api/pedidos/${comensalesModalCaja._id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ accion: "actualizarComensales", agregarUserId: cliente._id }),
+        });
+        setComensalesIdsCaja(prev => [...prev, { _id: cliente._id, nombre: cliente.nombre, apellido: cliente.apellido }]);
+        setBusquedaClienteCaja("");
+        setClientesResultadosCaja([]);
+    }
+
+    async function quitarComensalCaja(userId: string) {
+        if (!comensalesModalCaja) return;
+        await fetch(`/api/pedidos/${comensalesModalCaja._id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ accion: "actualizarComensales", quitarUserId: userId }),
+        });
+        setComensalesIdsCaja(prev => prev.filter(c => c._id !== userId));
+    }
+
+    useEffect(() => {
+        if (busquedaClienteCaja.length < 2) { setClientesResultadosCaja([]); return; }
+        const t = setTimeout(async () => {
+            setBuscandoClienteCaja(true);
+            try {
+                const r = await fetch(`/api/usuarios/buscar?q=${encodeURIComponent(busquedaClienteCaja)}`, { credentials: "include" });
+                const d = await r.json();
+                setClientesResultadosCaja(Array.isArray(d) ? d : []);
+            } finally { setBuscandoClienteCaja(false); }
+        }, 350);
+        return () => clearTimeout(t);
+    }, [busquedaClienteCaja]);
 
     async function cobrar() {
         if (!cobrarModal.pedido) return;
@@ -1976,6 +2043,11 @@ export default function CajaPage() {
                                                                         <ArrowLeftRight size={12} />
                                                                     </button>
                                                                 )}
+                                                                <button onClick={() => abrirComensalesModalCaja(p)}
+                                                                    className="p-1.5 rounded-full bg-white/20 hover:bg-white/40 text-white transition"
+                                                                    title="Comensales">
+                                                                    <Users size={12} />
+                                                                </button>
                                                                 <button onClick={() => eliminarPedidoCaja(p)}
                                                                     className="p-1.5 rounded-full bg-white/20 hover:bg-white/40 text-white transition">
                                                                     <Trash2 size={12} />
@@ -4207,6 +4279,81 @@ export default function CajaPage() {
                 );
             })()}
 
+
+            {/* ── Modal comensales (caja) ── */}
+            {comensalesModalCaja && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
+                    onClick={() => setComensalesModalCaja(null)}>
+                    <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden"
+                        onClick={e => e.stopPropagation()}>
+                        <div className="bg-black px-4 py-3 flex items-center justify-between">
+                            <div>
+                                <p className="font-black text-white text-sm">Comensales</p>
+                                <p className="text-xs text-white/60">{comensalesModalCaja.mesa ? `Mesa ${comensalesModalCaja.mesa}` : comensalesModalCaja.nombreComanda || "Comanda"}</p>
+                            </div>
+                            <button onClick={() => setComensalesModalCaja(null)} className="text-white/60 hover:text-white"><X size={18} /></button>
+                        </div>
+                        <div className="p-4 space-y-4">
+                            <div>
+                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Cantidad de personas</p>
+                                <div className="flex items-center gap-4 justify-center">
+                                    <button onClick={() => setComensalesCountCaja(n => Math.max(0, n - 1))}
+                                        className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-black text-xl transition active:scale-95">−</button>
+                                    <span className="text-4xl font-black text-gray-900 w-12 text-center">{comensalesCountCaja}</span>
+                                    <button onClick={() => setComensalesCountCaja(n => n + 1)}
+                                        className="w-10 h-10 rounded-full bg-gray-900 hover:bg-gray-700 text-white font-black text-xl transition active:scale-95">+</button>
+                                </div>
+                            </div>
+                            {comensalesIdsCaja.length > 0 && (
+                                <div>
+                                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Con cuenta en la app</p>
+                                    <div className="space-y-1.5">
+                                        {comensalesIdsCaja.map(c => (
+                                            <div key={c._id} className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2">
+                                                <div className="flex items-center gap-2">
+                                                    <User size={13} className="text-gray-400" />
+                                                    <span className="text-sm font-semibold text-gray-800">{c.nombre} {c.apellido}</span>
+                                                </div>
+                                                <button onClick={() => quitarComensalCaja(c._id)} className="text-red-400 hover:text-red-600 p-1"><X size={14} /></button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            <div>
+                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Agregar cliente con cuenta</p>
+                                <div className="relative">
+                                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                    <input value={busquedaClienteCaja} onChange={e => setBusquedaClienteCaja(e.target.value)}
+                                        placeholder="Nombre, apellido o teléfono..."
+                                        className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+                                    {buscandoClienteCaja && <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 animate-spin" />}
+                                </div>
+                                {clientesResultadosCaja.length > 0 && (
+                                    <div className="mt-1.5 border border-gray-100 rounded-xl overflow-hidden">
+                                        {clientesResultadosCaja.filter(r => !comensalesIdsCaja.find(c => c._id === r._id)).map(r => (
+                                            <button key={r._id} onClick={() => agregarComensalCaja(r)}
+                                                className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-gray-50 text-left border-b last:border-0 border-gray-100 transition">
+                                                <div>
+                                                    <p className="text-sm font-bold text-gray-900">{r.nombre} {r.apellido}</p>
+                                                    {r.telefono && <p className="text-xs text-gray-400">{r.telefono}</p>}
+                                                </div>
+                                                <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Agregar</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <div className="px-4 pb-4">
+                            <button onClick={guardarComensalesCaja}
+                                className="w-full py-3 bg-black hover:bg-gray-800 text-white font-black rounded-xl transition">
+                                Guardar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* ── Modal transferir mesa ── */}
             {cambiarMesaModal && (

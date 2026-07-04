@@ -2,14 +2,17 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
-import { Plus, UtensilsCrossed, ChevronRight, LockKeyhole, Star, X, ArrowLeftRight, User } from "lucide-react";
+import { Plus, UtensilsCrossed, ChevronRight, LockKeyhole, Star, X, ArrowLeftRight, User, Users, Search, Loader2 } from "lucide-react";
 import Loader from "@/components/Loader";
 import { swalBase } from "@/lib/swalConfig";
+
+type ClienteResult = { _id: string; nombre: string; apellido: string; username: string; telefono?: string; puntos?: number };
 
 type Comanda = {
     _id: string;
     mesa?: string;
     comensales?: number;
+    comensalesIds?: { _id: string; nombre: string; apellido: string }[];
     nombreComanda?: string;
     eventoId?: string;
     items: { menuItemId: { _id: string; nombre: string; precio: number }; cantidad: number }[];
@@ -57,6 +60,13 @@ export default function AnotadorPage() {
     const [filtro, setFiltro] = useState<"todas" | "preparando" | "listo" | "terminados">("todas");
     const [comandasTerminadas, setComandasTerminadas] = useState<Comanda[]>([]);
     const prevEstadosRef = useRef<Map<string, string>>(new Map());
+    const [comensalesModal, setComensalesModal] = useState<Comanda | null>(null);
+    const [comensalesCount, setComensalesCount] = useState(0);
+    const [comensalesIds, setComensalesIds] = useState<{ _id: string; nombre: string; apellido: string }[]>([]);
+    const [busquedaCliente, setBusquedaCliente] = useState("");
+    const [clientesResultados, setClientesResultados] = useState<ClienteResult[]>([]);
+    const [buscandoCliente, setBuscandoCliente] = useState(false);
+    const [guardandoComensales, setGuardandoComensales] = useState(false);
 
     // Solo las terminadas cobradas dentro de la sesión de caja actual
     const terminadasSesion = useMemo(() =>
@@ -192,6 +202,71 @@ export default function AnotadorPage() {
         if (!r.isConfirmed) return;
         await fetch(`/api/pedidos?id=${id}`, { method: "DELETE", credentials: "include" });
         setComandas(prev => prev.filter(c => c._id !== id));
+    }
+
+    function abrirComensalesModal(c: Comanda) {
+        setComensalesModal(c);
+        setComensalesCount(c.comensales || 0);
+        setComensalesIds(c.comensalesIds || []);
+        setBusquedaCliente("");
+        setClientesResultados([]);
+    }
+
+    useEffect(() => {
+        if (busquedaCliente.length < 2) { setClientesResultados([]); return; }
+        const t = setTimeout(async () => {
+            setBuscandoCliente(true);
+            try {
+                const r = await fetch(`/api/usuarios/buscar?q=${encodeURIComponent(busquedaCliente)}`, { credentials: "include" });
+                const d = await r.json();
+                setClientesResultados(Array.isArray(d) ? d : []);
+            } finally { setBuscandoCliente(false); }
+        }, 350);
+        return () => clearTimeout(t);
+    }, [busquedaCliente]);
+
+    async function guardarComensales() {
+        if (!comensalesModal) return;
+        setGuardandoComensales(true);
+        try {
+            await fetch(`/api/pedidos/${comensalesModal._id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ accion: "actualizarComensales", comensales: comensalesCount }),
+            });
+            setComandas(prev => prev.map(c => c._id === comensalesModal._id
+                ? { ...c, comensales: comensalesCount, comensalesIds }
+                : c
+            ));
+            setComensalesModal(null);
+        } finally { setGuardandoComensales(false); }
+    }
+
+    async function agregarComensal(cliente: ClienteResult) {
+        if (!comensalesModal) return;
+        if (comensalesIds.find(c => c._id === cliente._id)) return;
+        await fetch(`/api/pedidos/${comensalesModal._id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ accion: "actualizarComensales", agregarUserId: cliente._id }),
+        });
+        const nuevo = { _id: cliente._id, nombre: cliente.nombre, apellido: cliente.apellido };
+        setComensalesIds(prev => [...prev, nuevo]);
+        setBusquedaCliente("");
+        setClientesResultados([]);
+    }
+
+    async function quitarComensal(userId: string) {
+        if (!comensalesModal) return;
+        await fetch(`/api/pedidos/${comensalesModal._id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ accion: "actualizarComensales", quitarUserId: userId }),
+        });
+        setComensalesIds(prev => prev.filter(c => c._id !== userId));
     }
 
     function handleNuevaComanda() {
@@ -419,6 +494,13 @@ export default function AnotadorPage() {
                                                         <ArrowLeftRight size={14} />
                                                     </button>
                                                 )}
+                                                <button
+                                                    onClick={() => abrirComensalesModal(c)}
+                                                    className="flex items-center gap-1.5 text-gray-600 hover:bg-gray-100 border border-gray-200 px-3 py-2 rounded-xl text-sm transition active:scale-95"
+                                                    title="Editar comensales">
+                                                    <Users size={14} />
+                                                    {(c.comensales || 0) > 0 && <span className="font-bold text-xs">{c.comensales}</span>}
+                                                </button>
                                             </div>
                                             <button
                                                 onClick={() => router.push(`/empleado/anotador/menu?id=${c._id}`)}
@@ -473,6 +555,85 @@ export default function AnotadorPage() {
                             <button onClick={() => setEventoPickerModal(false)}
                                 className="w-full py-2.5 text-sm text-gray-500 font-semibold hover:text-gray-700 transition">
                                 Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Modal comensales ── */}
+            {comensalesModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
+                    onClick={() => setComensalesModal(null)}>
+                    <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden"
+                        onClick={e => e.stopPropagation()}>
+                        <div className="bg-black px-4 py-3 flex items-center justify-between">
+                            <div>
+                                <p className="font-black text-white text-sm">Comensales</p>
+                                <p className="text-xs text-white/60">{comensalesModal.mesa ? `Mesa ${comensalesModal.mesa}` : comensalesModal.nombreComanda || "Comanda"}</p>
+                            </div>
+                            <button onClick={() => setComensalesModal(null)} className="text-white/60 hover:text-white"><X size={18} /></button>
+                        </div>
+                        <div className="p-4 space-y-4">
+                            {/* Contador */}
+                            <div>
+                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Cantidad de personas</p>
+                                <div className="flex items-center gap-4 justify-center">
+                                    <button onClick={() => setComensalesCount(n => Math.max(0, n - 1))}
+                                        className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-black text-xl transition active:scale-95">−</button>
+                                    <span className="text-4xl font-black text-gray-900 w-12 text-center">{comensalesCount}</span>
+                                    <button onClick={() => setComensalesCount(n => n + 1)}
+                                        className="w-10 h-10 rounded-full bg-gray-900 hover:bg-gray-700 text-white font-black text-xl transition active:scale-95">+</button>
+                                </div>
+                            </div>
+                            {/* Comensales registrados */}
+                            {comensalesIds.length > 0 && (
+                                <div>
+                                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Con cuenta en la app</p>
+                                    <div className="space-y-1.5">
+                                        {comensalesIds.map(c => (
+                                            <div key={c._id} className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2">
+                                                <div className="flex items-center gap-2">
+                                                    <User size={13} className="text-gray-400" />
+                                                    <span className="text-sm font-semibold text-gray-800">{c.nombre} {c.apellido}</span>
+                                                </div>
+                                                <button onClick={() => quitarComensal(c._id)} className="text-red-400 hover:text-red-600 p-1"><X size={14} /></button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {/* Búsqueda */}
+                            <div>
+                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Agregar cliente con cuenta</p>
+                                <div className="relative">
+                                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                    <input value={busquedaCliente} onChange={e => setBusquedaCliente(e.target.value)}
+                                        placeholder="Nombre, apellido o teléfono..."
+                                        className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+                                    {buscandoCliente && <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 animate-spin" />}
+                                </div>
+                                {clientesResultados.length > 0 && (
+                                    <div className="mt-1.5 border border-gray-100 rounded-xl overflow-hidden">
+                                        {clientesResultados.filter(r => !comensalesIds.find(c => c._id === r._id)).map(r => (
+                                            <button key={r._id} onClick={() => agregarComensal(r)}
+                                                className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-gray-50 text-left border-b last:border-0 border-gray-100 transition">
+                                                <div>
+                                                    <p className="text-sm font-bold text-gray-900">{r.nombre} {r.apellido}</p>
+                                                    {r.telefono && <p className="text-xs text-gray-400">{r.telefono}</p>}
+                                                </div>
+                                                <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Agregar</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <div className="px-4 pb-4">
+                            <button onClick={guardarComensales} disabled={guardandoComensales}
+                                className="w-full py-3 bg-black hover:bg-gray-800 disabled:opacity-50 text-white font-black rounded-xl transition flex items-center justify-center gap-2">
+                                {guardandoComensales && <Loader2 size={15} className="animate-spin" />}
+                                Guardar
                             </button>
                         </div>
                     </div>

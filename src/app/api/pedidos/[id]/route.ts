@@ -109,9 +109,26 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         return NextResponse.json({ ok: true, pedido });
     }
 
+    // ── Actualizar comensales (count + opcional agregar/quitar userId) ────────
+    if (body.accion === "actualizarComensales") {
+        const { comensales, agregarUserId, quitarUserId } = body;
+        if (typeof comensales === "number") pedido.comensales = Math.max(0, comensales);
+        if (agregarUserId) {
+            const ids = ((pedido as any).comensalesIds || []).map((id: any) => id.toString());
+            if (!ids.includes(agregarUserId)) (pedido as any).comensalesIds = [...ids, agregarUserId];
+        }
+        if (quitarUserId) {
+            (pedido as any).comensalesIds = ((pedido as any).comensalesIds || []).filter((id: any) => id.toString() !== quitarUserId);
+        }
+        await pedido.save();
+        return NextResponse.json({ ok: true, pedido });
+    }
+
     // ── Agregar ítems nuevos a la comanda (default) ─────────────────────────
     const { items, notaEmpleado } = body;
     if (!items?.length) return NextResponse.json({ error: "Sin ítems" }, { status: 400 });
+
+    const BEBIDAS_CATS_SERVER = new Set(["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"]);
 
     // Push directo al DocumentArray de Mongoose para garantizar impreso: false en MongoDB
     for (const newItem of items) {
@@ -120,9 +137,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     pedido.total = await recalcularTotal(pedido.items as any[]);
     if (notaEmpleado) pedido.notaEmpleado = notaEmpleado;
+
+    // Si estaba en "listo" y se agregaron ítems de comida → volver a preparando
+    if (pedido.estado === "listo") {
+        const newMenuItemIds = items.map((i: any) => i.menuItemId);
+        const newMenuItems = await MenuItem.find({ _id: { $in: newMenuItemIds } }, "categoria").lean<any[]>();
+        const tieneComida = newMenuItems.some((m: any) => !BEBIDAS_CATS_SERVER.has((m.categoria || "").toUpperCase()));
+        if (tieneComida) pedido.estado = "preparando";
+    }
+
     await pedido.save();
 
-    return NextResponse.json({ ok: true, pedido });
+    return NextResponse.json({ ok: true, pedido, estadoCambiado: pedido.estado });
 }
 
 // GET — obtiene un pedido por ID (empleado/admin/superadmin)
