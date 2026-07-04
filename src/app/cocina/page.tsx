@@ -42,6 +42,7 @@ type Pedido = {
     direccion?: string;
     deliveryNumero?: number;
     numeroDia?: number;
+    horarioPreferido?: string;
 };
 
 type MenuItemLite = {
@@ -290,6 +291,13 @@ export default function CocinaPage() {
                                         {/* Fila 3: dirección (solo delivery) */}
                                         {esDelivery && p.direccion && (
                                             <p className="text-xs text-blue-600 font-semibold mt-1 truncate">📍 {p.direccion}</p>
+                                        )}
+                                        {/* Fila 4: horario preferido (app y delivery) */}
+                                        {p.horarioPreferido && (
+                                            <div className="mt-1.5 flex items-center gap-1.5 bg-amber-100 border border-amber-300 rounded-lg px-2 py-1">
+                                                <Clock size={13} className="text-amber-700 shrink-0" />
+                                                <span className="text-sm font-black text-amber-800">Entregar: {p.horarioPreferido}</span>
+                                            </div>
                                         )}
                                     </div>
                                     <div className="px-4 py-4 space-y-3 bg-white">

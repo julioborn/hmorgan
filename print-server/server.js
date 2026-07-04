@@ -67,7 +67,7 @@ function padLine(izq, der, ancho = 32) {
     return izq + " ".repeat(pad) + der;
 }
 
-function buildComanda({ titulo, mesa, cliente, direccion, mozo, hora, items, nota }) {
+function buildComanda({ titulo, mesa, cliente, direccion, mozo, hora, items, nota, horarioPreferido }) {
     const SEP = "-".repeat(32);
     const b   = [];
     const add = (...bytes) => b.push(...bytes);
@@ -93,7 +93,12 @@ function buildComanda({ titulo, mesa, cliente, direccion, mozo, hora, items, not
 
     txt(SEP); add(LF);
     txt("Mozo: " + norm(mozo || "-")); add(LF);
-    txt("Hora: " + hora); add(LF);
+    txt("Hora pedido: " + hora); add(LF);
+    if (horarioPreferido) {
+        add(ESC, 0x21, 0x10);
+        txt("ENTREGAR: " + norm(horarioPreferido)); add(LF);
+        add(ESC, 0x21, 0x00);
+    }
     txt(SEP); add(LF);
 
     add(ESC, 0x21, 0x10);
@@ -221,11 +226,11 @@ function imprimir(buffer, nombreImpresora, res, etiqueta) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 app.post("/imprimir/comanda", (req, res) => {
-    const { impresora, mesa, cliente, direccion, mozo, hora, items, nota, titulo: tituloCustom } = req.body;
+    const { impresora, mesa, cliente, direccion, mozo, hora, items, nota, titulo: tituloCustom, horarioPreferido } = req.body;
     const nombreImpresora = impresora === "Cocina" ? IMPRESORA_COCINA : IMPRESORA_BARRA;
     const titulo           = tituloCustom || (impresora === "Cocina" ? "COCINA" : "BARRA");
     try {
-        imprimir(buildComanda({ titulo, mesa, cliente, direccion, mozo, hora, items, nota }), nombreImpresora, res, titulo);
+        imprimir(buildComanda({ titulo, mesa, cliente, direccion, mozo, hora, items, nota, horarioPreferido }), nombreImpresora, res, titulo);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

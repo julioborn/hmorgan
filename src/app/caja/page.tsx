@@ -1165,7 +1165,8 @@ export default function CajaPage() {
         <div class="meta-grande">Cliente: ${cliente}</div>
         ${direccion ? `<div class="meta-grande">Dir: ${direccion}</div>` : ""}
         <div class="meta">Mozo: ${mozo}</div>
-        <div class="meta">Hora: ${hora}</div>
+        <div class="meta">Hora pedido: ${hora}</div>
+        ${p.horarioPreferido ? `<div class="meta-grande" style="background:#fef3c7;padding:4px 6px;border:2px solid #d97706;border-radius:4px;margin-top:4px">ENTREGAR: ${p.horarioPreferido}</div>` : ""}
         <div class="sep"></div>
         <table>${filas}${recargo}</table>
         <div class="sep"></div>
@@ -1205,6 +1206,7 @@ export default function CajaPage() {
                     body: JSON.stringify({
                         impresora: "Cocina",
                         mesa, cliente, mozo, direccion, hora, nota,
+                        horarioPreferido: p.horarioPreferido || undefined,
                         items: [
                             ...comida.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined })),
                             ...recargoItem,
@@ -1219,6 +1221,7 @@ export default function CajaPage() {
                     body: JSON.stringify({
                         impresora: "Barra",
                         mesa, cliente, mozo, direccion, hora,
+                        horarioPreferido: p.horarioPreferido || undefined,
                         items: [
                             ...bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined })),
                             ...recargoItem,
@@ -1258,6 +1261,7 @@ export default function CajaPage() {
                     body: JSON.stringify({
                         impresora: "Cocina", titulo: "COCINA",
                         mesa, cliente, mozo, direccion, hora, nota,
+                        horarioPreferido: p.horarioPreferido || undefined,
                         items: comida.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined })),
                     }),
                 })
@@ -1269,6 +1273,7 @@ export default function CajaPage() {
                     body: JSON.stringify({
                         impresora: "Barra", titulo: "BARRA",
                         mesa, cliente, mozo, direccion, hora,
+                        horarioPreferido: p.horarioPreferido || undefined,
                         items: bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined })),
                     }),
                 })
