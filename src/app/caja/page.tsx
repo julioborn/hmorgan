@@ -951,7 +951,7 @@ export default function CajaPage() {
                     hora,
                     items:     printItems,
                     total:     displayTotal,
-                    costoEnvio: !itemsOverride && pedido.tipoEntrega === "envio" ? (pedido.costoEnvio ?? 0) : 0,
+                    costoEnvio: !itemsOverride && pedido.tipoEntrega === "envio" ? (pedido.costoEnvio || costoDelivery) : 0,
                     descuento,
                     pagos,
                     vuelto,
@@ -963,8 +963,8 @@ export default function CajaPage() {
         // Fallback: ventana del navegador
         const rows = printItems.map(i =>
             `<tr><td>${i.cantidad}x ${i.nombre}</td><td style="text-align:right">${formatMoney(i.precio * i.cantidad)}</td></tr>`
-        ).join("") + (!itemsOverride && pedido.tipoEntrega === "envio" && (pedido.costoEnvio ?? 0) > 0
-            ? `<tr><td>Envío a domicilio</td><td style="text-align:right">${formatMoney(pedido.costoEnvio ?? 0)}</td></tr>` : "");
+        ).join("") + (!itemsOverride && pedido.tipoEntrega === "envio" && (pedido.costoEnvio || costoDelivery) > 0
+            ? `<tr><td>Envío a domicilio</td><td style="text-align:right">${formatMoney(pedido.costoEnvio || costoDelivery)}</td></tr>` : "");
         const descuentoRow = descuento > 0
             ? `<tr><td class="desc">Descuento</td><td class="desc" style="text-align:right">- ${formatMoney(descuento)}</td></tr>
                <tr><td class="total">A COBRAR</td><td class="total" style="text-align:right">${formatMoney(totalConDescuento)}</td></tr>` : "";
@@ -1015,10 +1015,11 @@ export default function CajaPage() {
                 <td style="font-size:20px;font-weight:700;padding:4px 0">${it.menuItemId?.nombre ?? "Ítem"}</td>
             </tr>`
         ).join("");
-        const recargo = p.tipoEntrega === "envio" && (p.costoEnvio ?? 0) > 0
+        const costoEnvioEfectivo = p.tipoEntrega === "envio" ? (p.costoEnvio || costoDelivery) : 0;
+        const recargo = costoEnvioEfectivo > 0
             ? `<tr style="border-top:2px dashed #000">
                 <td style="font-size:16px;font-weight:900;padding:6px 10px 4px 0;white-space:nowrap">🛵</td>
-                <td style="font-size:16px;font-weight:900;padding:6px 0">Recargo delivery: ${formatMoney(p.costoEnvio ?? 0)}</td>
+                <td style="font-size:16px;font-weight:900;padding:6px 0">Recargo delivery: ${formatMoney(costoEnvioEfectivo)}</td>
               </tr>`
             : "";
         const nota = p.notaEmpleado || p.notaCliente;
@@ -1070,8 +1071,9 @@ export default function CajaPage() {
         // Intentar servidor local de impresión
         try {
             const promesas: Promise<Response>[] = [];
-            const recargoItem = p.tipoEntrega === "envio" && (p.costoEnvio ?? 0) > 0
-                ? [{ cantidad: 1, nombre: `🛵 Recargo delivery: ${formatMoney(p.costoEnvio ?? 0)}` }]
+            const costoEnvioEfectivoPrint = p.tipoEntrega === "envio" ? (p.costoEnvio || costoDelivery) : 0;
+            const recargoItem = costoEnvioEfectivoPrint > 0
+                ? [{ cantidad: 1, nombre: `🛵 Recargo delivery: ${formatMoney(costoEnvioEfectivoPrint)}` }]
                 : [];
             if (comida.length > 0) promesas.push(
                 fetch(`${PRINT_SERVER}/imprimir/comanda`, {
@@ -2018,13 +2020,13 @@ export default function CajaPage() {
                                                     )}
 
                                                     {/* Total */}
-                                                    {p.tipoEntrega === "envio" && (p.costoEnvio ?? 0) > 0 ? (
+                                                    {p.tipoEntrega === "envio" && (p.costoEnvio || costoDelivery) > 0 ? (
                                                         <div className="shrink-0 pt-2 pb-1 border-t border-gray-100 mb-2 space-y-0.5">
                                                             <div className="flex justify-between text-xs text-gray-500">
-                                                                <span>Subtotal</span><span>{formatMoney(p.total - (p.costoEnvio ?? 0))}</span>
+                                                                <span>Subtotal</span><span>{formatMoney(p.total - (p.costoEnvio || costoDelivery))}</span>
                                                             </div>
                                                             <div className="flex justify-between text-xs text-gray-500">
-                                                                <span>Envío</span><span>{formatMoney(p.costoEnvio ?? 0)}</span>
+                                                                <span>Envío</span><span>{formatMoney(p.costoEnvio || costoDelivery)}</span>
                                                             </div>
                                                             <div className="flex justify-between font-black text-gray-900 text-lg">
                                                                 <span>Total</span><span>{formatMoney(p.total)}</span>
@@ -2256,10 +2258,10 @@ export default function CajaPage() {
                                                     )}
                                                 </div>
                                             ))}
-                                            {p.tipoEntrega === "envio" && (p.costoEnvio ?? 0) > 0 && (
+                                            {p.tipoEntrega === "envio" && (p.costoEnvio || costoDelivery) > 0 && (
                                                 <div className="flex justify-between text-xs text-gray-700 border-t border-gray-100 pt-1.5 mt-1">
                                                     <span>Envío a domicilio</span>
-                                                    <span>{formatMoney(p.costoEnvio ?? 0)}</span>
+                                                    <span>{formatMoney(p.costoEnvio || costoDelivery)}</span>
                                                 </div>
                                             )}
                                             {(p.notaEmpleado || p.notaCliente) && (
@@ -3228,10 +3230,10 @@ export default function CajaPage() {
                                             <span className="font-semibold text-gray-900">{formatMoney((i.menuItemId?.precio || 0) * i.cantidad)}</span>
                                         </div>
                                     ))}
-                                    {ped.tipoEntrega === "envio" && (ped.costoEnvio ?? 0) > 0 && (
+                                    {ped.tipoEntrega === "envio" && (ped.costoEnvio || costoDelivery) > 0 && (
                                         <div className="flex justify-between text-sm">
                                             <span className="text-gray-700">Envío a domicilio</span>
-                                            <span className="font-semibold text-gray-900">{formatMoney(ped.costoEnvio ?? 0)}</span>
+                                            <span className="font-semibold text-gray-900">{formatMoney(ped.costoEnvio || costoDelivery)}</span>
                                         </div>
                                     )}
                                     <div className="flex justify-between text-sm font-black text-gray-900 border-t border-gray-200 pt-2 mt-1">
