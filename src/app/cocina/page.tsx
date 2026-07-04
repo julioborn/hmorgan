@@ -36,6 +36,12 @@ type Pedido = {
     items: Item[];
     createdAt: string;
     userId?: { nombre: string; apellido: string };
+    tipoEntrega?: string;
+    eventoId?: string;
+    telefonoContacto?: string;
+    direccion?: string;
+    deliveryNumero?: number;
+    numeroDia?: number;
 };
 
 type MenuItemLite = {
@@ -232,8 +238,24 @@ export default function CocinaPage() {
                     <div className="max-w-2xl mx-auto px-3 pt-4 space-y-4">
                         {pedidos.map(p => {
                             const comida = foodItems(p.items);
-                            const mesaLabel = p.mesa ? `Mesa ${p.mesa}` : p.nombreComanda || "Sin mesa";
-                            const mozo = p.userId ? `${p.userId.nombre} ${p.userId.apellido}` : null;
+                            const esDelivery = p.tipoEntrega === "envio";
+                            const esEvento   = !!p.eventoId;
+                            const esApp      = p.fuente === "cliente";
+                            const esBar      = p.fuente === "empleado" && !esDelivery;
+
+                            const mesaLabel = esDelivery
+                                ? (p.deliveryNumero ? `Delivery #${p.deliveryNumero}` : "Delivery")
+                                : esApp
+                                ? (p.numeroDia ? `Pedido #${p.numeroDia}` : "App")
+                                : (p.mesa ? `Mesa ${p.mesa}` : p.nombreComanda || "Sin mesa");
+
+                            const mozo = p.fuente === "empleado" && p.userId
+                                ? `${p.userId.nombre} ${p.userId.apellido}`.trim()
+                                : null;
+                            const clienteNombre = esApp && p.userId
+                                ? `${p.userId.nombre} ${p.userId.apellido}`.trim()
+                                : p.nombreComanda || null;
+
                             const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
                             const isNuevo = nuevosIds.has(p._id);
                             const isMarcando = marcando === p._id;
@@ -241,16 +263,34 @@ export default function CocinaPage() {
                             return (
                                 <div key={p._id}
                                     className={`rounded-2xl border shadow-sm overflow-hidden transition-all duration-500 ${isNuevo ? "border-red-300 ring-2 ring-red-200" : "border-gray-200"}`}>
-                                    <div className={`px-4 py-3 flex items-center justify-between border-b ${isNuevo ? "bg-red-50 border-red-100" : "bg-gray-50 border-gray-100"}`}>
-                                        <div className="flex items-center gap-2 flex-wrap">
+                                    <div className={`px-4 py-3 border-b ${isNuevo ? "bg-red-50 border-red-100" : "bg-gray-50 border-gray-100"}`}>
+                                        {/* Fila 1: badges de origen */}
+                                        <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
                                             {isNuevo && <span className="text-[10px] font-black uppercase tracking-widest bg-red-600 text-white px-2 py-0.5 rounded-full animate-pulse">Nuevo</span>}
-                                            <span className="text-xl font-black text-black">{mesaLabel}</span>
-                                            {mozo && <span className="text-sm text-gray-400">{mozo}</span>}
+                                            {esDelivery && <span className="text-[10px] font-black uppercase tracking-wide bg-blue-600 text-white px-2 py-0.5 rounded-full">🛵 Delivery</span>}
+                                            {esEvento   && <span className="text-[10px] font-black uppercase tracking-wide bg-amber-400 text-black px-2 py-0.5 rounded-full">⭐ Evento</span>}
+                                            {esApp      && <span className="text-[10px] font-black uppercase tracking-wide bg-violet-600 text-white px-2 py-0.5 rounded-full">📱 App</span>}
+                                            {esBar      && <span className="text-[10px] font-black uppercase tracking-wide bg-gray-800 text-white px-2 py-0.5 rounded-full">🍽 Bar</span>}
                                         </div>
-                                        <div className="flex items-center gap-1.5 text-gray-400">
-                                            <Clock size={13} />
-                                            <span className="text-sm">{hora}</span>
+                                        {/* Fila 2: mesa/número + hora */}
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2 flex-wrap min-w-0">
+                                                <span className="text-xl font-black text-black leading-tight">{mesaLabel}</span>
+                                                {(mozo || clienteNombre) && (
+                                                    <span className="text-sm text-gray-400 truncate">
+                                                        {mozo || clienteNombre}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-1.5 text-gray-400 shrink-0 ml-2">
+                                                <Clock size={13} />
+                                                <span className="text-sm">{hora}</span>
+                                            </div>
                                         </div>
+                                        {/* Fila 3: dirección (solo delivery) */}
+                                        {esDelivery && p.direccion && (
+                                            <p className="text-xs text-blue-600 font-semibold mt-1 truncate">📍 {p.direccion}</p>
+                                        )}
                                     </div>
                                     <div className="px-4 py-4 space-y-3 bg-white">
                                         {comida.map((it, idx) => (
