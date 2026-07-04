@@ -157,7 +157,7 @@ export default function EmpleadoReservasPage() {
                                 <div className="bg-black px-5 py-3 flex items-center justify-between gap-3">
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2">
-                                            <p className="font-black text-white text-lg leading-tight truncate">{nombreMostrado}</p>
+                                            <p className="font-black text-white text-lg leading-tight break-words">{nombreMostrado}</p>
                                             {!r.userId && (
                                                 <span className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-white/20 text-white/70 uppercase tracking-wide">Sin app</span>
                                             )}

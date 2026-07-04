@@ -331,7 +331,7 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
                                 <div className="bg-black px-5 py-3 flex items-center justify-between gap-3">
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2">
-                                            <p className="font-black text-white text-lg leading-tight truncate">
+                                            <p className="font-black text-white text-lg leading-tight break-words">
                                                 {nombreMostrado}
                                             </p>
                                             {!r.userId && (
