@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { CheckCircle, ChefHat, LogOut, Clock, X, UtensilsCrossed, ChevronLeft } from "lucide-react";
+import { CheckCircle, ChefHat, LogOut, Clock, X, UtensilsCrossed, ChevronLeft, Phone } from "lucide-react";
 import MenuImg from "@/components/MenuImg";
 import { useCategoryConfigs } from "@/hooks/useCategoryConfigs";
 
@@ -250,7 +250,8 @@ export default function CocinaPage() {
                                 ? (p.numeroDia ? `Pedido #${p.numeroDia}` : "App")
                                 : (p.mesa ? `Mesa ${p.mesa}` : p.nombreComanda || "Sin mesa");
 
-                            const mozo = p.fuente === "empleado" && p.userId
+                            // Para delivery de caja el userId es el cajero, no el destinatario
+                            const mozo = esBar && p.userId
                                 ? `${p.userId.nombre} ${p.userId.apellido}`.trim()
                                 : null;
                             const clienteNombre = esApp && p.userId
@@ -288,9 +289,14 @@ export default function CocinaPage() {
                                                 <span className="text-sm">{hora}</span>
                                             </div>
                                         </div>
-                                        {/* Fila 3: dirección (solo delivery) */}
+                                        {/* Fila 3: dirección + teléfono (solo delivery) */}
                                         {esDelivery && p.direccion && (
-                                            <p className="text-xs text-blue-600 font-semibold mt-1 truncate">📍 {p.direccion}</p>
+                                            <p className="text-xs text-blue-600 font-semibold mt-1">📍 {p.direccion}</p>
+                                        )}
+                                        {esDelivery && p.telefonoContacto && (
+                                            <p className="text-xs text-emerald-700 font-semibold mt-0.5 flex items-center gap-1">
+                                                <Phone size={11} className="shrink-0" />{p.telefonoContacto}
+                                            </p>
                                         )}
                                         {/* Fila 4: horario preferido (app y delivery) */}
                                         {p.horarioPreferido && (
