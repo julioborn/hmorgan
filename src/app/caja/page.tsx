@@ -1015,6 +1015,12 @@ export default function CajaPage() {
                 <td style="font-size:20px;font-weight:700;padding:4px 0">${it.menuItemId?.nombre ?? "Ítem"}</td>
             </tr>`
         ).join("");
+        const recargo = p.tipoEntrega === "envio" && (p.costoEnvio ?? 0) > 0
+            ? `<tr style="border-top:2px dashed #000">
+                <td style="font-size:16px;font-weight:900;padding:6px 10px 4px 0;white-space:nowrap">🛵</td>
+                <td style="font-size:16px;font-weight:900;padding:6px 0">Recargo delivery: ${formatMoney(p.costoEnvio ?? 0)}</td>
+              </tr>`
+            : "";
         const nota = p.notaEmpleado || p.notaCliente;
 
         return `<!DOCTYPE html><html><head><meta charset="utf-8">
@@ -1037,7 +1043,7 @@ export default function CajaPage() {
         <div class="meta">Mozo: ${mozo}</div>
         <div class="meta">Hora: ${hora}</div>
         <div class="sep"></div>
-        <table>${filas}</table>
+        <table>${filas}${recargo}</table>
         <div class="sep"></div>
         ${nota ? `<div class="nota">📝 ${nota}</div>` : ""}
         </body></html>`;
@@ -1064,6 +1070,9 @@ export default function CajaPage() {
         // Intentar servidor local de impresión
         try {
             const promesas: Promise<Response>[] = [];
+            const recargoItem = p.tipoEntrega === "envio" && (p.costoEnvio ?? 0) > 0
+                ? [{ cantidad: 1, nombre: `🛵 Recargo delivery: ${formatMoney(p.costoEnvio ?? 0)}` }]
+                : [];
             if (comida.length > 0) promesas.push(
                 fetch(`${PRINT_SERVER}/imprimir/comanda`, {
                     method: "POST",
@@ -1071,7 +1080,10 @@ export default function CajaPage() {
                     body: JSON.stringify({
                         impresora: "Cocina",
                         mesa, cliente, mozo, direccion, hora, nota,
-                        items: comida.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined })),
+                        items: [
+                            ...comida.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined })),
+                            ...recargoItem,
+                        ],
                     }),
                 })
             );
@@ -1082,7 +1094,10 @@ export default function CajaPage() {
                     body: JSON.stringify({
                         impresora: "Barra",
                         mesa, cliente, mozo, direccion, hora,
-                        items: bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined })),
+                        items: [
+                            ...bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined })),
+                            ...recargoItem,
+                        ],
                     }),
                 })
             );
