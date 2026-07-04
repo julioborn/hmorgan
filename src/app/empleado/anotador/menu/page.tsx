@@ -8,7 +8,7 @@ import {
     UtensilsCrossed, Pizza, Beef, Sandwich, Salad, Beer,
     CupSoda, Martini, BottleWine, GlassWater, Beaker,
     CakeSlice, Hamburger, Milk, Plus, Minus, ShoppingCart,
-    Send, ChevronLeft, CheckCircle, Printer, X, MapPin, ChevronDown, Star, QrCode, User,
+    Send, ChevronLeft, CheckCircle, Printer, X, MapPin, ChevronDown, Star, QrCode, User, LayoutList, Map,
 } from "lucide-react";
 import Loader from "@/components/Loader";
 import MenuImg from "@/components/MenuImg";
@@ -150,6 +150,9 @@ function AnotadorMenuContent() {
 
     // Mesa picker
     const [mesaPickerOpen, setMesaPickerOpen] = useState(false);
+    const [mesaPickerVista, setMesaPickerVista] = useState<"plano" | "lista">(() => {
+        try { return (localStorage.getItem("mesaPickerVista") as "plano" | "lista") || "plano"; } catch { return "plano"; }
+    });
     const [mesasPlano, setMesasPlano]         = useState<MesaPlano[]>([]);
     const [elementsPlano, setElementsPlano]   = useState<SalonElPlano[]>([]);
     const [ocupadasPlano, setOcupadasPlano]     = useState<Set<string>>(new Set());
@@ -933,9 +936,21 @@ function AnotadorMenuContent() {
                         <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-100 shrink-0">
                             <MapPin size={16} className="text-gray-500" />
                             <h2 className="font-black text-gray-900 flex-1">Elegir mesa</h2>
-                            <button onClick={() => setMesaPickerOpen(false)} className="p-1 text-gray-400"><X size={18} /></button>
+                            {/* Toggle plano / lista */}
+                            <div className="flex bg-gray-100 rounded-xl p-0.5 gap-0.5">
+                                <button onClick={() => { setMesaPickerVista("plano"); try { localStorage.setItem("mesaPickerVista","plano"); } catch {} }}
+                                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition ${mesaPickerVista === "plano" ? "bg-white text-gray-900 shadow-sm" : "text-gray-400"}`}>
+                                    <Map size={13} /> Plano
+                                </button>
+                                <button onClick={() => { setMesaPickerVista("lista"); try { localStorage.setItem("mesaPickerVista","lista"); } catch {} }}
+                                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition ${mesaPickerVista === "lista" ? "bg-white text-gray-900 shadow-sm" : "text-gray-400"}`}>
+                                    <LayoutList size={13} /> Lista
+                                </button>
+                            </div>
+                            <button onClick={() => setMesaPickerOpen(false)} className="p-1 text-gray-400 ml-1"><X size={18} /></button>
                         </div>
                         <div className="p-3 overflow-y-auto flex-1 min-h-0">
+                            {mesaPickerVista === "plano" ? (<>
                             {/* Hint zoom */}
                             <p className="text-[10px] text-gray-400 text-center mb-1.5">
                                 Pellizco para hacer zoom · arrastrá para mover
@@ -990,6 +1005,53 @@ function AnotadorMenuContent() {
                                 <p className="text-xs font-semibold text-gray-700 mt-1.5 truncate">
                                     {mesas.map(displayNombre).join(", ")}
                                 </p>
+                            )}
+                            </>) : (
+                            /* ── Vista lista ── */
+                            <div className="space-y-2">
+                                <div className="grid grid-cols-4 gap-2">
+                                    {[...mesasPlano].filter(m => m.activa)
+                                        .sort((a, b) => {
+                                            const na = parseInt(a.nombre) || 0;
+                                            const nb = parseInt(b.nombre) || 0;
+                                            return na !== nb ? na - nb : a.nombre.localeCompare(b.nombre);
+                                        })
+                                        .map(m => {
+                                            const isOcupada   = ocupadasPlano.has(m.nombre);
+                                            const isReservada = !isOcupada && reservadasPlano.has(m.nombre);
+                                            const isEvento    = !isOcupada && !isReservada && eventosPlano.includes(m.nombre);
+                                            const isBanq      = m.tipo === "banqueta";
+                                            const isSel       = mesas.includes(m.nombre);
+                                            const bloqueada   = isOcupada || isReservada || isEvento;
+                                            const label       = isBanq ? `B${m.nombre}` : m.nombre;
+                                            const cls = isSel      ? "bg-gray-900 border-gray-700 text-white"
+                                                : isOcupada        ? "bg-red-100 border-red-300 text-red-500 opacity-60"
+                                                : isReservada      ? "bg-yellow-100 border-yellow-300 text-yellow-700 opacity-70"
+                                                : isEvento         ? "bg-blue-100 border-blue-300 text-blue-600 opacity-70"
+                                                :                    "bg-emerald-50 border-emerald-300 text-emerald-800";
+                                            return (
+                                                <button key={m._id}
+                                                    disabled={bloqueada}
+                                                    onClick={() => setMesas(prev => prev.includes(m.nombre) ? prev.filter(n => n !== m.nombre) : [...prev, m.nombre])}
+                                                    className={`py-3.5 rounded-xl border-2 font-black text-base transition active:scale-95 disabled:cursor-not-allowed ${cls}`}>
+                                                    {label}
+                                                </button>
+                                            );
+                                        })
+                                    }
+                                </div>
+                                <div className="flex items-center gap-3 mt-1 text-xs text-gray-400 flex-wrap">
+                                    <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-emerald-200 border border-emerald-300 inline-block"/>Libre</span>
+                                    <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-200 border border-red-300 inline-block"/>Ocupada</span>
+                                    <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-200 border border-yellow-300 inline-block"/>Reservada</span>
+                                    <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-gray-900 inline-block"/>Seleccionada</span>
+                                </div>
+                                {mesas.length > 0 && (
+                                    <p className="text-xs font-semibold text-gray-700 truncate">
+                                        {mesas.map(displayNombre).join(", ")}
+                                    </p>
+                                )}
+                            </div>
                             )}
                         </div>
                         <div className="px-5 py-4 border-t border-gray-100 flex gap-2 shrink-0">
