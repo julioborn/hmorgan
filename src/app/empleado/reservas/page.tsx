@@ -61,7 +61,7 @@ export default function EmpleadoReservasPage() {
     const router = useRouter();
     const [fecha, setFecha] = useState(hoyArgentina());
     const [reservas, setReservas] = useState<Reserva[]>([]);
-    const [cargando, setCargando] = useState(true);
+    const [cargando, setCargando] = useState(false);
 
     useEffect(() => {
         if (!loading && user?.role !== "empleado" && user?.role !== "cajero" && user?.role !== "admin" && user?.role !== "superadmin") {
@@ -73,12 +73,17 @@ export default function EmpleadoReservasPage() {
         setCargando(true);
         try {
             const r = await fetch("/api/reservas", { credentials: "include" });
+            if (!r.ok) { setReservas([]); return; }
             const d = await r.json();
             setReservas(Array.isArray(d) ? d : []);
-        } finally { setCargando(false); }
+        } catch { setReservas([]); }
+        finally { setCargando(false); }
     }, []);
 
-    useEffect(() => { fetchReservas(); }, [fetchReservas]);
+    // Solo fetchear una vez que auth esté listo y el usuario confirmado
+    useEffect(() => {
+        if (!loading && user) fetchReservas();
+    }, [loading, user, fetchReservas]);
 
     if (loading) return <div className="flex justify-center py-16"><Loader size={48} /></div>;
 

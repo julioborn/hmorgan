@@ -8,6 +8,7 @@ import jwt from "jsonwebtoken";
 import { sendPushToSubscriptions } from "@/lib/push-server";
 import { enviarNotificacionFCM, isFCMTokenInvalid } from "@/lib/firebase-admin";
 import { hoyArgentina, ahoraArgentina, formatArgDate } from "@/lib/argentina-time";
+export const dynamic = "force-dynamic";
 
 const SECRET = process.env.NEXTAUTH_SECRET!;
 
