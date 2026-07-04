@@ -2170,6 +2170,10 @@ export default function CajaPage() {
                                                                     </button>
                                                                 )}
                                                             </div>
+                                                            <button onClick={() => printCuenta(p)}
+                                                                className="w-full flex items-center justify-center gap-1.5 border border-gray-300 bg-white text-gray-700 font-bold py-2 rounded-xl text-sm hover:bg-gray-50 transition">
+                                                                <Printer size={13} /> Imprimir cuenta
+                                                            </button>
                                                             {(p.estado === "listo" || p.estado === "entregado") && (
                                                                 <button onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", pagos: [{ metodo: "efectivo", monto: String(p.total) }] }); }}
                                                                     className="w-full flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-xl text-sm transition">
