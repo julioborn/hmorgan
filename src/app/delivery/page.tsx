@@ -20,6 +20,9 @@ type Pedido = {
     createdAt: string;
     userId?: { nombre: string; apellido: string; telefono?: string };
     repartidorAfuera?: boolean;
+    nombreComanda?: string;
+    telefonoContacto?: string;
+    fuente?: string;
 };
 
 const fmt = (n: number) => new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0 }).format(n);
@@ -137,7 +140,7 @@ export default function DeliveryPage() {
                                 <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
                                     <div className="min-w-0 flex-1">
                                         <p className="font-black text-gray-900 truncate">
-                                            {p.userId?.nombre} {p.userId?.apellido}
+                                            {p.nombreComanda || `${p.userId?.nombre ?? ""} ${p.userId?.apellido ?? ""}`.trim() || "Cliente"}
                                         </p>
                                         <p className="text-xs text-gray-400 mt-0.5">
                                             {new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
@@ -166,10 +169,10 @@ export default function DeliveryPage() {
                                             Ver en Google Maps
                                         </a>
                                     )}
-                                    {p.userId?.telefono && (
-                                        <a href={`tel:${p.userId.telefono}`} className="flex items-center gap-2 text-sm text-gray-700">
+                                    {(p.telefonoContacto || p.userId?.telefono) && (
+                                        <a href={`tel:${p.telefonoContacto || p.userId?.telefono}`} className="flex items-center gap-2 text-sm text-gray-700">
                                             <Phone size={15} className="text-emerald-600 shrink-0" />
-                                            <span className="font-semibold">{p.userId.telefono}</span>
+                                            <span className="font-semibold">{p.telefonoContacto || p.userId?.telefono}</span>
                                         </a>
                                     )}
 
@@ -228,7 +231,7 @@ export default function DeliveryPage() {
                                 <div key={p._id} className="bg-gray-50 rounded-xl border border-gray-100 px-4 py-3 flex items-center justify-between">
                                     <div className="min-w-0 flex-1">
                                         <p className="font-bold text-gray-700 text-sm truncate">
-                                            {p.userId?.nombre} {p.userId?.apellido}
+                                            {p.nombreComanda || `${p.userId?.nombre ?? ""} ${p.userId?.apellido ?? ""}`.trim() || "Cliente"}
                                         </p>
                                         {p.direccion && <p className="text-xs text-gray-400 truncate flex items-center gap-1 mt-0.5"><MapPin size={11} />{p.direccion}</p>}
                                     </div>
