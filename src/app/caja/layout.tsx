@@ -9,7 +9,7 @@ export default function CajaLayout({ children }: { children: React.ReactNode }) 
     const router = useRouter();
 
     useEffect(() => {
-        if (!loading && user?.role !== "cajero" && user?.role !== "superadmin") {
+        if (!loading && user?.role !== "cajero" && user?.role !== "superadmin" && user?.role !== "admin") {
             router.replace("/");
         }
     }, [user, loading, router]);
@@ -20,7 +20,7 @@ export default function CajaLayout({ children }: { children: React.ReactNode }) 
         </div>
     );
 
-    if (user?.role !== "cajero" && user?.role !== "superadmin") return null;
+    if (user?.role !== "cajero" && user?.role !== "superadmin" && user?.role !== "admin") return null;
 
     return <>{children}</>;
 }
