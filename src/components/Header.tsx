@@ -100,7 +100,6 @@ export default function Header() {
   const linksEmpleado = [
     { href: "/empleado/anotador", label: "Anotador de Pedidos", icon: ClipboardList },
     { href: "/menu", label: "Menú", icon: Utensils },
-    { href: "/cliente/reservas", label: "Reservas de mesas", icon: CalendarDays },
   ];
 
   const links =

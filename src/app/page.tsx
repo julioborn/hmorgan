@@ -813,6 +813,7 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
   const [hora, setHora] = useState(() => new Date().getHours());
   const [cajaAbierta, setCajaAbierta] = useState<boolean | null>(null);
   const [comandasCount, setComandasCount] = useState(0);
+  const [reservasHoyCount, setReservasHoyCount] = useState(0);
 
   useEffect(() => {
     const tick = setInterval(() => setHora(new Date().getHours()), 60000);
@@ -830,6 +831,18 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
     fetch("/api/pedidos?activos=true&fuente=empleado&propias=true", { credentials: "include" })
       .then(r => r.json())
       .then(d => setComandasCount(Array.isArray(d) ? d.length : 0))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const hoy = hoyArgentina();
+    fetch("/api/reservas", { credentials: "include" })
+      .then(r => r.json())
+      .then(d => {
+        if (!Array.isArray(d)) return;
+        const count = d.filter((r: any) => r.fecha?.slice(0, 10) === hoy && r.estado !== "cancelada").length;
+        setReservasHoyCount(count);
+      })
       .catch(() => {});
   }, []);
 
@@ -883,6 +896,26 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
             <p className="text-gray-400 text-sm">Ver la carta del restaurante</p>
           </div>
         </Link>
+
+        <div className="relative">
+          <Link
+            href="/empleado/reservas"
+            className="w-full flex items-center gap-4 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl px-6 py-5 transition shadow-sm active:scale-[0.98] block"
+          >
+            <div className="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+              <CalendarDays className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="font-extrabold text-lg leading-tight">Reservas del día</p>
+              <p className="text-gray-400 text-sm">Ver las reservas de hoy</p>
+            </div>
+          </Link>
+          {reservasHoyCount > 0 && (
+            <span className="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1.5 bg-white text-red-600 text-xs font-black rounded-full flex items-center justify-center shadow-md border-2 border-black pointer-events-none">
+              {reservasHoyCount}
+            </span>
+          )}
+        </div>
       </div>
 
     </div>
