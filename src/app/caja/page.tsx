@@ -165,6 +165,7 @@ export default function CajaPage() {
     const [busquedaClienteCaja, setBusquedaClienteCaja] = useState("");
     const [clientesResultadosCaja, setClientesResultadosCaja] = useState<{ _id: string; nombre: string; apellido: string; telefono?: string }[]>([]);
     const [buscandoClienteCaja, setBuscandoClienteCaja] = useState(false);
+    const [confirmarCuentaId, setConfirmarCuentaId] = useState<string | null>(null);
 
     type CPItem = { itemId: string; nombre: string; precio: number; max: number; selected: number };
     const [cpModal,  setCpModal]  = useState<Pedido | null>(null);
@@ -2242,10 +2243,23 @@ export default function CajaPage() {
                                                                     </button>
                                                                 )}
                                                             </div>
-                                                            <button onClick={() => printCuenta(p)}
-                                                                className="w-full flex items-center justify-center gap-1.5 border border-gray-300 bg-white text-gray-700 font-bold py-2 rounded-xl text-sm hover:bg-gray-50 transition">
-                                                                <Printer size={13} /> Imprimir cuenta
-                                                            </button>
+                                                            {confirmarCuentaId === p._id ? (
+                                                                <div className="w-full flex gap-1.5">
+                                                                    <button onClick={() => { setConfirmarCuentaId(null); printCuenta(p); }}
+                                                                        className="flex-1 flex items-center justify-center gap-1 bg-gray-800 text-white font-bold py-2 rounded-xl text-sm transition">
+                                                                        <Printer size={13} /> Sí, imprimir
+                                                                    </button>
+                                                                    <button onClick={() => setConfirmarCuentaId(null)}
+                                                                        className="flex-1 border border-gray-300 bg-white text-gray-500 font-bold py-2 rounded-xl text-sm hover:bg-gray-50 transition">
+                                                                        Cancelar
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
+                                                                <button onClick={() => setConfirmarCuentaId(p._id)}
+                                                                    className="w-full flex items-center justify-center gap-1.5 border border-gray-300 bg-white text-gray-700 font-bold py-2 rounded-xl text-sm hover:bg-gray-50 transition">
+                                                                    <Printer size={13} /> Imprimir cuenta
+                                                                </button>
+                                                            )}
                                                             {(p.estado === "listo" || p.estado === "entregado") && (
                                                                 <button onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", pagos: [{ metodo: "efectivo", monto: String(p.total) }] }); }}
                                                                     className="w-full flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-xl text-sm transition">
@@ -2408,11 +2422,24 @@ export default function CajaPage() {
 
                                         {/* ── Botones cobrar ── */}
                                         <div className="px-3 pb-3 flex flex-col gap-2">
-                                            <button
-                                                onClick={() => printCuenta(p)}
-                                                className="w-full flex items-center justify-center gap-2 border border-gray-300 bg-white text-gray-700 font-bold py-2.5 rounded-xl text-sm tracking-wide hover:bg-gray-50 transition">
-                                                <Printer size={14} /> Imprimir cuenta
-                                            </button>
+                                            {confirmarCuentaId === p._id ? (
+                                                <div className="w-full flex gap-2">
+                                                    <button onClick={() => { setConfirmarCuentaId(null); printCuenta(p); }}
+                                                        className="flex-1 flex items-center justify-center gap-1.5 bg-gray-800 text-white font-bold py-2.5 rounded-xl text-sm tracking-wide transition">
+                                                        <Printer size={14} /> Sí, imprimir
+                                                    </button>
+                                                    <button onClick={() => setConfirmarCuentaId(null)}
+                                                        className="flex-1 border border-gray-300 bg-white text-gray-500 font-bold py-2.5 rounded-xl text-sm tracking-wide hover:bg-gray-50 transition">
+                                                        Cancelar
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => setConfirmarCuentaId(p._id)}
+                                                    className="w-full flex items-center justify-center gap-2 border border-gray-300 bg-white text-gray-700 font-bold py-2.5 rounded-xl text-sm tracking-wide hover:bg-gray-50 transition">
+                                                    <Printer size={14} /> Imprimir cuenta
+                                                </button>
+                                            )}
                                             <button
                                                 onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", pagos: [{ metodo: "efectivo", monto: String(p.total) }] }); }}
                                                 className={`w-full text-white font-black py-3 rounded-xl text-base tracking-wide transition ${cobrarBg}`}>
