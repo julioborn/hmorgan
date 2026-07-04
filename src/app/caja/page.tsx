@@ -991,6 +991,61 @@ export default function CajaPage() {
         if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 200); }
     }
 
+    async function printCuenta(pedido: Pedido) {
+        const hora  = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+        const fecha = new Date().toLocaleDateString("es-AR");
+        const printItems = pedido.items.map(i => ({
+            cantidad: i.cantidad,
+            nombre:   i.menuItemId?.nombre || "Ítem",
+            precio:   i.menuItemId?.precio || 0,
+        }));
+        const total = pedido.total ?? 0;
+        const costoEnvioVal = pedido.tipoEntrega === "envio" ? (pedido.costoEnvio || costoDelivery) : 0;
+
+        try {
+            const res = await fetch(`${PRINT_SERVER}/imprimir/ticket`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    mesa: pedido.mesa || "—",
+                    fecha, hora,
+                    items: printItems,
+                    total,
+                    costoEnvio: costoEnvioVal,
+                    descuento: 0,
+                    pagos: [],
+                    vuelto: 0,
+                    sinPago: true,
+                }),
+            });
+            if (res.ok) return;
+        } catch { /* servidor no disponible → fallback */ }
+
+        // Fallback: ventana del navegador
+        const rows = printItems.map(i =>
+            `<tr><td>${i.cantidad}x ${i.nombre}</td><td style="text-align:right">${formatMoney(i.precio * i.cantidad)}</td></tr>`
+        ).join("") + (costoEnvioVal > 0
+            ? `<tr><td>Envío a domicilio</td><td style="text-align:right">${formatMoney(costoEnvioVal)}</td></tr>` : "");
+        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cuenta</title><style>
+            *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Courier New',monospace;font-size:12px;padding:12px;max-width:280px}
+            h2{text-align:center;font-size:15px;letter-spacing:2px;margin-bottom:2px}
+            .sub{text-align:center;font-size:11px;color:#000;margin-bottom:4px}
+            hr{border:none;border-top:1px dashed #000;margin:5px 0}
+            table{width:100%;border-collapse:collapse}td{padding:2px 0;font-size:12px}
+            .total{font-size:14px;font-weight:bold}
+        </style></head><body>
+        <h2>CUENTA</h2>
+        <div class="sub">Mesa ${pedido.mesa || "—"} · ${fecha} ${hora}</div>
+        <hr/><table>${rows}</table><hr/>
+        <table>
+            <tr><td class="total">TOTAL</td><td class="total" style="text-align:right">${formatMoney(total)}</td></tr>
+        </table>
+        <div style="text-align:center;font-size:10px;margin-top:10px">Gracias por su visita!</div>
+        </body></html>`;
+        const w = window.open("", "_blank", "width=320,height=500,toolbar=0,menubar=0");
+        if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 200); }
+    }
+
     function datosComanda(p: Pedido) {
         const esEmpleado = p.fuente === "empleado";
         const base = p.mesa ? mesaLabel(p.mesa) : p.tipoEntrega === "envio" ? "Envío a domicilio" : "Retira en barra";
@@ -2277,6 +2332,11 @@ export default function CajaPage() {
 
                                         {/* ── Botones cobrar ── */}
                                         <div className="px-3 pb-3 flex flex-col gap-2">
+                                            <button
+                                                onClick={() => printCuenta(p)}
+                                                className="w-full flex items-center justify-center gap-2 border border-gray-300 bg-white text-gray-700 font-bold py-2.5 rounded-xl text-sm tracking-wide hover:bg-gray-50 transition">
+                                                <Printer size={14} /> Imprimir cuenta
+                                            </button>
                                             <button
                                                 onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", pagos: [{ metodo: "efectivo", monto: String(p.total) }] }); }}
                                                 className={`w-full text-white font-black py-3 rounded-xl text-base tracking-wide transition ${cobrarBg}`}>
