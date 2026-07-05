@@ -915,6 +915,15 @@ function AnotadorMenuContent() {
                                                     <button onClick={() => addToCart(item)} className="w-7 h-7 rounded-full bg-red-600 hover:bg-red-700 flex items-center justify-center transition"><Plus className="w-3.5 h-3.5 text-white" /></button>
                                                 )}
                                             </div>
+                                            {qty > 0 && (
+                                                <input
+                                                    type="text"
+                                                    placeholder="Nota para este producto..."
+                                                    value={cart.find(c => c.menuItemId === item._id)?.nota || ""}
+                                                    onChange={e => setCart(prev => prev.map(x => x.menuItemId === item._id ? { ...x, nota: e.target.value } : x))}
+                                                    className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-amber-200 bg-amber-50 focus:outline-none focus:ring-1 focus:ring-amber-400 text-gray-700 placeholder:text-gray-400"
+                                                />
+                                            )}
                                         </div>
                                     );
                                 })}

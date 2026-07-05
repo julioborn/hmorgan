@@ -368,6 +368,13 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
           Icon={Tablet}
           accent="from-gray-400 to-gray-500"
           disabled={true}
+          onDisabledClick={() => swalBase.fire({
+            title: "Próximamente",
+            text: "Esta función estará disponible muy pronto.",
+            icon: "info",
+            timer: 2200,
+            showConfirmButton: false,
+          })}
         />
         <ActionCard
           href="/cliente/reservas"
@@ -933,6 +940,7 @@ function ActionCard({
   accent,
   disabled,
   notificationCount,
+  onDisabledClick,
 }: {
   href: string;
   title: string;
@@ -940,6 +948,7 @@ function ActionCard({
   accent?: string;
   disabled?: boolean;
   notificationCount?: number;
+  onDisabledClick?: () => void;
 }) {
   const content = (
     <div
@@ -962,7 +971,16 @@ function ActionCard({
     </div>
   );
 
-  if (disabled) return <div className="opacity-50 cursor-not-allowed">{content}</div>;
+  if (disabled) {
+    return (
+      <div
+        className={`opacity-50 ${onDisabledClick ? "cursor-pointer" : "cursor-not-allowed"}`}
+        onClick={onDisabledClick}
+      >
+        {content}
+      </div>
+    );
+  }
 
   return (
     <Link
