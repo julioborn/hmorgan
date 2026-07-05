@@ -99,6 +99,7 @@ type EventoCerrado = {
 };
 
 type SubCobro = {
+    _id: string;
     concepto: string;
     metodo: string;
     monto: number;
@@ -203,6 +204,7 @@ function buildGroups(movimientos: Movement[]): MovGroup[] {
                     categoria: (it.menuItemId as any)?.categoria ?? "",
                 }));
             g.cobros.push({
+                _id: m._id,
                 concepto: m.concepto,
                 metodo: m.metodoPago,
                 monto: m.monto,
@@ -255,9 +257,56 @@ function ItemsList({ items }: { items: { nombre: string; cantidad: number; preci
 
 // ── Pedido Modal ──────────────────────────────────────────────────────────────
 
-function PedidoModal({ group, onClose }: { group: MovGroup; onClose: () => void }) {
+function PedidoModal({ group, onClose, onSave }: { group: MovGroup; onClose: () => void; onSave: () => void }) {
     const [openCobro, setOpenCobro] = useState<number | null>(null);
+    const [editState, setEditState] = useState<{ _id: string; metodo: string; monto: string; saving: boolean } | null>(null);
     const pedido = group.pedido!;
+
+    async function saveEdit() {
+        if (!editState) return;
+        setEditState(s => s ? { ...s, saving: true } : null);
+        const res = await fetch(`/api/superadmin/caja/movimiento/${editState._id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ metodoPago: editState.metodo, monto: Number(editState.monto) }),
+        });
+        if (res.ok) { onClose(); onSave(); }
+        else setEditState(s => s ? { ...s, saving: false } : null);
+    }
+
+    const editForm = editState && (
+        <div className="mt-2 rounded-xl border-2 border-black bg-gray-50 p-3 space-y-2">
+            <p className="text-[10px] font-black uppercase tracking-wide text-gray-600">Corregir cobro</p>
+            <select
+                value={editState.metodo}
+                onChange={e => setEditState(s => s ? { ...s, metodo: e.target.value } : null)}
+                className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-2 bg-white font-semibold"
+            >
+                <option value="efectivo">Efectivo</option>
+                <option value="tarjeta">Tarjeta</option>
+                <option value="transferencia">Transferencia</option>
+            </select>
+            <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-2.5 py-1.5">
+                <span className="text-gray-400 font-bold text-sm">$</span>
+                <input
+                    type="number" min="0"
+                    value={editState.monto}
+                    onChange={e => setEditState(s => s ? { ...s, monto: e.target.value } : null)}
+                    className="flex-1 text-sm font-black focus:outline-none text-gray-900 bg-transparent text-right"
+                />
+            </div>
+            <div className="flex gap-2">
+                <button onClick={() => setEditState(null)} className="flex-1 py-1.5 border border-gray-300 rounded-xl text-xs font-bold text-gray-600 hover:border-gray-500 transition">
+                    Cancelar
+                </button>
+                <button onClick={saveEdit} disabled={editState.saving || !editState.monto}
+                    className="flex-1 py-1.5 bg-black text-white rounded-xl text-xs font-black disabled:opacity-40 flex items-center justify-center gap-1 transition">
+                    <Check size={12} /> {editState.saving ? "Guardando…" : "Guardar"}
+                </button>
+            </div>
+        </div>
+    );
     const titulo = pedido.mesa
         ? `Mesa ${pedido.mesa}${pedido.nombreComanda ? ` · ${pedido.nombreComanda}` : ""}`
         : pedido.nombreComanda || "Pedido";
@@ -326,12 +375,24 @@ function PedidoModal({ group, onClose }: { group: MovGroup; onClose: () => void 
                                         <span>Descuento</span><span>-{fmt(group.cobros[0].descuento)}</span>
                                     </div>
                                 )}
-                                {group.pagos.map((p, i) => {
-                                    const Icon = METODO_ICON[p.metodo] || Banknote;
+                                {group.cobros.map((c, i) => {
+                                    const Icon = METODO_ICON[c.metodo] || Banknote;
+                                    const isEditing = editState?._id === c._id;
                                     return (
-                                        <div key={i} className={`flex items-center justify-between rounded-lg px-2.5 py-1.5 border ${METODO_COLOR[p.metodo] || "bg-gray-100 border-gray-200 text-gray-600"}`}>
-                                            <span className="flex items-center gap-1.5 text-xs font-bold"><Icon size={12} />{METODO_LABEL[p.metodo] || p.metodo}</span>
-                                            <span className="text-sm font-black">{fmt(p.monto)}</span>
+                                        <div key={i}>
+                                            <div className={`flex items-center justify-between rounded-lg px-2.5 py-1.5 border ${METODO_COLOR[c.metodo] || "bg-gray-100 border-gray-200 text-gray-600"}`}>
+                                                <span className="flex items-center gap-1.5 text-xs font-bold"><Icon size={12} />{METODO_LABEL[c.metodo] || c.metodo}</span>
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-sm font-black">{fmt(c.monto)}</span>
+                                                    <button
+                                                        onClick={() => setEditState(isEditing ? null : { _id: c._id, metodo: c.metodo, monto: String(c.monto), saving: false })}
+                                                        className="p-1 rounded hover:bg-black/10 transition opacity-60 hover:opacity-100"
+                                                    >
+                                                        <Pencil size={10} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            {isEditing && editForm}
                                         </div>
                                     );
                                 })}
@@ -355,29 +416,43 @@ function PedidoModal({ group, onClose }: { group: MovGroup; onClose: () => void 
                                 {group.cobros.map((c, idx) => {
                                     const Icon = METODO_ICON[c.metodo] || Banknote;
                                     const isOpen = openCobro === idx;
+                                    const isEditing = editState?._id === c._id;
                                     return (
                                         <div key={idx}>
-                                            <button
-                                                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition text-left"
-                                                onClick={() => setOpenCobro(isOpen ? null : idx)}
-                                            >
-                                                <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full shrink-0 ${c.isParcial ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
-                                                    {c.isParcial ? "PARCIAL" : "FINAL"}
-                                                </span>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <Icon size={11} className="shrink-0 text-gray-500" />
-                                                        <span className="text-xs font-bold text-gray-700">{METODO_LABEL[c.metodo] || c.metodo}</span>
-                                                        <span className="text-[10px] text-gray-400 flex items-center gap-0.5"><Clock size={9} />{formatHora(c.createdAt)}</span>
+                                            <div className="flex items-center gap-1 px-4 py-3 hover:bg-gray-50 transition">
+                                                <div
+                                                    className="flex-1 min-w-0 flex items-center gap-3 cursor-pointer"
+                                                    onClick={() => setOpenCobro(isOpen ? null : idx)}
+                                                >
+                                                    <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full shrink-0 ${c.isParcial ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
+                                                        {c.isParcial ? "PARCIAL" : "FINAL"}
+                                                    </span>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Icon size={11} className="shrink-0 text-gray-500" />
+                                                            <span className="text-xs font-bold text-gray-700">{METODO_LABEL[c.metodo] || c.metodo}</span>
+                                                            <span className="text-[10px] text-gray-400 flex items-center gap-0.5"><Clock size={9} />{formatHora(c.createdAt)}</span>
+                                                        </div>
+                                                        {c.excedente > 0 && (
+                                                            <p className="text-[10px] text-amber-600 font-bold mt-0.5">+{fmt(c.excedente)} propina</p>
+                                                        )}
                                                     </div>
-                                                    {c.excedente > 0 && (
-                                                        <p className="text-[10px] text-amber-600 font-bold mt-0.5">+{fmt(c.excedente)} propina</p>
-                                                    )}
+                                                    <span className="font-black text-gray-900 text-sm shrink-0">{fmt(c.monto)}</span>
+                                                    {isOpen ? <ChevronUp size={13} className="text-gray-400 shrink-0" /> : <ChevronDown size={13} className="text-gray-400 shrink-0" />}
                                                 </div>
-                                                <span className="font-black text-gray-900 text-sm shrink-0">{fmt(c.monto)}</span>
-                                                {isOpen ? <ChevronUp size={13} className="text-gray-400 shrink-0" /> : <ChevronDown size={13} className="text-gray-400 shrink-0" />}
-                                            </button>
-                                            {isOpen && (
+                                                <button
+                                                    onClick={() => setEditState(isEditing ? null : { _id: c._id, metodo: c.metodo, monto: String(c.monto), saving: false })}
+                                                    className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-400 hover:text-gray-700 transition shrink-0"
+                                                >
+                                                    <Pencil size={12} />
+                                                </button>
+                                            </div>
+                                            {isEditing && (
+                                                <div className="px-4 pb-3">
+                                                    {editForm}
+                                                </div>
+                                            )}
+                                            {isOpen && !isEditing && (
                                                 <div className="border-t border-gray-100">
                                                     <ItemsList items={c.items} />
                                                 </div>
@@ -484,7 +559,7 @@ function MovCard({ g, onOpenGroup }: { g: MovGroup; onOpenGroup: (g: MovGroup) =
 
 // ── Movimientos Section ───────────────────────────────────────────────────────
 
-function MovimientosSection({ movimientos }: { movimientos: Movement[] }) {
+function MovimientosSection({ movimientos, onRefresh }: { movimientos: Movement[]; onRefresh: () => void }) {
     const [modalGroup, setModalGroup] = useState<MovGroup | null>(null);
     const groups = buildGroups(movimientos);
 
@@ -495,7 +570,13 @@ function MovimientosSection({ movimientos }: { movimientos: Movement[] }) {
                     <MovCard key={g.key} g={g} onOpenGroup={setModalGroup} />
                 ))}
             </div>
-            {modalGroup && <PedidoModal group={modalGroup} onClose={() => setModalGroup(null)} />}
+            {modalGroup && (
+                <PedidoModal
+                    group={modalGroup}
+                    onClose={() => setModalGroup(null)}
+                    onSave={() => { setModalGroup(null); onRefresh(); }}
+                />
+            )}
         </>
     );
 }
@@ -715,7 +796,7 @@ function DetalleSesion({ s, onRefresh }: { s: Sesion; onRefresh: () => void }) {
                     <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">
                         Movimientos · {s.movimientos.length}
                     </p>
-                    <MovimientosSection movimientos={s.movimientos} />
+                    <MovimientosSection movimientos={s.movimientos} onRefresh={onRefresh} />
                 </div>
             )}
 

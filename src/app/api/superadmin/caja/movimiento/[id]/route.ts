@@ -10,7 +10,7 @@ function auth(req: NextRequest) {
     if (!token) return null;
     try {
         const p = jwt.verify(token, SECRET) as any;
-        return ["superadmin", "admin", "cajero"].includes(p.role) ? p : null;
+        return ["superadmin", "admin"].includes(p.role) ? p : null;
     } catch { return null; }
 }
 
