@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { ChevronLeft, Search, UserPlus, X, Star, Check, Clock } from "lucide-react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { swalBase } from "@/lib/swalConfig";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -229,6 +229,7 @@ function ComandaCard({ comanda, onAcreditado }: { comanda: Comanda; onAcreditado
 }
 
 export default function RetroactivoPage() {
+    const router = useRouter();
     const [comandas, setComandas] = useState<Comanda[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -250,9 +251,9 @@ export default function RetroactivoPage() {
     return (
         <div className="max-w-lg mx-auto px-4 py-6">
             <div className="flex items-center gap-3 mb-6">
-                <Link href="/caja" className="p-2 rounded-xl hover:bg-gray-100 transition shrink-0">
+                <button onClick={() => router.back()} className="p-2 rounded-xl hover:bg-gray-100 transition shrink-0">
                     <ChevronLeft size={20} />
-                </Link>
+                </button>
                 <div>
                     <h1 className="text-2xl font-extrabold text-black leading-tight">Puntos a asignar</h1>
                     <p className="text-xs text-gray-400 mt-0.5">Asigná puntos a clientes que consumieron antes de crear su cuenta</p>
