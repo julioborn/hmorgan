@@ -199,6 +199,7 @@ export default function CajaPage() {
     >(null);
     const [editItemSearch, setEditItemSearch] = useState("");
     const [editItemCat, setEditItemCat]       = useState<string | null>(null);
+    const [editItemCart, setEditItemCart]     = useState<{ menuItemId: string; nombre: string; precio: number; categoria: string; cantidad: number }[]>([]);
     const [ventaMenuCat, setVentaMenuCat]     = useState<string | null>(null);
     const [mesasPlano, setMesasPlano]     = useState<MesaPlano[]>([]);
     const [elementsPlano, setElementsPlano] = useState<SalonElPlano[]>([]);
@@ -755,46 +756,52 @@ export default function CajaPage() {
         loadData();
     }
 
-    // Agregar un producto nuevo a una comanda ya existente. Si la comanda ya fue aceptada
-    // (no está "pendiente"), imprime ese único producto ya mismo en BARRA o COCINA según
-    // corresponda, sin esperar al poll de 5s. El ítem queda marcado "impreso" recién
-    // cuando la impresión termina; si falla, el poll de detectarAgregados lo reintenta.
-    async function agregarProductoAPedido(menuItem: MenuItemLite) {
-        if (!editItemModal || editItemModal.modo !== "agregar") return;
+    function addToEditCart(m: MenuItemLite) {
+        setEditItemCart(prev => {
+            const ex = prev.find(x => x.menuItemId === m._id);
+            if (ex) return prev.map(x => x.menuItemId === m._id ? { ...x, cantidad: x.cantidad + 1 } : x);
+            return [...prev, { menuItemId: m._id, nombre: m.nombre, precio: m.precio, categoria: m.categoria, cantidad: 1 }];
+        });
+    }
+
+    function closeEditItemModal() {
+        setEditItemModal(null);
+        setEditItemSearch("");
+        setEditItemCat(null);
+        setEditItemCart([]);
+    }
+
+    async function confirmarAgregadosAlPedido() {
+        if (!editItemModal || editItemModal.modo !== "agregar" || editItemCart.length === 0) return;
         const pedido = editItemModal.pedido;
-        const impresora = BEBIDAS_CATS.includes(menuItem.categoria) ? "BARRA" : "COCINA";
         const yaAceptado = pedido.estado !== "pendiente";
+        const totalUnidades = editItemCart.reduce((a, i) => a + i.cantidad, 0);
 
         const r = await swalBase.fire({
-            title: "¿Agregar producto?",
+            title: `¿Agregar ${totalUnidades} ítem${totalUnidades !== 1 ? "s" : ""}?`,
             text: yaAceptado
-                ? `"${menuItem.nombre}" se agrega a la comanda y se imprime directo en ${impresora}.`
-                : `"${menuItem.nombre}" se agrega a la comanda.`,
+                ? "Se imprimirán directo en cocina/barra."
+                : "Se agregan a la comanda.",
             icon: "question", showCancelButton: true,
             confirmButtonText: "Sí, agregar", cancelButtonText: "Cancelar",
         });
         if (!r.isConfirmed) return;
 
-        setEditItemModal(null);
+        const cartSnapshot = [...editItemCart];
+        closeEditItemModal();
 
         const res = await fetch(`/api/pedidos/${pedido._id}`, {
             method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
-            body: JSON.stringify({ items: [{ menuItemId: menuItem._id, cantidad: 1 }] }),
+            body: JSON.stringify({ items: cartSnapshot.map(i => ({ menuItemId: i.menuItemId, cantidad: i.cantidad })) }),
         });
 
         if (yaAceptado) {
-            const data = await res.json().catch(() => null);
-            const nuevoItem = data?.pedido?.items?.[data.pedido.items.length - 1];
-            const nuevoItemId = nuevoItem?._id ? String(nuevoItem._id) : undefined;
-            if (nuevoItemId) itemsImprimiendoRef.current.add(nuevoItemId);
             try {
-                await printItemsAgregados(pedido, [
-                    { cantidad: 1, menuItemId: { nombre: menuItem.nombre, categoria: menuItem.categoria } } as Pedido["items"][number],
-                ]);
-                if (nuevoItemId) await marcarItemsImpresos(pedido._id, [nuevoItemId]);
-            } finally {
-                if (nuevoItemId) itemsImprimiendoRef.current.delete(nuevoItemId);
-            }
+                await printItemsAgregados(pedido, cartSnapshot.map(i => ({
+                    cantidad: i.cantidad,
+                    menuItemId: { nombre: i.nombre, categoria: i.categoria },
+                } as Pedido["items"][number])));
+            } catch {}
         }
 
         loadData();
@@ -2049,11 +2056,13 @@ export default function CajaPage() {
                                                                         <ArrowLeftRight size={12} />
                                                                     </button>
                                                                 )}
-                                                                <button onClick={() => abrirComensalesModalCaja(p)}
-                                                                    className="p-1.5 rounded-full bg-white/20 hover:bg-white/40 text-white transition"
-                                                                    title="Comensales">
-                                                                    <Users size={12} />
-                                                                </button>
+                                                                {p.tipoEntrega !== "envio" && (
+                                                                    <button onClick={() => abrirComensalesModalCaja(p)}
+                                                                        className="p-1.5 rounded-full bg-white/20 hover:bg-white/40 text-white transition"
+                                                                        title="Comensales">
+                                                                        <Users size={12} />
+                                                                    </button>
+                                                                )}
                                                                 <button onClick={() => eliminarPedidoCaja(p)}
                                                                     className="p-1.5 rounded-full bg-white/20 hover:bg-white/40 text-white transition">
                                                                     <Trash2 size={12} />
@@ -3531,15 +3540,20 @@ export default function CajaPage() {
                             {/* Header */}
                             <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
                                 {editItemCat && !searchActive && (
-                                    <button onClick={() => setEditItemCat(editItemCat === "BEBIDAS" || BEBIDAS_CATS.includes(editItemCat) ? (BEBIDAS_CATS.includes(editItemCat) ? "BEBIDAS" : null) : null)}
+                                    <button onClick={() => setEditItemCat(BEBIDAS_CATS.includes(editItemCat) ? "BEBIDAS" : null)}
                                         className="p-1 text-gray-700 hover:text-gray-700 transition">
                                         <X size={16} />
                                     </button>
                                 )}
                                 <h2 className="font-black text-gray-900 flex-1 truncate text-sm">
-                                    {searchActive ? "Buscar" : editItemCat ? editItemCat : (editItemModal.modo === "reemplazar" ? `Cambiar "${editItemModal.nombreActual}"` : "Agregar producto")}
+                                    {searchActive ? "Buscar" : editItemCat ? editItemCat : (editItemModal.modo === "reemplazar" ? `Cambiar "${editItemModal.nombreActual}"` : "Agregar productos")}
                                 </h2>
-                                <button onClick={() => { setEditItemModal(null); setEditItemSearch(""); setEditItemCat(null); }} className="p-1 text-gray-700"><X size={18} /></button>
+                                {editItemModal.modo === "agregar" && editItemCart.length > 0 && (
+                                    <span className="bg-black text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+                                        {editItemCart.reduce((a, i) => a + i.cantidad, 0)}
+                                    </span>
+                                )}
+                                <button onClick={closeEditItemModal} className="p-1 text-gray-700"><X size={18} /></button>
                             </div>
                             {/* Buscador */}
                             <div className="px-4 py-3 shrink-0">
@@ -3551,13 +3565,19 @@ export default function CajaPage() {
                             <div className="overflow-y-auto flex-1 min-h-0 px-3 pb-3">
                                 {searchActive ? (
                                     <div className="space-y-1">
-                                        {searchResults.map(m => (
-                                            <button key={m._id} onClick={() => { editItemModal.modo === "reemplazar" ? reemplazarItemPedido(m._id, m.nombre) : agregarProductoAPedido(m); setEditItemSearch(""); setEditItemCat(null); }}
-                                                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-gray-50 border border-gray-100 text-left transition">
-                                                <span className="text-sm text-gray-800">{m.nombre}</span>
-                                                <span className="text-xs text-gray-700 shrink-0 ml-2">{formatMoney(m.precio)}</span>
-                                            </button>
-                                        ))}
+                                        {searchResults.map(m => {
+                                            const enCart = editItemCart.find(x => x.menuItemId === m._id);
+                                            return (
+                                                <button key={m._id} onClick={() => { editItemModal.modo === "reemplazar" ? (reemplazarItemPedido(m._id, m.nombre), setEditItemSearch(""), setEditItemCat(null)) : addToEditCart(m); }}
+                                                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border text-left transition ${enCart ? "bg-gray-900 border-gray-900" : "hover:bg-gray-50 border-gray-100"}`}>
+                                                    <span className={`text-sm ${enCart ? "text-white font-semibold" : "text-gray-800"}`}>{m.nombre}</span>
+                                                    <div className="flex items-center gap-2 shrink-0 ml-2">
+                                                        {enCart && <span className="bg-white text-gray-900 text-[10px] font-black px-1.5 py-0.5 rounded-full">{enCart.cantidad}</span>}
+                                                        <span className={`text-xs font-bold ${enCart ? "text-white/70" : "text-gray-700"}`}>{formatMoney(m.precio)}</span>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
                                         {searchResults.length === 0 && <p className="text-center text-gray-700 py-8 text-sm">Sin resultados</p>}
                                     </div>
                                 ) : !editItemCat ? (
@@ -3567,11 +3587,17 @@ export default function CajaPage() {
                                             const count = cat === "BEBIDAS" ? menuItemsAll.filter(m => BEBIDAS_CATS.includes(m.categoria)).length
                                                 : cat === "PICADAS Y FRITURAS" ? menuItemsAll.filter(m => PICAR_CATS.includes(m.categoria)).length
                                                 : menuItemsAll.filter(m => m.categoria === cat).length;
+                                            const enCartCat = editItemModal.modo === "agregar" && editItemCart.some(x =>
+                                                cat === "BEBIDAS" ? BEBIDAS_CATS.includes(x.categoria) :
+                                                cat === "PICADAS Y FRITURAS" ? PICAR_CATS.includes(x.categoria) :
+                                                x.categoria === cat
+                                            );
                                             return (
                                                 <button key={cat} onClick={() => setEditItemCat(cat)}
                                                     className="relative h-28 rounded-2xl overflow-hidden shadow-sm active:scale-[0.97] transition-transform">
                                                     {img ? <MenuImg src={img} alt={cat} className="absolute inset-0 w-full h-full object-cover" /> : <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-600" />}
                                                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/10" />
+                                                    {enCartCat && <div className="absolute top-2 right-2 w-2.5 h-2.5 bg-white rounded-full" />}
                                                     <div className="absolute bottom-2.5 left-0 right-0 px-2 text-center">
                                                         <p className="text-white font-black text-xs tracking-tight leading-tight">{cat}</p>
                                                         <p className="text-white/60 text-[10px] mt-0.5">{count} prod.</p>
@@ -3600,17 +3626,50 @@ export default function CajaPage() {
                                     </div>
                                 ) : (
                                     <div className="space-y-1 pt-1">
-                                        {itemsForCat.map(m => (
-                                            <button key={m._id} onClick={() => { editItemModal.modo === "reemplazar" ? reemplazarItemPedido(m._id, m.nombre) : agregarProductoAPedido(m); setEditItemCat(null); }}
-                                                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-gray-50 border border-gray-100 text-left transition">
-                                                <span className="text-sm text-gray-800">{m.nombre}</span>
-                                                <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full shrink-0 ml-2">{formatMoney(m.precio)}</span>
-                                            </button>
-                                        ))}
+                                        {itemsForCat.map(m => {
+                                            const enCart = editItemCart.find(x => x.menuItemId === m._id);
+                                            return (
+                                                <button key={m._id} onClick={() => { editItemModal.modo === "reemplazar" ? (reemplazarItemPedido(m._id, m.nombre), setEditItemCat(null)) : addToEditCart(m); }}
+                                                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border text-left transition ${enCart ? "bg-gray-900 border-gray-900" : "hover:bg-gray-50 border-gray-100"}`}>
+                                                    <span className={`text-sm ${enCart ? "text-white font-semibold" : "text-gray-800"}`}>{m.nombre}</span>
+                                                    <div className="flex items-center gap-2 shrink-0 ml-2">
+                                                        {enCart && <span className="bg-white text-gray-900 text-[10px] font-black px-1.5 py-0.5 rounded-full">{enCart.cantidad}</span>}
+                                                        <span className={`text-xs font-bold ${enCart ? "text-white/70" : "text-red-600 bg-red-50 px-2 py-0.5 rounded-full"}`}>{formatMoney(m.precio)}</span>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
                                         {itemsForCat.length === 0 && <p className="text-center text-gray-700 py-8 text-sm">Sin productos</p>}
                                     </div>
                                 )}
                             </div>
+                            {/* Footer carrito — solo en modo agregar */}
+                            {editItemModal.modo === "agregar" && editItemCart.length > 0 && (
+                                <div className="border-t border-gray-100 px-4 pt-3 pb-4 shrink-0 space-y-2">
+                                    <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                                        {editItemCart.map(i => (
+                                            <div key={i.menuItemId} className="flex items-center gap-2">
+                                                <span className="text-xs text-gray-700 flex-1 truncate">{i.nombre}</span>
+                                                <div className="flex items-center gap-1 shrink-0">
+                                                    <button onClick={() => setEditItemCart(prev => {
+                                                        const ex = prev.find(x => x.menuItemId === i.menuItemId);
+                                                        if (!ex || ex.cantidad === 1) return prev.filter(x => x.menuItemId !== i.menuItemId);
+                                                        return prev.map(x => x.menuItemId === i.menuItemId ? { ...x, cantidad: x.cantidad - 1 } : x);
+                                                    })} className="w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-xs font-bold transition">−</button>
+                                                    <span className="text-xs font-black w-4 text-center">{i.cantidad}</span>
+                                                    <button onClick={() => setEditItemCart(prev => prev.map(x => x.menuItemId === i.menuItemId ? { ...x, cantidad: x.cantidad + 1 } : x))}
+                                                        className="w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-xs font-bold transition">+</button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <button onClick={confirmarAgregadosAlPedido}
+                                        className="w-full bg-black hover:bg-gray-800 text-white font-black py-2.5 rounded-xl text-sm transition flex items-center justify-center gap-2">
+                                        <Plus size={14} />
+                                        Agregar {editItemCart.reduce((a, i) => a + i.cantidad, 0)} ítem{editItemCart.reduce((a, i) => a + i.cantidad, 0) !== 1 ? "s" : ""} a la comanda
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 );
