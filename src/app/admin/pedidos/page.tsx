@@ -80,27 +80,7 @@ export default function AdminPedidosPage() {
         }
     }
 
-    if (cajaAbierta === null) return <div className="flex justify-center py-20"><Loader /></div>;
-
-    if (cajaAbierta === false) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 px-4 text-center">
-                <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
-                    <LockKeyhole size={32} className="text-gray-400" />
-                </div>
-                <div>
-                    <h2 className="text-xl font-extrabold text-gray-900 mb-1">Caja cerrada</h2>
-                    <p className="text-sm text-gray-500">Para gestionar pedidos, primero abrí la caja del día.</p>
-                </div>
-                <Link href="/admin/caja"
-                    className="bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-3 rounded-xl transition">
-                    Ir a Caja
-                </Link>
-            </div>
-        );
-    }
-
-    if (loading) return <Loader />;
+    if (cajaAbierta === null && pedidosActivos === null) return <div className="flex justify-center py-20"><Loader /></div>;
 
     const estados = [
         { key: "pendiente", label: "Pendiente", icon: Clock, color: "yellow" },
@@ -203,24 +183,46 @@ export default function AdminPedidosPage() {
 
     return (
         <div className="p-6 min-h-screen text-white">
-            <div className="flex items-center justify-between mb-3">
+            {/* Header siempre visible */}
+            <div className="flex items-center justify-between mb-6">
                 <h1 className="text-4xl font-extrabold text-black">Pedidos</h1>
                 {pedidosActivos !== null && (
-                    <button
-                        onClick={togglePedidos}
-                        disabled={togglingPedidos}
-                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl border transition disabled:opacity-50"
-                        style={{ borderColor: pedidosActivos ? "#16a34a" : "#dc2626", background: pedidosActivos ? "#f0fdf4" : "#fef2f2" }}
-                    >
-                        <div className={`relative w-10 h-5 rounded-full transition-colors ${pedidosActivos ? "bg-green-500" : "bg-red-400"}`}>
-                            <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${pedidosActivos ? "left-5" : "left-0.5"}`} />
-                        </div>
-                        <span className={`text-xs font-bold ${pedidosActivos ? "text-green-700" : "text-red-600"}`}>
-                            {pedidosActivos ? "Delivery activo" : "Delivery inactivo"}
+                    <div className="flex items-center gap-3">
+                        <span className={`text-sm font-semibold ${pedidosActivos ? "text-gray-900" : "text-gray-400"}`}>
+                            Delivery {pedidosActivos ? "activo" : "inactivo"}
                         </span>
-                    </button>
+                        <button
+                            onClick={togglePedidos}
+                            disabled={togglingPedidos}
+                            className={`relative flex h-6 w-10 shrink-0 cursor-pointer rounded-full items-center transition-colors duration-200 disabled:opacity-50 ${pedidosActivos ? "bg-red-500" : "bg-gray-300"}`}
+                        >
+                            <span className={`absolute h-5 w-5 rounded-full bg-white shadow-md transition-transform duration-200 ${pedidosActivos ? "translate-x-[18px]" : "translate-x-[2px]"}`} />
+                        </button>
+                    </div>
                 )}
             </div>
+
+            {/* Caja cerrada */}
+            {cajaAbierta === false && (
+                <div className="flex flex-col items-center justify-center min-h-[50vh] gap-6 px-4 text-center">
+                    <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
+                        <LockKeyhole size={32} className="text-gray-400" />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-extrabold text-gray-900 mb-1">Caja cerrada</h2>
+                        <p className="text-sm text-gray-500">Para gestionar pedidos, primero abrí la caja del día.</p>
+                    </div>
+                    <Link href="/admin/caja" className="bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-3 rounded-xl transition">
+                        Ir a Caja
+                    </Link>
+                </div>
+            )}
+
+            {/* Cargando pedidos */}
+            {cajaAbierta === true && loading && <div className="flex justify-center py-20"><Loader /></div>}
+
+            {/* Contenido pedidos */}
+            {cajaAbierta === true && !loading && <>
 
             {/* 🔘 Selector de vista */}
             <div className="flex justify-center flex-wrap gap-1 mb-8">
@@ -439,6 +441,7 @@ export default function AdminPedidosPage() {
                     </button>
                 </div>
             )}
+            </>}
         </div>
     );
 }
