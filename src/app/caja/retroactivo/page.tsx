@@ -254,7 +254,7 @@ export default function RetroactivoPage() {
                     <ChevronLeft size={20} />
                 </Link>
                 <div>
-                    <h1 className="text-2xl font-extrabold text-black leading-tight">Puntos retroactivos</h1>
+                    <h1 className="text-2xl font-extrabold text-black leading-tight">Puntos a asignar</h1>
                     <p className="text-xs text-gray-400 mt-0.5">Asigná puntos a clientes que consumieron antes de crear su cuenta</p>
                 </div>
             </div>
