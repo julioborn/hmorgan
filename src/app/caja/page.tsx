@@ -208,6 +208,7 @@ export default function CajaPage() {
     const [reservasHoy, setReservasHoy]   = useState<ReservaHoy[]>([]);
     const [reservaDetalle, setReservaDetalle] = useState<ReservaHoy | null>(null);
     const [cambiarMesaModal, setCambiarMesaModal] = useState<Pedido | null>(null);
+    const [editingNota, setEditingNota] = useState<{ pedidoId: string; itemId: string; valor: string } | null>(null);
 
     // Eventos
     const [eventosActivos, setEventosActivos]     = useState<Evento[]>([]);
@@ -627,6 +628,15 @@ export default function CajaPage() {
             method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
             body: JSON.stringify({ accion: "eliminarItem", itemId, nombreItem: nombre }),
         });
+        loadData();
+    }
+
+    async function guardarNota(pedidoId: string, itemId: string, nota: string) {
+        await fetch(`/api/pedidos/${pedidoId}`, {
+            method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
+            body: JSON.stringify({ accion: "editarNotaItem", itemId, nota }),
+        });
+        setEditingNota(null);
         loadData();
     }
 
@@ -2132,24 +2142,51 @@ export default function CajaPage() {
 
                                                     {/* Items */}
                                                     <ul className="mb-2 divide-y divide-gray-100 border border-black rounded-xl flex-1 min-h-0 overflow-y-auto">
-                                                        {p.items.map((it, idx) => (
-                                                            <li key={it._id || idx} className={`flex items-center px-3 py-2.5 gap-2 transition-colors ${it.listo ? "bg-emerald-50" : ""}`}>
-                                                                <span className={`font-black text-sm shrink-0 ${it.listo ? "text-emerald-600" : "text-gray-900"}`}>{it.cantidad}×</span>
-                                                                <span className={`text-sm font-semibold flex-1 min-w-0 truncate ${it.listo ? "text-emerald-700" : "text-gray-900"}`}>{it.menuItemId?.nombre}</span>
-                                                                {p.estado !== "cerrado" && p.estado !== "cancelado" && it._id && (
-                                                                    <div className="flex items-center gap-1 shrink-0">
-                                                                        <button onClick={() => abrirSelectorProducto(p, { modo: "reemplazar", itemId: it._id!, nombreActual: it.menuItemId?.nombre || "ítem" })}
-                                                                            className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 transition">
-                                                                            <Pencil size={12} />
-                                                                        </button>
-                                                                        <button onClick={() => eliminarItemPedido(p._id, it._id!, it.menuItemId?.nombre || "ítem")}
-                                                                            className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition">
-                                                                            <Trash2 size={12} />
-                                                                        </button>
+                                                        {p.items.map((it, idx) => {
+                                                            const isEditingThis = editingNota?.pedidoId === p._id && editingNota?.itemId === it._id;
+                                                            return (
+                                                            <li key={it._id || idx} className={`px-3 py-2 transition-colors ${it.listo ? "bg-emerald-50" : ""}`}>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className={`font-black text-sm shrink-0 ${it.listo ? "text-emerald-600" : "text-gray-900"}`}>{it.cantidad}×</span>
+                                                                    <span className={`text-sm font-semibold flex-1 min-w-0 truncate ${it.listo ? "text-emerald-700" : "text-gray-900"}`}>{it.menuItemId?.nombre}</span>
+                                                                    {p.estado !== "cerrado" && p.estado !== "cancelado" && it._id && (
+                                                                        <div className="flex items-center gap-1 shrink-0">
+                                                                            <button onClick={() => setEditingNota(isEditingThis ? null : { pedidoId: p._id, itemId: it._id!, valor: it.nota || "" })}
+                                                                                className={`p-1.5 rounded-lg transition ${isEditingThis || it.nota ? "bg-amber-100 text-amber-600 hover:bg-amber-200" : "bg-gray-100 text-gray-400 hover:bg-gray-200"}`}>
+                                                                                <MessageCircle size={12} />
+                                                                            </button>
+                                                                            <button onClick={() => abrirSelectorProducto(p, { modo: "reemplazar", itemId: it._id!, nombreActual: it.menuItemId?.nombre || "ítem" })}
+                                                                                className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 transition">
+                                                                                <Pencil size={12} />
+                                                                            </button>
+                                                                            <button onClick={() => eliminarItemPedido(p._id, it._id!, it.menuItemId?.nombre || "ítem")}
+                                                                                className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition">
+                                                                                <Trash2 size={12} />
+                                                                            </button>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                {it.nota && !isEditingThis && (
+                                                                    <p className="text-[11px] text-amber-700 italic mt-0.5 ml-5 truncate">✏ {it.nota}</p>
+                                                                )}
+                                                                {isEditingThis && (
+                                                                    <div className="mt-1.5 ml-5 flex gap-1.5">
+                                                                        <input
+                                                                            autoFocus
+                                                                            type="text"
+                                                                            value={editingNota.valor}
+                                                                            onChange={e => setEditingNota(s => s ? { ...s, valor: e.target.value } : null)}
+                                                                            onKeyDown={e => { if (e.key === "Enter") guardarNota(p._id, it._id!, editingNota.valor); if (e.key === "Escape") setEditingNota(null); }}
+                                                                            placeholder="Nota del ítem…"
+                                                                            className="flex-1 text-xs border border-amber-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-amber-400 bg-amber-50"
+                                                                        />
+                                                                        <button onClick={() => guardarNota(p._id, it._id!, editingNota.valor)} className="px-2 py-1 bg-amber-500 text-white rounded-lg text-[10px] font-black">OK</button>
+                                                                        <button onClick={() => setEditingNota(null)} className="px-2 py-1 bg-gray-200 text-gray-600 rounded-lg text-[10px] font-bold">✕</button>
                                                                     </div>
                                                                 )}
                                                             </li>
-                                                        ))}
+                                                            );
+                                                        })}
                                                     </ul>
 
                                                     {p.estado !== "cerrado" && p.estado !== "cancelado" && (
@@ -2402,26 +2439,53 @@ export default function CajaPage() {
                                         </div>
 
                                         {/* ── Items ── */}
-                                        <div className="px-4 py-3 flex-1 min-h-0 overflow-y-auto space-y-1.5">
-                                            {p.items.map((item, idx) => (
-                                                <div key={item._id || idx} className={`flex items-center gap-2 rounded-lg px-2 py-1 -mx-2 transition-colors ${item.listo ? "bg-emerald-50" : ""}`}>
-                                                    <span className={`font-black text-sm shrink-0 ${item.listo ? "text-emerald-600" : "text-gray-900"}`}>{item.cantidad}×</span>
-                                                    <span className={`text-sm font-semibold flex-1 min-w-0 truncate ${item.listo ? "text-emerald-700" : "text-gray-900"}`}>{item.menuItemId?.nombre}</span>
-                                                    <span className="text-xs text-gray-700 shrink-0">{formatMoney((item.menuItemId?.precio || 0) * item.cantidad)}</span>
-                                                    {item._id && (
-                                                        <div className="flex items-center gap-1 shrink-0">
-                                                            <button onClick={() => abrirSelectorProducto(p, { modo: "reemplazar", itemId: item._id!, nombreActual: item.menuItemId?.nombre || "ítem" })}
-                                                                className="p-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 transition">
-                                                                <Pencil size={11} />
-                                                            </button>
-                                                            <button onClick={() => eliminarItemPedido(p._id, item._id!, item.menuItemId?.nombre || "ítem")}
-                                                                className="p-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition">
-                                                                <Trash2 size={11} />
-                                                            </button>
+                                        <div className="px-4 py-3 flex-1 min-h-0 overflow-y-auto space-y-1">
+                                            {p.items.map((item, idx) => {
+                                                const isEditingThis = editingNota?.pedidoId === p._id && editingNota?.itemId === item._id;
+                                                return (
+                                                <div key={item._id || idx} className={`rounded-lg px-2 py-1.5 -mx-2 transition-colors ${item.listo ? "bg-emerald-50" : ""}`}>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`font-black text-sm shrink-0 ${item.listo ? "text-emerald-600" : "text-gray-900"}`}>{item.cantidad}×</span>
+                                                        <span className={`text-sm font-semibold flex-1 min-w-0 truncate ${item.listo ? "text-emerald-700" : "text-gray-900"}`}>{item.menuItemId?.nombre}</span>
+                                                        <span className="text-xs text-gray-700 shrink-0">{formatMoney((item.menuItemId?.precio || 0) * item.cantidad)}</span>
+                                                        {item._id && (
+                                                            <div className="flex items-center gap-1 shrink-0">
+                                                                <button onClick={() => setEditingNota(isEditingThis ? null : { pedidoId: p._id, itemId: item._id!, valor: item.nota || "" })}
+                                                                    className={`p-1 rounded-lg transition ${isEditingThis || item.nota ? "bg-amber-100 text-amber-600 hover:bg-amber-200" : "bg-gray-100 text-gray-400 hover:bg-gray-200"}`}>
+                                                                    <MessageCircle size={11} />
+                                                                </button>
+                                                                <button onClick={() => abrirSelectorProducto(p, { modo: "reemplazar", itemId: item._id!, nombreActual: item.menuItemId?.nombre || "ítem" })}
+                                                                    className="p-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 transition">
+                                                                    <Pencil size={11} />
+                                                                </button>
+                                                                <button onClick={() => eliminarItemPedido(p._id, item._id!, item.menuItemId?.nombre || "ítem")}
+                                                                    className="p-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition">
+                                                                    <Trash2 size={11} />
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    {item.nota && !isEditingThis && (
+                                                        <p className="text-[11px] text-amber-700 italic mt-0.5 ml-5 truncate">✏ {item.nota}</p>
+                                                    )}
+                                                    {isEditingThis && (
+                                                        <div className="mt-1.5 ml-5 flex gap-1.5">
+                                                            <input
+                                                                autoFocus
+                                                                type="text"
+                                                                value={editingNota.valor}
+                                                                onChange={e => setEditingNota(s => s ? { ...s, valor: e.target.value } : null)}
+                                                                onKeyDown={e => { if (e.key === "Enter") guardarNota(p._id, item._id!, editingNota.valor); if (e.key === "Escape") setEditingNota(null); }}
+                                                                placeholder="Nota del ítem…"
+                                                                className="flex-1 text-xs border border-amber-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-amber-400 bg-amber-50"
+                                                            />
+                                                            <button onClick={() => guardarNota(p._id, item._id!, editingNota.valor)} className="px-2 py-1 bg-amber-500 text-white rounded-lg text-[10px] font-black">OK</button>
+                                                            <button onClick={() => setEditingNota(null)} className="px-2 py-1 bg-gray-200 text-gray-600 rounded-lg text-[10px] font-bold">✕</button>
                                                         </div>
                                                     )}
                                                 </div>
-                                            ))}
+                                                );
+                                            })}
                                             {p.tipoEntrega === "envio" && (p.costoEnvio || costoDelivery) > 0 && (
                                                 <div className="flex justify-between text-xs text-gray-700 border-t border-gray-100 pt-1.5 mt-1">
                                                     <span>Envío a domicilio</span>

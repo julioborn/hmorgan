@@ -124,6 +124,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         return NextResponse.json({ ok: true, pedido });
     }
 
+    // ── Editar nota de un ítem ─────────────────────────────────────────────
+    if (body.accion === "editarNotaItem") {
+        const { itemId, nota } = body;
+        const item = (pedido.items as any[]).find(i => i._id.toString() === itemId);
+        if (!item) return NextResponse.json({ error: "Ítem no encontrado" }, { status: 404 });
+        item.nota = nota?.trim() || undefined;
+        await pedido.save();
+        return NextResponse.json({ ok: true, pedido });
+    }
+
     // ── Agregar ítems nuevos a la comanda (default) ─────────────────────────
     const { items, notaEmpleado } = body;
     if (!items?.length) return NextResponse.json({ error: "Sin ítems" }, { status: 400 });
