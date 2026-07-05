@@ -15,7 +15,7 @@ type Comanda = {
     comensalesIds?: { _id: string; nombre: string; apellido: string }[];
     nombreComanda?: string;
     eventoId?: string;
-    items: { menuItemId: { _id: string; nombre: string; precio: number }; cantidad: number }[];
+    items: { menuItemId: { _id: string; nombre: string; precio: number }; cantidad: number; listo?: boolean }[];
     total: number;
     estado: string;
     createdAt: string;
@@ -461,12 +461,12 @@ export default function AnotadorPage() {
                                         {c.items.length === 0 ? (
                                             <p className="text-xs text-gray-400 italic">Sin ítems todavía</p>
                                         ) : c.items.map((it, idx) => (
-                                            <div key={idx} className="flex justify-between text-sm">
-                                                <span className="text-gray-700">
-                                                    <span className="font-bold text-gray-400 mr-1.5">{it.cantidad}×</span>
+                                            <div key={idx} className={`flex justify-between text-sm rounded-lg px-2 py-0.5 -mx-2 ${it.listo ? "bg-emerald-50" : ""}`}>
+                                                <span className={it.listo ? "text-emerald-700 line-through" : "text-gray-700"}>
+                                                    <span className={`font-bold mr-1.5 ${it.listo ? "text-emerald-500" : "text-gray-400"}`}>{it.cantidad}×</span>
                                                     {it.menuItemId?.nombre || "ítem"}
                                                 </span>
-                                                <span className="text-gray-400 shrink-0 ml-2">
+                                                <span className={`shrink-0 ml-2 ${it.listo ? "text-emerald-500" : "text-gray-400"}`}>
                                                     ${fmt((it.menuItemId?.precio || 0) * it.cantidad)}
                                                 </span>
                                             </div>
