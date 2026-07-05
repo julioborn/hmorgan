@@ -354,7 +354,7 @@ export default function CocinaPage() {
                                                         {it.cantidad}
                                                     </span>
                                                     <div className="flex-1 min-w-0">
-                                                        <p className={`text-lg font-bold leading-tight ${it.listo ? "text-emerald-600 line-through" : "text-black"}`}>
+                                                        <p className={`text-lg font-bold leading-tight ${it.listo ? "text-emerald-600" : "text-black"}`}>
                                                             {it.menuItemId?.nombre || "Ítem"}
                                                         </p>
                                                         {it.nota && <p className="text-sm text-amber-600 mt-0.5 italic">✏ {it.nota}</p>}

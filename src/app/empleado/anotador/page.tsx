@@ -462,7 +462,7 @@ export default function AnotadorPage() {
                                             <p className="text-xs text-gray-400 italic">Sin ítems todavía</p>
                                         ) : c.items.map((it, idx) => (
                                             <div key={idx} className={`flex justify-between text-sm rounded-lg px-2 py-0.5 -mx-2 ${it.listo ? "bg-emerald-50" : ""}`}>
-                                                <span className={it.listo ? "text-emerald-700 line-through" : "text-gray-700"}>
+                                                <span className={it.listo ? "text-emerald-700" : "text-gray-700"}>
                                                     <span className={`font-bold mr-1.5 ${it.listo ? "text-emerald-500" : "text-gray-400"}`}>{it.cantidad}×</span>
                                                     {it.menuItemId?.nombre || "ítem"}
                                                 </span>
