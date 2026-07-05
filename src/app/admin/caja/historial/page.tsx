@@ -591,6 +591,10 @@ function DetalleSesion({ s, onRefresh }: { s: Sesion; onRefresh: () => void }) {
         + (s.totales["efectivo"]?.ingreso || 0)
         - (s.totales["efectivo"]?.egreso  || 0);
 
+    // Secciones colapsables
+    const [productosOpen,   setProductosOpen]   = useState(false);
+    const [movimientosOpen, setMovimientosOpen] = useState(true);
+
     // Estado edición montoCierre
     const [editando,    setEditando]    = useState(false);
     const [editValor,   setEditValor]   = useState("");
@@ -764,39 +768,71 @@ function DetalleSesion({ s, onRefresh }: { s: Sesion; onRefresh: () => void }) {
                 </div>
             )}
 
-            {/* Productos vendidos */}
+            {/* Productos vendidos — colapsable */}
             {productos.length > 0 && (
-                <div className="px-4 py-4">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">
-                        Productos vendidos · {productos.reduce((s, p) => s + p.cantidad, 0)} ítems
-                    </p>
-                    <div className="rounded-xl border border-gray-200 overflow-hidden">
-                        {productos.map((p, i) => (
-                            <div key={i} className="flex items-center gap-3 px-3 py-2.5 border-b border-gray-100 last:border-0 bg-white">
-                                <Package size={12} className="text-gray-300 shrink-0" />
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-semibold text-gray-800 truncate">{p.nombre}</p>
-                                    {p.categoria && <p className="text-[10px] text-gray-400">{p.categoria}</p>}
+                <div className="border-t border-gray-100">
+                    <button
+                        onClick={() => setProductosOpen(v => !v)}
+                        className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition"
+                    >
+                        <span className="flex items-center gap-2">
+                            <Package size={13} className="text-gray-400" />
+                            <span className="text-xs font-black uppercase tracking-widest text-gray-500">
+                                Productos vendidos
+                            </span>
+                            <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">
+                                {productos.reduce((s, p) => s + p.cantidad, 0)} ítems
+                            </span>
+                        </span>
+                        {productosOpen ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
+                    </button>
+                    {productosOpen && (
+                        <div className="px-4 pb-4">
+                            <div className="rounded-xl border border-gray-200 overflow-hidden">
+                                {productos.map((p, i) => (
+                                    <div key={i} className="flex items-center gap-3 px-3 py-2.5 border-b border-gray-100 last:border-0 bg-white">
+                                        <Package size={12} className="text-gray-300 shrink-0" />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-semibold text-gray-800 truncate">{p.nombre}</p>
+                                            {p.categoria && <p className="text-[10px] text-gray-400">{p.categoria}</p>}
+                                        </div>
+                                        <span className="text-sm font-black text-gray-500 shrink-0">×{p.cantidad}</span>
+                                        <span className="text-sm font-black text-gray-900 shrink-0 text-right">{fmt(p.total)}</span>
+                                    </div>
+                                ))}
+                                <div className="flex items-center justify-between px-3 py-2.5 bg-gray-50 border-t border-gray-200">
+                                    <span className="text-xs font-black text-gray-600 uppercase tracking-wide">Total</span>
+                                    <span className="font-black text-gray-900">{fmt(productos.reduce((s, p) => s + p.total, 0))}</span>
                                 </div>
-                                <span className="text-sm font-black text-gray-500 shrink-0">×{p.cantidad}</span>
-                                <span className="text-sm font-black text-gray-900 shrink-0 text-right">{fmt(p.total)}</span>
                             </div>
-                        ))}
-                        <div className="flex items-center justify-between px-3 py-2.5 bg-gray-50 border-t border-gray-200">
-                            <span className="text-xs font-black text-gray-600 uppercase tracking-wide">Total</span>
-                            <span className="font-black text-gray-900">{fmt(productos.reduce((s, p) => s + p.total, 0))}</span>
                         </div>
-                    </div>
+                    )}
                 </div>
             )}
 
-            {/* Movimientos */}
+            {/* Movimientos — colapsable */}
             {s.movimientos.length > 0 && (
-                <div className="px-4 py-4">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">
-                        Movimientos · {s.movimientos.length}
-                    </p>
-                    <MovimientosSection movimientos={s.movimientos} onRefresh={onRefresh} />
+                <div className="border-t border-gray-100">
+                    <button
+                        onClick={() => setMovimientosOpen(v => !v)}
+                        className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition"
+                    >
+                        <span className="flex items-center gap-2">
+                            <Receipt size={13} className="text-gray-400" />
+                            <span className="text-xs font-black uppercase tracking-widest text-gray-500">
+                                Movimientos
+                            </span>
+                            <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">
+                                {s.movimientos.length}
+                            </span>
+                        </span>
+                        {movimientosOpen ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
+                    </button>
+                    {movimientosOpen && (
+                        <div className="px-4 pb-4">
+                            <MovimientosSection movimientos={s.movimientos} onRefresh={onRefresh} />
+                        </div>
+                    )}
                 </div>
             )}
 
