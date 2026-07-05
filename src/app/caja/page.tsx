@@ -1965,7 +1965,7 @@ export default function CajaPage() {
                                     <Plus size={18} /> Delivery
                                 </button>
                                 <button onClick={() => router.push("/caja/retroactivo")}
-                                    className="flex items-center justify-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold px-3 py-3 rounded-2xl transition shadow-sm active:scale-[0.98]"
+                                    className="flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-3 rounded-2xl transition shadow-sm active:scale-[0.98]"
                                     title="Puntos a asignar">
                                     <Star size={16} />
                                 </button>
