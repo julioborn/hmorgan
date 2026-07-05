@@ -26,7 +26,7 @@ type Pedido = {
     comensales?: number;
     fuente: string;
     numeroDia?: number;
-    items: { _id?: string; menuItemId: { _id?: string; nombre: string; precio: number; categoria?: string }; cantidad: number; nota?: string; impreso?: boolean }[];
+    items: { _id?: string; menuItemId: { _id?: string; nombre: string; precio: number; categoria?: string }; cantidad: number; nota?: string; impreso?: boolean; listo?: boolean }[];
     total: number;
     costoEnvio?: number;
     estado: string;
@@ -2133,9 +2133,9 @@ export default function CajaPage() {
                                                     {/* Items */}
                                                     <ul className="mb-2 divide-y divide-gray-100 border border-black rounded-xl flex-1 min-h-0 overflow-y-auto">
                                                         {p.items.map((it, idx) => (
-                                                            <li key={it._id || idx} className="flex items-center px-3 py-2.5 gap-2">
-                                                                <span className="font-black text-gray-900 text-sm shrink-0">{it.cantidad}×</span>
-                                                                <span className="text-sm font-semibold text-gray-900 flex-1 min-w-0 truncate">{it.menuItemId?.nombre}</span>
+                                                            <li key={it._id || idx} className={`flex items-center px-3 py-2.5 gap-2 transition-colors ${it.listo ? "bg-emerald-50" : ""}`}>
+                                                                <span className={`font-black text-sm shrink-0 ${it.listo ? "text-emerald-600" : "text-gray-900"}`}>{it.cantidad}×</span>
+                                                                <span className={`text-sm font-semibold flex-1 min-w-0 truncate ${it.listo ? "text-emerald-700" : "text-gray-900"}`}>{it.menuItemId?.nombre}</span>
                                                                 {p.estado !== "cerrado" && p.estado !== "cancelado" && it._id && (
                                                                     <div className="flex items-center gap-1 shrink-0">
                                                                         <button onClick={() => abrirSelectorProducto(p, { modo: "reemplazar", itemId: it._id!, nombreActual: it.menuItemId?.nombre || "ítem" })}
@@ -2404,9 +2404,9 @@ export default function CajaPage() {
                                         {/* ── Items ── */}
                                         <div className="px-4 py-3 flex-1 min-h-0 overflow-y-auto space-y-1.5">
                                             {p.items.map((item, idx) => (
-                                                <div key={item._id || idx} className="flex items-center gap-2">
-                                                    <span className="font-black text-gray-900 text-sm shrink-0">{item.cantidad}×</span>
-                                                    <span className="text-sm font-semibold text-gray-900 flex-1 min-w-0 truncate">{item.menuItemId?.nombre}</span>
+                                                <div key={item._id || idx} className={`flex items-center gap-2 rounded-lg px-2 py-1 -mx-2 transition-colors ${item.listo ? "bg-emerald-50" : ""}`}>
+                                                    <span className={`font-black text-sm shrink-0 ${item.listo ? "text-emerald-600" : "text-gray-900"}`}>{item.cantidad}×</span>
+                                                    <span className={`text-sm font-semibold flex-1 min-w-0 truncate ${item.listo ? "text-emerald-700" : "text-gray-900"}`}>{item.menuItemId?.nombre}</span>
                                                     <span className="text-xs text-gray-700 shrink-0">{formatMoney((item.menuItemId?.precio || 0) * item.cantidad)}</span>
                                                     {item._id && (
                                                         <div className="flex items-center gap-1 shrink-0">
