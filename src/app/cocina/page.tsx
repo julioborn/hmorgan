@@ -295,7 +295,7 @@ export default function CocinaPage() {
                                 ? `${p.userId.nombre} ${p.userId.apellido}`.trim()
                                 : p.nombreComanda || null;
 
-                            const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+                            const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
                             const isNuevo = nuevosIds.has(p._id);
                             const isMarcando = marcando === p._id;
 
