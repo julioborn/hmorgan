@@ -982,7 +982,7 @@ function AnotadorMenuContent() {
                                         const isEvento   = !isOcupada && !isReservada && eventosPlano.includes(m.nombre);
                                         const isBanq     = m.tipo === "banqueta";
                                         const isSel      = mesas.includes(m.nombre);
-                                        const bloqueada  = isOcupada || isReservada || isEvento;
+                                        const bloqueada  = isOcupada || isEvento;
                                         const isRound    = m.forma === "round" || m.forma === "oval";
                                         const rot=m.rotacion??0; const w=m.ancho||(m.forma==="oval"?11:m.forma==="round"?5.5:7); const h=m.alto||(m.forma==="oval"?5:m.forma==="round"?5.5:5);
                                         const bg = isSel        ? "bg-gray-900 border-gray-700 text-white ring-2 ring-white"
@@ -1031,11 +1031,11 @@ function AnotadorMenuContent() {
                                             const isEvento    = !isOcupada && !isReservada && eventosPlano.includes(m.nombre);
                                             const isBanq      = m.tipo === "banqueta";
                                             const isSel       = mesas.includes(m.nombre);
-                                            const bloqueada   = isOcupada || isReservada || isEvento;
+                                            const bloqueada   = isOcupada || isEvento;
                                             const label       = isBanq ? `B${m.nombre}` : m.nombre;
                                             const cls = isSel      ? "bg-gray-900 border-gray-700 text-white"
                                                 : isOcupada        ? "bg-red-100 border-red-300 text-red-500 opacity-60"
-                                                : isReservada      ? "bg-yellow-100 border-yellow-300 text-yellow-700 opacity-70"
+                                                : isReservada      ? "bg-yellow-100 border-yellow-300 text-yellow-700"
                                                 : isEvento         ? "bg-blue-100 border-blue-300 text-blue-600 opacity-70"
                                                 :                    "bg-emerald-50 border-emerald-300 text-emerald-800";
                                             return (
