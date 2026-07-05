@@ -75,6 +75,7 @@ export default function CocinaPage() {
     const [marcando, setMarcando] = useState<string | null>(null);
     const [confirmarId, setConfirmarId] = useState<string | null>(null);
     const [marcandoItem, setMarcandoItem] = useState<string | null>(null); // "pedidoId:itemId"
+    const [confirmarItem, setConfirmarItem] = useState<{ pedidoId: string; itemId: string; nombre: string } | null>(null);
     const prevIdsRef = useRef<Set<string>>(new Set());
     const [nuevosIds, setNuevosIds] = useState<Set<string>>(new Set());
 
@@ -359,7 +360,7 @@ export default function CocinaPage() {
                                                         {it.nota && <p className="text-sm text-amber-600 mt-0.5 italic">✏ {it.nota}</p>}
                                                     </div>
                                                     <button
-                                                        onClick={() => !it.listo && marcarItemListo(p._id, it._id)}
+                                                        onClick={() => !it.listo && setConfirmarItem({ pedidoId: p._id, itemId: it._id, nombre: it.menuItemId?.nombre || "ítem" })}
                                                         disabled={!!it.listo || isMarcandoEste}
                                                         className={`shrink-0 w-9 h-9 rounded-full border-2 flex items-center justify-center transition active:scale-95 ${
                                                             it.listo
@@ -479,6 +480,39 @@ export default function CocinaPage() {
                         </>
                     )}
                 </div>
+            )}
+
+            {/* Modal confirmación ítem individual */}
+            {confirmarItem && createPortal(
+                <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm px-4"
+                    onClick={() => setConfirmarItem(null)}>
+                    <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="px-5 pt-5 pb-3 flex items-center justify-between border-b border-gray-100">
+                            <div className="flex items-center gap-2">
+                                <CheckCircle size={18} className="text-emerald-600" />
+                                <p className="font-black text-gray-900">Confirmar ítem</p>
+                            </div>
+                            <button onClick={() => setConfirmarItem(null)} className="p-1 text-gray-400 hover:text-gray-600"><X size={18} /></button>
+                        </div>
+                        <div className="px-5 py-4">
+                            <p className="text-base font-semibold text-gray-900">¿Marcar como listo?</p>
+                            <p className="text-sm text-gray-500 mt-1">
+                                <span className="font-bold text-gray-800">{confirmarItem.nombre}</span>
+                            </p>
+                        </div>
+                        <div className="px-5 pb-5 flex gap-3">
+                            <button onClick={() => setConfirmarItem(null)}
+                                className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-semibold hover:bg-gray-50 transition">Cancelar</button>
+                            <button onClick={() => {
+                                const { pedidoId, itemId } = confirmarItem;
+                                setConfirmarItem(null);
+                                marcarItemListo(pedidoId, itemId);
+                            }}
+                                className="flex-1 py-3 rounded-xl bg-emerald-600 text-white text-sm font-black hover:bg-emerald-700 transition">Sí, listo</button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
             )}
 
             {/* Modal confirmación listo */}
