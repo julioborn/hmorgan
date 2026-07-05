@@ -4475,10 +4475,10 @@ export default function CajaPage() {
 
             {/* Toast: pedido listo notificación */}
             {listosToast.length > 0 && (
-                <div className="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none">
+                <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none">
                     {listosToast.map(t => (
                         <div key={`${t.id}-${t.ts}`}
-                            className="pointer-events-auto flex items-center gap-3 bg-black border-2 border-white text-white px-4 py-3 rounded-2xl shadow-2xl min-w-[220px] animate-in slide-in-from-right fade-in duration-300">
+                            className="pointer-events-auto flex items-center gap-3 bg-black border-2 border-white text-white px-4 py-3 rounded-2xl shadow-2xl min-w-[220px] animate-in slide-in-from-top fade-in duration-300">
                             <CheckCircle size={18} className="text-white shrink-0" />
                             <div className="flex-1 min-w-0">
                                 <p className="text-xs font-bold uppercase tracking-wide opacity-60">¡Listo!</p>
