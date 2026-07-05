@@ -22,9 +22,11 @@ const categoryImages: Record<string, string> = {
 };
 
 type Item = {
+    _id: string;
     menuItemId: { nombre: string; precio: number; categoria?: string };
     cantidad: number;
     nota?: string;
+    listo?: boolean;
 };
 
 type Pedido = {
@@ -72,6 +74,7 @@ export default function CocinaPage() {
     const [loading, setLoading] = useState(true);
     const [marcando, setMarcando] = useState<string | null>(null);
     const [confirmarId, setConfirmarId] = useState<string | null>(null);
+    const [marcandoItem, setMarcandoItem] = useState<string | null>(null); // "pedidoId:itemId"
     const prevIdsRef = useRef<Set<string>>(new Set());
     const [nuevosIds, setNuevosIds] = useState<Set<string>>(new Set());
 
@@ -129,6 +132,40 @@ export default function CocinaPage() {
             setPedidos(prev => prev.filter(p => p._id !== id));
         } catch { }
         finally { setMarcando(null); }
+    }
+
+    async function marcarItemListo(pedidoId: string, itemId: string) {
+        const key = `${pedidoId}:${itemId}`;
+        if (marcandoItem === key) return;
+        setMarcandoItem(key);
+
+        // Optimistic update
+        setPedidos(prev => prev.map(p => {
+            if (p._id !== pedidoId) return p;
+            return { ...p, items: p.items.map(it => it._id === itemId ? { ...it, listo: true } : it) };
+        }));
+
+        try {
+            const res = await fetch(`/api/pedidos/${pedidoId}/item-listo`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ itemId }),
+            });
+            const data = await res.json();
+            if (data.todosListos) {
+                // Comanda completa → sacar de la lista
+                setPedidos(prev => prev.filter(p => p._id !== pedidoId));
+            }
+        } catch {
+            // Revertir en caso de error
+            setPedidos(prev => prev.map(p => {
+                if (p._id !== pedidoId) return p;
+                return { ...p, items: p.items.map(it => it._id === itemId ? { ...it, listo: false } : it) };
+            }));
+        } finally {
+            setMarcandoItem(null);
+        }
     }
 
     function logout() {
@@ -306,22 +343,43 @@ export default function CocinaPage() {
                                             </div>
                                         )}
                                     </div>
-                                    <div className="px-4 py-4 space-y-3 bg-white">
-                                        {comida.map((it, idx) => (
-                                            <div key={idx} className="flex items-start gap-3">
-                                                <span className="text-2xl font-black text-black min-w-[2rem] text-center leading-tight">{it.cantidad}</span>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-lg font-bold text-black leading-tight">{it.menuItemId?.nombre || "Ítem"}</p>
-                                                    {it.nota && <p className="text-sm text-amber-600 mt-0.5 italic">✏ {it.nota}</p>}
+                                    <div className="px-4 py-4 space-y-2 bg-white">
+                                        {comida.map((it, idx) => {
+                                            const itemKey = `${p._id}:${it._id}`;
+                                            const isMarcandoEste = marcandoItem === itemKey;
+                                            return (
+                                                <div key={idx} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors ${it.listo ? "bg-emerald-50" : "bg-gray-50"}`}>
+                                                    <span className={`text-2xl font-black min-w-[2rem] text-center leading-tight ${it.listo ? "text-emerald-400" : "text-black"}`}>
+                                                        {it.cantidad}
+                                                    </span>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className={`text-lg font-bold leading-tight ${it.listo ? "text-emerald-600 line-through" : "text-black"}`}>
+                                                            {it.menuItemId?.nombre || "Ítem"}
+                                                        </p>
+                                                        {it.nota && <p className="text-sm text-amber-600 mt-0.5 italic">✏ {it.nota}</p>}
+                                                    </div>
+                                                    <button
+                                                        onClick={() => !it.listo && marcarItemListo(p._id, it._id)}
+                                                        disabled={!!it.listo || isMarcandoEste}
+                                                        className={`shrink-0 w-9 h-9 rounded-full border-2 flex items-center justify-center transition active:scale-95 ${
+                                                            it.listo
+                                                                ? "border-emerald-400 bg-emerald-400 text-white"
+                                                                : isMarcandoEste
+                                                                ? "border-gray-300 bg-gray-100 text-gray-400"
+                                                                : "border-gray-300 bg-white hover:border-emerald-500 hover:bg-emerald-50"
+                                                        }`}
+                                                    >
+                                                        <CheckCircle size={18} />
+                                                    </button>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                     <div className="px-4 pb-4 bg-white">
                                         <button onClick={() => setConfirmarId(p._id)} disabled={isMarcando}
-                                            className="w-full flex items-center justify-center gap-2 bg-black hover:bg-gray-800 disabled:bg-gray-200 disabled:text-gray-400 text-white font-black text-base py-3.5 rounded-xl transition active:scale-[0.98]">
-                                            <CheckCircle size={20} />
-                                            {isMarcando ? "Marcando..." : "Marcar como listo"}
+                                            className="w-full flex items-center justify-center gap-2 bg-black hover:bg-gray-800 disabled:bg-gray-200 disabled:text-gray-400 text-white font-black text-base py-3 rounded-xl transition active:scale-[0.98]">
+                                            <CheckCircle size={18} />
+                                            {isMarcando ? "Marcando..." : "Todo listo"}
                                         </button>
                                     </div>
                                 </div>

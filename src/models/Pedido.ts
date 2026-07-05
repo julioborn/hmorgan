@@ -10,6 +10,7 @@ const PedidoSchema = new Schema(
                 nota: { type: String },
                 // false = se agregó después de aceptada y todavía no se imprimió en BARRA/COCINA
                 impreso: { type: Boolean, default: true },
+                listo: { type: Boolean, default: false },
             },
         ],
         tipoEntrega: { type: String, enum: ["retira", "envio"], default: "retira" },
