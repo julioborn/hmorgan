@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
-import { Plus, UtensilsCrossed, ChevronRight, LockKeyhole, Star, X, ArrowLeftRight, User, Users, Search, Loader2 } from "lucide-react";
+import { Plus, UtensilsCrossed, ChevronRight, LockKeyhole, Star, X, ArrowLeftRight, User, Users, Search, Loader2, MessageCircle } from "lucide-react";
 import Loader from "@/components/Loader";
 import { swalBase } from "@/lib/swalConfig";
 
@@ -15,7 +15,7 @@ type Comanda = {
     comensalesIds?: { _id: string; nombre: string; apellido: string }[];
     nombreComanda?: string;
     eventoId?: string;
-    items: { menuItemId: { _id: string; nombre: string; precio: number }; cantidad: number; listo?: boolean }[];
+    items: { _id?: string; menuItemId: { _id: string; nombre: string; precio: number }; cantidad: number; nota?: string; listo?: boolean }[];
     total: number;
     estado: string;
     createdAt: string;
@@ -67,6 +67,7 @@ export default function AnotadorPage() {
     const [clientesResultados, setClientesResultados] = useState<ClienteResult[]>([]);
     const [buscandoCliente, setBuscandoCliente] = useState(false);
     const [guardandoComensales, setGuardandoComensales] = useState(false);
+    const [editingNota, setEditingNota] = useState<{ pedidoId: string; itemId: string; valor: string } | null>(null);
 
     // Solo las terminadas cobradas dentro de la sesión de caja actual
     const terminadasSesion = useMemo(() =>
@@ -168,6 +169,15 @@ export default function AnotadorPage() {
         }
         await Promise.all(fetches);
         setCambiarMesaModal(c);
+    }
+
+    async function guardarNota(pedidoId: string, itemId: string, nota: string) {
+        await fetch(`/api/pedidos/${pedidoId}`, {
+            method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
+            body: JSON.stringify({ accion: "editarNotaItem", itemId, nota }),
+        });
+        setEditingNota(null);
+        fetchComandas();
     }
 
     async function ejecutarCambioMesa(comanda: Comanda, nuevaMesa: string) {
@@ -460,17 +470,50 @@ export default function AnotadorPage() {
                                     <div className="px-4 py-3 space-y-1">
                                         {c.items.length === 0 ? (
                                             <p className="text-xs text-gray-400 italic">Sin ítems todavía</p>
-                                        ) : c.items.map((it, idx) => (
-                                            <div key={idx} className={`flex justify-between text-sm rounded-lg px-2 py-0.5 -mx-2 ${it.listo ? "bg-emerald-50" : ""}`}>
-                                                <span className={it.listo ? "text-emerald-700" : "text-gray-700"}>
-                                                    <span className={`font-bold mr-1.5 ${it.listo ? "text-emerald-500" : "text-gray-400"}`}>{it.cantidad}×</span>
-                                                    {it.menuItemId?.nombre || "ítem"}
-                                                </span>
-                                                <span className={`shrink-0 ml-2 ${it.listo ? "text-emerald-500" : "text-gray-400"}`}>
-                                                    ${fmt((it.menuItemId?.precio || 0) * it.cantidad)}
-                                                </span>
+                                        ) : c.items.map((it, idx) => {
+                                            const isEditingThis = editingNota?.pedidoId === c._id && editingNota?.itemId === it._id;
+                                            return (
+                                            <div key={it._id || idx} className={`rounded-lg px-2 py-0.5 -mx-2 ${it.listo ? "bg-emerald-50" : ""}`}>
+                                                <div className="flex justify-between text-sm items-center">
+                                                    <span className={it.listo ? "text-emerald-700" : "text-gray-700"}>
+                                                        <span className={`font-bold mr-1.5 ${it.listo ? "text-emerald-500" : "text-gray-400"}`}>{it.cantidad}×</span>
+                                                        {it.menuItemId?.nombre || "ítem"}
+                                                    </span>
+                                                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                                        <span className={it.listo ? "text-emerald-500" : "text-gray-400"}>
+                                                            ${fmt((it.menuItemId?.precio || 0) * it.cantidad)}
+                                                        </span>
+                                                        {it._id && (
+                                                            <button
+                                                                onClick={() => setEditingNota(isEditingThis ? null : { pedidoId: c._id, itemId: it._id!, valor: it.nota || "" })}
+                                                                className={`p-1 rounded-lg transition ${isEditingThis || it.nota ? "bg-amber-100 text-amber-600" : "bg-gray-100 text-gray-400"}`}
+                                                            >
+                                                                <MessageCircle size={11} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                {it.nota && !isEditingThis && (
+                                                    <p className="text-[11px] text-amber-700 italic mt-0.5 ml-5 truncate">✏ {it.nota}</p>
+                                                )}
+                                                {isEditingThis && (
+                                                    <div className="mt-1.5 ml-5 flex gap-1.5">
+                                                        <input
+                                                            autoFocus
+                                                            type="text"
+                                                            value={editingNota.valor}
+                                                            onChange={e => setEditingNota(s => s ? { ...s, valor: e.target.value } : null)}
+                                                            onKeyDown={e => { if (e.key === "Enter") guardarNota(c._id, it._id!, editingNota.valor); if (e.key === "Escape") setEditingNota(null); }}
+                                                            placeholder="Nota del ítem…"
+                                                            className="flex-1 text-xs border border-amber-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-amber-400 bg-amber-50"
+                                                        />
+                                                        <button onClick={() => guardarNota(c._id, it._id!, editingNota.valor)} className="px-2 py-1 bg-amber-500 text-white rounded-lg text-[10px] font-black">OK</button>
+                                                        <button onClick={() => setEditingNota(null)} className="px-2 py-1 bg-gray-200 text-gray-600 rounded-lg text-[10px] font-bold">✕</button>
+                                                    </div>
+                                                )}
                                             </div>
-                                        ))}
+                                            );
+                                        })}
                                         {c.notaEmpleado && (
                                             <p className="text-xs text-amber-600 italic mt-1.5">📝 {c.notaEmpleado}</p>
                                         )}
