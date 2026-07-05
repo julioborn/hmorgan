@@ -355,9 +355,10 @@ export async function PUT(req: NextRequest) {
         }
 
         // 💰 Acreditar puntos al marcar como entregado (solo una vez)
+        // Pedidos de app reciben la mitad de puntos para incentivar el consumo presencial
         if (estado === "entregado" && !pedido.puntosAcreditados && pedido.total > 0) {
             const ratio = await getPointsRatio();
-            const puntos = Math.floor(pedido.total * ratio);
+            const puntos = Math.floor(pedido.total * ratio * 0.5);
             if (puntos > 0) {
                 const cliente = await User.findById(pedido.userId);
                 if (cliente) {

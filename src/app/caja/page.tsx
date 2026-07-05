@@ -1964,6 +1964,11 @@ export default function CajaPage() {
                                     className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-2xl transition shadow-sm active:scale-[0.98]">
                                     <Plus size={18} /> Delivery
                                 </button>
+                                <button onClick={() => router.push("/caja/retroactivo")}
+                                    className="flex items-center justify-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold px-3 py-3 rounded-2xl transition shadow-sm active:scale-[0.98]"
+                                    title="Puntos retroactivos">
+                                    <Star size={16} />
+                                </button>
                             </div>
                             <button onClick={editarCostoDelivery}
                                 className="w-full mb-4 flex items-center justify-between px-4 py-2 rounded-xl bg-blue-50 border border-blue-100 hover:bg-blue-100 transition">
