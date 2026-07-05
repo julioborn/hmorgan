@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import Link from "next/link";
 import Loader from "@/components/Loader";
+import { swalBase } from "@/lib/swalConfig";
 
 const formatMoney = (n: number) =>
     new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0 }).format(n);
@@ -18,13 +19,36 @@ export default function AdminPedidosPage() {
     const ITEMS_POR_PAGINA = 6;
     const [pagina, setPagina] = useState(1);
     const [busqueda, setBusqueda] = useState("");
+    const [pedidosActivos, setPedidosActivos] = useState<boolean | null>(null);
+    const [togglingPedidos, setTogglingPedidos] = useState(false);
 
     useEffect(() => {
         fetch("/api/caja/status", { credentials: "include" })
             .then(r => r.json())
             .then(d => setCajaAbierta(!!d.abierta))
             .catch(() => setCajaAbierta(false));
+        fetch("/api/config/pedidos")
+            .then(r => r.json())
+            .then(d => setPedidosActivos(!!d.activo))
+            .catch(() => setPedidosActivos(false));
     }, []);
+
+    async function togglePedidos() {
+        if (togglingPedidos || pedidosActivos === null) return;
+        const nuevoEstado = !pedidosActivos;
+        setTogglingPedidos(true);
+        const res = await fetch("/api/config/pedidos", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ activos: nuevoEstado }),
+        });
+        setTogglingPedidos(false);
+        if (res.ok) {
+            setPedidosActivos(nuevoEstado);
+        } else {
+            swalBase.fire({ icon: "error", title: "Error", text: "No se pudo cambiar el estado.", timer: 2000, showConfirmButton: false });
+        }
+    }
 
     useEffect(() => {
         if (cajaAbierta === false) return;
@@ -179,7 +203,24 @@ export default function AdminPedidosPage() {
 
     return (
         <div className="p-6 min-h-screen text-white">
-            <h1 className="text-4xl font-extrabold mb-3 text-center text-black">Pedidos</h1>
+            <div className="flex items-center justify-between mb-3">
+                <h1 className="text-4xl font-extrabold text-black">Pedidos</h1>
+                {pedidosActivos !== null && (
+                    <button
+                        onClick={togglePedidos}
+                        disabled={togglingPedidos}
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl border transition disabled:opacity-50"
+                        style={{ borderColor: pedidosActivos ? "#16a34a" : "#dc2626", background: pedidosActivos ? "#f0fdf4" : "#fef2f2" }}
+                    >
+                        <div className={`relative w-10 h-5 rounded-full transition-colors ${pedidosActivos ? "bg-green-500" : "bg-red-400"}`}>
+                            <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${pedidosActivos ? "left-5" : "left-0.5"}`} />
+                        </div>
+                        <span className={`text-xs font-bold ${pedidosActivos ? "text-green-700" : "text-red-600"}`}>
+                            {pedidosActivos ? "Delivery activo" : "Delivery inactivo"}
+                        </span>
+                    </button>
+                )}
+            </div>
 
             {/* 🔘 Selector de vista */}
             <div className="flex justify-center flex-wrap gap-1 mb-8">
