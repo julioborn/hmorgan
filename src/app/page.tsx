@@ -9,7 +9,7 @@ import { hoyArgentina } from "@/lib/argentina-time";
 import { swalBase } from "@/lib/swalConfig";
 
 const BarMap = dynamic(() => import("@/components/BarMap"), { ssr: false });
-import { QrCode, Users, Bell, PackagePlus, Package, Utensils, Ticket, History, ScanQrCode, ScanText, Settings, Star, BarChart2, ClipboardList, LayoutGrid, Images, CalendarDays, Wallet, TrendingUp, UserCog, Truck, Gift, X, Clock } from "lucide-react";
+import { QrCode, Users, Bell, PackagePlus, Package, Utensils, Ticket, History, ScanQrCode, ScanText, Settings, Star, BarChart2, ClipboardList, LayoutGrid, Images, CalendarDays, Wallet, TrendingUp, UserCog, Truck, Gift, X, Clock, Tablet } from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 import Loader from "@/components/Loader";
@@ -350,10 +350,11 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
         />
         <ActionCard
           href="/cliente/mis-pedidos"
-          title="Pedidos"
-          Icon={Package}
+          title="Delivery"
+          Icon={Truck}
           accent="from-red-600 to-red-800"
           notificationCount={pedidosActivosCount}
+          disabled={!pedidosActivos}
         />
         <ActionCard
           href="/cliente/rewards"
@@ -362,11 +363,11 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
           accent="from-red-600 to-red-800"
         />
         <ActionCard
-          href="/cliente/pedidos"
-          title="Pedir"
-          Icon={PackagePlus}
-          accent="from-red-600 to-red-800"
-          disabled={!pedidosActivos}
+          href="/"
+          title="Autoservicio"
+          Icon={Tablet}
+          accent="from-gray-400 to-gray-500"
+          disabled={true}
         />
         <ActionCard
           href="/cliente/reservas"

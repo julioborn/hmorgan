@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Clock, Flame, CheckCircle, Truck, ChevronLeft, ChevronRight } from "lucide-react";
+import { Clock, Flame, CheckCircle, Truck, ChevronLeft, ChevronRight, PackagePlus } from "lucide-react";
+import Link from "next/link";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import Loader from "@/components/Loader";
@@ -68,7 +69,16 @@ export default function MisPedidosPage() {
 
     return (
         <div className="p-6 min-h-screen bg-white">
-            <h1 className="text-4xl font-extrabold mb-10 text-center text-black">Mis Pedidos</h1>
+            <div className="flex items-center justify-between mb-10">
+                <h1 className="text-4xl font-extrabold text-black">Delivery</h1>
+                <Link
+                    href="/cliente/pedidos"
+                    className="flex items-center gap-2 bg-black text-white px-4 py-2.5 rounded-xl font-semibold text-sm hover:bg-gray-800 transition active:scale-[0.97]"
+                >
+                    <PackagePlus size={16} />
+                    Nuevo pedido
+                </Link>
+            </div>
 
             {/* 🔘 Selector de vista */}
             <div className="flex justify-center gap-4 mb-8">
