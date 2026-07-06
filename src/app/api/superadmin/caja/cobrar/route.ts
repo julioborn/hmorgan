@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
     }
     if (!["superadmin", "admin", "cajero"].includes(payload.role)) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
+    try {
     await connectMongoDB();
 
     const { pedidoId, metodoPago, montoPagado, descuento, pagos, notas } = await req.json();
@@ -180,4 +181,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ ok: true, pedido });
+    } catch (e) {
+        console.error("[POST /api/superadmin/caja/cobrar]", e);
+        return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
 }

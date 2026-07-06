@@ -20,19 +20,24 @@ function authSuper(req: NextRequest) {
 export async function GET(req: NextRequest) {
     const payload = authSuper(req);
     if (!payload) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    await connectMongoDB();
+    try {
+        await connectMongoDB();
 
-    const sesionAbierta = await CajaSession.findOne({ estado: "abierta" })
-        .populate("abiertaPor", "nombre apellido")
-        .lean<{ _id: any; [key: string]: any }>();
+        const sesionAbierta = await CajaSession.findOne({ estado: "abierta" })
+            .populate("abiertaPor", "nombre apellido")
+            .lean<{ _id: any; [key: string]: any }>();
 
-    if (!sesionAbierta) return NextResponse.json({ sesion: null, movimientos: [] });
+        if (!sesionAbierta) return NextResponse.json({ sesion: null, movimientos: [] });
 
-    const movimientos = await CajaMovement.find({ sesionId: sesionAbierta._id })
-        .sort({ createdAt: -1 })
-        .lean();
+        const movimientos = await CajaMovement.find({ sesionId: sesionAbierta._id })
+            .sort({ createdAt: -1 })
+            .lean();
 
-    return NextResponse.json({ sesion: sesionAbierta, movimientos });
+        return NextResponse.json({ sesion: sesionAbierta, movimientos });
+    } catch (e) {
+        console.error("[GET /api/superadmin/caja]", e);
+        return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
 }
 
 // POST — abrir nueva sesión (superadmin o cajero)
@@ -42,17 +47,22 @@ export async function POST(req: NextRequest) {
     let payload: any;
     try { payload = jwt.verify(token, SECRET) as any; } catch { return NextResponse.json({ error: "No autorizado" }, { status: 401 }); }
     if (!["superadmin", "admin", "cajero"].includes(payload.role)) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
-    await connectMongoDB();
+    try {
+        await connectMongoDB();
 
-    const abierta = await CajaSession.findOne({ estado: "abierta" });
-    if (abierta) return NextResponse.json({ error: "Ya hay una sesión abierta" }, { status: 400 });
+        const abierta = await CajaSession.findOne({ estado: "abierta" });
+        if (abierta) return NextResponse.json({ error: "Ya hay una sesión abierta" }, { status: 400 });
 
-    const { montoInicial, notas } = await req.json();
-    const sesion = await CajaSession.create({
-        montoInicial: Number(montoInicial) || 0,
-        abiertaPor: payload.sub,
-        notas: notas || undefined,
-    });
+        const { montoInicial, notas } = await req.json();
+        const sesion = await CajaSession.create({
+            montoInicial: Number(montoInicial) || 0,
+            abiertaPor: payload.sub,
+            notas: notas || undefined,
+        });
 
-    return NextResponse.json(sesion, { status: 201 });
+        return NextResponse.json(sesion, { status: 201 });
+    } catch (e) {
+        console.error("[POST /api/superadmin/caja]", e);
+        return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
 }

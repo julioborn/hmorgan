@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
     try { payload = jwt.verify(token, SECRET) as any; } catch { return NextResponse.json({ error: "No autorizado" }, { status: 401 }); }
     if (!["superadmin", "admin", "cajero"].includes(payload.role)) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
+    try {
     await connectMongoDB();
     const sesion = await CajaSession.findOne({ estado: "abierta" });
     if (!sesion) return NextResponse.json({ error: "No hay sesión abierta" }, { status: 400 });
@@ -48,4 +49,8 @@ export async function POST(req: NextRequest) {
     await Evento.updateMany({ estado: "activo" }, { $set: { estado: "cerrado" } });
 
     return NextResponse.json({ ok: true, resumen, sesion, montoInicial, montoCierre: montoCierreNum, efectivoSistema, diferencia });
+    } catch (e) {
+        console.error("[POST /api/superadmin/caja/cerrar]", e);
+        return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
 }
