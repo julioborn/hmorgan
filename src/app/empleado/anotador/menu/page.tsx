@@ -113,7 +113,7 @@ function AnotadorMenuContent() {
     const isDelivery          = searchParams.get("delivery") === "1";
     const [step, setStep]    = useState<"info"|"menu">(comandaId || isDelivery ? "menu" : "info");
 
-    type DeliveryDraft = { nombre: string; telefono: string; direccion: string };
+    type DeliveryDraft = { nombre: string; telefono: string; direccion: string; horario?: string };
     const [deliveryDraft, setDeliveryDraft] = useState<DeliveryDraft | null>(null);
 
     const [menuItems, setMenuItems]     = useState<MenuItem[]>([]);
@@ -476,6 +476,7 @@ function AnotadorMenuContent() {
                         nombreComanda:    isDelivery ? (deliveryDraft?.nombre || undefined) : (clienteNombre.trim() || undefined),
                         direccion:        isDelivery ? (deliveryDraft?.direccion || undefined) : undefined,
                         telefonoContacto: isDelivery ? (deliveryDraft?.telefono || undefined) : undefined,
+                        horarioPreferido: isDelivery ? (deliveryDraft?.horario || undefined) : undefined,
                         eventoId:         eventoActivo?._id || undefined,
                         comensalesIds:    comensalesSeleccionados.length > 0 ? comensalesSeleccionados.map(c => c._id) : undefined,
                     }),

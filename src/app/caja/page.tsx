@@ -186,7 +186,7 @@ export default function CajaPage() {
     const [cierreEfectivoSistema, setCierreEfectivoSistema] = useState(0);
     const [cierreDiferencia, setCierreDiferencia] = useState(0);
     const [deliveryModal, setDeliveryModal] = useState(false);
-    const [deliveryForm,  setDeliveryForm]  = useState({ nombre: "", telefono: "", direccion: "" });
+    const [deliveryForm,  setDeliveryForm]  = useState({ nombre: "", telefono: "", direccion: "", horario: "" });
     const [costoDelivery, setCostoDelivery] = useState<number>(0);
     const [gastoModal,  setGastoModal]  = useState(false);
     const [gastoForm,   setGastoForm]   = useState<{ concepto: string; monto: string; metodo: typeof METODOS[number] }>({ concepto: "", monto: "", metodo: "efectivo" });
@@ -1970,7 +1970,7 @@ export default function CajaPage() {
                                     className="flex-1 flex items-center justify-center gap-2 bg-black text-white font-bold py-3 rounded-2xl transition shadow-sm active:scale-[0.98]">
                                     <Plus size={18} /> Nueva comanda
                                 </button>
-                                <button onClick={() => { setDeliveryForm({ nombre: "", telefono: "", direccion: "" }); setDeliveryModal(true); }}
+                                <button onClick={() => { setDeliveryForm({ nombre: "", telefono: "", direccion: "", horario: "" }); setDeliveryModal(true); }}
                                     className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-2xl transition shadow-sm active:scale-[0.98]">
                                     <Plus size={18} /> Delivery
                                 </button>
@@ -3367,6 +3367,23 @@ export default function CajaPage() {
                                     style={{ fontSize: "16px" }}
                                     className="w-full border-2 border-gray-100 focus:border-blue-400 rounded-xl px-4 py-3 focus:outline-none transition font-semibold text-gray-900 placeholder:font-normal placeholder:text-gray-300"
                                 />
+                            </div>
+                            <div>
+                                <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Horario preferido <span className="font-normal normal-case tracking-normal">(opcional)</span></label>
+                                <select
+                                    value={deliveryForm.horario}
+                                    onChange={e => setDeliveryForm(f => ({ ...f, horario: e.target.value }))}
+                                    style={{ fontSize: "16px" }}
+                                    className="w-full border-2 border-gray-100 focus:border-blue-400 rounded-xl px-4 py-3 focus:outline-none transition font-semibold text-gray-900 bg-white"
+                                >
+                                    <option value="">Seleccionar…</option>
+                                    <option value="20:30">20:30</option>
+                                    <option value="21:00">21:00</option>
+                                    <option value="21:30">21:30</option>
+                                    <option value="22:00">22:00</option>
+                                    <option value="22:30">22:30</option>
+                                    <option value="Apenas esté listo">Apenas esté listo</option>
+                                </select>
                             </div>
                         </div>
                         {/* Actions */}
