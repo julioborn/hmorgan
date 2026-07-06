@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
             userId: cliente._id,
             source: "consumo",
             amount: puntos,
-            notes: `Puntos a asignar — Mesa ${pedido.mesa || "—"}`,
+            notes: `Asignar puntos — Mesa ${pedido.mesa || "—"}`,
             meta: { pedidoId: pedido._id, consumoARS: pedido.total },
             pendingReview: false,
         });

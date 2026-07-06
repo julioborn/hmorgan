@@ -747,7 +747,7 @@ function AdminHome() {
             <AdminCard href="/admin/rewards/scan" title="Escanear Canjes" Icon={ScanText} />
             <AdminCard href="/admin/clientes"     title="Clientes"        Icon={Users} />
             <AdminCard href="/admin/rewards"      title="Canjes"          Icon={Ticket} />
-            <AdminCard href="/caja/retroactivo"   title="Puntos a asignar" Icon={Star} />
+            <AdminCard href="/caja/retroactivo"   title="Asignar puntos" Icon={Star} />
             <AdminCard href="/admin/empleados"    title="Empleados"       Icon={UserCog} />
           </div>
         </section>
