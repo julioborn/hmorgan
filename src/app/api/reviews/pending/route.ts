@@ -14,6 +14,10 @@ export async function GET(req: NextRequest) {
 
         const payload = jwt.verify(token, NEXTAUTH_SECRET) as any;
 
+        const STAFF_ROLES = ["cajero", "empleado", "cocina", "delivery", "admin", "superadmin"];
+        if (STAFF_ROLES.includes(payload.role))
+            return NextResponse.json({ tx: null });
+
         await connectMongoDB();
 
         const tx = await PointTransaction.findOne({
