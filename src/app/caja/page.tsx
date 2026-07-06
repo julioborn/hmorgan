@@ -3321,8 +3321,8 @@ export default function CajaPage() {
 
             {/* Modal gastos */}
             {/* ── Modal nuevo delivery ── */}
-            {deliveryModal && (
-                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center pt-16 px-4">
+            {deliveryModal && createPortal(
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden">
                         {/* Header */}
                         <div className="bg-blue-600 px-5 py-4 flex items-center gap-3">
@@ -3407,7 +3407,7 @@ export default function CajaPage() {
                         </div>
                     </div>
                 </div>
-            )}
+            , document.body)}
 
             {gastoModal && (
                 <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
