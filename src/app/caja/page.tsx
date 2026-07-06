@@ -3620,8 +3620,8 @@ export default function CajaPage() {
                     : [];
                 const searchActive = editItemSearch.trim().length > 0;
                 const searchResults = menuItemsAll.filter(m => m.nombre.toLowerCase().includes(editItemSearch.toLowerCase()));
-                return (
-                    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+                return createPortal(
+                    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
                         <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl flex flex-col" style={{ maxHeight: "88vh" }}>
                             {/* Header */}
                             <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
@@ -3758,7 +3758,7 @@ export default function CajaPage() {
                             )}
                         </div>
                     </div>
-                );
+                , document.body);
             })()}
 
             {/* Modal crear evento */}
