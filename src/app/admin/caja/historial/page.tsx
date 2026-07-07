@@ -950,18 +950,17 @@ function DetalleEvento({ ev }: { ev: EventoCerrado }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function CajaHistorialPage() {
-    const SWR_OPTS = { revalidateOnFocus: false, shouldRetryOnError: true, errorRetryCount: 4 };
+    const SWR_OPTS = { revalidateOnFocus: true, revalidateOnMount: true, shouldRetryOnError: true, errorRetryCount: 4 };
 
-    const { data: sesiones, isLoading: loadingSesiones, isValidating: valSesiones, error: errSesiones, mutate: reloadSesiones } =
+    const { data: sesiones, isLoading: loadingSesiones, error: errSesiones } =
         useSWR<Sesion[]>("/api/superadmin/caja/historial", fetcher, SWR_OPTS);
-    const { data: eventosData, isLoading: loadingEventos, isValidating: valEventos, error: errEventos, mutate: reloadEventos } =
+    const { data: eventosData, isLoading: loadingEventos, error: errEventos } =
         useSWR<EventoCerrado[]>("/api/eventos?cerrado=true", fetcher, SWR_OPTS);
 
     const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
     const [expandidosEv, setExpandidosEv] = useState<Set<string>>(new Set());
 
     const eventosCerrados = Array.isArray(eventosData) ? eventosData : [];
-    const isRefreshing = (!loadingSesiones && valSesiones) || (!loadingEventos && valEventos);
 
     function toggle(id: string) {
         setExpandidas(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -969,7 +968,6 @@ export default function CajaHistorialPage() {
     function toggleEv(id: string) {
         setExpandidosEv(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
     }
-    function recargar() { reloadSesiones(); reloadEventos(); }
 
     return (
         <div className="max-w-3xl mx-auto py-4 sm:py-6 px-3 sm:px-4">
@@ -978,16 +976,6 @@ export default function CajaHistorialPage() {
                     <ChevronLeft size={20} />
                 </Link>
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-black flex-1">Historial de Caja</h1>
-                <button
-                    onClick={recargar}
-                    disabled={isRefreshing || loadingSesiones || loadingEventos}
-                    className="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-gray-800 disabled:opacity-40 transition px-3 py-1.5 rounded-xl border border-gray-200 hover:border-gray-400"
-                >
-                    <svg className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    {isRefreshing ? "Actualizando…" : "Actualizar"}
-                </button>
             </div>
 
             {/* ── Sesiones ── */}
