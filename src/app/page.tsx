@@ -124,6 +124,9 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
   const [canjeModal, setCanjeModal] = useState<Reward | null>(null);
   const [canjeSolicitando, setCanjeSolicitando] = useState(false);
   const [canjeSolicitados, setCanjeSolicitados] = useState<Set<string>>(new Set());
+  const [comandaActiva, setComandaActiva] = useState<{ _id: string; mesa?: string; nombreComanda?: string } | null>(null);
+  const [llamandoMozo, setLlamandoMozo] = useState(false);
+  const [llamadaEnviada, setLlamadaEnviada] = useState(false);
 
   async function solicitarCanje(r: Reward) {
     if (puntos < r.puntos) {
@@ -195,7 +198,7 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
       .then(data => { setReservasActivas(data.activo ?? true); });
   }, []);
 
-  // Banner: repartidor afuera + conteo de pedidos activos
+  // Banner: repartidor afuera + conteo de pedidos activos + comanda activa como comensal
   useEffect(() => {
     const fetchEnvios = async () => {
       try {
@@ -207,10 +210,30 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
         setPedidosActivosCount(data.filter((p: any) => ["pendiente", "aceptado", "preparando", "listo"].includes(p.estado)).length);
       } catch {}
     };
+    const fetchComandaActiva = async () => {
+      try {
+        const res = await fetch("/api/llamar-mozo", { credentials: "include", cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        setComandaActiva(data.pedido ?? null);
+      } catch {}
+    };
     fetchEnvios();
-    const iv = setInterval(fetchEnvios, 8000);
+    fetchComandaActiva();
+    const iv = setInterval(() => { fetchEnvios(); fetchComandaActiva(); }, 8000);
     return () => clearInterval(iv);
   }, []);
+
+  async function llamarMozo() {
+    if (llamandoMozo || llamadaEnviada || !comandaActiva) return;
+    setLlamandoMozo(true);
+    try {
+      await fetch("/api/llamar-mozo", { method: "POST", credentials: "include" });
+      setLlamadaEnviada(true);
+      setTimeout(() => setLlamadaEnviada(false), 60000);
+    } catch {}
+    finally { setLlamandoMozo(false); }
+  }
 
   if (loadingRewards) {
     return (
@@ -235,6 +258,22 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
           ★ {puntos} pts
         </span>
       </div>
+
+      {/* Llamar al mozo */}
+      {comandaActiva && (
+        <button
+          onClick={llamarMozo}
+          disabled={llamandoMozo || llamadaEnviada}
+          className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl font-black text-lg transition-all active:scale-[0.97] shadow-lg
+            ${llamadaEnviada
+              ? "bg-green-50 border-2 border-green-200 text-green-700 cursor-default"
+              : "bg-black text-white hover:bg-gray-900"
+            }`}
+        >
+          <span className="text-2xl">🔔</span>
+          {llamadaEnviada ? "¡Mozo en camino!" : llamandoMozo ? "Llamando…" : "Llamar al mozo"}
+        </button>
+      )}
 
       {/* Repartidor afuera del domicilio */}
       {repartidorAfuera && (

@@ -209,6 +209,7 @@ export default function CajaPage() {
     const [reservaDetalle, setReservaDetalle] = useState<ReservaHoy | null>(null);
     const [cambiarMesaModal, setCambiarMesaModal] = useState<Pedido | null>(null);
     const [editingNota, setEditingNota] = useState<{ pedidoId: string; itemId: string; valor: string } | null>(null);
+    const [llamadas, setLlamadas] = useState<{ _id: string; clienteNombre: string; mesa?: string; createdAt: string }[]>([]);
 
     // Eventos
     const [eventosActivos, setEventosActivos]     = useState<Evento[]>([]);
@@ -445,7 +446,13 @@ export default function CajaPage() {
         loadRewards();
         fetch("/api/admin/mesas?all=true", { credentials: "include" })
             .then(r => r.json()).then(d => { if (Array.isArray(d)) setMesasPlano(d); }).catch(() => {});
-        const iv = setInterval(() => { loadData(); loadCanjes(); }, 5000);
+        const fetchLlamadas = () =>
+            fetch("/api/llamar-mozo", { credentials: "include" })
+                .then(r => r.json())
+                .then(d => { if (Array.isArray(d)) setLlamadas(d); })
+                .catch(() => {});
+        fetchLlamadas();
+        const iv = setInterval(() => { loadData(); loadCanjes(); fetchLlamadas(); }, 5000);
         return () => clearInterval(iv);
     }, [loadData, loadEvento, loadCanjes, loadRewards]);
 
@@ -4616,6 +4623,32 @@ export default function CajaPage() {
                             )}
                         </div>
                     </div>
+                </div>
+            )}
+
+            {/* Llamadas al mozo */}
+            {llamadas.length > 0 && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] flex flex-col gap-2 w-full max-w-sm px-4 pointer-events-none">
+                    {llamadas.map(l => (
+                        <div key={l._id}
+                            className="pointer-events-auto flex items-center gap-3 bg-amber-500 text-white px-4 py-3 rounded-2xl shadow-2xl animate-in slide-in-from-bottom fade-in duration-300">
+                            <span className="text-2xl shrink-0">🔔</span>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-xs font-bold uppercase tracking-wide opacity-80">Cliente llamando</p>
+                                <p className="text-sm font-black truncate">
+                                    {l.clienteNombre}{l.mesa ? ` · Mesa ${l.mesa}` : ""}
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    fetch(`/api/llamar-mozo/${l._id}`, { method: "PATCH", credentials: "include" }).catch(() => {});
+                                    setLlamadas(prev => prev.filter(x => x._id !== l._id));
+                                }}
+                                className="ml-1 bg-white/20 hover:bg-white/30 transition rounded-xl px-3 py-1 text-xs font-bold shrink-0">
+                                OK
+                            </button>
+                        </div>
+                    ))}
                 </div>
             )}
 
