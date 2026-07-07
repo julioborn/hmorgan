@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { OWNER_USER_ID } from "@/lib/owner";
-import { AdminHome } from "@/app/page";
+import { AdminHome } from "@/components/AdminHomePanel";
 import Loader from "@/components/Loader";
 
 export default function AdminPanelPage() {
