@@ -70,8 +70,8 @@ export async function POST(req: NextRequest) {
 
     // Notificar a todos los mozos que tienen comandas activas en este momento
     const mesaLabel = pedido.mesa ? `mesa ${pedido.mesa}` : pedido.nombreComanda || "su mesa";
-    const title = "🔔 Llamada de cliente";
-    const body = `${clienteNombre} · ${mesaLabel}`;
+    const title = "🔔 Llamada de cliente 🔔";
+    const body = `🔔 ${clienteNombre} · ${mesaLabel} 🔔`;
 
     const comandasActivas = await Pedido.find({
         fuente: "empleado",
