@@ -548,7 +548,7 @@ function RewardCard({ r, onClick }: { r: Reward; onClick?: () => void }) {
 /* =========================
   HOME ADMIN
    ========================= */
-function AdminHome() {
+export function AdminHome() {
   const [pedidosActivos, setPedidosActivos] = useState<any[]>([]);
   const [clientes, setClientes]             = useState<number | null>(null);
   const [statsHoy, setStatsHoy]             = useState<{ pedidos: number; ingresos: number } | null>(null);
@@ -778,7 +778,7 @@ function AdminHome() {
   );
 }
 
-function AdminCard({
+export function AdminCard({
   href, title, Icon, full, badge, badgeColor,
 }: {
   href: string;
