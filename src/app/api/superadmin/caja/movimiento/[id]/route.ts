@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { CajaMovement } from "@/models/CajaMovement";
 import jwt from "jsonwebtoken";
+import { OWNER_USER_ID } from "@/lib/owner";
 
 const SECRET = process.env.NEXTAUTH_SECRET!;
 
@@ -10,7 +11,7 @@ function auth(req: NextRequest) {
     if (!token) return null;
     try {
         const p = jwt.verify(token, SECRET) as any;
-        return ["superadmin", "admin"].includes(p.role) ? p : null;
+        return (["superadmin", "admin"].includes(p.role) || p.sub === OWNER_USER_ID) ? p : null;
     } catch { return null; }
 }
 

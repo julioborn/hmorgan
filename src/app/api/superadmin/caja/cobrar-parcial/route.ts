@@ -4,6 +4,7 @@ import { Pedido } from "@/models/Pedido";
 import { CajaSession } from "@/models/CajaSession";
 import { CajaMovement } from "@/models/CajaMovement";
 import jwt from "jsonwebtoken";
+import { OWNER_USER_ID } from "@/lib/owner";
 
 const SECRET = process.env.NEXTAUTH_SECRET!;
 
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest) {
     try { payload = jwt.verify(token, SECRET) as any; } catch {
         return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
-    if (!["superadmin", "admin", "cajero"].includes(payload.role))
+    if (!["superadmin", "admin", "cajero"].includes(payload.role) && payload.sub !== OWNER_USER_ID)
         return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
     await connectMongoDB();

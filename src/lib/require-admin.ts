@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { OWNER_USER_ID } from "./owner";
 
 /**
  * Valida que la request venga con una sesión ADMIN.
@@ -15,7 +16,7 @@ export async function requireAdmin(req: NextRequest) {
 
     const data = await r.json().catch(() => ({}));
     const user = data?.user;
-    if (!user || user.role !== "admin") return null;
+    if (!user || (user.role !== "admin" && user.id !== OWNER_USER_ID)) return null;
     return user as {
         id: string;
         role: "admin" | "cliente";

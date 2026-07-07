@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
+import { OWNER_USER_ID } from "@/lib/owner";
 import Loader from "@/components/Loader";
 import { TrendingUp, Package, Users, Coins, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -55,7 +56,7 @@ export default function EstadisticasPage() {
     const [loadingStats, setLoadingStats] = useState(true);
 
     useEffect(() => {
-        if (!loading && user?.role !== "admin") router.replace("/");
+        if (!loading && user?.role !== "admin" && user?.id !== OWNER_USER_ID) router.replace("/");
     }, [user, loading, router]);
 
     const fetchStats = useCallback(async (d: string, h: string) => {

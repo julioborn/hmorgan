@@ -3,6 +3,7 @@ import { connectMongoDB } from "@/lib/mongodb";
 import { CajaSession } from "@/models/CajaSession";
 import { CajaMovement } from "@/models/CajaMovement";
 import jwt from "jsonwebtoken";
+import { OWNER_USER_ID } from "@/lib/owner";
 
 const SECRET = process.env.NEXTAUTH_SECRET!;
 
@@ -11,7 +12,7 @@ function authSuper(req: NextRequest) {
     if (!token) return null;
     try {
         const p = jwt.verify(token, SECRET) as any;
-        if (!["superadmin", "admin", "cajero"].includes(p.role)) return null;
+        if (!["superadmin", "admin", "cajero"].includes(p.role) && p.sub !== OWNER_USER_ID) return null;
         return p;
     } catch { return null; }
 }
