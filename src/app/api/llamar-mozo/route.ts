@@ -68,25 +68,31 @@ export async function POST(req: NextRequest) {
         mozoId:        pedido.userId,
     });
 
-    // Notificar solo al mozo que creó la comanda
+    // Notificar a todos los mozos que tienen comandas activas en este momento
     const mesaLabel = pedido.mesa ? `mesa ${pedido.mesa}` : pedido.nombreComanda || "su mesa";
     const title = "🔔 Llamada de cliente";
-    const body = `${clienteNombre} te está llamando desde ${mesaLabel}`;
+    const body = `${clienteNombre} · ${mesaLabel}`;
 
-    if (pedido.userId) {
-        const mozo = await User.findById(pedido.userId).lean() as any;
-        if (mozo) {
-            if (Array.isArray(mozo.pushSubscriptions) && mozo.pushSubscriptions.length) {
-                const invalid = await sendPushAndCollectInvalid(mozo.pushSubscriptions, { title, body, url: "/empleado/anotador" });
-                if (invalid.length) await User.updateOne({ _id: mozo._id }, { $pull: { pushSubscriptions: { endpoint: { $in: invalid } } } });
-            }
-            const fcmTokens = new Set<string>([...(mozo.fcmTokens ?? []), ...(mozo.tokenFCM ? [mozo.tokenFCM] : [])]);
-            for (const tok of fcmTokens) {
-                try {
-                    await enviarNotificacionFCM(tok, title, body, "/empleado/anotador");
-                } catch (err) {
-                    if (isFCMTokenInvalid(err)) await User.updateOne({ _id: mozo._id }, { $pull: { fcmTokens: tok } });
-                }
+    const comandasActivas = await Pedido.find({
+        fuente: "empleado",
+        estado: { $in: ["pendiente", "preparando", "listo"] },
+    }).select("userId").lean() as any[];
+
+    const mozoIds = [...new Set(comandasActivas.map((c: any) => c.userId?.toString()).filter(Boolean))];
+
+    const mozos = await User.find({ _id: { $in: mozoIds } }).lean() as any[];
+
+    for (const mozo of mozos) {
+        if (Array.isArray(mozo.pushSubscriptions) && mozo.pushSubscriptions.length) {
+            const invalid = await sendPushAndCollectInvalid(mozo.pushSubscriptions, { title, body, url: "/empleado/anotador" });
+            if (invalid.length) await User.updateOne({ _id: mozo._id }, { $pull: { pushSubscriptions: { endpoint: { $in: invalid } } } });
+        }
+        const fcmTokens = new Set<string>([...(mozo.fcmTokens ?? []), ...(mozo.tokenFCM ? [mozo.tokenFCM] : [])]);
+        for (const tok of fcmTokens) {
+            try {
+                await enviarNotificacionFCM(tok, title, body, "/empleado/anotador");
+            } catch (err) {
+                if (isFCMTokenInvalid(err)) await User.updateOne({ _id: mozo._id }, { $pull: { fcmTokens: tok } });
             }
         }
     }
