@@ -952,7 +952,7 @@ function DetalleEvento({ ev }: { ev: EventoCerrado }) {
 export default function CajaHistorialPage() {
     const SWR_OPTS = { revalidateOnFocus: true, revalidateOnMount: true, shouldRetryOnError: true, errorRetryCount: 4 };
 
-    const { data: sesiones, isLoading: loadingSesiones, error: errSesiones } =
+    const { data: sesiones, isLoading: loadingSesiones, error: errSesiones, mutate: reloadSesiones } =
         useSWR<Sesion[]>("/api/superadmin/caja/historial", fetcher, SWR_OPTS);
     const { data: eventosData, isLoading: loadingEventos, error: errEventos } =
         useSWR<EventoCerrado[]>("/api/eventos?cerrado=true", fetcher, SWR_OPTS);
