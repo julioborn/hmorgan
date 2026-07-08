@@ -49,6 +49,7 @@ interface CartDrawerProps {
     notasProducto: Record<string, string>;
     onSetNotaProducto: (id: string, nota: string) => void;
     enviando: boolean;
+    error: string;
     total: number;
     sesion: Sesion;
     onClose: () => void;
@@ -57,7 +58,7 @@ interface CartDrawerProps {
     onEnviar: () => void;
 }
 
-function CartDrawer({ items, menu, notasProducto, onSetNotaProducto, enviando, total, sesion, onClose, onVaciar, onEliminar, onEnviar }: CartDrawerProps) {
+function CartDrawer({ items, menu, notasProducto, onSetNotaProducto, enviando, error, total, sesion, onClose, onVaciar, onEliminar, onEnviar }: CartDrawerProps) {
     return (
         <motion.div
             className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm flex flex-col justify-end"
@@ -111,6 +112,9 @@ function CartDrawer({ items, menu, notasProducto, onSetNotaProducto, enviando, t
                     <span className="font-black text-lg text-purple-600">${fmt(total)}</span>
                 </div>
 
+                {error && (
+                    <p className="mt-3 text-sm text-red-600 font-semibold text-center">{error}</p>
+                )}
                 <div className="flex gap-3 mt-4">
                     <button onClick={onVaciar} className="flex items-center gap-1 px-4 py-2 rounded-xl border border-gray-300 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition">
                         <Trash2 size={16} />
@@ -139,6 +143,7 @@ export default function AutoservicioPage() {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [enviando, setEnviando] = useState(false);
     const [pedidoOk, setPedidoOk] = useState(false);
+    const [pedidoError, setPedidoError] = useState("");
 
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
@@ -169,6 +174,7 @@ export default function AutoservicioPage() {
             .filter(([_, cant]) => cant > 0)
             .map(([id, cant]) => ({ menuItemId: id, cantidad: cant, nota: notasProducto[id]?.trim() || undefined }));
         setEnviando(true);
+        setPedidoError("");
         try {
             const res = await fetch("/api/pedidos", {
                 method: "POST",
@@ -187,7 +193,12 @@ export default function AutoservicioPage() {
                 setDrawerOpen(false);
                 setPedidoOk(true);
                 setTimeout(() => setPedidoOk(false), 5000);
+            } else {
+                const data = await res.json().catch(() => ({}));
+                setPedidoError(data.message || "Error al enviar el pedido");
             }
+        } catch {
+            setPedidoError("Error de conexión");
         } finally { setEnviando(false); }
     }
 
@@ -279,7 +290,7 @@ export default function AutoservicioPage() {
     const cartDrawerProps: CartDrawerProps = {
         items, menu, notasProducto,
         onSetNotaProducto: (id, nota) => setNotasProducto(prev => ({ ...prev, [id]: nota })),
-        enviando, total, sesion,
+        enviando, error: pedidoError, total, sesion,
         onClose: () => setDrawerOpen(false),
         onVaciar: vaciarCarrito,
         onEliminar: eliminarProducto,

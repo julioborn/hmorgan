@@ -110,16 +110,18 @@ export async function POST(req: NextRequest) {
             { upsert: true, new: true }
         );
 
-        // 🚫 Si pedidos están desactivados, bloquear solo a clientes
-        if (!config.pedidosActivos && payload.role === "cliente") {
+        const { items, tipoEntrega, direccion, fuente, mesa, comensales, nombreComanda, notaEmpleado, notaCliente, horarioPreferido, lat, lng, clienteId, eventoId, comensalesIds, metodoPago, telefonoContacto } = await req.json();
+        const esAutoservicio = fuente === "autoservicio";
+        const esEmpleado = ["empleado", "cajero", "admin", "superadmin"].includes(payload.role);
+
+        // Pedidos desactivados no bloquean autoservicio (el cliente ya está en el bar)
+        if (!config.pedidosActivos && payload.role === "cliente" && !esAutoservicio) {
             return NextResponse.json(
                 { message: "Los pedidos están desactivados temporalmente" },
                 { status: 403 }
             );
         }
 
-        const { items, tipoEntrega, direccion, fuente, mesa, comensales, nombreComanda, notaEmpleado, notaCliente, horarioPreferido, lat, lng, clienteId, eventoId, comensalesIds, metodoPago, telefonoContacto } = await req.json();
-        const esEmpleado = ["empleado", "cajero", "admin", "superadmin"].includes(payload.role);
         // Clientes siempre necesitan ítems; empleados pueden crear pedidos sin ítems (asignación de mesa)
         if (!items?.length && !esEmpleado)
             return NextResponse.json({ message: "Sin items" }, { status: 400 });
@@ -142,11 +144,10 @@ export async function POST(req: NextRequest) {
         if (!user)
             return NextResponse.json({ message: "Usuario no encontrado" }, { status: 404 });
 
-        // 📱 Validar teléfono para clientes
-        if (payload.role === "cliente") {
+        // 📱 Validar teléfono para clientes (no aplica a autoservicio — están en el bar)
+        if (payload.role === "cliente" && !esAutoservicio) {
             const tel = user.telefono?.replace(/\D/g, "") ?? "";
             if (!tel || tel.length < 8 || tel.length > 10) {
-                // Notificar al usuario
                 const notifTokens = new Set<string>(user.fcmTokens ?? []);
                 if (user.tokenFCM) notifTokens.add(user.tokenFCM);
                 for (const t of notifTokens) {
