@@ -2306,7 +2306,7 @@ export default function CajaPage() {
                                         return (
                                             <motion.div key={p._id}
                                                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                                                className={`rounded-2xl border-2 shadow-sm overflow-hidden flex flex-col bg-white ${esAlerta ? "blink-alerta" : esDemorada ? "border-red-500" : "border-black"}`}>
+                                                className={`rounded-2xl border-2 shadow-sm overflow-hidden flex flex-col h-[600px] bg-white ${esAlerta ? "blink-alerta" : esDemorada ? "border-red-500" : "border-black"}`}>
 
                                                 {/* ── Cabecera ── */}
                                                 <div className={`shrink-0 px-4 py-3 ${esDemorada ? "bg-red-700" : "bg-black"}`}>
@@ -2360,7 +2360,7 @@ export default function CajaPage() {
                                                 </div>
 
                                                 {/* ── Cuerpo ── */}
-                                                <div className="p-3 flex flex-col bg-white">
+                                                <div className="p-3 flex flex-col flex-1 min-h-0 bg-white">
 
                                                     {/* Info extra delivery manual */}
                                                     {esCajaDelivery && (
@@ -2419,7 +2419,7 @@ export default function CajaPage() {
                                                     )}
 
                                                     {/* Items */}
-                                                    <ul className="mb-2 divide-y divide-gray-100 border border-black rounded-xl max-h-[320px] min-h-[80px] overflow-y-auto">
+                                                    <ul className="mb-2 divide-y divide-gray-100 border border-black rounded-xl flex-1 min-h-0 overflow-y-auto">
                                                         {p.items.map((it, idx) => {
                                                             const isEditingThis = editingNota?.pedidoId === p._id && editingNota?.itemId === it._id;
                                                             return (
