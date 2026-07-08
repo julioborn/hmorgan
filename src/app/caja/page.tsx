@@ -152,6 +152,7 @@ export default function CajaPage() {
     const prevPedidoStatesRef = useRef<Record<string, string>>({});
     const [listosToast, setListosToast] = useState<{ id: string; label: string; ts: number }[]>([]);
     const [vista, setVista] = useState<Vista>("pendientes");
+    const [filtroFuente, setFiltroFuente] = useState<"todos" | "bar" | "delivery" | "eventos">("todos");
     const hoyStr = new Date().toISOString().slice(0, 10);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
     const [openForm, setOpenForm] = useState({ montoInicial: "", notas: "" });
@@ -1825,16 +1826,28 @@ export default function CajaPage() {
         </div>
     );
 
+    // Filtro por fuente/tipo
+    const pedidosFiltrados = pedidos.filter(p => {
+        if (filtroFuente === "todos") return true;
+        const esApp      = p.fuente === "cliente";
+        const esDelivery = p.tipoEntrega === "envio";
+        const esEvento   = !!p.eventoId;
+        if (filtroFuente === "bar")      return !esApp && !esDelivery && !esEvento;
+        if (filtroFuente === "delivery") return esApp || esDelivery;
+        if (filtroFuente === "eventos")  return esEvento;
+        return true;
+    });
+
     // Pedidos listos para cobrar: estado listo O entregado (ambos estados válidos)
-    const paraCobrar = pedidos.filter(p => p.estado === "listo" || p.estado === "entregado");
+    const paraCobrar = pedidosFiltrados.filter(p => p.estado === "listo" || p.estado === "entregado");
 
     // Listas por estado
-    const pendientes = pedidos.filter(p => p.estado === "pendiente");
-    const preparando = pedidos.filter(p => p.estado === "preparando");
-    const listos = pedidos.filter(p => p.estado === "listo");
-    const finalizados = pedidos.filter(p => p.estado === "entregado" || p.estado === "cerrado");
+    const pendientes = pedidosFiltrados.filter(p => p.estado === "pendiente");
+    const preparando = pedidosFiltrados.filter(p => p.estado === "preparando");
+    const listos = pedidosFiltrados.filter(p => p.estado === "listo");
+    const finalizados = pedidosFiltrados.filter(p => p.estado === "entregado" || p.estado === "cerrado");
     // Pendientes de cobro: la burbuja de Finalizados desaparece apenas se cobra (pasa a "cerrado")
-    const entregadosPendientesCobro = pedidos.filter(p => p.estado === "entregado");
+    const entregadosPendientesCobro = pedidosFiltrados.filter(p => p.estado === "entregado");
 
     let lista = vista === "pendientes" ? pendientes : vista === "preparando" ? preparando : vista === "listos" ? listos : finalizados;
     // Mozo primero
@@ -2132,6 +2145,22 @@ export default function CajaPage() {
                                     <Pencil size={11} className="text-blue-400" />
                                 </div>
                             </button>
+
+                            {/* Filtro por tipo */}
+                            <div className="flex gap-2 mb-3">
+                                {(["todos", "bar", "delivery"] as const).map(f => (
+                                    <button key={f} onClick={() => setFiltroFuente(f)}
+                                        className={`flex-1 py-2 rounded-xl text-xs font-black transition capitalize ${filtroFuente === f ? "bg-black text-white shadow" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+                                        {f === "todos" ? "Todos" : f === "bar" ? "Bar" : "Delivery"}
+                                    </button>
+                                ))}
+                                {eventosActivos.length > 0 && (
+                                    <button onClick={() => setFiltroFuente("eventos")}
+                                        className={`flex-1 py-2 rounded-xl text-xs font-black transition ${filtroFuente === "eventos" ? "bg-amber-400 text-black shadow" : "bg-amber-50 text-amber-700 hover:bg-amber-100"}`}>
+                                        Eventos
+                                    </button>
+                                )}
+                            </div>
 
                             {/* Sub-tabs estado */}
                             <div className="flex gap-2 mb-5">
