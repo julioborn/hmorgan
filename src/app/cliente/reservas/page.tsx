@@ -334,7 +334,6 @@ export default function ClienteReservasPage() {
                     <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden"
                         onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between px-5 pt-5 pb-3">
-                            <span className="text-3xl">📅</span>
                             <button onClick={() => setConfirmando(false)} className="p-1 text-gray-400 hover:text-gray-600">
                                 <X size={18} />
                             </button>
