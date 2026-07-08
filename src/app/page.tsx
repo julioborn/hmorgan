@@ -272,6 +272,7 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
         >
           <span className="text-2xl">🔔</span>
           {llamadaEnviada ? "¡Mozo en camino!" : llamandoMozo ? "Llamando…" : "Llamar al mozo"}
+          <span className="text-2xl">🔔</span>
         </button>
       )}
 
