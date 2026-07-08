@@ -9,7 +9,7 @@ const fmt = (n: number) => "$" + new Intl.NumberFormat("es-AR", { minimumFractio
 
 type Item    = { _id: string; menuItemId?: { nombre: string; precio: number; categoria: string }; cantidad: number; nota?: string };
 type Pedido  = { _id: string; mesa?: string; total: number; estado: string; fuente: string; tipoEntrega?: string; items: Item[]; userId?: { nombre: string; apellido: string; role: string; telefono?: string }; notaCliente?: string; notaEmpleado?: string; direccion?: string; costoEnvio?: number; createdAt: string; eventoId?: string; numeroDia?: number; horarioPreferido?: string; telefonoContacto?: string; nombreComanda?: string; deliveryNumero?: number };
-type Pago    = { metodo: "efectivo" | "tarjeta" | "transferencia"; monto: string };
+type Pago    = { metodo: "efectivo" | "tarjeta" | "transferencia" | ""; monto: string };
 type Tab     = "pendiente" | "preparando" | "listo" | "entregado";
 type Confirm = { id: string; accion: "aceptar" | "listo" | "entregado" | "cuenta"; label: string; pedido: Pedido };
 
@@ -123,7 +123,7 @@ export default function AdminPedidosPage() {
         setConfirm(null);
         setCobrarPedido(p);
         setDescuento("");
-        setPagos([{ metodo: "efectivo", monto: String(p.total) }]);
+        setPagos([{ metodo: "", monto: "" }]);
     }
     function cerrarCobrar() { setCobrarPedido(null); setDescuento(""); setPagos([{ metodo: "efectivo", monto: "" }]); }
 
@@ -138,7 +138,7 @@ export default function AdminPedidosPage() {
 
     async function cobrar() {
         if (!cobrarPedido) return;
-        const pagosArr   = pagos.map(p => ({ metodo: p.metodo, monto: Number(p.monto) || 0 }));
+        const pagosArr   = pagos.filter(p => p.metodo !== "").map(p => ({ metodo: p.metodo || "efectivo", monto: Number(p.monto) || 0 }));
         const totalFinal = totalConDesc(cobrarPedido);
         const metodoPago = pagosArr.length === 1 ? pagosArr[0].metodo : "mixto";
         const vuelto     = calcVuelto();
@@ -436,8 +436,8 @@ export default function AdminPedidosPage() {
 
             {/* Modal cobrar */}
             {cobrarPedido && (
-                <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={cerrarCobrar}>
-                    <div className="bg-white rounded-t-3xl w-full max-w-xl shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={cerrarCobrar}>
+                    <div className="bg-white rounded-3xl w-full max-w-xl shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
                             <div>
                                 <p className="text-xs text-gray-400 font-semibold">Cobrar</p>
@@ -499,7 +499,7 @@ export default function AdminPedidosPage() {
                                     ))}
                                 </div>
                                 {pagos.length < 3 && (
-                                    <button onClick={() => setPagos(prev => [...prev, {metodo:"efectivo",monto:""}])}
+                                    <button onClick={() => setPagos(prev => [...prev, {metodo:"",monto:""}])}
                                         className="mt-2 flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-gray-700">
                                         <Plus size={14}/> Agregar otro medio
                                     </button>

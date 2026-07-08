@@ -158,7 +158,7 @@ export default function CajaPage() {
     const [openForm, setOpenForm] = useState({ montoInicial: "", notas: "" });
     const [openSaving, setOpenSaving] = useState(false);
     const [cobrarModal, setCobrarModal] = useState<{ open: boolean; pedido: Pedido | null }>({ open: false, pedido: null });
-    const [cobrarForm, setCobrarForm] = useState<{ descuento: string; pagos: { metodo: typeof METODOS[number]; monto: string }[] }>({ descuento: "", pagos: [{ metodo: "efectivo", monto: "" }] });
+    const [cobrarForm, setCobrarForm] = useState<{ descuento: string; pagos: { metodo: typeof METODOS[number] | ""; monto: string }[] }>({ descuento: "", pagos: [{ metodo: "", monto: "" }] });
     const [cobrarSaving, setCobrarSaving] = useState(false);
     const [comensalesModalCaja, setComensalesModalCaja] = useState<Pedido | null>(null);
     const [comensalesCountCaja, setComensalesCountCaja] = useState(0);
@@ -1098,7 +1098,7 @@ export default function CajaPage() {
         const ped = cobrarModal.pedido;
         const descuento = Math.max(0, Number(cobrarForm.descuento) || 0);
         const totalConDescuento = Math.max(0, ped.total - descuento);
-        const pagos = cobrarForm.pagos.map(p => ({ metodo: p.metodo, monto: Number(p.monto) || 0 }));
+        const pagos = cobrarForm.pagos.filter(p => p.metodo !== "").map(p => ({ metodo: p.metodo as "efectivo"|"tarjeta"|"transferencia", monto: Number(p.monto) || 0 }));
         const totalPagado = pagos.reduce((a, p) => a + p.monto, 0);
         const metodoPago = pagos.length === 1 ? pagos[0].metodo : "mixto";
         const efectivoPagado = pagos.filter(p => p.metodo === "efectivo").reduce((a, p) => a + p.monto, 0);
@@ -1111,7 +1111,7 @@ export default function CajaPage() {
             });
             if (res.ok) {
                 setCobrarModal({ open: false, pedido: null });
-                setCobrarForm({ descuento: "", pagos: [{ metodo: "efectivo", monto: "" }] });
+                setCobrarForm({ descuento: "", pagos: [{ metodo: "", monto: "" }] });
                 setPedidos(prev => prev.map(p => p._id === ped._id ? { ...p, estado: "cerrado" } : p));
                 printTicket(ped, pagos, descuento, totalConDescuento, vuelto);
                 await loadData();
@@ -2508,7 +2508,7 @@ export default function CajaPage() {
                                                                 </button>
                                                             )}
                                                             {(p.estado === "listo" || p.estado === "entregado") && (
-                                                                <button onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", pagos: [{ metodo: "efectivo", monto: String(p.total) }] }); }}
+                                                                <button onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", pagos: [{ metodo: "", monto: "" }] }); }}
                                                                     className="w-full flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-xl text-sm transition">
                                                                     <Wallet size={13} /> Cobrar
                                                                 </button>
@@ -2715,7 +2715,7 @@ export default function CajaPage() {
                                                     </button>
                                                 )}
                                                 <button
-                                                    onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", pagos: [{ metodo: "efectivo", monto: String(p.total) }] }); }}
+                                                    onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", pagos: [{ metodo: "", monto: "" }] }); }}
                                                     className={`w-full text-white font-black py-3 rounded-xl text-base tracking-wide transition ${cobrarBg}`}>
                                                     Cobrar todo
                                                 </button>
@@ -3861,10 +3861,10 @@ export default function CajaPage() {
                 const totalPagado = cobrarForm.pagos.reduce((a, p) => a + (Number(p.monto) || 0), 0);
                 const pendiente = totalConDescuento - totalPagado;
                 const efectivoPagadoModal = cobrarForm.pagos.filter(p => p.metodo === "efectivo").reduce((a, p) => a + (Number(p.monto) || 0), 0);
-                const noEfectivoPagadoModal = cobrarForm.pagos.filter(p => p.metodo !== "efectivo").reduce((a, p) => a + (Number(p.monto) || 0), 0);
+                const noEfectivoPagadoModal = cobrarForm.pagos.filter(p => p.metodo !== "efectivo" && p.metodo !== "").reduce((a, p) => a + (Number(p.monto) || 0), 0);
                 const excedente = Math.max(0, noEfectivoPagadoModal - totalConDescuento);
                 const vuelto = Math.max(0, efectivoPagadoModal - Math.max(0, totalConDescuento - noEfectivoPagadoModal));
-                const esValido = pendiente <= 1;
+                const esValido = pendiente <= 1 && cobrarForm.pagos.some(p => p.metodo !== "" && Number(p.monto) > 0);
                 return createPortal(
                     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
                         <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl max-h-[92vh] flex flex-col">
