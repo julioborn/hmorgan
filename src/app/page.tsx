@@ -226,17 +226,23 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
 
   async function llamar(tipo: "mozo" | "cuenta") {
     if (llamandoMozo || llamadaEnviada || !comandaActiva) return;
-    setLlamandoMozo(true);
-    try {
-      await fetch("/api/llamar-mozo", {
-        method: "POST", credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tipo }),
-      });
-      setLlamadaEnviada(tipo);
-      setTimeout(() => setLlamadaEnviada(null), 60000);
-    } catch {}
-    finally { setLlamandoMozo(false); }
+    const esCuenta = tipo === "cuenta";
+    const { isConfirmed } = await swalBase.fire({
+      title: esCuenta ? "¿Pedir la cuenta?" : "¿Llamar al mozo?",
+      text: esCuenta ? "Se le avisará al mozo que querés pagar." : "El mozo recibirá una notificación.",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: esCuenta ? "Sí, pedir cuenta" : "Sí, llamar",
+      cancelButtonText: "Cancelar",
+    });
+    if (!isConfirmed) return;
+    setLlamadaEnviada(tipo);
+    setTimeout(() => setLlamadaEnviada(null), 60000);
+    fetch("/api/llamar-mozo", {
+      method: "POST", credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tipo }),
+    }).catch(() => {});
   }
 
   if (loadingRewards) {
