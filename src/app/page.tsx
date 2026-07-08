@@ -126,7 +126,7 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
   const [canjeModal, setCanjeModal] = useState<Reward | null>(null);
   const [canjeSolicitando, setCanjeSolicitando] = useState(false);
   const [canjeSolicitados, setCanjeSolicitados] = useState<Set<string>>(new Set());
-  const [comandaActiva, setComandaActiva] = useState<{ _id: string; mesa?: string; nombreComanda?: string } | null>(null);
+  const [comandaActiva, setComandaActiva] = useState<{ _id: string; mesa?: string; nombreComanda?: string; total?: number; items?: { cantidad: number }[] } | null>(null);
   const [llamadaEnviada, setLlamadaEnviada] = useState<Set<"mozo" | "cuenta">>(new Set());
   const [llamarConfirm, setLlamarConfirm] = useState<"mozo" | "cuenta" | null>(null);
 
@@ -272,33 +272,59 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
         </span>
       </div>
 
-      {/* Llamar al mozo / Pedir la cuenta */}
+      {/* Mi Mesa — comanda activa como comensal */}
       {comandaActiva && (
-        <div className="flex gap-3">
-          <button
-            onClick={() => llamar("mozo")}
-            disabled={llamadaEnviada.has("mozo")}
-            className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl font-black text-sm transition-all active:scale-[0.97] shadow-lg
-              ${llamadaEnviada.has("mozo")
-                ? "bg-red-50 border-2 border-red-200 text-red-600 cursor-default"
-                : "bg-red-600 text-white hover:bg-red-700"
-              }`}
-          >
-            <Bell size={22} />
-            {llamadaEnviada.has("mozo") ? "¡En camino!" : "Llamar mozo"}
-          </button>
-          <button
-            onClick={() => llamar("cuenta")}
-            disabled={llamadaEnviada.has("cuenta")}
-            className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl font-black text-sm transition-all active:scale-[0.97] shadow-lg
-              ${llamadaEnviada.has("cuenta")
-                ? "bg-green-50 border-2 border-green-200 text-green-700 cursor-default"
-                : "bg-black text-white hover:bg-gray-900"
-              }`}
-          >
-            <Receipt size={22} />
-            {llamadaEnviada.has("cuenta") ? "¡Avisado!" : "Pedir cuenta"}
-          </button>
+        <div className="space-y-3">
+          {/* Card resumen → link a mi-cuenta */}
+          <Link href="/cliente/mi-cuenta"
+            className="block bg-black rounded-2xl px-5 py-4 active:scale-[0.98] transition-all shadow-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-white/50 text-[10px] font-black uppercase tracking-widest mb-0.5">Mi cuenta</p>
+                <p className="text-white font-black text-lg leading-tight">
+                  {comandaActiva.mesa ? `Mesa ${comandaActiva.mesa}` : comandaActiva.nombreComanda || "Mi comanda"}
+                </p>
+                {(comandaActiva.items?.length ?? 0) > 0 && (
+                  <p className="text-white/60 text-xs mt-1">
+                    {comandaActiva.items!.reduce((s, it) => s + it.cantidad, 0)} productos
+                    {comandaActiva.total ? ` · $${new Intl.NumberFormat("es-AR").format(Math.round(comandaActiva.total))}` : ""}
+                  </p>
+                )}
+              </div>
+              <div className="flex flex-col items-end gap-1">
+                <Receipt size={22} className="text-white/70" />
+                <span className="text-white/60 text-xs font-semibold">Ver detalle →</span>
+              </div>
+            </div>
+          </Link>
+
+          {/* Llamar mozo / Pedir cuenta */}
+          <div className="flex gap-3">
+            <button
+              onClick={() => llamar("mozo")}
+              disabled={llamadaEnviada.has("mozo")}
+              className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl font-black text-sm transition-all active:scale-[0.97] shadow-sm
+                ${llamadaEnviada.has("mozo")
+                  ? "bg-red-50 border-2 border-red-200 text-red-600 cursor-default"
+                  : "bg-red-600 text-white hover:bg-red-700"
+                }`}
+            >
+              <Bell size={20} />
+              {llamadaEnviada.has("mozo") ? "¡En camino!" : "Llamar mozo"}
+            </button>
+            <button
+              onClick={() => llamar("cuenta")}
+              disabled={llamadaEnviada.has("cuenta")}
+              className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl font-black text-sm transition-all active:scale-[0.97] shadow-sm
+                ${llamadaEnviada.has("cuenta")
+                  ? "bg-green-50 border-2 border-green-200 text-green-700 cursor-default"
+                  : "bg-gray-900 text-white hover:bg-black"
+                }`}
+            >
+              <Receipt size={20} />
+              {llamadaEnviada.has("cuenta") ? "¡Avisado!" : "Pedir cuenta"}
+            </button>
+          </div>
         </div>
       )}
 
@@ -666,6 +692,7 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
   const [cajaAbierta, setCajaAbierta] = useState<boolean | null>(null);
   const [comandasCount, setComandasCount] = useState(0);
   const [reservasHoyCount, setReservasHoyCount] = useState(0);
+  const [autoservActivasCount, setAutoservActivasCount] = useState(0);
 
   useEffect(() => {
     const tick = setInterval(() => setHora(new Date().getHours()), 60000);
@@ -695,6 +722,13 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
         const count = d.filter((r: any) => r.fecha?.slice(0, 10) === hoy && r.estado !== "cancelada").length;
         setReservasHoyCount(count);
       })
+      .catch(() => { });
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/autoservicio", { credentials: "include" })
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setAutoservActivasCount(d.length); })
       .catch(() => { });
   }, []);
 
@@ -736,18 +770,25 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
           )}
         </div>
 
-        <Link
-          href="/empleado/autoservicio"
-          className="w-full flex items-center gap-4 bg-purple-700 hover:bg-purple-800 text-white rounded-2xl px-6 py-5 transition shadow-sm active:scale-[0.98] block"
-        >
-          <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-            <Tablet className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="font-extrabold text-lg leading-tight">Autoservicio</p>
-            <p className="text-purple-200 text-sm">Asignar mesas para autopedido</p>
-          </div>
-        </Link>
+        <div className="relative">
+          <Link
+            href="/empleado/autoservicio"
+            className="w-full flex items-center gap-4 bg-purple-700 hover:bg-purple-800 text-white rounded-2xl px-6 py-5 transition shadow-sm active:scale-[0.98] block"
+          >
+            <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+              <Tablet className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="font-extrabold text-lg leading-tight">Autoservicio</p>
+              <p className="text-purple-200 text-sm">Asignar mesas para autopedido</p>
+            </div>
+          </Link>
+          {autoservActivasCount > 0 && (
+            <span className="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1.5 bg-white text-purple-700 text-xs font-black rounded-full flex items-center justify-center shadow-md border-2 border-purple-700 pointer-events-none">
+              {autoservActivasCount}
+            </span>
+          )}
+        </div>
 
         <div className="relative">
           <Link

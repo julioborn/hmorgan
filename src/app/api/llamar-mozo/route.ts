@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
     const pedido = await Pedido.findOne({
         comensalesIds: payload.sub,
         estado: { $in: ["pendiente", "preparando", "listo"] },
-    }).lean() as any;
+    }).populate("items.menuItemId", "nombre precio").lean() as any;
 
     return NextResponse.json({ pedido: pedido ?? null });
 }
