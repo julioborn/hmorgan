@@ -48,8 +48,6 @@ interface CartDrawerProps {
     menu: MenuItem[];
     notasProducto: Record<string, string>;
     onSetNotaProducto: (id: string, nota: string) => void;
-    horarioPreferido: string;
-    setHorarioPreferido: (v: string) => void;
     enviando: boolean;
     total: number;
     sesion: Sesion;
@@ -59,7 +57,7 @@ interface CartDrawerProps {
     onEnviar: () => void;
 }
 
-function CartDrawer({ items, menu, notasProducto, onSetNotaProducto, horarioPreferido, setHorarioPreferido, enviando, total, sesion, onClose, onVaciar, onEliminar, onEnviar }: CartDrawerProps) {
+function CartDrawer({ items, menu, notasProducto, onSetNotaProducto, enviando, total, sesion, onClose, onVaciar, onEliminar, onEnviar }: CartDrawerProps) {
     return (
         <motion.div
             className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm flex flex-col justify-end"
@@ -108,26 +106,6 @@ function CartDrawer({ items, menu, notasProducto, onSetNotaProducto, horarioPref
                     })}
                 </div>
 
-                <div className="mt-4">
-                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">
-                        Horario preferido <span className="font-normal normal-case text-gray-400">(opcional)</span>
-                    </label>
-                    <select
-                        value={horarioPreferido}
-                        onChange={e => setHorarioPreferido(e.target.value)}
-                        style={{ fontSize: "16px" }}
-                        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white"
-                    >
-                        <option value="">Seleccionar...</option>
-                        <option value="20:30">20:30</option>
-                        <option value="21:00">21:00</option>
-                        <option value="21:30">21:30</option>
-                        <option value="22:00">22:00</option>
-                        <option value="22:30">22:30</option>
-                        <option value="Apenas esté listo">Apenas esté listo</option>
-                    </select>
-                </div>
-
                 <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
                     <span className="font-black text-lg text-black">Total</span>
                     <span className="font-black text-lg text-purple-600">${fmt(total)}</span>
@@ -158,7 +136,6 @@ export default function AutoservicioPage() {
     const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null);
     const [items, setItems] = useState<Record<string, number>>({});
     const [notasProducto, setNotasProducto] = useState<Record<string, string>>({});
-    const [horarioPreferido, setHorarioPreferido] = useState("");
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [enviando, setEnviando] = useState(false);
     const [pedidoOk, setPedidoOk] = useState(false);
@@ -202,13 +179,11 @@ export default function AutoservicioPage() {
                     fuente: "autoservicio",
                     mesa: sesion.mesasNombres.join(", "),
                     tipoEntrega: "retira",
-                    horarioPreferido: horarioPreferido.trim() || undefined,
                 }),
             });
             if (res.ok) {
                 setItems({});
                 setNotasProducto({});
-                setHorarioPreferido("");
                 setDrawerOpen(false);
                 setPedidoOk(true);
                 setTimeout(() => setPedidoOk(false), 5000);
@@ -304,7 +279,6 @@ export default function AutoservicioPage() {
     const cartDrawerProps: CartDrawerProps = {
         items, menu, notasProducto,
         onSetNotaProducto: (id, nota) => setNotasProducto(prev => ({ ...prev, [id]: nota })),
-        horarioPreferido, setHorarioPreferido,
         enviando, total, sesion,
         onClose: () => setDrawerOpen(false),
         onVaciar: vaciarCarrito,

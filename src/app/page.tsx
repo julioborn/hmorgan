@@ -121,6 +121,7 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
   const [pedidosActivosCount, setPedidosActivosCount] = useState(0);
   const [pedidosActivos, setPedidosActivos] = useState(true);
   const [reservasActivas, setReservasActivas] = useState(true);
+  const [sesionAutoserv, setSesionAutoserv] = useState(false);
   const [repartidorAfuera, setRepartidorAfuera] = useState(false);
   const [canjeModal, setCanjeModal] = useState<Reward | null>(null);
   const [canjeSolicitando, setCanjeSolicitando] = useState(false);
@@ -197,6 +198,10 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
     fetch("/api/config/reservas", { cache: "no-store" })
       .then(res => res.json())
       .then(data => { setReservasActivas(data.activo ?? true); });
+    fetch("/api/autoservicio", { credentials: "include" })
+      .then(r => r.json())
+      .then(d => { setSesionAutoserv(!!(d?.sesion)); })
+      .catch(() => {});
   }, []);
 
   // Banner: repartidor afuera + conteo de pedidos activos + comanda activa como comensal
@@ -425,11 +430,12 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
           accent="from-red-600 to-red-800"
         />
         <ActionCard
-          href={isOwner ? "/autoservicio" : "/"}
+          href={isOwner || sesionAutoserv ? "/autoservicio" : "/"}
           title="Autoservicio"
           Icon={Tablet}
-          accent={isOwner ? "from-red-600 to-red-800" : "from-gray-400 to-gray-500"}
-          disabled={!isOwner}
+          accent={isOwner || sesionAutoserv ? "from-red-600 to-red-800" : "from-gray-400 to-gray-500"}
+          disabled={!isOwner && !sesionAutoserv}
+          greenDot={sesionAutoserv}
           onDisabledClick={() => swalBase.fire({
             title: "Próximamente",
             text: "Esta función estará disponible muy pronto.",
@@ -793,6 +799,7 @@ function ActionCard({
   accent,
   disabled,
   notificationCount,
+  greenDot,
   onDisabledClick,
 }: {
   href: string;
@@ -801,6 +808,7 @@ function ActionCard({
   accent?: string;
   disabled?: boolean;
   notificationCount?: number;
+  greenDot?: boolean;
   onDisabledClick?: () => void;
 }) {
   const content = (
@@ -817,6 +825,9 @@ function ActionCard({
         <span className="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1.5 bg-white text-black text-xs font-black rounded-full flex items-center justify-center shadow-md border-2 border-black pointer-events-none">
           {notificationCount}
         </span>
+      )}
+      {greenDot && (
+        <span className="absolute top-2 right-2 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-white shadow pointer-events-none" />
       )}
       <div className="text-base lg:text-lg font-extrabold text-center tracking-wide">
         {title}
