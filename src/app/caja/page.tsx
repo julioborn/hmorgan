@@ -2147,20 +2147,36 @@ export default function CajaPage() {
                             </button>
 
                             {/* Filtro por tipo */}
-                            <div className="flex gap-2 mb-3">
-                                {(["todos", "bar", "delivery"] as const).map(f => (
-                                    <button key={f} onClick={() => setFiltroFuente(f)}
-                                        className={`flex-1 py-2 rounded-xl text-xs font-black transition capitalize ${filtroFuente === f ? "bg-black text-white shadow" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
-                                        {f === "todos" ? "Todos" : f === "bar" ? "Bar" : "Delivery"}
-                                    </button>
-                                ))}
-                                {eventosActivos.length > 0 && (
-                                    <button onClick={() => setFiltroFuente("eventos")}
-                                        className={`flex-1 py-2 rounded-xl text-xs font-black transition ${filtroFuente === "eventos" ? "bg-amber-400 text-black shadow" : "bg-amber-50 text-amber-700 hover:bg-amber-100"}`}>
-                                        Eventos
-                                    </button>
-                                )}
-                            </div>
+                            {(() => {
+                                const activos = pedidos.filter(p => !["cerrado","cancelado"].includes(p.estado));
+                                const cntBar      = activos.filter(p => p.fuente !== "cliente" && p.tipoEntrega !== "envio" && !p.eventoId).length;
+                                const cntDelivery = activos.filter(p => p.fuente === "cliente" || p.tipoEntrega === "envio").length;
+                                const cntEventos  = activos.filter(p => !!p.eventoId).length;
+                                const btnBase = "relative flex-1 py-2 rounded-xl text-xs font-black transition";
+                                const active  = "bg-black text-white shadow ring-2 ring-black ring-offset-2";
+                                const inactive = "bg-gray-100 text-gray-500 hover:bg-gray-200 border-2 border-transparent";
+                                return (
+                                    <div className="flex gap-2 mb-3">
+                                        <button onClick={() => setFiltroFuente("todos")} className={`${btnBase} ${filtroFuente === "todos" ? active : inactive}`}>
+                                            Todos
+                                        </button>
+                                        <button onClick={() => setFiltroFuente("bar")} className={`${btnBase} ${filtroFuente === "bar" ? active : inactive}`}>
+                                            Bar
+                                            {cntBar > 0 && <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 text-[10px] font-black rounded-full bg-red-500 text-white flex items-center justify-center">{cntBar}</span>}
+                                        </button>
+                                        <button onClick={() => setFiltroFuente("delivery")} className={`${btnBase} ${filtroFuente === "delivery" ? active : inactive}`}>
+                                            Delivery
+                                            {cntDelivery > 0 && <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 text-[10px] font-black rounded-full bg-red-500 text-white flex items-center justify-center">{cntDelivery}</span>}
+                                        </button>
+                                        {eventosActivos.length > 0 && (
+                                            <button onClick={() => setFiltroFuente("eventos")} className={`${btnBase} ${filtroFuente === "eventos" ? "bg-amber-400 text-black shadow ring-2 ring-amber-400 ring-offset-2" : "bg-amber-50 text-amber-700 hover:bg-amber-100 border-2 border-amber-200"}`}>
+                                                Eventos
+                                                {cntEventos > 0 && <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 text-[10px] font-black rounded-full bg-amber-600 text-white flex items-center justify-center">{cntEventos}</span>}
+                                            </button>
+                                        )}
+                                    </div>
+                                );
+                            })()}
 
                             {/* Sub-tabs estado */}
                             <div className="flex gap-2 mb-5">

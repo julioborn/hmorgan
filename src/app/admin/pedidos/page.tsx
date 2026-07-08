@@ -11,7 +11,7 @@ type Item    = { _id: string; menuItemId?: { nombre: string; precio: number; cat
 type Pedido  = { _id: string; mesa?: string; total: number; estado: string; fuente: string; tipoEntrega?: string; items: Item[]; userId?: { nombre: string; apellido: string; role: string; telefono?: string }; notaCliente?: string; notaEmpleado?: string; direccion?: string; costoEnvio?: number; createdAt: string; eventoId?: string; numeroDia?: number; horarioPreferido?: string; telefonoContacto?: string; nombreComanda?: string; deliveryNumero?: number };
 type Pago    = { metodo: "efectivo" | "tarjeta" | "transferencia"; monto: string };
 type Tab     = "pendiente" | "preparando" | "listo" | "entregado";
-type Confirm = { id: string; accion: "aceptar" | "listo" | "entregado" | "cuenta" };
+type Confirm = { id: string; accion: "aceptar" | "listo" | "entregado" | "cuenta"; label: string; pedido: Pedido };
 
 const TABS: { key: Tab; label: string }[] = [
     { key: "pendiente",  label: "Pendientes"  },
@@ -332,64 +332,31 @@ export default function AdminPedidosPage() {
                                         )}
                                     </div>
 
-                                    {/* ── Acciones con doble confirmación ── */}
+                                    {/* ── Acciones ── */}
 
                                     {/* PENDIENTE → Aceptar e imprimir */}
                                     {tab === "pendiente" && (
-                                        thisConfirm === "aceptar" ? (
-                                            <div className="flex gap-2">
-                                                <button onClick={() => aceptarYImprimir(p)} disabled={isBusy}
-                                                    className="flex-1 flex items-center justify-center gap-1.5 bg-black text-white font-bold text-sm py-3 rounded-xl active:scale-[0.97] disabled:opacity-50">
-                                                    <Printer size={14}/>{isBusy ? "Imprimiendo..." : "Sí, aceptar e imprimir"}
-                                                </button>
-                                                <button onClick={() => setConfirm(null)}
-                                                    className="px-4 py-3 border border-gray-200 text-gray-500 font-bold text-sm rounded-xl">
-                                                    <X size={16}/>
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <button onClick={() => setConfirm({ id: p._id, accion: "aceptar" })} disabled={isBusy}
-                                                className="w-full flex items-center justify-center gap-2 bg-black text-white font-bold text-sm py-3 rounded-xl transition active:scale-[0.97] disabled:opacity-50">
-                                                <Printer size={15}/>Aceptar e imprimir
-                                            </button>
-                                        )
+                                        <button onClick={() => setConfirm({ id: p._id, accion: "aceptar", label: "Aceptar e imprimir", pedido: p })} disabled={isBusy}
+                                            className={`w-full flex items-center justify-center gap-2 font-bold text-sm py-3 rounded-xl transition active:scale-[0.97] disabled:opacity-50 ${thisConfirm === "aceptar" ? "bg-gray-700 text-white ring-2 ring-offset-1 ring-black" : "bg-black text-white"}`}>
+                                            <Printer size={15}/>{isBusy ? "Imprimiendo..." : "Aceptar e imprimir"}
+                                        </button>
                                     )}
 
                                     {/* PREPARANDO → Marcar listo */}
                                     {tab === "preparando" && (
-                                        thisConfirm === "listo" ? (
-                                            <div className="flex gap-2">
-                                                <button onClick={() => cambiarEstado(p._id, "listo")} disabled={isBusy}
-                                                    className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-600 text-white font-bold text-sm py-3 rounded-xl active:scale-[0.97] disabled:opacity-50">
-                                                    <CheckCircle size={14}/>{isBusy ? "..." : "Sí, marcar listo"}
-                                                </button>
-                                                <button onClick={() => setConfirm(null)} className="px-4 py-3 border border-gray-200 text-gray-500 font-bold text-sm rounded-xl"><X size={16}/></button>
-                                            </div>
-                                        ) : (
-                                            <button onClick={() => setConfirm({ id: p._id, accion: "listo" })} disabled={isBusy}
-                                                className="w-full flex items-center justify-center gap-2 bg-emerald-600 text-white font-bold text-sm py-3 rounded-xl transition active:scale-[0.97] disabled:opacity-50">
-                                                <CheckCircle size={15}/>Marcar listo
-                                            </button>
-                                        )
+                                        <button onClick={() => setConfirm({ id: p._id, accion: "listo", label: "Marcar listo", pedido: p })} disabled={isBusy}
+                                            className={`w-full flex items-center justify-center gap-2 font-bold text-sm py-3 rounded-xl transition active:scale-[0.97] disabled:opacity-50 ${thisConfirm === "listo" ? "bg-emerald-700 text-white ring-2 ring-offset-1 ring-emerald-600" : "bg-emerald-600 text-white"}`}>
+                                            <CheckCircle size={15}/>{isBusy ? "..." : "Marcar listo"}
+                                        </button>
                                     )}
 
                                     {/* LISTO → Imprimir cuenta + Cobrar */}
                                     {tab === "listo" && (
                                         <div className="space-y-2">
-                                            {thisConfirm === "cuenta" ? (
-                                                <div className="flex gap-2">
-                                                    <button onClick={() => imprimirCuenta(p)} disabled={isBusy}
-                                                        className="flex-1 flex items-center justify-center gap-1.5 bg-gray-800 text-white font-bold text-sm py-3 rounded-xl active:scale-[0.97] disabled:opacity-50">
-                                                        <Printer size={14}/>{imprimiendoId === p._id ? "Imprimiendo..." : "Sí, imprimir cuenta"}
-                                                    </button>
-                                                    <button onClick={() => setConfirm(null)} className="px-4 py-3 border border-gray-200 text-gray-500 font-bold text-sm rounded-xl"><X size={16}/></button>
-                                                </div>
-                                            ) : (
-                                                <button onClick={() => setConfirm({ id: p._id, accion: "cuenta" })} disabled={isBusy}
-                                                    className="w-full flex items-center justify-center gap-1.5 border border-gray-300 bg-white text-gray-700 font-bold text-sm py-2.5 rounded-xl transition active:scale-[0.97] disabled:opacity-50">
-                                                    <Printer size={14}/>Imprimir cuenta
-                                                </button>
-                                            )}
+                                            <button onClick={() => setConfirm({ id: p._id, accion: "cuenta", label: "Imprimir cuenta", pedido: p })} disabled={isBusy}
+                                                className={`w-full flex items-center justify-center gap-1.5 border font-bold text-sm py-2.5 rounded-xl transition active:scale-[0.97] disabled:opacity-50 ${thisConfirm === "cuenta" ? "border-gray-900 bg-gray-100 text-gray-900 ring-2 ring-offset-1 ring-gray-400" : "border-gray-300 bg-white text-gray-700"}`}>
+                                                <Printer size={14}/>{imprimiendoId === p._id ? "Imprimiendo..." : "Imprimir cuenta"}
+                                            </button>
                                             <button onClick={() => abrirCobrar(p)} disabled={isBusy}
                                                 className="w-full flex items-center justify-center gap-2 bg-black text-white font-bold text-sm py-3 rounded-xl transition active:scale-[0.97] disabled:opacity-50">
                                                 <Wallet size={15}/>Cobrar {fmt(p.total)}
@@ -410,6 +377,45 @@ export default function AdminPedidosPage() {
                     })}
                 </div>
             )}
+
+            {/* Banner de confirmación fijo — siempre visible en mobile */}
+            {confirm && (() => {
+                const cp     = confirm.pedido;
+                const isBusy = updatingId === confirm.id || imprimiendoId === confirm.id;
+                const mesa   = cp.mesa ? `Mesa ${cp.mesa}` : cp.nombreComanda || "Sin mesa";
+                let btnCls   = "bg-black text-white";
+                let handleConfirm: () => void;
+                if (confirm.accion === "aceptar")  { handleConfirm = () => aceptarYImprimir(cp); }
+                else if (confirm.accion === "listo") { handleConfirm = () => cambiarEstado(confirm.id, "listo"); btnCls = "bg-emerald-600 text-white"; }
+                else if (confirm.accion === "cuenta") { handleConfirm = () => imprimirCuenta(cp); btnCls = "bg-gray-800 text-white"; }
+                else { handleConfirm = () => setConfirm(null); }
+                return (
+                    <div className="fixed bottom-0 left-0 right-0 z-40" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+                        <div className="bg-white border-t-2 border-black shadow-2xl px-4 pt-4 pb-5">
+                            <div className="flex items-start justify-between mb-3 max-w-xl mx-auto">
+                                <div>
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Confirmar acción</p>
+                                    <p className="text-base font-black text-gray-900 mt-0.5">{confirm.label}</p>
+                                    <p className="text-xs text-gray-500 font-semibold">{mesa}</p>
+                                </div>
+                                <button onClick={() => setConfirm(null)} className="p-2 rounded-xl border border-gray-200 text-gray-400 shrink-0">
+                                    <X size={18}/>
+                                </button>
+                            </div>
+                            <div className="flex gap-3 max-w-xl mx-auto">
+                                <button onClick={() => setConfirm(null)}
+                                    className="px-5 py-3 border-2 border-gray-200 text-gray-600 font-bold text-sm rounded-xl">
+                                    Cancelar
+                                </button>
+                                <button onClick={handleConfirm} disabled={isBusy}
+                                    className={`flex-1 flex items-center justify-center gap-2 font-black text-sm py-3 rounded-xl disabled:opacity-50 ${btnCls}`}>
+                                    {isBusy ? "Procesando..." : `Sí, ${confirm.label.toLowerCase()}`}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* Modal cobrar */}
             {cobrarPedido && (
