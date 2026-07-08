@@ -1,44 +1,51 @@
 "use client";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Tablet, List, LayoutGrid, X, Plus, Trash2, CheckCircle, UserPlus } from "lucide-react";
+import { Tablet, List, LayoutGrid, X, CheckCircle, UserPlus } from "lucide-react";
 import Loader from "@/components/Loader";
 
-type Mesa = { _id: string; nombre: string; activa: boolean; zona?: string };
-type Sesion = {
-    _id: string;
-    mesaNombre: string;
-    usuariosIds: { _id: string; nombre: string; apellido: string; username: string }[];
-};
+type Mesa = { _id: string; nombre: string; activa: boolean; zona?: string; x?: number; y?: number; forma?: string; ancho?: number; alto?: number; rotacion?: number; tipo?: string };
+type SalonEl = { _id: string; tipo: string; label?: string; x: number; y: number; ancho: number; alto: number; color: string };
+type Sesion = { _id: string; mesasNombres: string[]; usuariosIds: { _id: string; nombre: string; apellido: string; username: string }[] };
 
 export default function EmpleadoAutoservicioPage() {
     const [mesas, setMesas] = useState<Mesa[]>([]);
+    const [elementos, setElementos] = useState<SalonEl[]>([]);
     const [sesiones, setSesiones] = useState<Sesion[]>([]);
     const [loading, setLoading] = useState(true);
-    const [vista, setVista] = useState<"lista" | "plan">("lista");
+    const [vista, setVista] = useState<"lista" | "plano">("lista");
 
-    // Modal asignar
-    const [mesaSeleccionada, setMesaSeleccionada] = useState<Mesa | null>(null);
+    // Multi-selección de mesas
+    const [mesasSeleccionadas, setMesasSeleccionadas] = useState<string[]>([]);
+    const [modalOpen, setModalOpen] = useState(false);
     const [userInput, setUserInput] = useState("");
     const [usernames, setUsernames] = useState<string[]>([]);
     const [enviando, setEnviando] = useState(false);
     const [error, setError] = useState("");
 
     async function cargar() {
-        const [mRes, sRes] = await Promise.all([
+        const [mRes, elRes, sRes] = await Promise.all([
             fetch("/api/admin/mesas", { credentials: "include" }),
+            fetch("/api/superadmin/salon", { credentials: "include" }),
             fetch("/api/autoservicio", { credentials: "include" }),
         ]);
-        const mData = await mRes.json();
-        const sData = await sRes.json();
+        const [mData, elData, sData] = await Promise.all([mRes.json(), elRes.json(), sRes.json()]);
         setMesas(Array.isArray(mData) ? mData.filter((m: Mesa) => m.activa) : []);
+        setElementos(Array.isArray(elData) ? elData : []);
         setSesiones(Array.isArray(sData) ? sData : []);
         setLoading(false);
     }
 
     useEffect(() => { cargar(); }, []);
 
-    const sesionPorMesa = (mesaId: string) => sesiones.find(s => (s as any).mesaId === mesaId || (s as any).mesaId?._id === mesaId);
+    const mesasConSesion = new Set(sesiones.flatMap(s => s.mesasNombres));
+
+    function toggleMesa(nombre: string) {
+        if (mesasConSesion.has(nombre)) return;
+        setMesasSeleccionadas(prev =>
+            prev.includes(nombre) ? prev.filter(x => x !== nombre) : [...prev, nombre]
+        );
+    }
 
     function agregarUsername() {
         const u = userInput.trim().toLowerCase();
@@ -47,21 +54,33 @@ export default function EmpleadoAutoservicioPage() {
         setUserInput("");
     }
 
+    function abrirModal() {
+        if (mesasSeleccionadas.length === 0) return;
+        setModalOpen(true);
+        setError("");
+    }
+
+    function cerrarModal() {
+        setModalOpen(false);
+        setUsernames([]);
+        setUserInput("");
+        setError("");
+    }
+
     async function crearSesion() {
-        if (!mesaSeleccionada || usernames.length === 0) return;
+        if (mesasSeleccionadas.length === 0 || usernames.length === 0) return;
         setEnviando(true); setError("");
         try {
             const res = await fetch("/api/autoservicio", {
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ mesaId: mesaSeleccionada._id, usernames }),
+                body: JSON.stringify({ mesasNombres: mesasSeleccionadas, usernames }),
             });
             const data = await res.json();
             if (!res.ok) { setError(data.error || "Error al crear sesión"); return; }
-            setMesaSeleccionada(null);
-            setUsernames([]);
-            setUserInput("");
+            setMesasSeleccionadas([]);
+            cerrarModal();
             await cargar();
         } finally { setEnviando(false); }
     }
@@ -74,9 +93,9 @@ export default function EmpleadoAutoservicioPage() {
     if (loading) return <div className="flex justify-center py-20"><Loader size={48} /></div>;
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="min-h-screen bg-gray-50 pb-32">
             {/* Header */}
-            <div className="bg-black px-4 pt-5 pb-4">
+            <div className="bg-black px-4 pt-5 pb-4 sticky top-0 z-20">
                 <div className="max-w-xl mx-auto flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <Tablet size={22} className="text-white" />
@@ -87,8 +106,8 @@ export default function EmpleadoAutoservicioPage() {
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${vista === "lista" ? "bg-white text-black" : "text-white/70 hover:text-white"}`}>
                             <List size={14} /> Lista
                         </button>
-                        <button onClick={() => setVista("plan")}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${vista === "plan" ? "bg-white text-black" : "text-white/70 hover:text-white"}`}>
+                        <button onClick={() => setVista("plano")}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${vista === "plano" ? "bg-white text-black" : "text-white/70 hover:text-white"}`}>
                             <LayoutGrid size={14} /> Plano
                         </button>
                     </div>
@@ -107,7 +126,7 @@ export default function EmpleadoAutoservicioPage() {
                                         <Tablet size={18} className="text-purple-600" />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="font-bold text-gray-900">Mesa {s.mesaNombre}</p>
+                                        <p className="font-bold text-gray-900">Mesa{s.mesasNombres.length > 1 ? "s" : ""} {s.mesasNombres.join(", ")}</p>
                                         <p className="text-xs text-gray-500 truncate">
                                             {s.usuariosIds.map(u => u.nombre || u.username).join(", ")}
                                         </p>
@@ -122,30 +141,47 @@ export default function EmpleadoAutoservicioPage() {
                     </div>
                 )}
 
+                {/* Selección actual */}
+                {mesasSeleccionadas.length > 0 && (
+                    <div className="bg-purple-50 border border-purple-200 rounded-2xl px-4 py-3 flex items-center gap-3">
+                        <div className="flex-1">
+                            <p className="text-xs font-bold text-purple-500 uppercase">Seleccionadas</p>
+                            <p className="font-bold text-purple-900">Mesa{mesasSeleccionadas.length > 1 ? "s" : ""} {mesasSeleccionadas.join(", ")}</p>
+                        </div>
+                        <button onClick={() => setMesasSeleccionadas([])} className="p-1.5 text-purple-400 hover:text-purple-700"><X size={16} /></button>
+                        <button onClick={abrirModal}
+                            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm px-4 py-2 rounded-xl transition">
+                            <UserPlus size={15} /> Asignar
+                        </button>
+                    </div>
+                )}
+
                 {/* Vista lista */}
                 {vista === "lista" && (
                     <div>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Mesas disponibles</p>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">
+                            Tocá para seleccionar mesas
+                        </p>
                         <div className="space-y-2">
                             {mesas.map(m => {
-                                const tieneSession = !!sesionPorMesa(m._id);
+                                const tieneSession = mesasConSesion.has(m.nombre);
+                                const seleccionada = mesasSeleccionadas.includes(m.nombre);
                                 return (
-                                    <button key={m._id} onClick={() => !tieneSession && setMesaSeleccionada(m)} disabled={tieneSession}
+                                    <button key={m._id} onClick={() => toggleMesa(m.nombre)} disabled={tieneSession}
                                         className={`w-full flex items-center gap-4 rounded-2xl border px-4 py-3.5 text-left transition shadow-sm
-                                            ${tieneSession
-                                                ? "bg-purple-50 border-purple-200 opacity-70 cursor-default"
-                                                : "bg-white border-gray-200 hover:border-purple-300 hover:bg-purple-50 active:scale-[0.98]"}`}>
+                                            ${tieneSession ? "bg-purple-50 border-purple-200 opacity-60 cursor-default"
+                                            : seleccionada ? "bg-purple-600 border-purple-700 text-white active:scale-[0.98]"
+                                            : "bg-white border-gray-200 hover:border-purple-300 active:scale-[0.98]"}`}>
                                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-black text-sm
-                                            ${tieneSession ? "bg-purple-500 text-white" : "bg-gray-100 text-gray-700"}`}>
+                                            ${tieneSession ? "bg-purple-400 text-white" : seleccionada ? "bg-white/20 text-white" : "bg-gray-100 text-gray-700"}`}>
                                             {m.nombre}
                                         </div>
                                         <div className="flex-1">
-                                            <p className="font-bold text-gray-900">Mesa {m.nombre}</p>
-                                            {m.zona && <p className="text-xs text-gray-400">{m.zona}</p>}
+                                            <p className={`font-bold ${seleccionada ? "text-white" : "text-gray-900"}`}>Mesa {m.nombre}</p>
+                                            {m.zona && <p className={`text-xs ${seleccionada ? "text-purple-200" : "text-gray-400"}`}>{m.zona}</p>}
                                         </div>
-                                        {tieneSession
-                                            ? <span className="text-xs font-bold text-purple-600 bg-purple-100 px-2.5 py-1 rounded-full">Activa</span>
-                                            : <Plus size={18} className="text-gray-400 shrink-0" />}
+                                        {tieneSession && <span className="text-xs font-bold text-purple-600 bg-purple-100 px-2.5 py-1 rounded-full">Activa</span>}
+                                        {seleccionada && <CheckCircle size={20} className="text-white shrink-0" />}
                                     </button>
                                 );
                             })}
@@ -153,47 +189,73 @@ export default function EmpleadoAutoservicioPage() {
                     </div>
                 )}
 
-                {/* Vista plano — grid simple */}
-                {vista === "plan" && (
+                {/* Vista plano real del bar */}
+                {vista === "plano" && (
                     <div>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Plano de mesas</p>
-                        <div className="grid grid-cols-3 gap-3">
-                            {mesas.map(m => {
-                                const tieneSession = !!sesionPorMesa(m._id);
-                                return (
-                                    <button key={m._id} onClick={() => !tieneSession && setMesaSeleccionada(m)} disabled={tieneSession}
-                                        className={`aspect-square rounded-2xl flex flex-col items-center justify-center gap-1 font-black text-sm border-2 transition active:scale-[0.95]
-                                            ${tieneSession
-                                                ? "bg-purple-500 border-purple-600 text-white"
-                                                : "bg-white border-gray-200 text-gray-800 hover:border-purple-400 hover:bg-purple-50"}`}>
-                                        <Tablet size={20} className={tieneSession ? "text-white/80" : "text-gray-400"} />
-                                        <span>{m.nombre}</span>
-                                    </button>
-                                );
-                            })}
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Tocá las mesas para seleccionarlas</p>
+                        <div className="relative w-full rounded-xl overflow-hidden border border-gray-200" style={{ paddingBottom: "72%" }}>
+                            <div className="absolute inset-0" style={{ backgroundColor: "#f9f5ef", backgroundImage: "linear-gradient(rgba(0,0,0,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.04) 1px,transparent 1px)", backgroundSize: "30px 30px" }}>
+                                {/* Elementos decorativos del salón */}
+                                {elementos.map(el => {
+                                    const isLine = el.tipo === "linea_h" || el.tipo === "linea_v";
+                                    const isBarra = el.tipo === "barra";
+                                    if (isLine) return (
+                                        <div key={el._id} style={{ position: "absolute", left: `${el.x}%`, top: `${el.y}%`, width: el.tipo === "linea_h" ? `${el.ancho}%` : "3px", height: el.tipo === "linea_v" ? `${el.alto}%` : "3px", backgroundColor: el.color, borderRadius: "2px", transform: el.tipo === "linea_h" ? "translateY(-50%)" : "translateX(-50%)" }} />
+                                    );
+                                    return (
+                                        <div key={el._id} style={{ position: "absolute", left: `${el.x}%`, top: `${el.y}%`, transform: "translate(-50%,-50%)", width: `${el.ancho}%`, height: `${el.alto}%`, minWidth: "32px", minHeight: "14px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "6px", backgroundColor: isBarra ? "#b45309" : el.color, border: isBarra ? "2px solid #92400e" : `1px solid ${el.color === "#fef3c7" ? "#d97706" : "#9ca3af"}60` }}>
+                                            {el.label && <span style={{ fontSize: "clamp(6px,0.9vw,9px)", fontWeight: 700, color: isBarra ? "#fef3c7" : "#374151", whiteSpace: "nowrap" }}>{el.label}</span>}
+                                        </div>
+                                    );
+                                })}
+                                {/* Mesas */}
+                                {mesas.map(m => {
+                                    const tieneSession = mesasConSesion.has(m.nombre);
+                                    const seleccionada = mesasSeleccionadas.includes(m.nombre);
+                                    const isRound = m.forma === "round" || m.forma === "oval";
+                                    const rot = m.rotacion ?? 0;
+                                    const w = m.ancho || (m.forma === "oval" ? 11 : m.forma === "round" ? 5.5 : 7);
+                                    const h = m.alto || (m.forma === "oval" ? 5 : m.forma === "round" ? 5.5 : 5);
+                                    const isBanq = m.tipo === "banqueta";
+                                    const bg = isBanq ? "bg-amber-700 border-amber-800 text-amber-100"
+                                        : tieneSession ? "bg-purple-500 border-purple-600 text-white"
+                                        : seleccionada ? "bg-purple-600 border-purple-700 text-white ring-2 ring-purple-300"
+                                        : "bg-emerald-500 border-emerald-600 text-white";
+                                    return (
+                                        <div key={m._id}
+                                            onClick={() => !isBanq && !tieneSession && toggleMesa(m.nombre)}
+                                            style={{ position: "absolute", left: `${m.x ?? 10}%`, top: `${m.y ?? 10}%`, transform: `translate(-50%,-50%) rotate(${rot}deg)`, width: `min(${w}%,${w * 7}px)`, height: `min(${h}%,${h * 7.5}px)`, minWidth: "22px", minHeight: "16px", borderRadius: isRound ? "50%" : "8px", cursor: (isBanq || tieneSession) ? "not-allowed" : "pointer", userSelect: "none", zIndex: 2 }}
+                                            className={`flex items-center justify-center border-2 ${bg} transition-all active:scale-95`}>
+                                            <div style={{ transform: `rotate(${-rot}deg)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                <span style={{ fontSize: "clamp(5px,0.8vw,9px)", fontWeight: 900 }}>{isBanq ? `B${m.nombre}` : m.nombre}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
                     </div>
                 )}
             </div>
 
             {/* Modal asignar usuarios */}
-            {mesaSeleccionada && createPortal(
+            {modalOpen && createPortal(
                 <div className="fixed inset-0 z-[200] bg-black/60 flex items-end justify-center p-4"
-                    onClick={() => { setMesaSeleccionada(null); setUsernames([]); setUserInput(""); setError(""); }}>
+                    onClick={cerrarModal}>
                     <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden"
                         onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between px-5 pt-5 pb-3">
                             <div>
                                 <p className="text-xs text-gray-400 font-semibold uppercase">Autoservicio</p>
-                                <h2 className="text-xl font-extrabold text-gray-900">Mesa {mesaSeleccionada.nombre}</h2>
+                                <h2 className="text-xl font-extrabold text-gray-900">
+                                    Mesa{mesasSeleccionadas.length > 1 ? "s" : ""} {mesasSeleccionadas.join(", ")}
+                                </h2>
                             </div>
-                            <button onClick={() => { setMesaSeleccionada(null); setUsernames([]); setUserInput(""); setError(""); }}
-                                className="p-1 text-gray-400 hover:text-gray-600"><X size={18} /></button>
+                            <button onClick={cerrarModal} className="p-1 text-gray-400 hover:text-gray-600"><X size={18} /></button>
                         </div>
 
                         <div className="px-5 pb-2 space-y-3">
                             <p className="text-sm text-gray-500">Agregá los usuarios que van a pedir desde su teléfono.</p>
-
                             <div className="flex gap-2">
                                 <input
                                     value={userInput}
@@ -208,20 +270,16 @@ export default function EmpleadoAutoservicioPage() {
                                     <UserPlus size={18} />
                                 </button>
                             </div>
-
                             {usernames.length > 0 && (
                                 <div className="flex flex-wrap gap-2">
                                     {usernames.map(u => (
                                         <span key={u} className="flex items-center gap-1.5 bg-purple-50 border border-purple-200 text-purple-700 text-xs font-bold px-3 py-1.5 rounded-full">
                                             @{u}
-                                            <button onClick={() => setUsernames(p => p.filter(x => x !== u))} className="text-purple-400 hover:text-purple-700">
-                                                <X size={12} />
-                                            </button>
+                                            <button onClick={() => setUsernames(p => p.filter(x => x !== u))} className="text-purple-400 hover:text-purple-700"><X size={12} /></button>
                                         </span>
                                     ))}
                                 </div>
                             )}
-
                             {error && <p className="text-red-600 text-xs font-semibold">{error}</p>}
                         </div>
 
@@ -231,7 +289,7 @@ export default function EmpleadoAutoservicioPage() {
                                 <CheckCircle size={16} />
                                 {enviando ? "Activando..." : "Activar autoservicio"}
                             </button>
-                            <button onClick={() => { setMesaSeleccionada(null); setUsernames([]); setUserInput(""); setError(""); }}
+                            <button onClick={cerrarModal}
                                 className="w-full py-3 rounded-2xl text-sm font-semibold text-gray-500 hover:bg-gray-100 transition">
                                 Cancelar
                             </button>

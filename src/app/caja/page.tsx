@@ -12,7 +12,7 @@ import {
     Wallet, X, Printer, CreditCard, Banknote, Send,
     Loader2, CheckCircle, AlertCircle, Clock, Flame,
     Package, Truck, UtensilsCrossed, CalendarDays,
-    MessageCircle, Plus, Pencil, Trash2, MapPin, Users, User, Star, Gift, XCircle, ArrowDownLeft, ArrowLeftRight, Ticket, ChevronDown, Camera, Search,
+    MessageCircle, Plus, Pencil, Trash2, MapPin, Users, User, Star, Gift, XCircle, ArrowDownLeft, ArrowLeftRight, Ticket, ChevronDown, Camera, Search, Tablet, LayoutGrid, List, UserPlus,
 } from "lucide-react";
 import { useCategoryConfigs } from "@/hooks/useCategoryConfigs";
 import ReservasManager from "@/components/ReservasManager";
@@ -265,6 +265,70 @@ export default function CajaPage() {
     const [menuGestSaving, setMenuGestSaving] = useState(false);
     const [menuGestImgUploading, setMenuGestImgUploading] = useState(false);
     const menuGestImgRef = useRef<HTMLInputElement>(null);
+
+    // ── Autoservicio modal (caja) ───────────────────────────────────────────
+    const [autoservModal, setAutoservModal]       = useState(false);
+    const [autoservVista, setAutoservVista]       = useState<"lista" | "plano">("lista");
+    const [autoservMesas, setAutoservMesas]       = useState<string[]>([]);
+    const [autoservUserInput, setAutoservUserInput] = useState("");
+    const [autoservUsernames, setAutoservUsernames] = useState<string[]>([]);
+    const [autoservSesiones, setAutoservSesiones] = useState<{ _id: string; mesasNombres: string[]; usuariosIds: { _id: string; nombre: string; apellido?: string; username: string }[] }[]>([]);
+    const [autoservEnviando, setAutoservEnviando] = useState(false);
+    const [autoservError, setAutoservError]       = useState("");
+
+    async function abrirAutoservModal() {
+        const [sRes] = await Promise.all([
+            fetch("/api/autoservicio", { credentials: "include" }),
+        ]);
+        const sData = await sRes.json();
+        setAutoservSesiones(Array.isArray(sData) ? sData : []);
+        await cargarPlanoParaEvento();
+        setAutoservMesas([]);
+        setAutoservUsernames([]);
+        setAutoservUserInput("");
+        setAutoservError("");
+        setAutoservModal(true);
+    }
+
+    function autoservToggleMesa(nombre: string) {
+        const tieneSession = autoservSesiones.some(s => s.mesasNombres.includes(nombre));
+        if (tieneSession) return;
+        setAutoservMesas(prev => prev.includes(nombre) ? prev.filter(x => x !== nombre) : [...prev, nombre]);
+    }
+
+    function autoservAgregarUsername() {
+        const u = autoservUserInput.trim().toLowerCase();
+        if (!u || autoservUsernames.includes(u)) return;
+        setAutoservUsernames(p => [...p, u]);
+        setAutoservUserInput("");
+    }
+
+    async function autoservCrearSesion() {
+        if (autoservMesas.length === 0 || autoservUsernames.length === 0) return;
+        setAutoservEnviando(true); setAutoservError("");
+        try {
+            const res = await fetch("/api/autoservicio", {
+                method: "POST", credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ mesasNombres: autoservMesas, usernames: autoservUsernames }),
+            });
+            const data = await res.json();
+            if (!res.ok) { setAutoservError(data.error || "Error al crear sesión"); return; }
+            setAutoservMesas([]);
+            setAutoservUsernames([]);
+            setAutoservUserInput("");
+            const sRes = await fetch("/api/autoservicio", { credentials: "include" });
+            const sData = await sRes.json();
+            setAutoservSesiones(Array.isArray(sData) ? sData : []);
+        } finally { setAutoservEnviando(false); }
+    }
+
+    async function autoservCerrarSesion(id: string) {
+        await fetch(`/api/autoservicio/${id}`, { method: "PATCH", credentials: "include" });
+        const sRes = await fetch("/api/autoservicio", { credentials: "include" });
+        const sData = await sRes.json();
+        setAutoservSesiones(Array.isArray(sData) ? sData : []);
+    }
 
     async function uploadMenuDelDiaImg(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0];
@@ -2023,6 +2087,12 @@ export default function CajaPage() {
                                     <Star size={16} />
                                     Asignar puntos
                                 </button>
+                                <button onClick={abrirAutoservModal}
+                                    className="flex items-center justify-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold px-3 py-3 rounded-2xl transition shadow-sm active:scale-[0.98]"
+                                    title="Autoservicio">
+                                    <Tablet size={16} />
+                                    Autoservicio
+                                </button>
                             </div>
                             <button onClick={editarCostoDelivery}
                                 className="w-full mb-4 flex items-center justify-between px-4 py-2 rounded-xl bg-blue-50 border border-blue-100 hover:bg-blue-100 transition">
@@ -3363,6 +3433,190 @@ export default function CajaPage() {
                         )}
                     </div>
                 </div>
+            )}
+
+            {/* ── Modal autoservicio ── */}
+            {autoservModal && createPortal(
+                <div className="fixed inset-0 z-[200] bg-black/60 flex items-end justify-center p-4"
+                    onClick={() => setAutoservModal(false)}>
+                    <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+                        onClick={e => e.stopPropagation()}>
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
+                                    <Tablet size={20} className="text-purple-600" />
+                                </div>
+                                <div>
+                                    <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Caja</p>
+                                    <h2 className="text-xl font-extrabold text-gray-900">Autoservicio</h2>
+                                </div>
+                            </div>
+                            <button onClick={() => setAutoservModal(false)} className="p-1 text-gray-400 hover:text-gray-600"><X size={18} /></button>
+                        </div>
+
+                        {/* Sesiones activas */}
+                        {autoservSesiones.length > 0 && (
+                            <div className="px-5 pb-3 shrink-0">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Sesiones activas</p>
+                                <div className="space-y-2 max-h-36 overflow-y-auto">
+                                    {autoservSesiones.map(s => (
+                                        <div key={s._id} className="flex items-center gap-3 bg-purple-50 border border-purple-200 rounded-xl px-3 py-2">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-bold text-gray-900 text-sm">Mesa{s.mesasNombres.length > 1 ? "s" : ""} {s.mesasNombres.join(", ")}</p>
+                                                <p className="text-xs text-gray-500 truncate">{s.usuariosIds.map(u => u.nombre || u.username).join(", ")}</p>
+                                            </div>
+                                            <button onClick={() => autoservCerrarSesion(s._id)}
+                                                className="p-1.5 rounded-lg bg-white hover:bg-red-50 hover:text-red-600 text-gray-400 border border-gray-200 transition">
+                                                <X size={14} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Tabs vista */}
+                        <div className="px-5 pb-3 shrink-0">
+                            <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+                                <button onClick={() => setAutoservVista("lista")}
+                                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition ${autoservVista === "lista" ? "bg-white text-black shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+                                    <List size={14} /> Lista
+                                </button>
+                                <button onClick={() => setAutoservVista("plano")}
+                                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition ${autoservVista === "plano" ? "bg-white text-black shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+                                    <LayoutGrid size={14} /> Plano
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Selección actual */}
+                        {autoservMesas.length > 0 && (
+                            <div className="mx-5 mb-3 bg-purple-50 border border-purple-200 rounded-xl px-3 py-2 flex items-center gap-2 shrink-0">
+                                <div className="flex-1">
+                                    <p className="text-xs font-bold text-purple-500">Seleccionadas</p>
+                                    <p className="font-bold text-purple-900 text-sm">Mesa{autoservMesas.length > 1 ? "s" : ""} {autoservMesas.join(", ")}</p>
+                                </div>
+                                <button onClick={() => setAutoservMesas([])} className="p-1 text-purple-400 hover:text-purple-700"><X size={14} /></button>
+                            </div>
+                        )}
+
+                        {/* Contenido scrollable */}
+                        <div className="flex-1 overflow-y-auto px-5">
+                            {/* Vista lista */}
+                            {autoservVista === "lista" && (
+                                <div className="space-y-2 pb-3">
+                                    {eventoModalMesasPlano.map(m => {
+                                        const tieneSession = autoservSesiones.some(s => s.mesasNombres.includes(m.nombre));
+                                        const seleccionada = autoservMesas.includes(m.nombre);
+                                        const isBanq = m.tipo === "banqueta";
+                                        if (isBanq) return null;
+                                        return (
+                                            <button key={m._id} onClick={() => autoservToggleMesa(m.nombre)} disabled={tieneSession}
+                                                className={`w-full flex items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition
+                                                    ${tieneSession ? "bg-purple-50 border-purple-200 opacity-60 cursor-default"
+                                                    : seleccionada ? "bg-purple-600 border-purple-700 text-white"
+                                                    : "bg-white border-gray-200 hover:border-purple-300"}`}>
+                                                <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 font-black text-sm
+                                                    ${tieneSession ? "bg-purple-400 text-white" : seleccionada ? "bg-white/20 text-white" : "bg-gray-100 text-gray-700"}`}>
+                                                    {m.nombre}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className={`font-bold text-sm ${seleccionada ? "text-white" : "text-gray-900"}`}>Mesa {m.nombre}</p>
+                                                </div>
+                                                {tieneSession && <span className="text-xs font-bold text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">Activa</span>}
+                                                {seleccionada && <CheckCircle size={18} className="text-white shrink-0" />}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            {/* Vista plano */}
+                            {autoservVista === "plano" && (
+                                <div className="pb-3">
+                                    <div className="relative w-full rounded-xl overflow-hidden border border-gray-200" style={{ paddingBottom: "72%" }}>
+                                        <div className="absolute inset-0" style={{ backgroundColor: "#f9f5ef", backgroundImage: "linear-gradient(rgba(0,0,0,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.04) 1px,transparent 1px)", backgroundSize: "30px 30px" }}>
+                                            {eventoModalElementos.map(el => {
+                                                const isLine = el.tipo === "linea_h" || el.tipo === "linea_v";
+                                                const isBarra = el.tipo === "barra";
+                                                if (isLine) return (
+                                                    <div key={el._id} style={{ position: "absolute", left: `${el.x}%`, top: `${el.y}%`, width: el.tipo === "linea_h" ? `${el.ancho}%` : "3px", height: el.tipo === "linea_v" ? `${el.alto}%` : "3px", backgroundColor: el.color, borderRadius: "2px", transform: el.tipo === "linea_h" ? "translateY(-50%)" : "translateX(-50%)" }} />
+                                                );
+                                                return (
+                                                    <div key={el._id} style={{ position: "absolute", left: `${el.x}%`, top: `${el.y}%`, transform: "translate(-50%,-50%)", width: `${el.ancho}%`, height: `${el.alto}%`, minWidth: "32px", minHeight: "14px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "6px", backgroundColor: isBarra ? "#b45309" : el.color, border: isBarra ? "2px solid #92400e" : `1px solid ${el.color === "#fef3c7" ? "#d97706" : "#9ca3af"}60` }}>
+                                                        {el.label && <span style={{ fontSize: "clamp(6px,0.9vw,9px)", fontWeight: 700, color: isBarra ? "#fef3c7" : "#374151", whiteSpace: "nowrap" }}>{el.label}</span>}
+                                                    </div>
+                                                );
+                                            })}
+                                            {eventoModalMesasPlano.map(m => {
+                                                const tieneSession = autoservSesiones.some(s => s.mesasNombres.includes(m.nombre));
+                                                const sel = autoservMesas.includes(m.nombre);
+                                                const isBanq = m.tipo === "banqueta";
+                                                const isRound = m.forma === "round" || m.forma === "oval";
+                                                const rot = m.rotacion ?? 0;
+                                                const w = m.ancho || (m.forma === "oval" ? 11 : m.forma === "round" ? 5.5 : 7);
+                                                const h = m.alto || (m.forma === "oval" ? 5 : m.forma === "round" ? 5.5 : 5);
+                                                const bg = isBanq ? "bg-amber-700 border-amber-800 text-amber-100"
+                                                    : tieneSession ? "bg-purple-400 border-purple-500 text-white"
+                                                    : sel ? "bg-purple-600 border-purple-700 text-white ring-2 ring-purple-300"
+                                                    : "bg-emerald-500 border-emerald-600 text-white";
+                                                return (
+                                                    <div key={m._id}
+                                                        onClick={() => !isBanq && !tieneSession && autoservToggleMesa(m.nombre)}
+                                                        style={{ position: "absolute", left: `${m.x ?? 10}%`, top: `${m.y ?? 10}%`, transform: `translate(-50%,-50%) rotate(${rot}deg)`, width: `min(${w}%,${w * 7}px)`, height: `min(${h}%,${h * 7.5}px)`, minWidth: "22px", minHeight: "16px", borderRadius: isRound ? "50%" : "8px", cursor: (isBanq || tieneSession) ? "not-allowed" : "pointer", userSelect: "none", zIndex: 2 }}
+                                                        className={`flex items-center justify-center border-2 ${bg} transition-all active:scale-95`}>
+                                                        <div style={{ transform: `rotate(${-rot}deg)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                            <span style={{ fontSize: "clamp(5px,0.8vw,9px)", fontWeight: 900 }}>{isBanq ? `B${m.nombre}` : m.nombre}</span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Agregar usuarios + botón activar */}
+                        {autoservMesas.length > 0 && (
+                            <div className="px-5 py-4 border-t border-gray-100 space-y-3 shrink-0">
+                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Usuarios para Mesa{autoservMesas.length > 1 ? "s" : ""} {autoservMesas.join(", ")}</p>
+                                <div className="flex gap-2">
+                                    <input
+                                        value={autoservUserInput}
+                                        onChange={e => setAutoservUserInput(e.target.value)}
+                                        onKeyDown={e => e.key === "Enter" && (e.preventDefault(), autoservAgregarUsername())}
+                                        placeholder="nombre de usuario"
+                                        style={{ fontSize: "16px" }}
+                                        className="flex-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                                    />
+                                    <button onClick={autoservAgregarUsername}
+                                        className="w-11 h-11 flex items-center justify-center rounded-xl bg-purple-600 text-white hover:bg-purple-700 transition shrink-0">
+                                        <UserPlus size={18} />
+                                    </button>
+                                </div>
+                                {autoservUsernames.length > 0 && (
+                                    <div className="flex flex-wrap gap-2">
+                                        {autoservUsernames.map(u => (
+                                            <span key={u} className="flex items-center gap-1.5 bg-purple-50 border border-purple-200 text-purple-700 text-xs font-bold px-3 py-1.5 rounded-full">
+                                                @{u}
+                                                <button onClick={() => setAutoservUsernames(p => p.filter(x => x !== u))} className="text-purple-400 hover:text-purple-700"><X size={12} /></button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                                {autoservError && <p className="text-red-600 text-xs font-semibold">{autoservError}</p>}
+                                <button onClick={autoservCrearSesion} disabled={autoservEnviando || autoservUsernames.length === 0}
+                                    className="w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold py-3 rounded-2xl text-sm transition active:scale-[0.98]">
+                                    <CheckCircle size={16} />
+                                    {autoservEnviando ? "Activando..." : "Activar autoservicio"}
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>,
+                document.body
             )}
 
             {/* Modal gastos */}
