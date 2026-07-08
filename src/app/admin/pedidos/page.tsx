@@ -1,29 +1,24 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
-import { Printer, CheckCircle, ChefHat, Clock, Banknote, CreditCard, ArrowLeftRight, X, Plus, Trash2, LockKeyhole } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Printer, CheckCircle, Truck, Clock, Banknote, CreditCard, ArrowLeftRight, X, Plus, Trash2, LockKeyhole, Wallet, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import Loader from "@/components/Loader";
 
 const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
 const fmt = (n: number) => "$" + new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0 }).format(Math.round(n));
 
-type Item = { _id: string; menuItemId?: { nombre: string; precio: number; categoria: string }; cantidad: number; nota?: string };
-type Pedido = { _id: string; mesa?: string; total: number; estado: string; fuente: string; tipoEntrega?: string; items: Item[]; userId?: { nombre: string; apellido: string; role: string; telefono?: string }; notaCliente?: string; notaEmpleado?: string; direccion?: string; costoEnvio?: number; createdAt: string };
-type Pago = { metodo: "efectivo" | "tarjeta" | "transferencia"; monto: string };
+type Item    = { _id: string; menuItemId?: { nombre: string; precio: number; categoria: string }; cantidad: number; nota?: string };
+type Pedido  = { _id: string; mesa?: string; total: number; estado: string; fuente: string; tipoEntrega?: string; items: Item[]; userId?: { nombre: string; apellido: string; role: string; telefono?: string }; notaCliente?: string; notaEmpleado?: string; direccion?: string; costoEnvio?: number; createdAt: string; eventoId?: string; numeroDia?: number; horarioPreferido?: string; telefonoContacto?: string; nombreComanda?: string; deliveryNumero?: number };
+type Pago    = { metodo: "efectivo" | "tarjeta" | "transferencia"; monto: string };
+type Tab     = "pendiente" | "preparando" | "listo" | "entregado";
+type Confirm = { id: string; accion: "aceptar" | "listo" | "entregado" | "cuenta" };
 
-type Tab = "pendiente" | "preparando" | "listo";
-
-const TAB_CONFIG: { key: Tab; label: string }[] = [
-    { key: "pendiente",  label: "Pendientes" },
-    { key: "preparando", label: "Preparando" },
-    { key: "listo",      label: "Listos" },
+const TABS: { key: Tab; label: string }[] = [
+    { key: "pendiente",  label: "Pendientes"  },
+    { key: "preparando", label: "Preparando"  },
+    { key: "listo",      label: "Listos"      },
+    { key: "entregado",  label: "Entregados"  },
 ];
-
-const ESTADO_COLOR: Record<string, string> = {
-    pendiente:  "bg-amber-100 text-amber-700",
-    preparando: "bg-orange-100 text-orange-700",
-    listo:      "bg-emerald-100 text-emerald-700",
-};
 
 export default function AdminPedidosPage() {
     const [pedidos, setPedidos]         = useState<Pedido[]>([]);
@@ -32,6 +27,10 @@ export default function AdminPedidosPage() {
     const [tab, setTab]                 = useState<Tab>("pendiente");
     const [updatingId, setUpdatingId]   = useState<string | null>(null);
     const [imprimiendoId, setImprimiendoId] = useState<string | null>(null);
+    const [confirm, setConfirm]         = useState<Confirm | null>(null);
+
+    const [pedidosActivos, setPedidosActivos]   = useState<boolean | null>(null);
+    const [togglingPedidos, setTogglingPedidos] = useState(false);
 
     // Modal cobrar
     const [cobrarPedido, setCobrarPedido] = useState<Pedido | null>(null);
@@ -39,13 +38,9 @@ export default function AdminPedidosPage() {
     const [pagos, setPagos]               = useState<Pago[]>([{ metodo: "efectivo", monto: "" }]);
     const [guardando, setGuardando]       = useState(false);
 
-    // Toggle pedidos activos
-    const [pedidosActivos, setPedidosActivos]   = useState<boolean | null>(null);
-    const [togglingPedidos, setTogglingPedidos] = useState(false);
-
     useEffect(() => {
         fetch("/api/caja/status", { credentials: "include" }).then(r => r.json()).then(d => setCajaAbierta(!!d.abierta)).catch(() => setCajaAbierta(false));
-        fetch("/api/config/pedidos").then(r => r.json()).then(d => setPedidosActivos(!!d.activo)).catch(() => setPedidosActivos(false));
+        fetch("/api/config/pedidos").then(r => r.json()).then(d => setPedidosActivos(!!d.activo)).catch(() => {});
     }, []);
 
     useEffect(() => {
@@ -73,6 +68,7 @@ export default function AdminPedidosPage() {
 
     async function cambiarEstado(id: string, estado: string) {
         setUpdatingId(id);
+        setConfirm(null);
         try {
             await fetch("/api/pedidos", { method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, estado }) });
             await cargar();
@@ -81,6 +77,7 @@ export default function AdminPedidosPage() {
 
     async function aceptarYImprimir(p: Pedido) {
         setUpdatingId(p._id);
+        setConfirm(null);
         try {
             await fetch("/api/pedidos", { method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: p._id, estado: "preparando" }) });
             const hora    = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
@@ -103,6 +100,7 @@ export default function AdminPedidosPage() {
 
     async function imprimirCuenta(p: Pedido) {
         setImprimiendoId(p._id);
+        setConfirm(null);
         const hora  = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
         const fecha = new Date().toLocaleDateString("es-AR");
         const items = p.items.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", precio: it.menuItemId?.precio || 0 }));
@@ -114,6 +112,7 @@ export default function AdminPedidosPage() {
     }
 
     function abrirCobrar(p: Pedido) {
+        setConfirm(null);
         setCobrarPedido(p);
         setDescuento("");
         setPagos([{ metodo: "efectivo", monto: String(p.total) }]);
@@ -123,15 +122,15 @@ export default function AdminPedidosPage() {
     const totalConDesc = (p: Pedido) => Math.max(0, p.total - (Number(descuento) || 0));
     const calcVuelto = () => {
         if (!cobrarPedido) return 0;
-        const total = totalConDesc(cobrarPedido);
+        const t = totalConDesc(cobrarPedido);
         const ef  = pagos.filter(p => p.metodo === "efectivo").reduce((a, p) => a + (Number(p.monto) || 0), 0);
         const noEf = pagos.filter(p => p.metodo !== "efectivo").reduce((a, p) => a + (Number(p.monto) || 0), 0);
-        return Math.max(0, ef - Math.max(0, total - noEf));
+        return Math.max(0, ef - Math.max(0, t - noEf));
     };
 
     async function cobrar() {
         if (!cobrarPedido) return;
-        const pagosArr  = pagos.map(p => ({ metodo: p.metodo, monto: Number(p.monto) || 0 }));
+        const pagosArr   = pagos.map(p => ({ metodo: p.metodo, monto: Number(p.monto) || 0 }));
         const totalFinal = totalConDesc(cobrarPedido);
         const metodoPago = pagosArr.length === 1 ? pagosArr[0].metodo : "mixto";
         const vuelto     = calcVuelto();
@@ -161,13 +160,13 @@ export default function AdminPedidosPage() {
     const lista = byTab(tab);
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-24">
+        <div className="min-h-screen bg-gray-100 pb-24">
             {/* Header */}
-            <div className="bg-black sticky top-0 z-20 px-4 pt-5 pb-4">
-                <div className="max-w-xl mx-auto flex items-center justify-between">
+            <div className="bg-black sticky top-0 z-20 px-4 pt-5 pb-0">
+                <div className="max-w-2xl mx-auto flex items-center justify-between mb-3">
                     <div>
                         <h1 className="text-xl font-black text-white">Pedidos</h1>
-                        <p className="text-xs text-gray-500">{pedidos.filter(p => ["pendiente","preparando","listo"].includes(p.estado)).length} activos</p>
+                        <p className="text-xs text-gray-500">{pedidos.filter(p => ["pendiente","preparando","listo","entregado"].includes(p.estado)).length} activos</p>
                     </div>
                     {pedidosActivos !== null && (
                         <div className="flex items-center gap-2">
@@ -179,19 +178,16 @@ export default function AdminPedidosPage() {
                         </div>
                     )}
                 </div>
-
                 {/* Tabs */}
-                <div className="max-w-xl mx-auto flex gap-1 mt-3 bg-white/10 rounded-xl p-1">
-                    {TAB_CONFIG.map(t => {
+                <div className="max-w-2xl mx-auto flex gap-0 overflow-x-auto">
+                    {TABS.map(t => {
                         const count = byTab(t.key).length;
                         return (
-                            <button key={t.key} onClick={() => setTab(t.key)}
-                                className={`flex-1 relative py-2 rounded-lg text-xs font-bold transition ${tab === t.key ? "bg-white text-black" : "text-white/60 hover:text-white"}`}>
+                            <button key={t.key} onClick={() => { setTab(t.key); setConfirm(null); }}
+                                className={`relative flex-1 min-w-[80px] py-2.5 text-xs font-bold transition border-b-2 whitespace-nowrap ${tab === t.key ? "text-white border-white" : "text-white/40 border-transparent hover:text-white/70"}`}>
                                 {t.label}
                                 {count > 0 && (
-                                    <span className={`absolute -top-1.5 -right-1 min-w-[18px] h-[18px] px-1 text-[10px] font-black rounded-full flex items-center justify-center ${tab === t.key ? "bg-black text-white" : "bg-red-500 text-white"}`}>
-                                        {count}
-                                    </span>
+                                    <span className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-black rounded-full bg-red-500 text-white">{count}</span>
                                 )}
                             </button>
                         );
@@ -202,7 +198,7 @@ export default function AdminPedidosPage() {
             {/* Caja cerrada */}
             {cajaAbierta === false && (
                 <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4 px-4 text-center">
-                    <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center">
+                    <div className="w-14 h-14 rounded-2xl bg-gray-200 flex items-center justify-center">
                         <LockKeyhole size={28} className="text-gray-400" />
                     </div>
                     <div>
@@ -213,94 +209,201 @@ export default function AdminPedidosPage() {
                 </div>
             )}
 
-            {/* Contenido */}
+            {/* Lista */}
             {cajaAbierta && (
-                <div className="max-w-xl mx-auto px-4 pt-4 space-y-3">
+                <div className="max-w-2xl mx-auto px-4 pt-4 space-y-3">
                     {loading && <div className="flex justify-center py-16"><Loader /></div>}
-
                     {!loading && lista.length === 0 && (
                         <div className="flex flex-col items-center gap-3 py-16 text-center">
                             <CheckCircle size={36} className="text-gray-300" />
-                            <p className="font-bold text-gray-400">Sin pedidos {TAB_CONFIG.find(t => t.key === tab)?.label.toLowerCase()}</p>
+                            <p className="font-bold text-gray-400">Sin pedidos {TABS.find(t => t.key === tab)?.label.toLowerCase()}</p>
                         </div>
                     )}
 
                     {!loading && lista.map(p => {
+                        const esAutoservicio = p.fuente === "autoservicio";
+                        const esApp = !esAutoservicio && p.fuente === "cliente";
+                        const esMozo = p.fuente === "empleado";
+                        const esEvento = !!p.eventoId;
+                        const esCajaDelivery = !esApp && !esMozo && !esAutoservicio && p.tipoEntrega === "envio";
+
+                        const titulo = esApp
+                            ? (p.userId ? `${p.userId.nombre} ${p.userId.apellido || ""}`.trim() : "Cliente")
+                            : p.mesa ? `Mesa ${p.mesa}` : p.nombreComanda || (esCajaDelivery ? "Delivery" : "Sin mesa");
+
+                        const subtitulo = esApp
+                            ? `${p.numeroDia ? `#${p.numeroDia} · ` : ""}${p.tipoEntrega === "envio" ? "Envío a domicilio" : "Retiro en local"}`
+                            : esCajaDelivery
+                                ? `Delivery${p.deliveryNumero ? ` #${p.deliveryNumero}` : ""}${p.direccion ? ` · ${p.direccion}` : ""}`
+                                : esMozo
+                                    ? `Mozo: ${[p.userId?.nombre, p.userId?.apellido].filter(Boolean).join(" ")}`
+                                    : esAutoservicio ? "Autoservicio" : "Bar";
+
+                        const tipoBadge = esEvento
+                            ? { label: "Evento",       cls: "bg-amber-400 text-black"  }
+                            : esAutoservicio
+                                ? { label: "Autoservicio", cls: "bg-purple-600 text-white" }
+                                : esCajaDelivery
+                                    ? { label: "Delivery",     cls: "bg-blue-600 text-white"  }
+                                    : esApp
+                                        ? { label: "Pedido",       cls: "bg-red-500 text-white"   }
+                                        : { label: "Bar",          cls: "bg-white text-black"     };
+
                         const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
                         const isBusy = updatingId === p._id || imprimiendoId === p._id;
+                        const thisConfirm = confirm?.id === p._id ? confirm.accion : null;
+
                         return (
-                            <div key={p._id} className={`bg-white rounded-2xl border shadow-sm overflow-hidden ${p.userId?.role === "empleado" ? "border-blue-200" : "border-gray-200"}`}>
-                                {/* Banner mozo */}
-                                {p.userId?.role === "empleado" && (
-                                    <div className="bg-blue-600 text-white px-4 py-2 text-xs font-bold flex items-center gap-2">
-                                        <ChefHat size={14} /> Comanda mozo{p.mesa ? ` — Mesa ${p.mesa}` : ""}
-                                        {p.notaEmpleado && <span className="ml-auto opacity-80 italic truncate max-w-[140px]">{p.notaEmpleado}</span>}
+                            <div key={p._id} className="rounded-2xl border-2 border-black shadow-md overflow-hidden bg-white">
+                                {/* Header negro */}
+                                <div className="px-4 py-3 bg-black flex items-start justify-between gap-3">
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-black text-white text-lg leading-tight break-words">{titulo}</p>
+                                        <p className="text-xs text-white/60 mt-0.5">{subtitulo}</p>
                                     </div>
-                                )}
-
-                                <div className="px-4 py-3">
-                                    {/* Header */}
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div>
-                                            <p className="font-black text-gray-900">
-                                                {p.mesa ? `Mesa ${p.mesa}` : p.tipoEntrega === "envio" ? "Delivery" : "Sin mesa"}
-                                            </p>
-                                            {p.userId && p.userId.role !== "empleado" && (
-                                                <p className="text-xs text-gray-500">{p.userId.nombre} {p.userId.apellido}</p>
-                                            )}
-                                            {p.tipoEntrega === "envio" && p.direccion && (
-                                                <p className="text-xs text-gray-500 mt-0.5">📍 {p.direccion}</p>
-                                            )}
+                                    <div className="shrink-0 flex flex-col items-end gap-1">
+                                        <div className="flex items-center gap-1.5">
+                                            <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${tipoBadge.cls}`}>
+                                                {tipoBadge.label}
+                                            </span>
                                         </div>
-                                        <div className="flex items-center gap-2 shrink-0">
-                                            <span className="text-xs text-gray-400 flex items-center gap-1"><Clock size={11}/>{hora}</span>
-                                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${ESTADO_COLOR[p.estado] ?? "bg-gray-100 text-gray-600"}`}>{p.estado}</span>
-                                        </div>
+                                        <span className="text-[10px] text-white/40 flex items-center gap-1"><Clock size={10}/>{hora}</span>
                                     </div>
+                                </div>
 
-                                    {/* Items */}
-                                    <div className="bg-gray-50 rounded-xl px-3 py-2 mb-3 space-y-1">
-                                        {p.items.map(it => (
-                                            <div key={it._id} className="flex justify-between text-sm text-gray-700">
-                                                <span>{it.cantidad}× {it.menuItemId?.nombre ?? "Ítem"}{it.nota ? <span className="text-gray-400 text-xs"> · {it.nota}</span> : null}</span>
-                                                <span className="text-gray-400 text-xs">{fmt((it.menuItemId?.precio ?? 0) * it.cantidad)}</span>
-                                            </div>
-                                        ))}
-                                        <div className="border-t border-gray-200 pt-1 flex justify-between font-black text-gray-900 text-sm">
-                                            <span>Total</span><span>{fmt(p.total)}</span>
-                                        </div>
-                                    </div>
-
-                                    {/* Nota */}
-                                    {p.notaCliente && (
-                                        <p className="text-xs italic text-gray-500 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">📝 {p.notaCliente}</p>
+                                {/* Cuerpo */}
+                                <div className="px-4 py-3 space-y-3">
+                                    {/* Info extra delivery */}
+                                    {(esCajaDelivery || (esApp && p.tipoEntrega === "envio")) && p.direccion && (
+                                        <p className="text-xs text-gray-600 flex items-start gap-1">
+                                            <span className="shrink-0">📍</span> {p.direccion}
+                                        </p>
+                                    )}
+                                    {esApp && p.horarioPreferido && (
+                                        <p className="text-xs font-bold text-gray-700 flex items-center gap-1"><Clock size={11}/> {p.horarioPreferido}</p>
+                                    )}
+                                    {esApp && p.userId?.telefono && (
+                                        <a href={`https://wa.me/${p.userId.telefono.replace(/\D/g,"")}`} target="_blank" rel="noopener noreferrer"
+                                            className="text-xs text-blue-600 font-semibold flex items-center gap-1">
+                                            📱 {p.userId.telefono}
+                                        </a>
                                     )}
 
-                                    {/* Acciones */}
-                                    <div className="flex gap-2">
-                                        {tab === "pendiente" && (
-                                            <button onClick={() => aceptarYImprimir(p)} disabled={isBusy}
-                                                className="flex-1 flex items-center justify-center gap-2 bg-black text-white font-bold text-sm py-3 rounded-xl transition active:scale-[0.97] disabled:opacity-50">
-                                                <Printer size={15}/>{isBusy ? "..." : "Aceptar e imprimir"}
-                                            </button>
-                                        )}
-                                        {tab === "preparando" && (
-                                            <button onClick={() => cambiarEstado(p._id, "listo")} disabled={isBusy}
-                                                className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 text-white font-bold text-sm py-3 rounded-xl transition active:scale-[0.97] disabled:opacity-50">
-                                                <CheckCircle size={15}/>{isBusy ? "..." : "Marcar listo"}
-                                            </button>
-                                        )}
-                                        {tab === "listo" && (<>
-                                            <button onClick={() => imprimirCuenta(p)} disabled={isBusy}
-                                                className="flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 font-bold text-sm px-4 py-3 rounded-xl transition active:scale-[0.97] disabled:opacity-50">
-                                                <Printer size={14}/>{imprimiendoId === p._id ? "..." : "Cuenta"}
-                                            </button>
-                                            <button onClick={() => abrirCobrar(p)} disabled={isBusy}
-                                                className="flex-1 flex items-center justify-center gap-2 bg-black text-white font-bold text-sm py-3 rounded-xl transition active:scale-[0.97] disabled:opacity-50">
-                                                Cobrar {fmt(p.total)}
-                                            </button>
-                                        </>)}
+                                    {/* Items */}
+                                    <div className="border border-black rounded-xl overflow-hidden">
+                                        {p.items.map((it, idx) => (
+                                            <div key={it._id || idx} className="flex justify-between items-center px-3 py-2 border-b border-gray-100 last:border-0">
+                                                <div className="min-w-0">
+                                                    <span className="font-black text-sm text-gray-900">{it.cantidad}×</span>
+                                                    <span className="text-sm text-gray-900 ml-1.5">{it.menuItemId?.nombre ?? "Ítem"}</span>
+                                                    {it.nota && <p className="text-[11px] text-amber-700 italic mt-0.5">✏ {it.nota}</p>}
+                                                </div>
+                                                <span className="text-xs text-gray-400 shrink-0 ml-2">{fmt((it.menuItemId?.precio ?? 0) * it.cantidad)}</span>
+                                            </div>
+                                        ))}
                                     </div>
+
+                                    {/* Notas */}
+                                    {(p.notaCliente || p.notaEmpleado) && (
+                                        <p className="text-xs italic text-gray-600 bg-amber-50 border-l-2 border-amber-400 pl-3 py-1.5 rounded-r-lg">
+                                            📝 {p.notaCliente || p.notaEmpleado}
+                                        </p>
+                                    )}
+
+                                    {/* Total */}
+                                    <div className="flex justify-between items-center pt-1 border-t border-gray-100">
+                                        {p.tipoEntrega === "envio" && (p.costoEnvio ?? 0) > 0 ? (
+                                            <div className="flex-1">
+                                                <div className="flex justify-between text-xs text-gray-400">
+                                                    <span>Subtotal</span><span>{fmt(p.total - (p.costoEnvio ?? 0))}</span>
+                                                </div>
+                                                <div className="flex justify-between text-xs text-gray-400">
+                                                    <span>Envío</span><span>{fmt(p.costoEnvio ?? 0)}</span>
+                                                </div>
+                                                <div className="flex justify-between font-black text-gray-900 text-base mt-0.5">
+                                                    <span>Total</span><span>{fmt(p.total)}</span>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <span className="text-xs font-black text-gray-500 uppercase tracking-wide">Total</span>
+                                                <span className="font-black text-gray-900 text-xl">{fmt(p.total)}</span>
+                                            </>
+                                        )}
+                                    </div>
+
+                                    {/* ── Acciones con doble confirmación ── */}
+
+                                    {/* PENDIENTE → Aceptar e imprimir */}
+                                    {tab === "pendiente" && (
+                                        thisConfirm === "aceptar" ? (
+                                            <div className="flex gap-2">
+                                                <button onClick={() => aceptarYImprimir(p)} disabled={isBusy}
+                                                    className="flex-1 flex items-center justify-center gap-1.5 bg-black text-white font-bold text-sm py-3 rounded-xl active:scale-[0.97] disabled:opacity-50">
+                                                    <Printer size={14}/>{isBusy ? "Imprimiendo..." : "Sí, aceptar e imprimir"}
+                                                </button>
+                                                <button onClick={() => setConfirm(null)}
+                                                    className="px-4 py-3 border border-gray-200 text-gray-500 font-bold text-sm rounded-xl">
+                                                    <X size={16}/>
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <button onClick={() => setConfirm({ id: p._id, accion: "aceptar" })} disabled={isBusy}
+                                                className="w-full flex items-center justify-center gap-2 bg-black text-white font-bold text-sm py-3 rounded-xl transition active:scale-[0.97] disabled:opacity-50">
+                                                <Printer size={15}/>Aceptar e imprimir
+                                            </button>
+                                        )
+                                    )}
+
+                                    {/* PREPARANDO → Marcar listo */}
+                                    {tab === "preparando" && (
+                                        thisConfirm === "listo" ? (
+                                            <div className="flex gap-2">
+                                                <button onClick={() => cambiarEstado(p._id, "listo")} disabled={isBusy}
+                                                    className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-600 text-white font-bold text-sm py-3 rounded-xl active:scale-[0.97] disabled:opacity-50">
+                                                    <CheckCircle size={14}/>{isBusy ? "..." : "Sí, marcar listo"}
+                                                </button>
+                                                <button onClick={() => setConfirm(null)} className="px-4 py-3 border border-gray-200 text-gray-500 font-bold text-sm rounded-xl"><X size={16}/></button>
+                                            </div>
+                                        ) : (
+                                            <button onClick={() => setConfirm({ id: p._id, accion: "listo" })} disabled={isBusy}
+                                                className="w-full flex items-center justify-center gap-2 bg-emerald-600 text-white font-bold text-sm py-3 rounded-xl transition active:scale-[0.97] disabled:opacity-50">
+                                                <CheckCircle size={15}/>Marcar listo
+                                            </button>
+                                        )
+                                    )}
+
+                                    {/* LISTO → Imprimir cuenta + Cobrar */}
+                                    {tab === "listo" && (
+                                        <div className="space-y-2">
+                                            {thisConfirm === "cuenta" ? (
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => imprimirCuenta(p)} disabled={isBusy}
+                                                        className="flex-1 flex items-center justify-center gap-1.5 bg-gray-800 text-white font-bold text-sm py-3 rounded-xl active:scale-[0.97] disabled:opacity-50">
+                                                        <Printer size={14}/>{imprimiendoId === p._id ? "Imprimiendo..." : "Sí, imprimir cuenta"}
+                                                    </button>
+                                                    <button onClick={() => setConfirm(null)} className="px-4 py-3 border border-gray-200 text-gray-500 font-bold text-sm rounded-xl"><X size={16}/></button>
+                                                </div>
+                                            ) : (
+                                                <button onClick={() => setConfirm({ id: p._id, accion: "cuenta" })} disabled={isBusy}
+                                                    className="w-full flex items-center justify-center gap-1.5 border border-gray-300 bg-white text-gray-700 font-bold text-sm py-2.5 rounded-xl transition active:scale-[0.97] disabled:opacity-50">
+                                                    <Printer size={14}/>Imprimir cuenta
+                                                </button>
+                                            )}
+                                            <button onClick={() => abrirCobrar(p)} disabled={isBusy}
+                                                className="w-full flex items-center justify-center gap-2 bg-black text-white font-bold text-sm py-3 rounded-xl transition active:scale-[0.97] disabled:opacity-50">
+                                                <Wallet size={15}/>Cobrar {fmt(p.total)}
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* ENTREGADO → Cobrar */}
+                                    {tab === "entregado" && (
+                                        <button onClick={() => abrirCobrar(p)} disabled={isBusy}
+                                            className="w-full flex items-center justify-center gap-2 bg-black text-white font-bold text-sm py-3 rounded-xl transition active:scale-[0.97] disabled:opacity-50">
+                                            <Wallet size={15}/>Cobrar {fmt(p.total)}
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         );
@@ -346,34 +449,34 @@ export default function AdminPedidosPage() {
                                 {Number(descuento) > 0 && <p className="text-sm font-black text-emerald-600 mt-1.5">A cobrar: {fmt(totalConDesc(cobrarPedido))}</p>}
                             </div>
 
-                            {/* Pagos */}
+                            {/* Métodos de pago */}
                             <div>
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Pago</label>
                                 <div className="space-y-2">
                                     {pagos.map((pago, i) => (
                                         <div key={i} className="flex gap-2 items-center">
                                             <div className="flex gap-1 bg-gray-100 rounded-xl p-1 shrink-0">
-                                                {(["efectivo", "tarjeta", "transferencia"] as const).map(m => (
-                                                    <button key={m} onClick={() => setPagos(prev => prev.map((p, j) => j === i ? { ...p, metodo: m } : p))}
-                                                        className={`p-1.5 rounded-lg transition ${pago.metodo === m ? "bg-white shadow-sm" : "text-gray-400 hover:text-gray-700"}`}>
-                                                        {m === "efectivo" ? <Banknote size={16}/> : m === "tarjeta" ? <CreditCard size={16}/> : <ArrowLeftRight size={16}/>}
+                                                {(["efectivo","tarjeta","transferencia"] as const).map(m => (
+                                                    <button key={m} onClick={() => setPagos(prev => prev.map((p,j) => j===i ? {...p,metodo:m} : p))}
+                                                        className={`p-1.5 rounded-lg transition ${pago.metodo===m ? "bg-white shadow-sm" : "text-gray-400 hover:text-gray-700"}`}>
+                                                        {m==="efectivo" ? <Banknote size={16}/> : m==="tarjeta" ? <CreditCard size={16}/> : <ArrowLeftRight size={16}/>}
                                                     </button>
                                                 ))}
                                             </div>
                                             <div className="relative flex-1">
                                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">$</span>
-                                                <input type="number" value={pago.monto} placeholder="Monto" style={{ fontSize: "16px" }}
-                                                    onChange={e => setPagos(prev => prev.map((p, j) => j === i ? { ...p, monto: e.target.value } : p))}
+                                                <input type="number" value={pago.monto} placeholder="Monto" style={{ fontSize:"16px" }}
+                                                    onChange={e => setPagos(prev => prev.map((p,j) => j===i ? {...p,monto:e.target.value} : p))}
                                                     className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black font-bold"/>
                                             </div>
                                             {pagos.length > 1 && (
-                                                <button onClick={() => setPagos(prev => prev.filter((_, j) => j !== i))} className="p-2 text-gray-400 hover:text-red-500"><Trash2 size={16}/></button>
+                                                <button onClick={() => setPagos(prev => prev.filter((_,j) => j!==i))} className="p-2 text-gray-400 hover:text-red-500"><Trash2 size={16}/></button>
                                             )}
                                         </div>
                                     ))}
                                 </div>
                                 {pagos.length < 3 && (
-                                    <button onClick={() => setPagos(prev => [...prev, { metodo: "efectivo", monto: "" }])}
+                                    <button onClick={() => setPagos(prev => [...prev, {metodo:"efectivo",monto:""}])}
                                         className="mt-2 flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-gray-700">
                                         <Plus size={14}/> Agregar otro medio
                                     </button>
