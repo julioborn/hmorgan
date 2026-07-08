@@ -77,6 +77,7 @@ export default function CocinaPage() {
     const [marcandoItem, setMarcandoItem] = useState<string | null>(null); // "pedidoId:itemId"
     const [confirmarItem, setConfirmarItem] = useState<{ pedidoId: string; itemId: string; nombre: string } | null>(null);
     const prevIdsRef = useRef<Set<string>>(new Set());
+    const procesandoIdsRef = useRef<Set<string>>(new Set());
     const [nuevosIds, setNuevosIds] = useState<Set<string>>(new Set());
 
     const loadPedidos = useCallback(async () => {
@@ -107,7 +108,27 @@ export default function CocinaPage() {
                     });
                 }, 5000);
             }
-            setPedidos(conComida);
+
+            if (procesandoIdsRef.current.size > 0) {
+                // Preserve local optimistic state for pedidos being processed (avoid race with 700ms delay)
+                setPedidos(prev => {
+                    const prevMap = new Map(prev.map(p => [p._id, p]));
+                    const result = conComida.map((p: Pedido) =>
+                        procesandoIdsRef.current.has(p._id) ? (prevMap.get(p._id) || p) : p
+                    );
+                    // Keep locally-shown pedidos being processed even if server no longer returns them
+                    for (const id of procesandoIdsRef.current) {
+                        if (!conComida.some((p: Pedido) => p._id === id)) {
+                            const local = prevMap.get(id);
+                            if (local) result.push(local);
+                        }
+                    }
+                    result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+                    return result;
+                });
+            } else {
+                setPedidos(conComida);
+            }
         } catch { }
         finally { setLoading(false); }
     }, [router]);
@@ -123,8 +144,9 @@ export default function CocinaPage() {
         const id = confirmarId;
         setConfirmarId(null);
         setMarcando(id);
+        procesandoIdsRef.current.add(id);
         try {
-            // Poner todos los ítems en verde antes de sacar la card
+            // Poner todos los ítems en verde
             setPedidos(prev => prev.map(p =>
                 p._id !== id ? p : { ...p, items: p.items.map(it => ({ ...it, listo: true })) }
             ));
@@ -134,11 +156,17 @@ export default function CocinaPage() {
                 credentials: "include",
                 body: JSON.stringify({ id, estado: "listo" }),
             });
-            // Breve pausa para que se vea el verde antes de desaparecer
+            // Pausa para ver el verde; el polling no puede sobrescribir porque procesandoIdsRef lo protege
             await new Promise(r => setTimeout(r, 700));
             setPedidos(prev => prev.filter(p => p._id !== id));
-        } catch { }
-        finally { setMarcando(null); }
+        } catch {
+            setPedidos(prev => prev.map(p =>
+                p._id !== id ? p : { ...p, items: p.items.map(it => ({ ...it, listo: false })) }
+            ));
+        } finally {
+            procesandoIdsRef.current.delete(id);
+            setMarcando(null);
+        }
     }
 
     async function marcarItemListo(pedidoId: string, itemId: string) {
