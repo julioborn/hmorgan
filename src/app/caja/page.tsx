@@ -1854,6 +1854,39 @@ export default function CajaPage() {
                     </button>
                 </div>
             </div>
+
+            {/* Notificaciones en el header */}
+            {(llamadas.length > 0 || listosToast.length > 0) && (
+                <div className="mt-3 pt-3 border-t border-white/10 flex flex-col gap-2">
+                    {llamadas.map(l => (
+                        <div key={l._id} className="flex items-center gap-2 bg-amber-500/20 border border-amber-400/30 rounded-xl px-3 py-2">
+                            <span className="text-base shrink-0">🔔</span>
+                            <p className="flex-1 text-sm font-bold text-amber-300 truncate">
+                                {l.clienteNombre}{l.mesa ? ` · Mesa ${l.mesa}` : ""}
+                            </p>
+                            <button
+                                onClick={() => {
+                                    fetch(`/api/llamar-mozo/${l._id}`, { method: "PATCH", credentials: "include" }).catch(() => {});
+                                    setLlamadas(prev => prev.filter(x => x._id !== l._id));
+                                }}
+                                className="shrink-0 bg-amber-400/30 hover:bg-amber-400/50 text-amber-200 font-black text-xs px-2.5 py-1 rounded-lg transition">
+                                OK
+                            </button>
+                        </div>
+                    ))}
+                    {listosToast.map(t => (
+                        <div key={`${t.id}-${t.ts}`} className="flex items-center gap-2 bg-emerald-500/20 border border-emerald-400/30 rounded-xl px-3 py-2">
+                            <CheckCircle size={15} className="text-emerald-400 shrink-0" />
+                            <p className="flex-1 text-sm font-bold text-emerald-300 truncate">{t.label}</p>
+                            <button
+                                onClick={() => setListosToast(prev => prev.filter(x => x.id !== t.id || x.ts !== t.ts))}
+                                className="shrink-0 text-emerald-400/60 hover:text-emerald-300 transition">
+                                <X size={14} />
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            )}
             </div>
 
             {/* Abrir caja */}
@@ -4626,52 +4659,6 @@ export default function CajaPage() {
                 </div>
             )}
 
-            {/* Llamadas al mozo */}
-            {llamadas.length > 0 && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] flex flex-col gap-2 w-full max-w-sm px-4 pointer-events-none">
-                    {llamadas.map(l => (
-                        <div key={l._id}
-                            className="pointer-events-auto flex items-center gap-3 bg-amber-500 text-white px-4 py-3 rounded-2xl shadow-2xl animate-in slide-in-from-bottom fade-in duration-300">
-                            <span className="text-2xl shrink-0">🔔</span>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-xs font-bold uppercase tracking-wide opacity-80">Cliente llamando</p>
-                                <p className="text-sm font-black truncate">
-                                    {l.clienteNombre}{l.mesa ? ` · Mesa ${l.mesa}` : ""}
-                                </p>
-                            </div>
-                            <button
-                                onClick={() => {
-                                    fetch(`/api/llamar-mozo/${l._id}`, { method: "PATCH", credentials: "include" }).catch(() => {});
-                                    setLlamadas(prev => prev.filter(x => x._id !== l._id));
-                                }}
-                                className="ml-1 bg-white/20 hover:bg-white/30 transition rounded-xl px-3 py-1 text-xs font-bold shrink-0">
-                                OK
-                            </button>
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {/* Toast: pedido listo notificación */}
-            {listosToast.length > 0 && (
-                <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none">
-                    {listosToast.map(t => (
-                        <div key={`${t.id}-${t.ts}`}
-                            className="pointer-events-auto flex items-center gap-3 bg-black border-2 border-white text-white px-4 py-3 rounded-2xl shadow-2xl min-w-[220px] animate-in slide-in-from-top fade-in duration-300">
-                            <CheckCircle size={18} className="text-white shrink-0" />
-                            <div className="flex-1 min-w-0">
-                                <p className="text-xs font-bold uppercase tracking-wide opacity-60">¡Listo!</p>
-                                <p className="text-sm font-black truncate">{t.label}</p>
-                            </div>
-                            <button
-                                onClick={() => setListosToast(prev => prev.filter(x => x.id !== t.id || x.ts !== t.ts))}
-                                className="ml-1 text-white/50 hover:text-white transition shrink-0">
-                                <X size={15} />
-                            </button>
-                        </div>
-                    ))}
-                </div>
-            )}
         </div>
     );
 }
