@@ -30,7 +30,7 @@ export default function EmpleadoAutoservicioPage() {
             fetch("/api/autoservicio", { credentials: "include" }),
         ]);
         const [mData, elData, sData] = await Promise.all([mRes.json(), elRes.json(), sRes.json()]);
-        setMesas(Array.isArray(mData) ? mData.filter((m: Mesa) => m.activa) : []);
+        setMesas(Array.isArray(mData) ? mData.filter((m: Mesa) => m.activa).sort((a: Mesa, b: Mesa) => parseInt(a.nombre) - parseInt(b.nombre)) : []);
         setElementos(Array.isArray(elData) ? elData : []);
         setSesiones(Array.isArray(sData) ? sData : []);
         setLoading(false);

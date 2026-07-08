@@ -3499,7 +3499,7 @@ export default function CajaPage() {
                             {/* Vista lista */}
                             {autoservVista === "lista" && (
                                 <div className="space-y-2 pb-3">
-                                    {eventoModalMesasPlano.map(m => {
+                                    {[...eventoModalMesasPlano].sort((a, b) => parseInt(a.nombre) - parseInt(b.nombre)).map(m => {
                                         const tieneSession = autoservSesiones.some(s => s.mesasNombres.includes(m.nombre));
                                         const seleccionada = autoservMesas.includes(m.nombre);
                                         const isBanq = m.tipo === "banqueta";
