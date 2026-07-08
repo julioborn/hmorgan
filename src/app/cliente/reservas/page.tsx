@@ -22,7 +22,7 @@ const ZONA_OPTIONS = [
     { value: "indiferente", label: "Sin preferencia",  icon: HelpCircle },
 ] as const;
 
-const HORAS = ["19:30","20:00","20:30","21:00","21:30","22:00","22:30","23:00"];
+const HORAS = ["19:00","19:30","20:00","20:30","21:00","21:30","22:00","22:30","23:00"];
 
 const ESTADO_STYLES: Record<string, { bg: string; text: string; icon: React.ElementType; label: string }> = {
     pendiente:  { bg: "bg-amber-50 border-amber-200",  text: "text-amber-700",   icon: Clock,         label: "Pendiente"  },
@@ -46,7 +46,7 @@ export default function ClienteReservasPage() {
 
     const [form, setForm] = useState({
         fecha: hoyArgentina(),
-        hora: "19:30",
+        hora: "19:00",
         comensales: 2,
         zona: "indiferente" as "adentro" | "afuera" | "indiferente",
         notas: "",
@@ -116,7 +116,7 @@ export default function ClienteReservasPage() {
             setReservas(p => [nueva, ...p]);
             setShowForm(false);
             setSuccess(true);
-            setForm({ fecha: hoyArgentina(), hora: "19:30", comensales: 2, zona: "indiferente", notas: "" });
+            setForm({ fecha: hoyArgentina(), hora: "19:00", comensales: 2, zona: "indiferente", notas: "" });
             setTimeout(() => setSuccess(false), 4000);
         } finally { setSending(false); }
     }
