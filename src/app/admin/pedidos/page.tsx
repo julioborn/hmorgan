@@ -1,528 +1,397 @@
-﻿"use client";
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Clock, Flame, CheckCircle, Truck, LockKeyhole, Printer } from "lucide-react";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
+"use client";
+import { useEffect, useRef, useState } from "react";
+import { Printer, CheckCircle, ChefHat, Clock, Banknote, CreditCard, ArrowLeftRight, X, Plus, Trash2, LockKeyhole } from "lucide-react";
 import Link from "next/link";
 import Loader from "@/components/Loader";
-import { swalBase } from "@/lib/swalConfig";
 
 const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
+const fmt = (n: number) => "$" + new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0 }).format(Math.round(n));
 
-const formatMoney = (n: number) =>
-    new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0 }).format(n);
+type Item = { _id: string; menuItemId?: { nombre: string; precio: number; categoria: string }; cantidad: number; nota?: string };
+type Pedido = { _id: string; mesa?: string; total: number; estado: string; fuente: string; tipoEntrega?: string; items: Item[]; userId?: { nombre: string; apellido: string; role: string; telefono?: string }; notaCliente?: string; notaEmpleado?: string; direccion?: string; costoEnvio?: number; createdAt: string };
+type Pago = { metodo: "efectivo" | "tarjeta" | "transferencia"; monto: string };
+
+type Tab = "pendiente" | "preparando" | "listo";
+
+const TAB_CONFIG: { key: Tab; label: string }[] = [
+    { key: "pendiente",  label: "Pendientes" },
+    { key: "preparando", label: "Preparando" },
+    { key: "listo",      label: "Listos" },
+];
+
+const ESTADO_COLOR: Record<string, string> = {
+    pendiente:  "bg-amber-100 text-amber-700",
+    preparando: "bg-orange-100 text-orange-700",
+    listo:      "bg-emerald-100 text-emerald-700",
+};
 
 export default function AdminPedidosPage() {
-    const [pedidos, setPedidos] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [pedidos, setPedidos]         = useState<Pedido[]>([]);
+    const [loading, setLoading]         = useState(true);
     const [cajaAbierta, setCajaAbierta] = useState<boolean | null>(null);
-    const [vista, setVista] = useState<"pendientes" | "preparando" | "listos" | "entregados">("pendientes");
-    const ITEMS_POR_PAGINA = 6;
-    const [pagina, setPagina] = useState(1);
-    const [busqueda, setBusqueda] = useState("");
-    const [pedidosActivos, setPedidosActivos] = useState<boolean | null>(null);
+    const [tab, setTab]                 = useState<Tab>("pendiente");
+    const [updatingId, setUpdatingId]   = useState<string | null>(null);
+    const [imprimiendoId, setImprimiendoId] = useState<string | null>(null);
+
+    // Modal cobrar
+    const [cobrarPedido, setCobrarPedido] = useState<Pedido | null>(null);
+    const [descuento, setDescuento]       = useState("");
+    const [pagos, setPagos]               = useState<Pago[]>([{ metodo: "efectivo", monto: "" }]);
+    const [guardando, setGuardando]       = useState(false);
+
+    // Toggle pedidos activos
+    const [pedidosActivos, setPedidosActivos]   = useState<boolean | null>(null);
     const [togglingPedidos, setTogglingPedidos] = useState(false);
-    const [updatingId, setUpdatingId] = useState<string | null>(null);
 
     useEffect(() => {
-        fetch("/api/caja/status", { credentials: "include" })
-            .then(r => r.json())
-            .then(d => setCajaAbierta(!!d.abierta))
-            .catch(() => setCajaAbierta(false));
-        fetch("/api/config/pedidos")
-            .then(r => r.json())
-            .then(d => setPedidosActivos(!!d.activo))
-            .catch(() => setPedidosActivos(false));
+        fetch("/api/caja/status", { credentials: "include" }).then(r => r.json()).then(d => setCajaAbierta(!!d.abierta)).catch(() => setCajaAbierta(false));
+        fetch("/api/config/pedidos").then(r => r.json()).then(d => setPedidosActivos(!!d.activo)).catch(() => setPedidosActivos(false));
     }, []);
-
-    async function togglePedidos() {
-        if (togglingPedidos || pedidosActivos === null) return;
-        const nuevoEstado = !pedidosActivos;
-        setTogglingPedidos(true);
-        const res = await fetch("/api/config/pedidos", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ activos: nuevoEstado }),
-        });
-        setTogglingPedidos(false);
-        if (res.ok) {
-            setPedidosActivos(nuevoEstado);
-        } else {
-            swalBase.fire({ icon: "error", title: "Error", text: "No se pudo cambiar el estado.", timer: 2000, showConfirmButton: false });
-        }
-    }
 
     useEffect(() => {
         if (cajaAbierta === false) return;
-        const loadPedidos = async () => await fetchPedidos();
-        loadPedidos();
-        const interval = setInterval(loadPedidos, 4000);
-        return () => clearInterval(interval);
+        cargar();
+        const iv = setInterval(cargar, 5000);
+        return () => clearInterval(iv);
     }, [cajaAbierta]);
 
-    useEffect(() => {
-        setPagina(1);
-        setBusqueda("");
-    }, [vista]);
-
-    async function fetchPedidos() {
+    async function cargar() {
         try {
-            const res = await fetch("/api/pedidos", { cache: "no-store" });
-            if (!res.ok) {
-                console.error("Error HTTP:", res.status);
-                return setPedidos([]);
-            }
-            const data = await res.json();
-            setPedidos(Array.isArray(data) ? data : []);
-        } catch (err) {
-            console.error("❌ Error cargando pedidos:", err);
-            setPedidos([]);
-        } finally {
-            setLoading(false);
-        }
+            const r = await fetch("/api/pedidos", { cache: "no-store", credentials: "include" });
+            const d = await r.json();
+            setPedidos(Array.isArray(d) ? d : []);
+        } finally { setLoading(false); }
     }
 
-    async function cambiarEstado(p: any, estado: string) {
-        setUpdatingId(p._id);
+    async function togglePedidos() {
+        if (togglingPedidos || pedidosActivos === null) return;
+        setTogglingPedidos(true);
+        const res = await fetch("/api/config/pedidos", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activos: !pedidosActivos }) });
+        if (res.ok) setPedidosActivos(p => !p);
+        setTogglingPedidos(false);
+    }
+
+    async function cambiarEstado(id: string, estado: string) {
+        setUpdatingId(id);
         try {
-            await fetch("/api/pedidos", {
-                method: "PUT", credentials: "include",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id: p._id, estado }),
-            });
-            await fetchPedidos();
+            await fetch("/api/pedidos", { method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, estado }) });
+            await cargar();
         } finally { setUpdatingId(null); }
     }
 
-    async function aceptarYImprimir(p: any) {
+    async function aceptarYImprimir(p: Pedido) {
         setUpdatingId(p._id);
         try {
-            await fetch("/api/pedidos", {
-                method: "PUT", credentials: "include",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id: p._id, estado: "preparando" }),
-            });
-            const hora = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+            await fetch("/api/pedidos", { method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: p._id, estado: "preparando" }) });
+            const hora    = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
             const cliente = p.userId ? `${p.userId.nombre} ${p.userId.apellido}`.trim() : "-";
-            const bebidas = p.items.filter((it: any) => BEBIDAS_CATS.includes(it.menuItemId?.categoria || ""));
-            const comida  = p.items.filter((it: any) => !BEBIDAS_CATS.includes(it.menuItemId?.categoria || ""));
-            const toItems = (arr: any[]) => arr.map((it: any) => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota }));
-
-            if (comida.length > 0) {
-                await fetch("/api/print-jobs", {
-                    method: "POST", credentials: "include",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ tipo: "comanda", impresora: "Cocina", payload: { titulo: "COCINA", mesa: p.mesa || "-", cliente, mozo: p.userId?.nombre || "-", hora, items: toItems(comida), nota: p.notaCliente || p.notaEmpleado || "" } }),
-                });
-            }
-            if (bebidas.length > 0) {
-                await fetch("/api/print-jobs", {
-                    method: "POST", credentials: "include",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ tipo: "comanda", impresora: "Barra", payload: { titulo: "BARRA", mesa: p.mesa || "-", cliente, mozo: p.userId?.nombre || "-", hora, items: toItems(bebidas), nota: "" } }),
-                });
-            }
-            await fetchPedidos();
+            const bebidas = p.items.filter(it => BEBIDAS_CATS.includes(it.menuItemId?.categoria || ""));
+            const comida  = p.items.filter(it => !BEBIDAS_CATS.includes(it.menuItemId?.categoria || ""));
+            const toItems = (arr: Item[]) => arr.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota }));
+            if (comida.length > 0)  await encolarComanda("Cocina", "COCINA", p, cliente, hora, toItems(comida));
+            if (bebidas.length > 0) await encolarComanda("Barra",  "BARRA",  p, cliente, hora, toItems(bebidas));
+            await cargar();
         } finally { setUpdatingId(null); }
     }
 
-    if (cajaAbierta === null && pedidosActivos === null) return <div className="flex justify-center py-20"><Loader /></div>;
-
-    const estados = [
-        { key: "pendiente", label: "Pendiente", icon: Clock, color: "yellow" },
-        { key: "preparando", label: "Preparando", icon: Flame, color: "orange" },
-        { key: "listo", label: "Listo", icon: CheckCircle, color: "blue" },
-        { key: "entregado", label: "Entregado", icon: Truck, color: "emerald" },
-    ];
-
-    const colorClasses: Record<string, string> = {
-        yellow: "border-yellow-500 bg-yellow-400/30 text-yellow-900 font-semibold",
-        orange: "border-orange-500 bg-orange-100 text-orange-700 font-semibold",
-        blue: "border-blue-500 bg-blue-100 text-blue-700 font-semibold",
-        emerald: "border-emerald-500 bg-emerald-100 text-emerald-700 font-semibold",
-    };
-
-    const barColors: Record<string, string> = {
-        yellow: "bg-yellow-500",
-        orange: "bg-orange-500",
-        blue: "bg-blue-500",
-        emerald: "bg-emerald-500",
-    };
-
-    const getEstadoIndex = (estado: string) => estados.findIndex((e) => e.key === estado);
-
-    // 🧭 Filtros sin solapamiento
-    const pendientes = pedidos.filter((p) => p.estado === "pendiente");
-    const preparando = pedidos.filter((p) => p.estado === "preparando");
-    const listos = pedidos.filter((p) => p.estado === "listo");
-    const entregados = pedidos.filter((p) => p.estado === "entregado");
-
-    // 🔢 Contadores
-    const notificacionPendientes = pendientes.length;
-    const notificacionPreparando = preparando.length;
-    const notificacionListos = listos.length;
-    const notificacionEntregados = entregados.length;
-
-
-    let lista = vista === "pendientes"
-        ? pendientes
-        : vista === "preparando"
-            ? preparando
-            : vista === "listos"
-                ? listos
-                : entregados;
-
-    // Pedidos de mozos siempre primero
-    lista = [...lista].sort((a, b) => {
-        if (a.userId?.role === "empleado" && b.userId?.role !== "empleado") return -1;
-        if (a.userId?.role !== "empleado" && b.userId?.role === "empleado") return 1;
-        return 0;
-    });
-
-    // 🔍 BÚSQUEDA SOLO EN ENTREGADOS
-    if (vista === "entregados" && busqueda.trim()) {
-        const q = busqueda.toLowerCase();
-
-        lista = lista.filter((p) =>
-            `${p.userId?.nombre} ${p.userId?.apellido}`
-                .toLowerCase()
-                .includes(q) ||
-            p.items.some((i: any) =>
-                i.menuItemId?.nombre?.toLowerCase().includes(q)
-            ) ||
-            p.direccion?.toLowerCase().includes(q)
-        );
+    async function encolarComanda(impresora: string, titulo: string, p: Pedido, cliente: string, hora: string, items: object[]) {
+        await fetch("/api/print-jobs", {
+            method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tipo: "comanda", impresora, payload: { titulo, mesa: p.mesa || "-", cliente, mozo: p.userId?.nombre || "-", hora, items, nota: p.notaCliente || p.notaEmpleado || "" } }),
+        });
     }
 
-    const totalPaginas =
-        vista === "entregados"
-            ? Math.ceil(lista.length / ITEMS_POR_PAGINA)
-            : 1;
+    async function imprimirCuenta(p: Pedido) {
+        setImprimiendoId(p._id);
+        const hora  = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+        const fecha = new Date().toLocaleDateString("es-AR");
+        const items = p.items.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", precio: it.menuItemId?.precio || 0 }));
+        await fetch("/api/print-jobs", {
+            method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tipo: "ticket", impresora: "Barra", payload: { mesa: p.mesa || "—", fecha, hora, items, total: p.total, descuento: 0, pagos: [], vuelto: 0, sinPago: true } }),
+        });
+        setImprimiendoId(null);
+    }
 
-    const listaPaginada =
-        vista === "entregados"
-            ? lista.slice(
-                (pagina - 1) * ITEMS_POR_PAGINA,
-                pagina * ITEMS_POR_PAGINA
-            )
-            : lista;
+    function abrirCobrar(p: Pedido) {
+        setCobrarPedido(p);
+        setDescuento("");
+        setPagos([{ metodo: "efectivo", monto: String(p.total) }]);
+    }
+    function cerrarCobrar() { setCobrarPedido(null); setDescuento(""); setPagos([{ metodo: "efectivo", monto: "" }]); }
 
-    const renderBoton = (key: string, label: string, count: number) => (
-        <button
-            type="button"
-            onClick={() => setVista(key as any)}
-            aria-pressed={vista === key}
-            className={`relative min-w-[130px] text-center px-5 py-2 rounded-full text-sm font-semibold border transition-colors ${vista === key
-                ? "bg-red-600 text-white border-red-600 shadow-sm"
-                : "bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
-                }`}
-        >
-            {label}
-            {/* ❌ no mostrar burbuja en Entregados */}
-            {key !== "entregados" && count > 0 && (
-                <span className="absolute -top-2 -right-2 min-w-[1.5rem] px-2 py-0.5 rounded-full bg-red-600 text-white text-xs font-bold text-center">
-                    {count}
-                </span>
-            )}
-        </button>
-    );
+    const totalConDesc = (p: Pedido) => Math.max(0, p.total - (Number(descuento) || 0));
+    const calcVuelto = () => {
+        if (!cobrarPedido) return 0;
+        const total = totalConDesc(cobrarPedido);
+        const ef  = pagos.filter(p => p.metodo === "efectivo").reduce((a, p) => a + (Number(p.monto) || 0), 0);
+        const noEf = pagos.filter(p => p.metodo !== "efectivo").reduce((a, p) => a + (Number(p.monto) || 0), 0);
+        return Math.max(0, ef - Math.max(0, total - noEf));
+    };
+
+    async function cobrar() {
+        if (!cobrarPedido) return;
+        const pagosArr  = pagos.map(p => ({ metodo: p.metodo, monto: Number(p.monto) || 0 }));
+        const totalFinal = totalConDesc(cobrarPedido);
+        const metodoPago = pagosArr.length === 1 ? pagosArr[0].metodo : "mixto";
+        const vuelto     = calcVuelto();
+        setGuardando(true);
+        try {
+            const res = await fetch("/api/superadmin/caja/cobrar", {
+                method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ pedidoId: cobrarPedido._id, metodoPago, montoPagado: totalFinal, descuento: Number(descuento) || 0, pagos: pagosArr }),
+            });
+            if (res.ok) {
+                const hora  = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+                const fecha = new Date().toLocaleDateString("es-AR");
+                const items = cobrarPedido.items.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", precio: it.menuItemId?.precio || 0 }));
+                await fetch("/api/print-jobs", {
+                    method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ tipo: "ticket", impresora: "Barra", payload: { mesa: cobrarPedido.mesa || "—", fecha, hora, items, total: totalFinal, descuento: Number(descuento) || 0, pagos: pagosArr, vuelto, sinPago: false } }),
+                });
+                cerrarCobrar();
+                await cargar();
+            }
+        } finally { setGuardando(false); }
+    }
+
+    if (cajaAbierta === null) return <div className="flex justify-center py-20"><Loader /></div>;
+
+    const byTab = (t: Tab) => pedidos.filter(p => p.estado === t);
+    const lista = byTab(tab);
 
     return (
-        <div className="p-6 min-h-screen text-white">
-            {/* Header siempre visible */}
-            <div className="flex items-center justify-between mb-6">
-                <h1 className="text-4xl font-extrabold text-black">Pedidos</h1>
-                {pedidosActivos !== null && (
-                    <div className="flex items-center gap-3">
-                        <span className={`text-sm font-semibold ${pedidosActivos ? "text-gray-900" : "text-gray-400"}`}>
-                            Delivery {pedidosActivos ? "activo" : "inactivo"}
-                        </span>
-                        <button
-                            onClick={togglePedidos}
-                            disabled={togglingPedidos}
-                            className={`relative flex h-6 w-10 shrink-0 cursor-pointer rounded-full items-center transition-colors duration-200 disabled:opacity-50 ${pedidosActivos ? "bg-red-500" : "bg-gray-300"}`}
-                        >
-                            <span className={`absolute h-5 w-5 rounded-full bg-white shadow-md transition-transform duration-200 ${pedidosActivos ? "translate-x-[18px]" : "translate-x-[2px]"}`} />
-                        </button>
+        <div className="min-h-screen bg-gray-50 pb-24">
+            {/* Header */}
+            <div className="bg-black sticky top-0 z-20 px-4 pt-5 pb-4">
+                <div className="max-w-xl mx-auto flex items-center justify-between">
+                    <div>
+                        <h1 className="text-xl font-black text-white">Pedidos</h1>
+                        <p className="text-xs text-gray-500">{pedidos.filter(p => ["pendiente","preparando","listo"].includes(p.estado)).length} activos</p>
                     </div>
-                )}
+                    {pedidosActivos !== null && (
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold text-gray-400">Delivery</span>
+                            <button onClick={togglePedidos} disabled={togglingPedidos}
+                                className={`relative flex h-6 w-11 rounded-full items-center transition-colors duration-200 disabled:opacity-50 ${pedidosActivos ? "bg-emerald-500" : "bg-gray-600"}`}>
+                                <span className={`absolute h-5 w-5 rounded-full bg-white shadow-md transition-transform duration-200 ${pedidosActivos ? "translate-x-[22px]" : "translate-x-[2px]"}`} />
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                {/* Tabs */}
+                <div className="max-w-xl mx-auto flex gap-1 mt-3 bg-white/10 rounded-xl p-1">
+                    {TAB_CONFIG.map(t => {
+                        const count = byTab(t.key).length;
+                        return (
+                            <button key={t.key} onClick={() => setTab(t.key)}
+                                className={`flex-1 relative py-2 rounded-lg text-xs font-bold transition ${tab === t.key ? "bg-white text-black" : "text-white/60 hover:text-white"}`}>
+                                {t.label}
+                                {count > 0 && (
+                                    <span className={`absolute -top-1.5 -right-1 min-w-[18px] h-[18px] px-1 text-[10px] font-black rounded-full flex items-center justify-center ${tab === t.key ? "bg-black text-white" : "bg-red-500 text-white"}`}>
+                                        {count}
+                                    </span>
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
 
             {/* Caja cerrada */}
             {cajaAbierta === false && (
-                <div className="flex flex-col items-center justify-center min-h-[50vh] gap-6 px-4 text-center">
-                    <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
-                        <LockKeyhole size={32} className="text-gray-400" />
+                <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4 px-4 text-center">
+                    <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center">
+                        <LockKeyhole size={28} className="text-gray-400" />
                     </div>
                     <div>
-                        <h2 className="text-xl font-extrabold text-gray-900 mb-1">Caja cerrada</h2>
-                        <p className="text-sm text-gray-500">Para gestionar pedidos, primero abrí la caja del día.</p>
+                        <p className="font-black text-gray-900">Caja cerrada</p>
+                        <p className="text-sm text-gray-500 mt-1">Abrí la caja para gestionar pedidos.</p>
                     </div>
-                    <Link href="/admin/caja" className="bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-3 rounded-xl transition">
-                        Ir a Caja
-                    </Link>
+                    <Link href="/admin/caja" className="bg-black text-white font-bold px-6 py-3 rounded-xl">Ir a Caja</Link>
                 </div>
             )}
 
-            {/* Cargando pedidos */}
-            {cajaAbierta === true && loading && <div className="flex justify-center py-20"><Loader /></div>}
+            {/* Contenido */}
+            {cajaAbierta && (
+                <div className="max-w-xl mx-auto px-4 pt-4 space-y-3">
+                    {loading && <div className="flex justify-center py-16"><Loader /></div>}
 
-            {/* Contenido pedidos */}
-            {cajaAbierta === true && !loading && <>
+                    {!loading && lista.length === 0 && (
+                        <div className="flex flex-col items-center gap-3 py-16 text-center">
+                            <CheckCircle size={36} className="text-gray-300" />
+                            <p className="font-bold text-gray-400">Sin pedidos {TAB_CONFIG.find(t => t.key === tab)?.label.toLowerCase()}</p>
+                        </div>
+                    )}
 
-            {/* 🔘 Selector de vista */}
-            <div className="flex justify-center flex-wrap gap-1 mb-8">
-                {renderBoton("pendientes", "Pendientes", notificacionPendientes)}
-                {renderBoton("preparando", "Preparando", notificacionPreparando)}
-                {renderBoton("listos", "Listos", notificacionListos)}
-                {renderBoton("entregados", "Entregados", notificacionEntregados)}
-            </div>
+                    {!loading && lista.map(p => {
+                        const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+                        const isBusy = updatingId === p._id || imprimiendoId === p._id;
+                        return (
+                            <div key={p._id} className={`bg-white rounded-2xl border shadow-sm overflow-hidden ${p.userId?.role === "empleado" ? "border-blue-200" : "border-gray-200"}`}>
+                                {/* Banner mozo */}
+                                {p.userId?.role === "empleado" && (
+                                    <div className="bg-blue-600 text-white px-4 py-2 text-xs font-bold flex items-center gap-2">
+                                        <ChefHat size={14} /> Comanda mozo{p.mesa ? ` — Mesa ${p.mesa}` : ""}
+                                        {p.notaEmpleado && <span className="ml-auto opacity-80 italic truncate max-w-[140px]">{p.notaEmpleado}</span>}
+                                    </div>
+                                )}
 
-            {vista === "entregados" && (
-                <div className="max-w-2xl mx-auto mb-4">
-                    <input
-                        type="text"
-                        placeholder="Buscar por cliente, producto o dirección..."
-                        value={busqueda}
-                        onChange={(e) => setBusqueda(e.target.value)}
-                        className="w-full px-4 py-2 rounded-xl border border-red-600
-                       bg-black text-white placeholder-gray-400
-                       focus:outline-none focus:ring-2 focus:ring-red-600"
-                    />
-                </div>
-            )}
-
-            {/* 📋 Listado */}
-            <div className="grid grid-cols-1 gap-6 max-w-2xl mx-auto">
-                <AnimatePresence>
-                    {lista.length === 0 ? (
-                        <p className="col-span-full text-center text-gray-500 mt-12">
-                            No hay pedidos.
-                        </p>
-                    ) : (
-                        listaPaginada.map((p) => {
-                            const estadoIndex = getEstadoIndex(p.estado);
-                            const color = estados[estadoIndex]?.color || "gray";
-                            const fechaHora = p.createdAt
-                                ? format(new Date(p.createdAt), "dd/MM/yyyy HH:mm", { locale: es })
-                                : "";
-
-                            return (
-                                <motion.div
-                                    key={p._id}
-                                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                    exit={{ opacity: 0 }}
-                                    transition={{ duration: 0.25 }}
-                                    className={`rounded-2xl border shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden ${
-                                        p.userId?.role === "empleado"
-                                            ? "border-blue-400"
-                                            : "border-gray-200"
-                                    }`}
-                                >
-                                    {/* Banner mozo */}
-                                    {p.userId?.role === "empleado" && (
-                                        <div className="bg-blue-600 text-white px-4 py-2 flex items-center gap-2">
-                                            <span className="text-base">🍽️</span>
-                                            <span className="font-bold text-sm">
-                                                Pedido de Mozo{p.mesa ? ` — Mesa ${p.mesa}` : ""}
-                                            </span>
-                                            {p.notaEmpleado && (
-                                                <span className="ml-auto text-xs opacity-80 italic truncate max-w-[140px]">
-                                                    {p.notaEmpleado}
-                                                </span>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* Contenido */}
-                                    <div className={`p-5 flex flex-col flex-1 ${p.userId?.role === "empleado" ? "bg-blue-50" : "bg-white"}`}>
-
-                                    {/* 🔹 Encabezado */}
-                                    <div className="flex justify-between items-start mb-2">
+                                <div className="px-4 py-3">
+                                    {/* Header */}
+                                    <div className="flex items-start justify-between mb-3">
                                         <div>
-                                            <h2 className="text-lg font-bold text-gray-900">
-                                                {p.userId?.nombre} {p.userId?.apellido}
-                                            </h2>
-                                            {p.userId?.role !== "empleado" && (
-                                                <>
-                                                    <p className="text-sm text-gray-600 capitalize">
-                                                        Entrega: {p.tipoEntrega}
-                                                    </p>
-                                                    {p.userId?.telefono && (
-                                                        <p className="text-sm text-gray-500">
-                                                            📱 {p.userId.telefono}
-                                                        </p>
-                                                    )}
-                                                </>
+                                            <p className="font-black text-gray-900">
+                                                {p.mesa ? `Mesa ${p.mesa}` : p.tipoEntrega === "envio" ? "Delivery" : "Sin mesa"}
+                                            </p>
+                                            {p.userId && p.userId.role !== "empleado" && (
+                                                <p className="text-xs text-gray-500">{p.userId.nombre} {p.userId.apellido}</p>
                                             )}
                                             {p.tipoEntrega === "envio" && p.direccion && (
-                                                <p className="text-sm text-gray-700 mt-1 flex items-center gap-1">
-                                                    📍 <span className="font-medium">{p.direccion}</span>
-                                                </p>
+                                                <p className="text-xs text-gray-500 mt-0.5">📍 {p.direccion}</p>
                                             )}
-                                            {p.tipoEntrega === "envio" && (p.costoEnvio ?? 0) > 0 && (
-                                                <p className="text-sm text-gray-600 mt-1">
-                                                    🛵 Envío: ${formatMoney(p.costoEnvio)}
-                                                </p>
-                                            )}
-                                            <p className="text-xs text-gray-500 mt-1">{fechaHora}</p>
                                         </div>
-
-                                        {/* Estado */}
-                                        <span
-                                            className={`px-3 py-1 rounded-full text-xs font-semibold capitalize border ${colorClasses[color] ||
-                                                "border-gray-400 bg-gray-100 text-gray-600"}`}
-                                        >
-                                            {p.estado}
-                                        </span>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <span className="text-xs text-gray-400 flex items-center gap-1"><Clock size={11}/>{hora}</span>
+                                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${ESTADO_COLOR[p.estado] ?? "bg-gray-100 text-gray-600"}`}>{p.estado}</span>
+                                        </div>
                                     </div>
 
-                                    {/* 🧾 Items */}
-                                    <ul className="mt-3 mb-4 divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
-                                        {p.items.map((it: any) => (
-                                            <li
-                                                key={it._id}
-                                                className="flex justify-between items-center px-3 py-2 bg-gray-50 hover:bg-gray-100 transition"
-                                            >
-                                                <span className="text-sm text-gray-800">
-                                                    {it.menuItemId?.nombre}
-                                                </span>
-                                                <span className="text-red-600 font-semibold text-sm">
-                                                    ×{it.cantidad}
-                                                </span>
-                                            </li>
+                                    {/* Items */}
+                                    <div className="bg-gray-50 rounded-xl px-3 py-2 mb-3 space-y-1">
+                                        {p.items.map(it => (
+                                            <div key={it._id} className="flex justify-between text-sm text-gray-700">
+                                                <span>{it.cantidad}× {it.menuItemId?.nombre ?? "Ítem"}{it.nota ? <span className="text-gray-400 text-xs"> · {it.nota}</span> : null}</span>
+                                                <span className="text-gray-400 text-xs">{fmt((it.menuItemId?.precio ?? 0) * it.cantidad)}</span>
+                                            </div>
                                         ))}
-                                    </ul>
+                                        <div className="border-t border-gray-200 pt-1 flex justify-between font-black text-gray-900 text-sm">
+                                            <span>Total</span><span>{fmt(p.total)}</span>
+                                        </div>
+                                    </div>
 
-                                    {/* 📝 Nota del cliente */}
+                                    {/* Nota */}
                                     {p.notaCliente && (
-                                        <p className="text-sm text-gray-600 italic bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2 mb-3">
-                                            📝 {p.notaCliente}
-                                        </p>
+                                        <p className="text-xs italic text-gray-500 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">📝 {p.notaCliente}</p>
                                     )}
 
-                                    {/* Botones de acción */}
-                                    <div className="flex gap-2 mt-4">
-                                        {p.estado === "pendiente" && (
-                                            <button
-                                                onClick={() => aceptarYImprimir(p)}
-                                                disabled={updatingId === p._id}
-                                                className="flex-1 flex items-center justify-center gap-2 bg-black text-white font-bold text-sm py-2.5 rounded-xl transition active:scale-[0.97] disabled:opacity-50"
-                                            >
-                                                <Printer size={15} />
-                                                {updatingId === p._id ? "..." : "Aceptar e imprimir"}
+                                    {/* Acciones */}
+                                    <div className="flex gap-2">
+                                        {tab === "pendiente" && (
+                                            <button onClick={() => aceptarYImprimir(p)} disabled={isBusy}
+                                                className="flex-1 flex items-center justify-center gap-2 bg-black text-white font-bold text-sm py-3 rounded-xl transition active:scale-[0.97] disabled:opacity-50">
+                                                <Printer size={15}/>{isBusy ? "..." : "Aceptar e imprimir"}
                                             </button>
                                         )}
-                                        {p.estado === "preparando" && (
-                                            <button
-                                                onClick={() => cambiarEstado(p, "listo")}
-                                                disabled={updatingId === p._id}
-                                                className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 text-white font-bold text-sm py-2.5 rounded-xl transition active:scale-[0.97] disabled:opacity-50"
-                                            >
-                                                <CheckCircle size={15} />
-                                                {updatingId === p._id ? "..." : "Marcar listo"}
+                                        {tab === "preparando" && (
+                                            <button onClick={() => cambiarEstado(p._id, "listo")} disabled={isBusy}
+                                                className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 text-white font-bold text-sm py-3 rounded-xl transition active:scale-[0.97] disabled:opacity-50">
+                                                <CheckCircle size={15}/>{isBusy ? "..." : "Marcar listo"}
                                             </button>
                                         )}
-                                        {p.estado === "listo" && (
-                                            <button
-                                                onClick={() => cambiarEstado(p, "entregado")}
-                                                disabled={updatingId === p._id}
-                                                className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white font-bold text-sm py-2.5 rounded-xl transition active:scale-[0.97] disabled:opacity-50"
-                                            >
-                                                <Truck size={15} />
-                                                {updatingId === p._id ? "..." : "Marcar entregado"}
+                                        {tab === "listo" && (<>
+                                            <button onClick={() => imprimirCuenta(p)} disabled={isBusy}
+                                                className="flex items-center justify-center gap-1.5 border border-gray-200 text-gray-700 font-bold text-sm px-4 py-3 rounded-xl transition active:scale-[0.97] disabled:opacity-50">
+                                                <Printer size={14}/>{imprimiendoId === p._id ? "..." : "Cuenta"}
                                             </button>
-                                        )}
+                                            <button onClick={() => abrirCobrar(p)} disabled={isBusy}
+                                                className="flex-1 flex items-center justify-center gap-2 bg-black text-white font-bold text-sm py-3 rounded-xl transition active:scale-[0.97] disabled:opacity-50">
+                                                Cobrar {fmt(p.total)}
+                                            </button>
+                                        </>)}
                                     </div>
-
-                                    {/* 🔘 Progreso (solo lectura) */}
-                                    <div className="relative w-full flex justify-between items-center mt-5">
-                                        {/* Línea base */}
-                                        <div className="absolute top-[18px] left-0 w-full h-[3px] bg-gray-200 rounded-full" />
-
-                                        {/* Progreso dinámico */}
-                                        <motion.div
-                                            className={`absolute top-[18px] left-0 h-[3px] ${barColors[color] || "bg-gray-400"} rounded-full`}
-                                            initial={{ width: 0 }}
-                                            animate={{ width: `${(estadoIndex / (estados.length - 1)) * 100}%` }}
-                                            transition={{ duration: 0.4 }}
-                                        />
-
-                                        {estados.map((estado, index) => {
-                                            const Icon = estado.icon;
-                                            const isActive = index <= estadoIndex;
-                                            const activeColor = colorClasses[estado.color] || "";
-
-                                            return (
-                                                <div
-                                                    key={estado.key}
-                                                    className="flex flex-col items-center text-xs w-full relative z-10"
-                                                >
-                                                    <div
-                                                        className={`flex items-center justify-center w-9 h-9 rounded-full border-2 ${isActive ? activeColor : "border-gray-300 bg-white text-gray-400"}`}
-                                                    >
-                                                        <Icon className="w-4 h-4" />
-                                                    </div>
-                                                    <span
-                                                        className={`mt-2 font-medium ${isActive ? "text-gray-700" : "text-gray-400"
-                                                            }`}
-                                                    >
-                                                        {estado.label}
-                                                    </span>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-
-                                    </div>{/* fin contenido */}
-                                </motion.div>
-                            );
-                        })
-                    )}
-                </AnimatePresence>
-            </div>
-
-            {vista === "entregados" && totalPaginas > 1 && (
-                <div className="flex justify-center items-center gap-2 mt-8">
-                    <button
-                        disabled={pagina === 1}
-                        onClick={() => setPagina((p) => p - 1)}
-                        className="px-4 py-2 rounded-lg bg-black text-white
-                       disabled:opacity-40"
-                    >
-                        ←
-                    </button>
-
-                    {Array.from({ length: totalPaginas }).map((_, i) => {
-                        const num = i + 1;
-                        return (
-                            <button
-                                key={num}
-                                onClick={() => setPagina(num)}
-                                className={`px-4 py-2 rounded-lg font-semibold
-                        ${pagina === num
-                                        ? "bg-red-600 text-white"
-                                        : "bg-black text-gray-300 hover:bg-red-700"}
-                    `}
-                            >
-                                {num}
-                            </button>
+                                </div>
+                            </div>
                         );
                     })}
-
-                    <button
-                        disabled={pagina === totalPaginas}
-                        onClick={() => setPagina((p) => p + 1)}
-                        className="px-4 py-2 rounded-lg bg-black text-white
-                       disabled:opacity-40"
-                    >
-                        →
-                    </button>
                 </div>
             )}
-            </>}
+
+            {/* Modal cobrar */}
+            {cobrarPedido && (
+                <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={cerrarCobrar}>
+                    <div className="bg-white rounded-t-3xl w-full max-w-xl shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
+                            <div>
+                                <p className="text-xs text-gray-400 font-semibold">Cobrar</p>
+                                <h2 className="text-xl font-black text-gray-900">{cobrarPedido.mesa ? `Mesa ${cobrarPedido.mesa}` : "Sin mesa"}</h2>
+                            </div>
+                            <button onClick={cerrarCobrar} className="p-2 text-gray-400 hover:text-gray-700"><X size={18}/></button>
+                        </div>
+
+                        <div className="px-5 pt-4 pb-2 space-y-4">
+                            {/* Resumen */}
+                            <div className="bg-gray-50 rounded-2xl p-3 space-y-1">
+                                {cobrarPedido.items.map(it => (
+                                    <div key={it._id} className="flex justify-between text-sm text-gray-700">
+                                        <span>{it.cantidad}× {it.menuItemId?.nombre ?? "Ítem"}</span>
+                                        <span className="text-gray-400">{fmt((it.menuItemId?.precio ?? 0) * it.cantidad)}</span>
+                                    </div>
+                                ))}
+                                <div className="border-t border-gray-200 pt-1 flex justify-between font-black text-gray-900">
+                                    <span>Total</span><span>{fmt(cobrarPedido.total)}</span>
+                                </div>
+                            </div>
+
+                            {/* Descuento */}
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Descuento</label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                                    <input type="number" value={descuento} onChange={e => setDescuento(e.target.value)} placeholder="0"
+                                        style={{ fontSize: "16px" }}
+                                        className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black font-bold"/>
+                                </div>
+                                {Number(descuento) > 0 && <p className="text-sm font-black text-emerald-600 mt-1.5">A cobrar: {fmt(totalConDesc(cobrarPedido))}</p>}
+                            </div>
+
+                            {/* Pagos */}
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Pago</label>
+                                <div className="space-y-2">
+                                    {pagos.map((pago, i) => (
+                                        <div key={i} className="flex gap-2 items-center">
+                                            <div className="flex gap-1 bg-gray-100 rounded-xl p-1 shrink-0">
+                                                {(["efectivo", "tarjeta", "transferencia"] as const).map(m => (
+                                                    <button key={m} onClick={() => setPagos(prev => prev.map((p, j) => j === i ? { ...p, metodo: m } : p))}
+                                                        className={`p-1.5 rounded-lg transition ${pago.metodo === m ? "bg-white shadow-sm" : "text-gray-400 hover:text-gray-700"}`}>
+                                                        {m === "efectivo" ? <Banknote size={16}/> : m === "tarjeta" ? <CreditCard size={16}/> : <ArrowLeftRight size={16}/>}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <div className="relative flex-1">
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">$</span>
+                                                <input type="number" value={pago.monto} placeholder="Monto" style={{ fontSize: "16px" }}
+                                                    onChange={e => setPagos(prev => prev.map((p, j) => j === i ? { ...p, monto: e.target.value } : p))}
+                                                    className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black font-bold"/>
+                                            </div>
+                                            {pagos.length > 1 && (
+                                                <button onClick={() => setPagos(prev => prev.filter((_, j) => j !== i))} className="p-2 text-gray-400 hover:text-red-500"><Trash2 size={16}/></button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                                {pagos.length < 3 && (
+                                    <button onClick={() => setPagos(prev => [...prev, { metodo: "efectivo", monto: "" }])}
+                                        className="mt-2 flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-gray-700">
+                                        <Plus size={14}/> Agregar otro medio
+                                    </button>
+                                )}
+                                {calcVuelto() > 0 && <p className="text-sm font-black text-amber-600 mt-2">Vuelto: {fmt(calcVuelto())}</p>}
+                            </div>
+                        </div>
+
+                        <div className="px-5 pb-8 pt-3 space-y-2 border-t border-gray-100">
+                            <button onClick={cobrar} disabled={guardando}
+                                className="w-full flex items-center justify-center gap-2 bg-black text-white font-black py-4 rounded-2xl text-base active:scale-[0.98] transition disabled:opacity-50">
+                                <Printer size={18}/>{guardando ? "Procesando..." : `Cobrar e imprimir · ${fmt(totalConDesc(cobrarPedido))}`}
+                            </button>
+                            <button onClick={cerrarCobrar} className="w-full py-3 rounded-2xl text-sm font-semibold text-gray-500 hover:bg-gray-100 transition">Cancelar</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
