@@ -27,6 +27,7 @@ export default function MiCuentaPage() {
     const [comanda, setComanda] = useState<Comanda | null>(null);
     const [loading, setLoading] = useState(true);
     const [personas, setPersonas] = useState(2);
+    const [dividirAbierto, setDividirAbierto] = useState(false);
     const [llamadaEnviada, setLlamadaEnviada] = useState<Set<"mozo" | "cuenta">>(new Set());
     const [llamandoConfirm, setLlamandoConfirm] = useState<"mozo" | "cuenta" | null>(null);
 
@@ -137,42 +138,49 @@ export default function MiCuentaPage() {
                     </div>
                 </div>
 
-                {/* Dividir cuenta */}
+                {/* Dividir cuenta — colapsable */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-                        <Users size={14} className="text-gray-400" />
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Dividir cuenta</p>
-                    </div>
-                    <div className="px-4 py-5">
-                        {/* Stepper personas */}
-                        <div className="flex items-center justify-between mb-5">
-                            <p className="text-sm font-bold text-gray-700">Cantidad de personas</p>
-                            <div className="flex items-center gap-3">
-                                <button
-                                    onClick={() => setPersonas(p => Math.max(2, p - 1))}
-                                    className="w-9 h-9 rounded-full border-2 border-gray-200 flex items-center justify-center text-gray-600 hover:border-black hover:text-black transition active:scale-95">
-                                    <Minus size={14} />
-                                </button>
-                                <span className="text-xl font-black text-gray-900 w-8 text-center">{personas}</span>
-                                <button
-                                    onClick={() => setPersonas(p => Math.min(20, p + 1))}
-                                    className="w-9 h-9 rounded-full border-2 border-gray-200 flex items-center justify-center text-gray-600 hover:border-black hover:text-black transition active:scale-95">
-                                    <Plus size={14} />
-                                </button>
+                    <button
+                        onClick={() => setDividirAbierto(v => !v)}
+                        className="w-full px-4 py-3 flex items-center justify-between active:bg-gray-50 transition">
+                        <div className="flex items-center gap-2">
+                            <Users size={14} className="text-gray-400" />
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Dividir cuenta</p>
+                        </div>
+                        <span className="text-gray-400 text-sm font-black">{dividirAbierto ? "▲" : "▼"}</span>
+                    </button>
+                    {dividirAbierto && (
+                        <div className="px-4 pb-5 pt-2 border-t border-gray-100">
+                            {/* Stepper personas */}
+                            <div className="flex items-center justify-between mb-4">
+                                <p className="text-sm font-bold text-gray-700">Cantidad de personas</p>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={() => setPersonas(p => Math.max(2, p - 1))}
+                                        className="w-9 h-9 rounded-full border-2 border-gray-200 flex items-center justify-center text-gray-600 hover:border-black hover:text-black transition active:scale-95">
+                                        <Minus size={14} />
+                                    </button>
+                                    <span className="text-xl font-black text-gray-900 w-8 text-center">{personas}</span>
+                                    <button
+                                        onClick={() => setPersonas(p => Math.min(20, p + 1))}
+                                        className="w-9 h-9 rounded-full border-2 border-gray-200 flex items-center justify-center text-gray-600 hover:border-black hover:text-black transition active:scale-95">
+                                        <Plus size={14} />
+                                    </button>
+                                </div>
+                            </div>
+                            {/* Resultado */}
+                            <div className="bg-black rounded-2xl px-5 py-4 flex items-center justify-between">
+                                <div>
+                                    <p className="text-white/60 text-xs font-semibold">Por persona</p>
+                                    <p className="text-white text-3xl font-black mt-0.5">{fmt(ppp)}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-white/40 text-xs">{fmt(total)}</p>
+                                    <p className="text-white/40 text-xs">÷ {personas}</p>
+                                </div>
                             </div>
                         </div>
-                        {/* Resultado */}
-                        <div className="bg-black rounded-2xl px-5 py-4 flex items-center justify-between">
-                            <div>
-                                <p className="text-white/60 text-xs font-semibold">Por persona</p>
-                                <p className="text-white text-3xl font-black mt-0.5">{fmt(ppp)}</p>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-white/40 text-xs">{fmt(total)}</p>
-                                <p className="text-white/40 text-xs">÷ {personas}</p>
-                            </div>
-                        </div>
-                    </div>
+                    )}
                 </div>
 
                 {/* Llamar mozo / Pedir cuenta */}
