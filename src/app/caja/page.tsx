@@ -150,6 +150,7 @@ export default function CajaPage() {
     const [pedidos, setPedidos] = useState<Pedido[]>([]);
     const [loading, setLoading] = useState(true);
     const prevPedidoStatesRef = useRef<Record<string, string>>({});
+    const [alertasPedidos, setAlertasPedidos] = useState<Map<string, number>>(new Map());
     const [listosToast, setListosToast] = useState<{ id: string; label: string; ts: number }[]>([]);
     const [vista, setVista] = useState<Vista>("pendientes");
     const [filtroFuente, setFiltroFuente] = useState<"todos" | "bar" | "delivery" | "eventos">("todos");
@@ -503,20 +504,33 @@ export default function CajaPage() {
                 setPedidos(filtrados);
                 detectarAgregados(filtrados);
 
-                // Detectar pedidos que pasaron a "listo" desde otro estado
+                // Detectar pedidos que pasaron a "listo" o "preparando" desde otro estado
                 const newStates: Record<string, string> = {};
                 const recienListos: { id: string; label: string; ts: number }[] = [];
+                const nuevasAlertas: string[] = [];
                 for (const p of filtrados) {
                     newStates[p._id] = p.estado;
                     const prev = prevPedidoStatesRef.current[p._id];
                     if (p.estado === "listo" && prev && prev !== "listo") {
                         const label = p.mesa ? `Mesa ${p.mesa}` : (p.nombreComanda || `Comanda #${p.numeroDia || ""}`);
                         recienListos.push({ id: p._id, label, ts: Date.now() });
+                        nuevasAlertas.push(p._id);
+                    }
+                    if (p.estado === "preparando" && prev !== "preparando") {
+                        nuevasAlertas.push(p._id);
                     }
                 }
                 prevPedidoStatesRef.current = newStates;
                 if (recienListos.length > 0) {
                     setListosToast(prev => [...prev, ...recienListos]);
+                }
+                if (nuevasAlertas.length > 0) {
+                    const ts = Date.now();
+                    setAlertasPedidos(prev => {
+                        const next = new Map(prev);
+                        nuevasAlertas.forEach(id => next.set(id, ts));
+                        return next;
+                    });
                 }
             }
         } finally { setLoading(false); }
@@ -530,6 +544,21 @@ export default function CajaPage() {
         }, 7000);
         return () => clearTimeout(timer);
     }, [listosToast]);
+
+    useEffect(() => {
+        const iv = setInterval(() => {
+            const cutoff = Date.now() - 35000;
+            setAlertasPedidos(prev => {
+                let changed = false;
+                const next = new Map(prev);
+                for (const [id, ts] of next) {
+                    if (ts < cutoff) { next.delete(id); changed = true; }
+                }
+                return changed ? next : prev;
+            });
+        }, 5000);
+        return () => clearInterval(iv);
+    }, []);
 
     useEffect(() => {
         loadData();
@@ -2230,10 +2259,11 @@ export default function CajaPage() {
                                                         ? { label: "Pedido", cls: "bg-red-500 text-white" }
                                                         : { label: "Bar", cls: "bg-white text-black" };
 
+                                        const esAlerta = alertasPedidos.has(p._id) && (Date.now() - (alertasPedidos.get(p._id) ?? 0)) < 35000;
                                         return (
                                             <motion.div key={p._id}
                                                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                                                className="rounded-2xl border-2 border-black shadow-sm overflow-hidden flex flex-col h-[500px] bg-white">
+                                                className={`rounded-2xl border-2 shadow-sm overflow-hidden flex flex-col h-[500px] bg-white ${esAlerta ? "blink-alerta" : "border-black"}`}>
 
                                                 {/* ── Cabecera ── */}
                                                 <div className="shrink-0 px-4 py-3 bg-black">

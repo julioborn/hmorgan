@@ -48,6 +48,15 @@ body {
   box-shadow: 0 10px 25px -10px rgba(0, 0, 0, .15);
 }
 
+/* Borde parpadeante para comandas nuevas o listas */
+@keyframes blink-alerta {
+  0%, 100% { border-color: #ef4444; box-shadow: 0 0 10px rgba(239,68,68,0.45); }
+  50%       { border-color: #1a1a1a; box-shadow: none; }
+}
+.blink-alerta {
+  animation: blink-alerta 0.75s ease-in-out infinite;
+}
+
 /* Select nativo */
 select,
 select option {

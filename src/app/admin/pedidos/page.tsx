@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Printer, CheckCircle, Truck, Clock, Banknote, CreditCard, ArrowLeftRight, X, Plus, Trash2, LockKeyhole, Wallet, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import Loader from "@/components/Loader";
@@ -31,6 +31,8 @@ export default function AdminPedidosPage() {
 
     const [pedidosActivos, setPedidosActivos]   = useState<boolean | null>(null);
     const [togglingPedidos, setTogglingPedidos] = useState(false);
+    const prevStatesRef = useRef<Record<string, string>>({});
+    const [alertasPedidos, setAlertasPedidos]   = useState<Map<string, number>>(new Map());
 
     // Modal cobrar
     const [cobrarPedido, setCobrarPedido] = useState<Pedido | null>(null);
@@ -54,9 +56,44 @@ export default function AdminPedidosPage() {
         try {
             const r = await fetch("/api/pedidos", { cache: "no-store", credentials: "include" });
             const d = await r.json();
-            setPedidos(Array.isArray(d) ? d : []);
+            if (!Array.isArray(d)) return;
+            const nuevasAlertas: string[] = [];
+            for (const p of d) {
+                const prev = prevStatesRef.current[p._id];
+                if (
+                    (p.estado === "preparando" && prev !== "preparando") ||
+                    (p.estado === "listo" && prev && prev !== "listo")
+                ) {
+                    nuevasAlertas.push(p._id);
+                }
+                prevStatesRef.current[p._id] = p.estado;
+            }
+            if (nuevasAlertas.length > 0) {
+                const ts = Date.now();
+                setAlertasPedidos(prev => {
+                    const next = new Map(prev);
+                    nuevasAlertas.forEach(id => next.set(id, ts));
+                    return next;
+                });
+            }
+            setPedidos(d);
         } finally { setLoading(false); }
     }
+
+    useEffect(() => {
+        const iv = setInterval(() => {
+            const cutoff = Date.now() - 35000;
+            setAlertasPedidos(prev => {
+                let changed = false;
+                const next = new Map(prev);
+                for (const [id, ts] of next) {
+                    if (ts < cutoff) { next.delete(id); changed = true; }
+                }
+                return changed ? next : prev;
+            });
+        }, 5000);
+        return () => clearInterval(iv);
+    }, []);
 
     useEffect(() => {
         if (!confirm) return;
@@ -260,9 +297,10 @@ export default function AdminPedidosPage() {
                         const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
                         const isBusy = updatingId === p._id || imprimiendoId === p._id;
                         const thisConfirm = confirm?.id === p._id ? confirm.accion : null;
+                        const esAlerta = alertasPedidos.has(p._id) && (Date.now() - (alertasPedidos.get(p._id) ?? 0)) < 35000;
 
                         return (
-                            <div key={p._id} className="rounded-2xl border-2 border-black shadow-md overflow-hidden bg-white">
+                            <div key={p._id} className={`rounded-2xl border-2 shadow-md overflow-hidden bg-white ${esAlerta ? "blink-alerta" : "border-black"}`}>
                                 {/* Header negro */}
                                 <div className="px-4 py-3 bg-black flex items-start justify-between gap-3">
                                     <div className="flex-1 min-w-0">
