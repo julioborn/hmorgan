@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { Mesa } from "@/models/Mesa";
 import jwt from "jsonwebtoken";
+import { OWNER_USER_ID } from "@/lib/owner";
 
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET!;
 
@@ -15,13 +16,17 @@ function getPayload(req: NextRequest) {
     }
 }
 
+function isAdmin(payload: any) {
+    return payload.role === "admin" || payload.role === "superadmin" || payload.sub === OWNER_USER_ID;
+}
+
 // GET — autenticado puede listar mesas; admin puede ver todas con ?all=true
 export async function GET(req: NextRequest) {
     const payload = getPayload(req);
     if (!payload) return NextResponse.json({ message: "No autorizado" }, { status: 401 });
 
     await connectMongoDB();
-    const isStaff = payload.role === "admin" || payload.role === "superadmin";
+    const isStaff = isAdmin(payload);
     const showAll = isStaff && req.nextUrl.searchParams.get("all") === "true";
     const mesas = await Mesa.find(showAll ? {} : { activa: true }).sort({ nombre: 1 }).lean();
     return NextResponse.json(mesas);
@@ -30,7 +35,7 @@ export async function GET(req: NextRequest) {
 // POST — crear mesa (admin o superadmin)
 export async function POST(req: NextRequest) {
     const payload = getPayload(req);
-    if (!payload || (payload.role !== "admin" && payload.role !== "superadmin"))
+    if (!payload || !isAdmin(payload))
         return NextResponse.json({ message: "Acceso denegado" }, { status: 403 });
 
     await connectMongoDB();
@@ -49,7 +54,7 @@ export async function POST(req: NextRequest) {
 // DELETE — eliminar mesa (admin o superadmin)
 export async function DELETE(req: NextRequest) {
     const payload = getPayload(req);
-    if (!payload || (payload.role !== "admin" && payload.role !== "superadmin"))
+    if (!payload || !isAdmin(payload))
         return NextResponse.json({ message: "Acceso denegado" }, { status: 403 });
 
     await connectMongoDB();
@@ -63,7 +68,7 @@ export async function DELETE(req: NextRequest) {
 // PATCH — actualizar mesa (posición, forma, capacidad, activa)
 export async function PATCH(req: NextRequest) {
     const payload = getPayload(req);
-    if (!payload || (payload.role !== "admin" && payload.role !== "superadmin"))
+    if (!payload || !isAdmin(payload))
         return NextResponse.json({ message: "Acceso denegado" }, { status: 403 });
 
     await connectMongoDB();

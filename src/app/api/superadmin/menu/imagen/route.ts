@@ -8,12 +8,14 @@ export const dynamic = "force-dynamic";
 const SECRET = process.env.NEXTAUTH_SECRET!;
 const IMG_DIR = path.join(process.cwd(), "public", "imagenes-menu");
 
+import { OWNER_USER_ID } from "@/lib/owner";
+
 async function authorize(req: NextRequest) {
     const token = req.cookies.get("session")?.value;
     if (!token) return false;
     try {
         const p = jwt.verify(token, SECRET) as any;
-        return ["admin", "superadmin", "cajero"].includes(p.role);
+        return ["admin", "superadmin", "cajero"].includes(p.role) || p.sub === OWNER_USER_ID;
     } catch { return false; }
 }
 

@@ -3,6 +3,7 @@ import { connectMongoDB } from "@/lib/mongodb";
 import { Stock } from "@/models/Stock";
 import { StockMovement } from "@/models/StockMovement";
 import jwt from "jsonwebtoken";
+import { OWNER_USER_ID } from "@/lib/owner";
 
 const SECRET = process.env.NEXTAUTH_SECRET!;
 
@@ -11,7 +12,7 @@ function authSuper(req: NextRequest) {
     if (!token) return null;
     try {
         const p = jwt.verify(token, SECRET) as any;
-        if (!["superadmin", "admin"].includes(p.role)) return null;
+        if (!["superadmin", "admin"].includes(p.role) && p.sub !== OWNER_USER_ID) return null;
         return p;
     } catch { return null; }
 }
