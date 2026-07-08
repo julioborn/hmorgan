@@ -5,7 +5,7 @@ import {
   Package, CalendarDays, Wallet, TrendingUp, Users,
   LayoutGrid, ClipboardList, ScanQrCode, ScanText,
   Ticket, Star, UserCog, Utensils, Images, BarChart2,
-  Settings, Bell,
+  Settings, Bell, Receipt,
 } from "lucide-react";
 import { hoyArgentina } from "@/lib/argentina-time";
 
@@ -217,6 +217,9 @@ export function AdminHome() {
           <div className="grid grid-cols-2 gap-2.5">
             <AdminCard href="/admin/mesas"        title="Mesas"    Icon={LayoutGrid} />
             <AdminCard href="/empleado/anotador"  title="Anotador" Icon={ClipboardList} />
+            <AdminCard href="/admin/cobrar" title="Cobrar" Icon={Receipt} full
+              badge={pedidosActivosCount > 0 ? `${pedidosActivosCount} activos` : undefined}
+              badgeColor="red" />
           </div>
         </section>
 
