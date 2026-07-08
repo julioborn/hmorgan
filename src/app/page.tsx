@@ -125,8 +125,7 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
   const [canjeSolicitando, setCanjeSolicitando] = useState(false);
   const [canjeSolicitados, setCanjeSolicitados] = useState<Set<string>>(new Set());
   const [comandaActiva, setComandaActiva] = useState<{ _id: string; mesa?: string; nombreComanda?: string } | null>(null);
-  const [llamandoMozo, setLlamandoMozo] = useState(false);
-  const [llamadaEnviada, setLlamadaEnviada] = useState<"mozo" | "cuenta" | null>(null);
+  const [llamadaEnviada, setLlamadaEnviada] = useState<Set<"mozo" | "cuenta">>(new Set());
   const [llamarConfirm, setLlamarConfirm] = useState<"mozo" | "cuenta" | null>(null);
 
   async function solicitarCanje(r: Reward) {
@@ -226,7 +225,7 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
   }, []);
 
   function llamar(tipo: "mozo" | "cuenta") {
-    if (llamandoMozo || llamadaEnviada || !comandaActiva) return;
+    if (llamadaEnviada.has(tipo) || !comandaActiva) return;
     setLlamarConfirm(tipo);
   }
 
@@ -234,8 +233,8 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
     if (!llamarConfirm) return;
     const tipo = llamarConfirm;
     setLlamarConfirm(null);
-    setLlamadaEnviada(tipo);
-    setTimeout(() => setLlamadaEnviada(null), 60000);
+    setLlamadaEnviada(prev => new Set([...prev, tipo]));
+    setTimeout(() => setLlamadaEnviada(prev => { const s = new Set(prev); s.delete(tipo); return s; }), 60000);
     fetch("/api/llamar-mozo", {
       method: "POST", credentials: "include",
       headers: { "Content-Type": "application/json" },
@@ -272,27 +271,27 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
         <div className="flex gap-3">
           <button
             onClick={() => llamar("mozo")}
-            disabled={llamandoMozo || llamadaEnviada === "mozo"}
+            disabled={llamadaEnviada.has("mozo")}
             className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl font-black text-sm transition-all active:scale-[0.97] shadow-lg
-              ${llamadaEnviada === "mozo"
+              ${llamadaEnviada.has("mozo")
                 ? "bg-red-50 border-2 border-red-200 text-red-600 cursor-default"
                 : "bg-red-600 text-white hover:bg-red-700"
               }`}
           >
             <Bell size={22} />
-            {llamadaEnviada === "mozo" ? "¡En camino!" : "Llamar mozo"}
+            {llamadaEnviada.has("mozo") ? "¡En camino!" : "Llamar mozo"}
           </button>
           <button
             onClick={() => llamar("cuenta")}
-            disabled={llamandoMozo || llamadaEnviada === "cuenta"}
+            disabled={llamadaEnviada.has("cuenta")}
             className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl font-black text-sm transition-all active:scale-[0.97] shadow-lg
-              ${llamadaEnviada === "cuenta"
+              ${llamadaEnviada.has("cuenta")
                 ? "bg-green-50 border-2 border-green-200 text-green-700 cursor-default"
                 : "bg-black text-white hover:bg-gray-900"
               }`}
           >
             <Receipt size={22} />
-            {llamadaEnviada === "cuenta" ? "¡Avisado!" : "Pedir cuenta"}
+            {llamadaEnviada.has("cuenta") ? "¡Avisado!" : "Pedir cuenta"}
           </button>
         </div>
       )}

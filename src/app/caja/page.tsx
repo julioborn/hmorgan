@@ -1857,40 +1857,34 @@ export default function CajaPage() {
 
             {/* Notificaciones en el header */}
             {(llamadas.length > 0 || listosToast.length > 0) && (
-                <div className="mt-3 pt-3 border-t border-white/10 flex flex-col gap-2">
+                <div className="mt-3 pt-3 border-t border-white/10 flex flex-wrap gap-2">
                     {llamadas.map(l => {
                         const esCuenta = l.tipo === "cuenta";
                         const hora = l.createdAt ? new Date(l.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : "";
+                        const label = [esCuenta ? "Cuenta" : "Mozo", l.clienteNombre, l.mesa ? `Mesa ${l.mesa}` : null, !esCuenta && l.mozoNombre ? l.mozoNombre : null, hora].filter(Boolean).join(" · ");
                         return (
-                        <div key={l._id} className={`flex items-center gap-2 rounded-xl px-3 py-2 border ${esCuenta ? "bg-emerald-500/20 border-emerald-400/30" : "bg-red-500/20 border-red-400/30"}`}>
-                            <span className="text-base shrink-0">{esCuenta ? "🟢" : "🔴"}</span>
-                            <div className="flex-1 min-w-0">
-                                <p className={`text-sm font-bold truncate ${esCuenta ? "text-emerald-300" : "text-red-300"}`}>
-                                    {esCuenta ? "Piden la cuenta · " : "Llama al mozo · "}{l.clienteNombre}{l.mesa ? ` · Mesa ${l.mesa}` : ""}
-                                </p>
-                                <p className={`text-xs truncate ${esCuenta ? "text-emerald-400/70" : "text-red-400/70"}`}>
-                                    {!esCuenta && l.mozoNombre ? `Mozo: ${l.mozoNombre} · ` : ""}{hora}
-                                </p>
-                            </div>
+                        <div key={l._id} className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 border ${esCuenta ? "bg-emerald-500/20 border-emerald-400/30" : "bg-red-500/20 border-red-400/30"}`}>
+                            <span className="text-xs shrink-0">{esCuenta ? "🟢" : "🔴"}</span>
+                            <span className={`text-xs font-bold whitespace-nowrap ${esCuenta ? "text-emerald-300" : "text-red-300"}`}>{label}</span>
                             <button
                                 onClick={() => {
                                     fetch(`/api/llamar-mozo/${l._id}`, { method: "PATCH", credentials: "include" }).catch(() => {});
                                     setLlamadas(prev => prev.filter(x => x._id !== l._id));
                                 }}
-                                className={`shrink-0 font-black text-xs px-2.5 py-1 rounded-lg transition ${esCuenta ? "bg-emerald-400/30 hover:bg-emerald-400/50 text-emerald-200" : "bg-red-400/30 hover:bg-red-400/50 text-red-200"}`}>
-                                OK
+                                className={`shrink-0 ml-1 font-black text-xs transition ${esCuenta ? "text-emerald-400/70 hover:text-emerald-200" : "text-red-400/70 hover:text-red-200"}`}>
+                                <X size={12} />
                             </button>
                         </div>
                         );
                     })}
                     {listosToast.map(t => (
-                        <div key={`${t.id}-${t.ts}`} className="flex items-center gap-2 bg-emerald-500/20 border border-emerald-400/30 rounded-xl px-3 py-2">
-                            <CheckCircle size={15} className="text-emerald-400 shrink-0" />
-                            <p className="flex-1 text-sm font-bold text-emerald-300 truncate">{t.label}</p>
+                        <div key={`${t.id}-${t.ts}`} className="flex items-center gap-1.5 bg-emerald-500/20 border border-emerald-400/30 rounded-full px-3 py-1.5">
+                            <CheckCircle size={12} className="text-emerald-400 shrink-0" />
+                            <span className="text-xs font-bold text-emerald-300 whitespace-nowrap">{t.label}</span>
                             <button
                                 onClick={() => setListosToast(prev => prev.filter(x => x.id !== t.id || x.ts !== t.ts))}
-                                className="shrink-0 text-emerald-400/60 hover:text-emerald-300 transition">
-                                <X size={14} />
+                                className="shrink-0 ml-1 text-emerald-400/60 hover:text-emerald-300 transition">
+                                <X size={12} />
                             </button>
                         </div>
                     ))}
