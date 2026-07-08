@@ -577,7 +577,7 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
               <p className="text-sm text-gray-500">
                 {llamarConfirm === "cuenta"
                   ? "Se le avisará al mozo que querés pagar."
-                  : "El mozo recibirá una notificación en su celular."}
+                  : "El mozo irá de inmediato."}
               </p>
             </div>
             <div className="px-5 py-4 border-t border-gray-100 flex flex-col gap-2">
@@ -729,19 +729,6 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
           )}
         </div>
 
-        <Link
-          href="/menu"
-          className="w-full flex items-center gap-4 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl px-6 py-5 transition shadow-sm active:scale-[0.98] block"
-        >
-          <div className="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-            <Utensils className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="font-extrabold text-lg leading-tight">Menú</p>
-            <p className="text-gray-400 text-sm">Ver la carta del restaurante</p>
-          </div>
-        </Link>
-
         <div className="relative">
           <Link
             href="/empleado/reservas"
@@ -761,6 +748,19 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
             </span>
           )}
         </div>
+
+        <Link
+          href="/menu"
+          className="w-full flex items-center gap-4 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl px-6 py-5 transition shadow-sm active:scale-[0.98] block"
+        >
+          <div className="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+            <Utensils className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="font-extrabold text-lg leading-tight">Menú</p>
+            <p className="text-gray-400 text-sm">Ver la carta del restaurante</p>
+          </div>
+        </Link>
       </div>
 
     </div>
