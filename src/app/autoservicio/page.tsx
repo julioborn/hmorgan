@@ -52,7 +52,7 @@ export default function AutoservicioPage() {
     const [cartOpen, setCartOpen] = useState(false);
     const [enviando, setEnviando] = useState(false);
     const [pedidoOk, setPedidoOk] = useState(false);
-    const { configs } = useCategoryConfigs();
+    const categoryConfigMap = useCategoryConfigs();
 
     useEffect(() => {
         if (!user) return;
@@ -145,7 +145,7 @@ export default function AutoservicioPage() {
         })
         : [];
 
-    const cfgCat = (cat: string) => configs.find(c => c.categoria === cat);
+    const getImage = (cat: string) => categoryConfigMap[cat]?.imageUrl || categoryImages[cat];
 
     return (
         <div className="min-h-screen bg-white pb-32">
@@ -190,9 +190,8 @@ export default function AutoservicioPage() {
                 {vista === "categorias" && !menuLoading && (
                     <div className="grid grid-cols-2 gap-3">
                         {cats.map(cat => {
-                            const cfg = cfgCat(cat);
                             const Icon = categoryIcons[cat] ?? UtensilsCrossed;
-                            const img = cfg?.imagen || categoryImages[cat];
+                            const img = getImage(cat);
                             return (
                                 <button key={cat} onClick={() => setVista(cat)}
                                     className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-sm active:scale-[0.97] transition">
@@ -200,7 +199,7 @@ export default function AutoservicioPage() {
                                         ? <img src={img} alt={cat} className="absolute inset-0 w-full h-full object-cover" />
                                         : <div className="absolute inset-0 bg-gray-100 flex items-center justify-center"><Icon size={32} className="text-gray-400" /></div>}
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-                                    <span className="absolute bottom-3 left-3 text-white font-black text-sm leading-tight">{cfg?.label || cat}</span>
+                                    <span className="absolute bottom-3 left-3 text-white font-black text-sm leading-tight">{cat}</span>
                                 </button>
                             );
                         })}
