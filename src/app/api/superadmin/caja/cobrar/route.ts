@@ -110,33 +110,35 @@ export async function POST(req: NextRequest) {
         const mozoId = pedido.fuente === "empleado" ? String((pedido as any).userId || "") : undefined;
 
         if (comensalesIds.length > 0 && puntos > 0) {
-            // Acreditar y notificar a cada comensal identificado
-            for (const uid of comensalesIds) {
-                const cliente = await User.findById(uid);
-                if (cliente && cliente.role === "cliente") {
-                    await PointTransaction.create({
-                        userId: cliente._id, source: "consumo", amount: puntos,
-                        notes: `Cobrado en caja (comensal)`,
-                        meta: { pedidoId: pedido._id, consumoARS: pedido.total, ...(mozoId ? { mozoId } : {}) }, pendingReview: true,
-                    });
-                    cliente.puntos = (cliente.puntos || 0) + puntos;
-                    cliente.needsReview = true;
-                    await cliente.save();
-                    // Notificación push al comensal
-                    if (Array.isArray(cliente.pushSubscriptions) && cliente.pushSubscriptions.length) {
-                        const invalid = await sendPushAndCollectInvalid(cliente.pushSubscriptions, {
-                            title: "¡Puntos sumados!",
-                            body: `Se acreditaron ${puntos} puntos por tu consumo en H. Morgan 🎉`,
-                            url: "/cliente/qr",
+            // Dividir puntos entre los comensales, redondeado a entero
+            const puntosXPersona = Math.round(puntos / comensalesIds.length);
+            if (puntosXPersona > 0) {
+                for (const uid of comensalesIds) {
+                    const cliente = await User.findById(uid);
+                    if (cliente && cliente.role === "cliente") {
+                        await PointTransaction.create({
+                            userId: cliente._id, source: "consumo", amount: puntosXPersona,
+                            notes: `Cobrado en caja (comensal, ${comensalesIds.length} personas)`,
+                            meta: { pedidoId: pedido._id, consumoARS: pedido.total, ...(mozoId ? { mozoId } : {}) }, pendingReview: true,
                         });
-                        if (invalid.length) await User.updateOne({ _id: cliente._id }, { $pull: { pushSubscriptions: { endpoint: { $in: invalid } } } });
-                    }
-                    const fcmTokens = new Set<string>([...(cliente.fcmTokens ?? []), ...(cliente.tokenFCM ? [cliente.tokenFCM] : [])]);
-                    for (const fcmToken of fcmTokens) {
-                        try {
-                            await enviarNotificacionFCM(fcmToken, "¡Puntos sumados!", `Se acreditaron ${puntos} puntos por tu consumo en H. Morgan 🎉`, "/cliente/qr");
-                        } catch (err) {
-                            if (isFCMTokenInvalid(err)) await User.updateOne({ _id: cliente._id }, { $pull: { fcmTokens: fcmToken } });
+                        cliente.puntos = (cliente.puntos || 0) + puntosXPersona;
+                        cliente.needsReview = true;
+                        await cliente.save();
+                        if (Array.isArray(cliente.pushSubscriptions) && cliente.pushSubscriptions.length) {
+                            const invalid = await sendPushAndCollectInvalid(cliente.pushSubscriptions, {
+                                title: "¡Puntos sumados!",
+                                body: `Se acreditaron ${puntosXPersona} puntos por tu consumo en H. Morgan 🎉`,
+                                url: "/cliente/qr",
+                            });
+                            if (invalid.length) await User.updateOne({ _id: cliente._id }, { $pull: { pushSubscriptions: { endpoint: { $in: invalid } } } });
+                        }
+                        const fcmTokens = new Set<string>([...(cliente.fcmTokens ?? []), ...(cliente.tokenFCM ? [cliente.tokenFCM] : [])]);
+                        for (const fcmToken of fcmTokens) {
+                            try {
+                                await enviarNotificacionFCM(fcmToken, "¡Puntos sumados!", `Se acreditaron ${puntosXPersona} puntos por tu consumo en H. Morgan 🎉`, "/cliente/qr");
+                            } catch (err) {
+                                if (isFCMTokenInvalid(err)) await User.updateOne({ _id: cliente._id }, { $pull: { fcmTokens: fcmToken } });
+                            }
                         }
                     }
                 }
