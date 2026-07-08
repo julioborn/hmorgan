@@ -4,7 +4,6 @@ import { ChevronLeft, Printer, Banknote, CreditCard, ArrowLeftRight, X, Plus, Tr
 import Link from "next/link";
 import Loader from "@/components/Loader";
 
-const PRINT_SERVER = process.env.NEXT_PUBLIC_PRINT_SERVER_URL ?? "http://localhost:3001";
 
 type PedidoItem = {
     _id: string;
@@ -75,22 +74,24 @@ export default function AdminCobrarPage() {
         return Math.max(0, efectivo - Math.max(0, total - noEfectivo));
     }
 
-    async function enviarTicketAlServidor(p: Pedido, pagosArr: { metodo: string; monto: number }[], desc: number, totalFinal: number, vuelto: number, sinPago = false) {
+    async function encolarTicket(p: Pedido, pagosArr: { metodo: string; monto: number }[], desc: number, totalFinal: number, vuelto: number, sinPago = false) {
         const hora = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
         const fecha = new Date().toLocaleDateString("es-AR");
         const items = p.items.map(i => ({ cantidad: i.cantidad, nombre: i.menuItemId?.nombre || "Ítem", precio: i.menuItemId?.precio || 0 }));
-        try {
-            await fetch(`${PRINT_SERVER}/imprimir/ticket`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ mesa: p.mesa || "—", fecha, hora, items, total: sinPago ? p.total : totalFinal, descuento: desc, pagos: sinPago ? [] : pagosArr, vuelto, sinPago }),
-            });
-        } catch { /* print server no disponible */ }
+        await fetch("/api/print-jobs", {
+            method: "POST", credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                tipo: "ticket",
+                impresora: "Barra",
+                payload: { mesa: p.mesa || "—", fecha, hora, items, total: sinPago ? p.total : totalFinal, descuento: desc, pagos: sinPago ? [] : pagosArr, vuelto, sinPago },
+            }),
+        });
     }
 
     async function imprimirCuenta(p: Pedido) {
         setImprimiendo(p._id);
-        await enviarTicketAlServidor(p, [], 0, p.total, 0, true);
+        await encolarTicket(p, [], 0, p.total, 0, true);
         setImprimiendo(null);
     }
 
@@ -114,7 +115,7 @@ export default function AdminCobrarPage() {
                 }),
             });
             if (res.ok) {
-                await enviarTicketAlServidor(cobrarPedido, pagosArr, Number(descuento) || 0, totalFinal, vuelto);
+                await encolarTicket(cobrarPedido, pagosArr, Number(descuento) || 0, totalFinal, vuelto);
                 setPedidos(prev => prev.filter(p => p._id !== cobrarPedido._id));
                 cerrarCobrar();
             }

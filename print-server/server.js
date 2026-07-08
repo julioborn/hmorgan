@@ -4,6 +4,7 @@ const { spawnSync }  = require("child_process");
 const fs             = require("fs");
 const os             = require("os");
 const path           = require("path");
+const https          = require("https");
 
 const app    = express();
 const PORT   = 3001;
@@ -12,6 +13,9 @@ const PS1    = path.join(__dirname, "print-raw.ps1");
 // ─── Configuración de impresoras ─────────────────────────────────────────────
 const IMPRESORA_COCINA = "COCINA";
 const IMPRESORA_BARRA  = "BARRA";
+// ─── Cloud polling ───────────────────────────────────────────────────────────
+const APP_URL   = "https://hmorgan.vercel.app";
+const PRINT_KEY = "hmorganprint2024";
 // ─────────────────────────────────────────────────────────────────────────────
 
 app.use(express.json());
@@ -25,7 +29,7 @@ app.use((req, res, next) => {
 });
 
 app.get("/estado", (_req, res) => {
-    res.json({ ok: true, version: "1.1.0" });
+    res.json({ ok: true, version: "1.2.0" });
 });
 
 app.get("/impresoras", (_req, res) => {
@@ -82,7 +86,6 @@ function buildComanda({ titulo, mesa, cliente, direccion, mozo, hora, items, not
 
     txt(SEP); add(LF);
 
-    // Datos del cliente en letra grande: Mesa, Nombre, Dirección
     add(ESC, 0x21, 0x10);
     txt(norm(mesa)); add(LF);
     txt("Cliente: " + norm(cliente || "-")); add(LF);
@@ -191,8 +194,8 @@ function buildTicket({ mesa, fecha, hora, items, total, costoEnvio, metodoPago, 
     return Buffer.from(b);
 }
 
-// ─── Función auxiliar de impresión (vía PowerShell, sin addons nativos) ──────
-function imprimir(buffer, nombreImpresora, res, etiqueta) {
+// ─── Función auxiliar de impresión ───────────────────────────────────────────
+function imprimirBuffer(buffer, nombreImpresora, etiqueta) {
     const tmpFile = path.join(os.tmpdir(), `escpos_${Date.now()}.bin`);
     try {
         fs.writeFileSync(tmpFile, buffer);
@@ -208,21 +211,91 @@ function imprimir(buffer, nombreImpresora, res, etiqueta) {
 
         if (r.status === 0) {
             console.log(`[OK] ${etiqueta} → "${nombreImpresora}"`);
-            res.json({ ok: true });
+            return true;
         } else {
             const err = (r.stderr?.toString() || r.stdout?.toString() || "Error desconocido").trim();
             console.error(`[ERR] ${etiqueta}:`, err);
-            res.status(500).json({ error: err });
+            return false;
         }
     } catch (err) {
         try { fs.unlinkSync(tmpFile); } catch {}
         console.error(`[ERR] ${etiqueta}:`, err.message);
-        res.status(500).json({ error: err.message });
+        return false;
     }
 }
 
+function imprimir(buffer, nombreImpresora, res, etiqueta) {
+    const ok = imprimirBuffer(buffer, nombreImpresora, etiqueta);
+    if (ok) res.json({ ok: true });
+    else res.status(500).json({ error: "Error de impresión" });
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
-// Endpoints
+// Cloud polling — busca trabajos pendientes cada 3 segundos
+// ═══════════════════════════════════════════════════════════════════════════════
+function httpRequest(url, options = {}, body = null) {
+    return new Promise((resolve, reject) => {
+        const urlObj = new URL(url);
+        const reqOptions = {
+            hostname: urlObj.hostname,
+            path: urlObj.pathname + urlObj.search,
+            method: options.method || "GET",
+            headers: options.headers || {},
+        };
+        if (body) {
+            const bodyStr = typeof body === "string" ? body : JSON.stringify(body);
+            reqOptions.headers["Content-Length"] = Buffer.byteLength(bodyStr);
+        }
+        const req = https.request(reqOptions, (res) => {
+            let data = "";
+            res.on("data", chunk => data += chunk);
+            res.on("end", () => {
+                try { resolve({ status: res.statusCode, body: JSON.parse(data) }); }
+                catch { resolve({ status: res.statusCode, body: data }); }
+            });
+        });
+        req.on("error", reject);
+        if (body) req.write(typeof body === "string" ? body : JSON.stringify(body));
+        req.end();
+    });
+}
+
+let pollingActivo = false;
+
+async function pollPrintJobs() {
+    if (pollingActivo) return;
+    pollingActivo = true;
+    try {
+        const res = await httpRequest(`${APP_URL}/api/print-jobs`, {
+            headers: { "x-print-key": PRINT_KEY },
+        });
+        if (res.status !== 200 || !Array.isArray(res.body)) return;
+        const jobs = res.body;
+        for (const job of jobs) {
+            // Marcar como impreso antes de imprimir para evitar duplicados
+            await httpRequest(`${APP_URL}/api/print-jobs/${job._id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json", "x-print-key": PRINT_KEY },
+            }, { estado: "impreso" });
+
+            const impresora = job.impresora === "Cocina" ? IMPRESORA_COCINA : IMPRESORA_BARRA;
+            if (job.tipo === "ticket") {
+                imprimirBuffer(buildTicket(job.payload), impresora, job.payload.sinPago ? "Cuenta" : "Ticket");
+            } else if (job.tipo === "comanda") {
+                imprimirBuffer(buildComanda(job.payload), impresora, job.payload.titulo || "Comanda");
+            }
+        }
+    } catch (err) {
+        // sin internet o app caída — no spamear logs
+    } finally {
+        pollingActivo = false;
+    }
+}
+
+setInterval(pollPrintJobs, 3000);
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Endpoints locales (usados por la caja en la misma compu)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 app.post("/imprimir/comanda", (req, res) => {
@@ -248,11 +321,12 @@ app.post("/imprimir/ticket", (req, res) => {
 // ─── Arrancar ─────────────────────────────────────────────────────────────────
 app.listen(PORT, "0.0.0.0", () => {
     console.log("\n╔══════════════════════════════════════╗");
-    console.log("║   H. Morgan  ·  Print Server  v1.1  ║");
+    console.log("║   H. Morgan  ·  Print Server  v1.2  ║");
     console.log("╚══════════════════════════════════════╝\n");
     console.log(`Escuchando en  http://localhost:${PORT}`);
     console.log(`Impresora Cocina : "${IMPRESORA_COCINA}"`);
-    console.log(`Impresora Barra  : "${IMPRESORA_BARRA}"\n`);
+    console.log(`Impresora Barra  : "${IMPRESORA_BARRA}"`);
+    console.log(`Cloud polling    : ${APP_URL} (cada 3s)\n`);
 
     const r = spawnSync("powershell", [
         "-NoProfile", "-Command",
