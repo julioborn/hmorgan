@@ -9,7 +9,7 @@ import { hoyArgentina } from "@/lib/argentina-time";
 import { swalBase } from "@/lib/swalConfig";
 
 const BarMap = dynamic(() => import("@/components/BarMap"), { ssr: false });
-import { QrCode, Users, Bell, PackagePlus, Package, Utensils, Ticket, History, ScanQrCode, ScanText, Settings, Star, BarChart2, ClipboardList, LayoutGrid, Images, CalendarDays, Wallet, TrendingUp, UserCog, Truck, Gift, X, Clock, Tablet } from "lucide-react";
+import { QrCode, Users, Bell, PackagePlus, Package, Utensils, Ticket, History, ScanQrCode, ScanText, Settings, Star, BarChart2, ClipboardList, LayoutGrid, Images, CalendarDays, Wallet, TrendingUp, UserCog, Truck, Gift, X, Clock, Tablet, Receipt } from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 import Loader from "@/components/Loader";
@@ -126,7 +126,7 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
   const [canjeSolicitados, setCanjeSolicitados] = useState<Set<string>>(new Set());
   const [comandaActiva, setComandaActiva] = useState<{ _id: string; mesa?: string; nombreComanda?: string } | null>(null);
   const [llamandoMozo, setLlamandoMozo] = useState(false);
-  const [llamadaEnviada, setLlamadaEnviada] = useState(false);
+  const [llamadaEnviada, setLlamadaEnviada] = useState<"mozo" | "cuenta" | null>(null);
 
   async function solicitarCanje(r: Reward) {
     if (puntos < r.puntos) {
@@ -224,13 +224,17 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
     return () => clearInterval(iv);
   }, []);
 
-  async function llamarMozo() {
+  async function llamar(tipo: "mozo" | "cuenta") {
     if (llamandoMozo || llamadaEnviada || !comandaActiva) return;
     setLlamandoMozo(true);
     try {
-      await fetch("/api/llamar-mozo", { method: "POST", credentials: "include" });
-      setLlamadaEnviada(true);
-      setTimeout(() => setLlamadaEnviada(false), 60000);
+      await fetch("/api/llamar-mozo", {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tipo }),
+      });
+      setLlamadaEnviada(tipo);
+      setTimeout(() => setLlamadaEnviada(null), 60000);
     } catch {}
     finally { setLlamandoMozo(false); }
   }
@@ -259,21 +263,34 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
         </span>
       </div>
 
-      {/* Llamar al mozo */}
+      {/* Llamar al mozo / Pedir la cuenta */}
       {comandaActiva && (
-        <button
-          onClick={llamarMozo}
-          disabled={llamandoMozo || llamadaEnviada}
-          className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl font-black text-lg transition-all active:scale-[0.97] shadow-lg
-            ${llamadaEnviada
-              ? "bg-green-50 border-2 border-green-200 text-green-700 cursor-default"
-              : "bg-black text-white hover:bg-gray-900"
-            }`}
-        >
-          <span className="text-2xl">🔔</span>
-          {llamadaEnviada ? "¡Mozo en camino!" : llamandoMozo ? "Llamando…" : "Llamar al mozo"}
-          <span className="text-2xl">🔔</span>
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => llamar("mozo")}
+            disabled={llamandoMozo || llamadaEnviada === "mozo"}
+            className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl font-black text-sm transition-all active:scale-[0.97] shadow-lg
+              ${llamadaEnviada === "mozo"
+                ? "bg-red-50 border-2 border-red-200 text-red-600 cursor-default"
+                : "bg-red-600 text-white hover:bg-red-700"
+              }`}
+          >
+            <Bell size={22} />
+            {llamadaEnviada === "mozo" ? "¡En camino!" : "Llamar mozo"}
+          </button>
+          <button
+            onClick={() => llamar("cuenta")}
+            disabled={llamandoMozo || llamadaEnviada === "cuenta"}
+            className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl font-black text-sm transition-all active:scale-[0.97] shadow-lg
+              ${llamadaEnviada === "cuenta"
+                ? "bg-green-50 border-2 border-green-200 text-green-700 cursor-default"
+                : "bg-black text-white hover:bg-gray-900"
+              }`}
+          >
+            <Receipt size={22} />
+            {llamadaEnviada === "cuenta" ? "¡Avisado!" : "Pedir cuenta"}
+          </button>
+        </div>
       )}
 
       {/* Repartidor afuera del domicilio */}
@@ -328,12 +345,12 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
               </Swiper>
               )}
               <div className="mt-4 flex justify-center">
-                <Link
+                {/* <Link
                   href="/cliente/rewards"
                   className="px-4 py-2 text-sm font-semibold rounded-lg bg-red-600 text-white hover:bg-red-500 transition"
                 >
                   Ver todos los canjes
-                </Link>
+                </Link> */}
               </div>
           </>
         </div>
@@ -486,7 +503,7 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
             rel="noopener noreferrer"
             className="flex-shrink-0 px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition shadow"
           >
-            Cómo llegar
+             ¿Cómo llegar?
           </a>
         </div>
       </section>

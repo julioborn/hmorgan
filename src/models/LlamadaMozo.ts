@@ -7,6 +7,7 @@ const LlamadaMozoSchema = new Schema(
         clienteNombre: { type: String, required: true },
         mesa:          { type: String },
         mozoId:        { type: Schema.Types.ObjectId, ref: "User" },
+        tipo:          { type: String, enum: ["mozo", "cuenta"], default: "mozo" },
         vista:         { type: Boolean, default: false },
     },
     { timestamps: true }

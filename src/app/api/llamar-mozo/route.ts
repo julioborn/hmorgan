@@ -57,6 +57,8 @@ export async function POST(req: NextRequest) {
 
     if (!pedido) return NextResponse.json({ error: "Sin comanda activa" }, { status: 404 });
 
+    const { tipo = "mozo" } = await req.json().catch(() => ({}));
+
     const cliente = await User.findById(payload.sub).select("nombre apellido").lean() as any;
     const clienteNombre = [cliente?.nombre, cliente?.apellido].filter(Boolean).join(" ") || payload.username || "Cliente";
 
@@ -66,12 +68,16 @@ export async function POST(req: NextRequest) {
         clienteNombre,
         mesa:          pedido.mesa || pedido.nombreComanda || null,
         mozoId:        pedido.userId,
+        tipo,
     });
 
     // Notificar a todos los mozos que tienen comandas activas en este momento
     const mesaLabel = pedido.mesa ? `mesa ${pedido.mesa}` : pedido.nombreComanda || "su mesa";
-    const title = "🔔 Llamada de cliente 🔔";
-    const body = `🔔 ${clienteNombre} · ${mesaLabel} 🔔`;
+    const esCuenta = tipo === "cuenta";
+    const title = esCuenta ? "🟢 Piden la cuenta 🟢" : "🔴 Llamada al mozo 🔴";
+    const body = esCuenta
+        ? `🟢 ${clienteNombre} · ${mesaLabel} pide la cuenta 🟢`
+        : `🔴 ${clienteNombre} · ${mesaLabel} llama al mozo 🔴`;
 
     const comandasActivas = await Pedido.find({
         fuente: "empleado",
