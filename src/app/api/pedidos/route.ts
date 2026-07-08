@@ -62,6 +62,7 @@ export async function GET(req: NextRequest) {
         const fuenteParam = req.nextUrl.searchParams.get("fuente");
         const propiasParam = req.nextUrl.searchParams.get("propias");
         const terminadosHoyParam = req.nextUrl.searchParams.get("terminadosHoy");
+        const entregadosSemanaParam = req.nextUrl.searchParams.get("entregadosSemana");
 
         // El mozo solo ve sus propias comandas en su listado (no las de otros mozos).
         // No se aplica al chequeo de mesas ocupadas, que sigue viendo todas para evitar choques.
@@ -78,6 +79,12 @@ export async function GET(req: NextRequest) {
             const finHoy = new Date(inicioHoy.getTime() + 24 * 60 * 60 * 1000);
             query.estado = { $in: ["cobrado", "cerrado"] };
             query.createdAt = { $gte: inicioHoy, $lt: finHoy };
+        }
+        if (entregadosSemanaParam === "true") {
+            const hace7dias = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+            query.estado = { $in: ["entregado", "cerrado"] };
+            query.tipoEntrega = "envio";
+            query.createdAt = { $gte: hace7dias };
         }
 
         const pedidos = await Pedido.find(query)

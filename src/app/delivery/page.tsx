@@ -60,7 +60,7 @@ export default function DeliveryPage() {
     }, []);
 
     const fetchHistorial = useCallback(async () => {
-        const r = await fetch("/api/pedidos?terminadosHoy=true", { credentials: "include" });
+        const r = await fetch("/api/pedidos?entregadosSemana=true", { credentials: "include" });
         const d = await r.json().catch(() => []);
         setHistorial(Array.isArray(d) ? d : []);
     }, []);
@@ -182,7 +182,7 @@ export default function DeliveryPage() {
                         className="w-full flex items-center justify-between px-4 py-3 bg-gray-900 text-white rounded-2xl mb-3 transition hover:bg-gray-800">
                         <div className="flex items-center gap-2">
                             <History size={16} />
-                            <span className="font-black text-sm tracking-wide">Historial del día</span>
+                            <span className="font-black text-sm tracking-wide">Historial de la semana</span>
                             {historial.length > 0 && (
                                 <span className="bg-white text-gray-900 text-xs font-black px-2 py-0.5 rounded-full">{historial.length}</span>
                             )}
@@ -192,7 +192,7 @@ export default function DeliveryPage() {
 
                     {historialAbierto && (
                         historial.length === 0 ? (
-                            <p className="text-center text-gray-400 text-sm py-8">Sin entregas completadas hoy</p>
+                            <p className="text-center text-gray-400 text-sm py-8">Sin entregas en los últimos 7 días</p>
                         ) : (
                             <div className="space-y-3">
                                 {[...historial].reverse().map(p => (
@@ -286,12 +286,12 @@ function PedidoCard({ p, avisandoId, updatingId, onAvisar, onEntregado }: {
     );
 }
 
-/* ── Comanda de historial (solo lectura) ─────────────────────────── */
+/* ── Comanda de historial (solo lectura, sin precios) ───────────── */
 function ComandaHistorial({ p }: { p: Pedido }) {
-    const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+    const fecha = new Date(p.createdAt).toLocaleDateString("es-AR", { weekday: "short", day: "2-digit", month: "2-digit" });
+    const hora  = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
     const nombreCliente = p.nombreComanda || `${p.userId?.nombre ?? ""} ${p.userId?.apellido ?? ""}`.trim() || "Cliente";
     const telefono = p.telefonoContacto || p.userId?.telefono;
-    const subtotal = p.total - (p.costoEnvio ?? 0);
 
     return (
         <div className="bg-white rounded-2xl border-2 border-black shadow-sm overflow-hidden">
@@ -308,7 +308,7 @@ function ComandaHistorial({ p }: { p: Pedido }) {
                     </div>
                     <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                         <span className="text-xs text-white/50 flex items-center gap-1">
-                            <Clock size={10} />{hora}
+                            <Clock size={10} />{fecha} · {hora}
                         </span>
                         {telefono && (
                             <span className="text-xs text-white/50 flex items-center gap-1">
@@ -318,7 +318,7 @@ function ComandaHistorial({ p }: { p: Pedido }) {
                     </div>
                 </div>
                 <span className="shrink-0 text-[10px] font-black px-2.5 py-1 rounded-full bg-emerald-400 text-black uppercase tracking-wide">
-                    Cobrado
+                    Entregado
                 </span>
             </div>
 
@@ -338,13 +338,12 @@ function ComandaHistorial({ p }: { p: Pedido }) {
                     </div>
                 )}
 
-                {/* Items tipo comanda */}
+                {/* Items — solo nombre y cantidad, sin precio */}
                 <div className="border border-gray-100 rounded-xl overflow-hidden">
                     {p.items.map((it, idx) => (
                         <div key={idx} className={`flex items-center gap-3 px-3 py-2 ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>
                             <span className="text-base font-black text-black min-w-[1.5rem] text-center">{it.cantidad}×</span>
                             <span className="text-sm font-semibold text-gray-800 flex-1">{it.menuItemId?.nombre || "ítem"}</span>
-                            <span className="text-xs text-gray-400 shrink-0">${fmt(it.menuItemId?.precio * it.cantidad)}</span>
                         </div>
                     ))}
                 </div>
@@ -352,35 +351,6 @@ function ComandaHistorial({ p }: { p: Pedido }) {
                 {/* Nota */}
                 {(p.notaCliente || p.notaEmpleado) && (
                     <p className="text-xs text-amber-600 italic border-l-2 border-amber-300 pl-2">📝 {p.notaCliente || p.notaEmpleado}</p>
-                )}
-
-                {/* Totales */}
-                <div className="border-t border-gray-100 pt-2 space-y-1">
-                    {(p.costoEnvio ?? 0) > 0 && (
-                        <>
-                            <div className="flex justify-between text-xs text-gray-500">
-                                <span>Subtotal</span>
-                                <span>${fmt(subtotal)}</span>
-                            </div>
-                            <div className="flex justify-between text-xs text-gray-500">
-                                <span>🛵 Recargo delivery</span>
-                                <span>${fmt(p.costoEnvio ?? 0)}</span>
-                            </div>
-                        </>
-                    )}
-                    <div className="flex justify-between items-center">
-                        <span className="text-sm font-black text-gray-900">TOTAL</span>
-                        <span className="text-sm font-black text-gray-900">${fmt(p.total)}</span>
-                    </div>
-                </div>
-
-                {/* Método de pago */}
-                {p.metodoPago && (
-                    <div className="flex justify-end">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 uppercase tracking-wide">
-                            {METODO_LABEL[p.metodoPago] ?? p.metodoPago}
-                        </span>
-                    </div>
                 )}
             </div>
         </div>
