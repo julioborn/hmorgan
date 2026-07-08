@@ -100,7 +100,7 @@ function AddressAutocomplete({
     function handleSelect(r: NominatimResult) {
         const lat = parseFloat(r.lat);
         const lng = parseFloat(r.lon);
-        const clean = r.display_name.split(",").slice(0, 3).join(",").trim();
+        const clean = r.display_name.split(",").slice(0, 2).join(",").trim();
         setQuery(clean);
         onChange(clean);
         setResults([]);
