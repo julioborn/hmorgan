@@ -24,7 +24,7 @@ const PedidoSchema = new Schema(
         },
         cancelableUntil: { type: Date },
         repartidorAfuera: { type: Boolean, default: false },
-        fuente: { type: String, enum: ["cliente", "empleado"], default: "cliente" },
+        fuente: { type: String, enum: ["cliente", "empleado", "autoservicio"], default: "cliente" },
         numeroDia: { type: Number },
         mesa: { type: String },
         comensales: { type: Number, default: 0 },

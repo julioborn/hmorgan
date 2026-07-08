@@ -2046,9 +2046,10 @@ export default function CajaPage() {
                                     {lista.length === 0 ? (
                                         <p className="col-span-full text-center text-gray-700 py-12">Sin pedidos en este estado.</p>
                                     ) : lista.map(p => {
-                                        const esApp          = p.fuente !== "empleado";
-                                        const esMozo         = !esApp && p.userId?.role === "empleado";
-                                        const esCaja         = !esApp && !esMozo;
+                                        const esAutoservicio = p.fuente === "autoservicio";
+                                        const esApp          = !esAutoservicio && p.fuente !== "empleado";
+                                        const esMozo         = !esApp && !esAutoservicio && p.userId?.role === "empleado";
+                                        const esCaja         = !esApp && !esMozo && !esAutoservicio;
                                         const esCajaDelivery = esCaja && p.tipoEntrega === "envio" && !!p.telefonoContacto;
                                         const estadoIdx = getEstadoIdx(p.estado);
                                         const color     = ESTADOS[estadoIdx]?.color || "gray";
@@ -2076,11 +2077,13 @@ export default function CajaPage() {
 
                                         const tipoBadge = esEvento
                                             ? { label: "Evento", cls: "bg-amber-400 text-black" }
-                                            : esCajaDelivery
-                                                ? { label: "Delivery", cls: "bg-blue-600 text-white" }
-                                                : esApp
-                                                    ? { label: "Pedido", cls: "bg-red-500 text-white" }
-                                                    : { label: "Bar", cls: "bg-white text-black" };
+                                            : esAutoservicio
+                                                ? { label: "Autoservicio", cls: "bg-purple-600 text-white" }
+                                                : esCajaDelivery
+                                                    ? { label: "Delivery", cls: "bg-blue-600 text-white" }
+                                                    : esApp
+                                                        ? { label: "Pedido", cls: "bg-red-500 text-white" }
+                                                        : { label: "Bar", cls: "bg-white text-black" };
 
                                         return (
                                             <motion.div key={p._id}

@@ -751,6 +751,19 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
         </div>
 
         <Link
+          href="/empleado/autoservicio"
+          className="w-full flex items-center gap-4 bg-purple-700 hover:bg-purple-800 text-white rounded-2xl px-6 py-5 transition shadow-sm active:scale-[0.98] block"
+        >
+          <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+            <Tablet className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="font-extrabold text-lg leading-tight">Autoservicio</p>
+            <p className="text-purple-200 text-sm">Asignar mesas para autopedido</p>
+          </div>
+        </Link>
+
+        <Link
           href="/menu"
           className="w-full flex items-center gap-4 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl px-6 py-5 transition shadow-sm active:scale-[0.98] block"
         >
