@@ -1,12 +1,14 @@
 ﻿"use client";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Clock, Flame, CheckCircle, Truck, LockKeyhole } from "lucide-react";
+import { Clock, Flame, CheckCircle, Truck, LockKeyhole, Printer } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import Link from "next/link";
 import Loader from "@/components/Loader";
 import { swalBase } from "@/lib/swalConfig";
+
+const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
 
 const formatMoney = (n: number) =>
     new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0 }).format(n);
@@ -21,6 +23,7 @@ export default function AdminPedidosPage() {
     const [busqueda, setBusqueda] = useState("");
     const [pedidosActivos, setPedidosActivos] = useState<boolean | null>(null);
     const [togglingPedidos, setTogglingPedidos] = useState(false);
+    const [updatingId, setUpdatingId] = useState<string | null>(null);
 
     useEffect(() => {
         fetch("/api/caja/status", { credentials: "include" })
@@ -78,6 +81,50 @@ export default function AdminPedidosPage() {
         } finally {
             setLoading(false);
         }
+    }
+
+    async function cambiarEstado(p: any, estado: string) {
+        setUpdatingId(p._id);
+        try {
+            await fetch("/api/pedidos", {
+                method: "PUT", credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: p._id, estado }),
+            });
+            await fetchPedidos();
+        } finally { setUpdatingId(null); }
+    }
+
+    async function aceptarYImprimir(p: any) {
+        setUpdatingId(p._id);
+        try {
+            await fetch("/api/pedidos", {
+                method: "PUT", credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: p._id, estado: "preparando" }),
+            });
+            const hora = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+            const cliente = p.userId ? `${p.userId.nombre} ${p.userId.apellido}`.trim() : "-";
+            const bebidas = p.items.filter((it: any) => BEBIDAS_CATS.includes(it.menuItemId?.categoria || ""));
+            const comida  = p.items.filter((it: any) => !BEBIDAS_CATS.includes(it.menuItemId?.categoria || ""));
+            const toItems = (arr: any[]) => arr.map((it: any) => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota }));
+
+            if (comida.length > 0) {
+                await fetch("/api/print-jobs", {
+                    method: "POST", credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ tipo: "comanda", impresora: "Cocina", payload: { titulo: "COCINA", mesa: p.mesa || "-", cliente, mozo: p.userId?.nombre || "-", hora, items: toItems(comida), nota: p.notaCliente || p.notaEmpleado || "" } }),
+                });
+            }
+            if (bebidas.length > 0) {
+                await fetch("/api/print-jobs", {
+                    method: "POST", credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ tipo: "comanda", impresora: "Barra", payload: { titulo: "BARRA", mesa: p.mesa || "-", cliente, mozo: p.userId?.nombre || "-", hora, items: toItems(bebidas), nota: "" } }),
+                });
+            }
+            await fetchPedidos();
+        } finally { setUpdatingId(null); }
     }
 
     if (cajaAbierta === null && pedidosActivos === null) return <div className="flex justify-center py-20"><Loader /></div>;
@@ -355,6 +402,40 @@ export default function AdminPedidosPage() {
                                             📝 {p.notaCliente}
                                         </p>
                                     )}
+
+                                    {/* Botones de acción */}
+                                    <div className="flex gap-2 mt-4">
+                                        {p.estado === "pendiente" && (
+                                            <button
+                                                onClick={() => aceptarYImprimir(p)}
+                                                disabled={updatingId === p._id}
+                                                className="flex-1 flex items-center justify-center gap-2 bg-black text-white font-bold text-sm py-2.5 rounded-xl transition active:scale-[0.97] disabled:opacity-50"
+                                            >
+                                                <Printer size={15} />
+                                                {updatingId === p._id ? "..." : "Aceptar e imprimir"}
+                                            </button>
+                                        )}
+                                        {p.estado === "preparando" && (
+                                            <button
+                                                onClick={() => cambiarEstado(p, "listo")}
+                                                disabled={updatingId === p._id}
+                                                className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 text-white font-bold text-sm py-2.5 rounded-xl transition active:scale-[0.97] disabled:opacity-50"
+                                            >
+                                                <CheckCircle size={15} />
+                                                {updatingId === p._id ? "..." : "Marcar listo"}
+                                            </button>
+                                        )}
+                                        {p.estado === "listo" && (
+                                            <button
+                                                onClick={() => cambiarEstado(p, "entregado")}
+                                                disabled={updatingId === p._id}
+                                                className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white font-bold text-sm py-2.5 rounded-xl transition active:scale-[0.97] disabled:opacity-50"
+                                            >
+                                                <Truck size={15} />
+                                                {updatingId === p._id ? "..." : "Marcar entregado"}
+                                            </button>
+                                        )}
+                                    </div>
 
                                     {/* 🔘 Progreso (solo lectura) */}
                                     <div className="relative w-full flex justify-between items-center mt-5">
