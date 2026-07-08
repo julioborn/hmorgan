@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
                 ? { tipoEntrega: "envio", estado: { $in: ["listo", "entregado"] } }
                 : { userId: payload.sub };
 
-        const mesaParam = req.nextUrl.searchParams.get("mesa");
+        const mesaParams = req.nextUrl.searchParams.getAll("mesa");
         const activosParam = req.nextUrl.searchParams.get("activos");
         const fuenteParam = req.nextUrl.searchParams.get("fuente");
         const propiasParam = req.nextUrl.searchParams.get("propias");
@@ -67,7 +67,9 @@ export async function GET(req: NextRequest) {
         // No se aplica al chequeo de mesas ocupadas, que sigue viendo todas para evitar choques.
         if (propiasParam === "true") query.userId = payload.sub;
 
-        if (mesaParam && payload.role !== "cliente") query.mesa = mesaParam;
+        if (mesaParams.length > 0 && payload.role !== "cliente") {
+            query.mesa = mesaParams.length === 1 ? mesaParams[0] : { $in: mesaParams };
+        }
         if (activosParam === "true") query.estado = { $nin: ["cerrado", "cancelado"] };
         if (fuenteParam && (payload.role === "admin" || payload.role === "superadmin")) query.fuente = fuenteParam;
         if (terminadosHoyParam === "true") {
