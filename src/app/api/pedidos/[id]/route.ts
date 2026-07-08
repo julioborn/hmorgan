@@ -134,6 +134,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         return NextResponse.json({ ok: true, pedido });
     }
 
+    // ── Cambiar dirección de entrega ───────────────────────────────────────
+    if (body.accion === "cambiarDireccion") {
+        const { direccion } = body;
+        if (!direccion?.trim()) return NextResponse.json({ error: "Dirección requerida" }, { status: 400 });
+        (pedido as any).direccion = direccion.trim();
+        await pedido.save();
+        return NextResponse.json({ ok: true, pedido });
+    }
+
     // ── Agregar ítems nuevos a la comanda (default) ─────────────────────────
     const { items, notaEmpleado } = body;
     if (!items?.length) return NextResponse.json({ error: "Sin ítems" }, { status: 400 });

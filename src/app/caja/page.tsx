@@ -213,6 +213,8 @@ export default function CajaPage() {
     const [reservasHoy, setReservasHoy] = useState<ReservaHoy[]>([]);
     const [reservaDetalle, setReservaDetalle] = useState<ReservaHoy | null>(null);
     const [cambiarMesaModal, setCambiarMesaModal] = useState<Pedido | null>(null);
+    const [editDireccionModal, setEditDireccionModal] = useState<{ pedidoId: string; direccion: string } | null>(null);
+    const [savingDireccion, setSavingDireccion] = useState(false);
     const [editingNota, setEditingNota] = useState<{ pedidoId: string; itemId: string; valor: string } | null>(null);
     const [llamadas, setLlamadas] = useState<{ _id: string; clienteNombre: string; mesa?: string; tipo?: string; mozoNombre?: string; createdAt: string }[]>([]);
 
@@ -891,6 +893,25 @@ export default function CajaPage() {
         if (!r2.isConfirmed) return;
         await fetch(`/api/pedidos?id=${p._id}`, { method: "DELETE", credentials: "include" });
         loadData();
+    }
+
+    async function guardarDireccion() {
+        if (!editDireccionModal) return;
+        setSavingDireccion(true);
+        try {
+            const res = await fetch(`/api/pedidos/${editDireccionModal.pedidoId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ accion: "cambiarDireccion", direccion: editDireccionModal.direccion }),
+            });
+            if (res.ok) {
+                setPedidos(prev => prev.map(p =>
+                    p._id === editDireccionModal.pedidoId ? { ...p, direccion: editDireccionModal.direccion } : p
+                ));
+                setEditDireccionModal(null);
+            }
+        } finally { setSavingDireccion(false); }
     }
 
     async function abrirSelectorProducto(
@@ -2345,8 +2366,12 @@ export default function CajaPage() {
                                                     {esCajaDelivery && (
                                                         <div className="shrink-0 mb-2 flex flex-wrap gap-x-3 gap-y-1">
                                                             {p.direccion && (
-                                                                <div className="flex items-start gap-1 text-xs text-gray-700">
-                                                                    <MapPin size={11} className="shrink-0 mt-0.5 text-gray-500" /><span>{p.direccion}</span>
+                                                                <div className="flex items-center gap-1 text-xs text-gray-700">
+                                                                    <MapPin size={11} className="shrink-0 text-gray-500" /><span>{p.direccion}</span>
+                                                                    <button onClick={() => setEditDireccionModal({ pedidoId: p._id, direccion: p.direccion! })}
+                                                                        className="ml-0.5 p-0.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition">
+                                                                        <Pencil size={10} />
+                                                                    </button>
                                                                 </div>
                                                             )}
                                                             {p.telefonoContacto && (
@@ -2363,8 +2388,12 @@ export default function CajaPage() {
                                                     {esApp && (
                                                         <div className="shrink-0 mb-2 flex flex-wrap gap-x-3 gap-y-1">
                                                             {p.tipoEntrega === "envio" && p.direccion && (
-                                                                <div className="flex items-start gap-1 text-xs text-gray-700">
-                                                                    <MapPin size={11} className="shrink-0 mt-0.5 text-gray-500" /><span>{p.direccion}</span>
+                                                                <div className="flex items-center gap-1 text-xs text-gray-700">
+                                                                    <MapPin size={11} className="shrink-0 text-gray-500" /><span>{p.direccion}</span>
+                                                                    <button onClick={() => setEditDireccionModal({ pedidoId: p._id, direccion: p.direccion! })}
+                                                                        className="ml-0.5 p-0.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition">
+                                                                        <Pencil size={10} />
+                                                                    </button>
                                                                 </div>
                                                             )}
                                                             {p.horarioPreferido && (
@@ -4981,6 +5010,40 @@ export default function CajaPage() {
             )}
 
             {/* ── Modal transferir mesa ── */}
+            {/* Modal editar dirección */}
+            {editDireccionModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
+                    onClick={() => !savingDireccion && setEditDireccionModal(null)}>
+                    <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden"
+                        onClick={e => e.stopPropagation()}>
+                        <div className="bg-black px-4 py-3 flex items-center justify-between">
+                            <p className="font-black text-white text-sm">Editar dirección</p>
+                            <button onClick={() => setEditDireccionModal(null)} className="p-1 text-white/60 hover:text-white"><X size={16} /></button>
+                        </div>
+                        <div className="p-4 space-y-3">
+                            <input
+                                autoFocus
+                                value={editDireccionModal.direccion}
+                                onChange={e => setEditDireccionModal(m => m ? { ...m, direccion: e.target.value } : m)}
+                                onKeyDown={e => e.key === "Enter" && guardarDireccion()}
+                                placeholder="Dirección de entrega"
+                                className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-black transition"
+                            />
+                            <div className="flex gap-2">
+                                <button onClick={() => setEditDireccionModal(null)}
+                                    className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-500">
+                                    Cancelar
+                                </button>
+                                <button onClick={guardarDireccion} disabled={savingDireccion || !editDireccionModal.direccion.trim()}
+                                    className="flex-1 py-2.5 bg-black text-white rounded-xl text-sm font-black disabled:opacity-50 transition">
+                                    {savingDireccion ? "Guardando..." : "Guardar"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {cambiarMesaModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
                     onClick={() => setCambiarMesaModal(null)}>
