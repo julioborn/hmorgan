@@ -127,6 +127,7 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
   const [comandaActiva, setComandaActiva] = useState<{ _id: string; mesa?: string; nombreComanda?: string } | null>(null);
   const [llamandoMozo, setLlamandoMozo] = useState(false);
   const [llamadaEnviada, setLlamadaEnviada] = useState<"mozo" | "cuenta" | null>(null);
+  const [llamarConfirm, setLlamarConfirm] = useState<"mozo" | "cuenta" | null>(null);
 
   async function solicitarCanje(r: Reward) {
     if (puntos < r.puntos) {
@@ -224,18 +225,15 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
     return () => clearInterval(iv);
   }, []);
 
-  async function llamar(tipo: "mozo" | "cuenta") {
+  function llamar(tipo: "mozo" | "cuenta") {
     if (llamandoMozo || llamadaEnviada || !comandaActiva) return;
-    const esCuenta = tipo === "cuenta";
-    const { isConfirmed } = await swalBase.fire({
-      title: esCuenta ? "¿Pedir la cuenta?" : "¿Llamar al mozo?",
-      text: esCuenta ? "Se le avisará al mozo que querés pagar." : "El mozo recibirá una notificación.",
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonText: esCuenta ? "Sí, pedir cuenta" : "Sí, llamar",
-      cancelButtonText: "Cancelar",
-    });
-    if (!isConfirmed) return;
+    setLlamarConfirm(tipo);
+  }
+
+  function confirmarLlamar() {
+    if (!llamarConfirm) return;
+    const tipo = llamarConfirm;
+    setLlamarConfirm(null);
     setLlamadaEnviada(tipo);
     setTimeout(() => setLlamadaEnviada(null), 60000);
     fetch("/api/llamar-mozo", {
@@ -555,6 +553,46 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
                   {canjeSolicitando ? "Solicitando..." : "Solicitar canje"}
                 </button>
               )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Modal confirmación llamar mozo / pedir cuenta */}
+      {llamarConfirm && createPortal(
+        <div className="fixed inset-0 z-[200] bg-black/60 flex items-end justify-center p-4"
+          onClick={() => setLlamarConfirm(null)}>
+          <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 pt-5 pb-3">
+              <span className="text-3xl">{llamarConfirm === "cuenta" ? "🟢" : "🔴"}</span>
+              <button onClick={() => setLlamarConfirm(null)} className="p-1 text-gray-400 hover:text-gray-600">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="px-5 pb-2 space-y-1">
+              <h2 className="text-xl font-extrabold text-gray-900 leading-tight">
+                {llamarConfirm === "cuenta" ? "¿Pedimos la cuenta?" : "¿Llamamos al mozo?"}
+              </h2>
+              <p className="text-sm text-gray-500">
+                {llamarConfirm === "cuenta"
+                  ? "Se le avisará al mozo que querés pagar."
+                  : "El mozo recibirá una notificación en su celular."}
+              </p>
+            </div>
+            <div className="px-5 py-4 border-t border-gray-100 flex flex-col gap-2">
+              <button
+                onClick={confirmarLlamar}
+                className={`w-full flex items-center justify-center gap-2 text-white font-bold py-3 rounded-2xl text-sm transition active:scale-[0.98] ${llamarConfirm === "cuenta" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-600 hover:bg-red-700"}`}>
+                {llamarConfirm === "cuenta" ? <Receipt size={15} /> : <Bell size={15} />}
+                {llamarConfirm === "cuenta" ? "Sí, pedir la cuenta" : "Sí, llamar al mozo"}
+              </button>
+              <button
+                onClick={() => setLlamarConfirm(null)}
+                className="w-full py-3 rounded-2xl text-sm font-semibold text-gray-500 hover:bg-gray-100 transition">
+                Cancelar
+              </button>
             </div>
           </div>
         </div>,
