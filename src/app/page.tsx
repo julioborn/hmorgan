@@ -51,7 +51,7 @@ export default function Home() {
   if (user.role === "cocina") { if (typeof window !== "undefined") window.location.replace("/cocina"); return null; }
   if (user.role === "admin" || user.role === "superadmin") return <AdminHome />;
   if (user.role === "empleado") return <EmployeeHome nombre={user.nombre} />;
-  return <ClientHome nombre={user.nombre} puntos={user.puntos ?? 0} />;
+  return <ClientHome nombre={user.nombre} puntos={user.puntos ?? 0} userId={user.id} />;
 }
 
 /* =========================
@@ -110,7 +110,8 @@ function Landing() {
    ========================= */
 type MenuDelDiaItem = { _id: string; nombre: string; descripcion?: string; precio: number };
 
-function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
+function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: number; userId?: string }) {
+  const isOwner = userId === "68b212ac8a60afb869a18626";
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [carouselImages, setCarouselImages] = useState<CarouselImg[]>([]);
   const [loadingRewards, setLoadingRewards] = useState(true);
@@ -424,11 +425,11 @@ function ClientHome({ nombre, puntos }: { nombre?: string; puntos: number }) {
           accent="from-red-600 to-red-800"
         />
         <ActionCard
-          href="/"
+          href={isOwner ? "/autoservicio" : "/"}
           title="Autoservicio"
           Icon={Tablet}
-          accent="from-gray-400 to-gray-500"
-          disabled={true}
+          accent={isOwner ? "from-red-600 to-red-800" : "from-gray-400 to-gray-500"}
+          disabled={!isOwner}
           onDisabledClick={() => swalBase.fire({
             title: "Próximamente",
             text: "Esta función estará disponible muy pronto.",
