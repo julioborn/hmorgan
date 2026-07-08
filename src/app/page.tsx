@@ -181,7 +181,7 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
         const items = data.filter(i => i.categoria === "MENÚ DEL DÍA");
         setMenuDelDia(items);
         setMenuDelDiaTiene(items.length > 0);
-      } catch {}
+      } catch { }
       finally { setMenuDelDiaLoading(false); }
     };
 
@@ -209,7 +209,7 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
         if (!Array.isArray(data)) return;
         setRepartidorAfuera(data.some((p: any) => p.tipoEntrega === "envio" && p.estado === "listo" && p.repartidorAfuera));
         setPedidosActivosCount(data.filter((p: any) => ["pendiente", "aceptado", "preparando", "listo"].includes(p.estado)).length);
-      } catch {}
+      } catch { }
     };
     const fetchComandaActiva = async () => {
       try {
@@ -217,7 +217,7 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
         if (!res.ok) return;
         const data = await res.json();
         setComandaActiva(data.pedido ?? null);
-      } catch {}
+      } catch { }
     };
     fetchEnvios();
     fetchComandaActiva();
@@ -240,7 +240,7 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
       method: "POST", credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tipo }),
-    }).catch(() => {});
+    }).catch(() => { });
   }
 
   if (loadingRewards) {
@@ -310,9 +310,9 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
 
       {/* Carrusel de recompensas */}
       {rewards.length > 0 && (
-      <section className="relative">
-        <div className="relative rounded-2xl bg-gradient-to-b from-gray-50 to-gray-100 shadow-xl p-5 border border-gray-200">
-          <>
+        <section className="relative">
+          <div className="relative rounded-2xl bg-gradient-to-b from-gray-50 to-gray-100 shadow-xl p-5 border border-gray-200">
+            <>
 
               {rewards.length === 1 ? (
                 <div className="flex justify-center">
@@ -321,32 +321,32 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
                   </div>
                 </div>
               ) : (
-              <Swiper
-                modules={[Autoplay, Pagination]}
-                autoplay={{
-                  delay: 3250,
-                  disableOnInteraction: false,
-                  pauseOnMouseEnter: false,
-                }}
-                speed={1250}
-                loop={true}
-                spaceBetween={16}
-                slidesPerView={1.1}
-                pagination={{
-                  clickable: true,
-                  dynamicBullets: true,
-                }}
-                breakpoints={{
-                  640: { slidesPerView: 2 },
-                  1024: { slidesPerView: 3 },
-                }}
-              >
-                {rewards.map((r) => (
-                  <SwiperSlide key={r._id}>
-                    <RewardCard r={r} onClick={() => setCanjeModal(r)} />
-                  </SwiperSlide>
-                ))}
-              </Swiper>
+                <Swiper
+                  modules={[Autoplay, Pagination]}
+                  autoplay={{
+                    delay: 3250,
+                    disableOnInteraction: false,
+                    pauseOnMouseEnter: false,
+                  }}
+                  speed={1250}
+                  loop={true}
+                  spaceBetween={16}
+                  slidesPerView={1.1}
+                  pagination={{
+                    clickable: true,
+                    dynamicBullets: true,
+                  }}
+                  breakpoints={{
+                    640: { slidesPerView: 2 },
+                    1024: { slidesPerView: 3 },
+                  }}
+                >
+                  {rewards.map((r) => (
+                    <SwiperSlide key={r._id}>
+                      <RewardCard r={r} onClick={() => setCanjeModal(r)} />
+                    </SwiperSlide>
+                  ))}
+                </Swiper>
               )}
               <div className="mt-4 flex justify-center">
                 {/* <Link
@@ -356,9 +356,9 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
                   Ver todos los canjes
                 </Link> */}
               </div>
-          </>
-        </div>
-      </section>
+            </>
+          </div>
+        </section>
       )}
 
       {/* Menú del Día */}
@@ -507,7 +507,7 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
             rel="noopener noreferrer"
             className="flex-shrink-0 px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition shadow"
           >
-             ¿Cómo llegar?
+            ¿Cómo llegar?
           </a>
         </div>
       </section>
@@ -677,7 +677,7 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
     fetch("/api/pedidos?activos=true&fuente=empleado&propias=true", { credentials: "include" })
       .then(r => r.json())
       .then(d => setComandasCount(Array.isArray(d) ? d.length : 0))
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -689,7 +689,7 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
         const count = d.filter((r: any) => r.fecha?.slice(0, 10) === hoy && r.estado !== "cancelada").length;
         setReservasHoyCount(count);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const saludo = hora < 12 ? "Buenos días" : hora < 20 ? "Buenas tardes" : "Buenas noches";
@@ -730,6 +730,19 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
           )}
         </div>
 
+        <Link
+          href="/empleado/autoservicio"
+          className="w-full flex items-center gap-4 bg-purple-700 hover:bg-purple-800 text-white rounded-2xl px-6 py-5 transition shadow-sm active:scale-[0.98] block"
+        >
+          <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+            <Tablet className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="font-extrabold text-lg leading-tight">Autoservicio</p>
+            <p className="text-purple-200 text-sm">Asignar mesas para autopedido</p>
+          </div>
+        </Link>
+
         <div className="relative">
           <Link
             href="/empleado/reservas"
@@ -750,18 +763,7 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
           )}
         </div>
 
-        <Link
-          href="/empleado/autoservicio"
-          className="w-full flex items-center gap-4 bg-purple-700 hover:bg-purple-800 text-white rounded-2xl px-6 py-5 transition shadow-sm active:scale-[0.98] block"
-        >
-          <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-            <Tablet className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="font-extrabold text-lg leading-tight">Autoservicio</p>
-            <p className="text-purple-200 text-sm">Asignar mesas para autopedido</p>
-          </div>
-        </Link>
+
 
         <Link
           href="/menu"

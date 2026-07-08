@@ -30,7 +30,6 @@ export async function GET(req: NextRequest) {
         return NextResponse.json(sesiones);
     }
 
-    // cliente: buscar sesión activa donde está incluido
     const sesion = await AutoservicioSesion.findOne({
         usuariosIds: p.sub,
         estado: "activa",
@@ -39,25 +38,27 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ sesion: sesion ?? null });
 }
 
-// POST — mozo/caja crea sesión de autoservicio
+// POST — mozo/caja crea sesión de autoservicio (multi-mesa)
 export async function POST(req: NextRequest) {
     const p = getPayload(req);
     if (!p || !STAFF.includes(p.role)) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-    const { mesaId, usernames } = await req.json();
-    if (!mesaId || !Array.isArray(usernames) || usernames.length === 0)
+    const { mesasNombres, usernames } = await req.json();
+    if (!Array.isArray(mesasNombres) || mesasNombres.length === 0 || !Array.isArray(usernames) || usernames.length === 0)
         return NextResponse.json({ error: "Faltan datos" }, { status: 400 });
 
     await connectMongoDB();
 
-    const mesa = await Mesa.findById(mesaId).lean() as any;
-    if (!mesa) return NextResponse.json({ error: "Mesa no encontrada" }, { status: 404 });
+    const mesas = await Mesa.find({ nombre: { $in: mesasNombres } }).lean() as any[];
+    if (mesas.length === 0) return NextResponse.json({ error: "Mesas no encontradas" }, { status: 404 });
 
-    // Verificar que no haya sesión activa en esa mesa
-    const existe = await AutoservicioSesion.findOne({ mesaId, estado: "activa" });
-    if (existe) return NextResponse.json({ error: "Ya hay una sesión activa en esa mesa" }, { status: 409 });
+    // Verificar que ninguna mesa tenga sesión activa
+    const ocupadas = await AutoservicioSesion.findOne({
+        mesasNombres: { $in: mesasNombres },
+        estado: "activa",
+    });
+    if (ocupadas) return NextResponse.json({ error: "Una o más mesas ya tienen sesión activa" }, { status: 409 });
 
-    // Resolver usernames → IDs
     const usuarios = await User.find({
         username: { $in: usernames.map((u: string) => u.toLowerCase().trim()) },
         role: "cliente",
@@ -67,8 +68,8 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "No se encontró ningún usuario válido" }, { status: 404 });
 
     const sesion = await AutoservicioSesion.create({
-        mesaId,
-        mesaNombre: mesa.nombre,
+        mesasIds: mesas.map((m: any) => m._id),
+        mesasNombres,
         usuariosIds: usuarios.map((u: any) => u._id),
         creadoPor: p.sub,
     });

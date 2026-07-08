@@ -2,8 +2,8 @@ import { Schema, model, models } from "mongoose";
 
 const AutoservicioSesionSchema = new Schema(
     {
-        mesaId:      { type: Schema.Types.ObjectId, ref: "Mesa", required: true },
-        mesaNombre:  { type: String, required: true },
+        mesasIds:     [{ type: Schema.Types.ObjectId, ref: "Mesa" }],
+        mesasNombres: [{ type: String }],
         usuariosIds: [{ type: Schema.Types.ObjectId, ref: "User" }],
         creadoPor:   { type: Schema.Types.ObjectId, ref: "User" },
         estado:      { type: String, enum: ["activa", "cerrada"], default: "activa" },
