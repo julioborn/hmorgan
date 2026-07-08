@@ -267,6 +267,7 @@ export default function CajaPage() {
     const menuGestImgRef = useRef<HTMLInputElement>(null);
 
     // ── Autoservicio modal (caja) ───────────────────────────────────────────
+    const [autoservActivasCount, setAutoservActivasCount] = useState(0);
     const [autoservModal, setAutoservModal] = useState(false);
     const [autoservVista, setAutoservVista] = useState<"lista" | "plano">("lista");
     const [autoservMesas, setAutoservMesas] = useState<string[]>([]);
@@ -284,7 +285,9 @@ export default function CajaPage() {
             fetch("/api/autoservicio", { credentials: "include" }),
         ]);
         const sData = await sRes.json();
-        setAutoservSesiones(Array.isArray(sData) ? sData : []);
+        const sesiones = Array.isArray(sData) ? sData : [];
+        setAutoservSesiones(sesiones);
+        setAutoservActivasCount(sesiones.length);
         await cargarPlanoParaEvento();
         setAutoservMesas([]);
         setAutoservUsernames([]);
@@ -546,7 +549,13 @@ export default function CajaPage() {
                 .then(d => { if (Array.isArray(d)) setReservasPendientes(d.filter((r: any) => r.estado === "pendiente").length); })
                 .catch(() => { });
         fetchReservasPending();
-        const iv = setInterval(() => { loadData(); loadCanjes(); fetchLlamadas(); fetchReservasPending(); }, 5000);
+        const fetchAutoservActivas = () =>
+            fetch("/api/autoservicio", { credentials: "include" })
+                .then(r => r.json())
+                .then(d => { if (Array.isArray(d)) setAutoservActivasCount(d.length); })
+                .catch(() => {});
+        fetchAutoservActivas();
+        const iv = setInterval(() => { loadData(); loadCanjes(); fetchLlamadas(); fetchReservasPending(); fetchAutoservActivas(); }, 5000);
         return () => clearInterval(iv);
     }, [loadData, loadEvento, loadCanjes, loadRewards]);
 
@@ -2104,8 +2113,11 @@ export default function CajaPage() {
                                     <Plus size={14} /> Delivery
                                 </button>
                                 <button onClick={abrirAutoservModal}
-                                    className="flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs px-3 py-2 rounded-xl transition shadow-sm active:scale-[0.98]">
+                                    className="relative flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs px-3 py-2 rounded-xl transition shadow-sm active:scale-[0.98]">
                                     <Tablet size={14} /> Autoservicio
+                                    {autoservActivasCount > 0 && (
+                                        <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 border-2 border-white rounded-full" />
+                                    )}
                                 </button>
                                 <button onClick={() => router.push("/caja/retroactivo")}
                                     className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-3 py-2 rounded-xl transition shadow-sm active:scale-[0.98]">

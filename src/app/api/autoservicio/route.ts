@@ -4,6 +4,8 @@ import { AutoservicioSesion } from "@/models/AutoservicioSesion";
 import { User } from "@/models/User";
 import { Mesa } from "@/models/Mesa";
 import jwt from "jsonwebtoken";
+import { sendPushAndCollectInvalid } from "@/lib/push-server";
+import { enviarNotificacionFCM, isFCMTokenInvalid } from "@/lib/firebase-admin";
 
 const SECRET = process.env.NEXTAUTH_SECRET!;
 const STAFF = ["cajero", "empleado", "admin", "superadmin"];
@@ -73,6 +75,23 @@ export async function POST(req: NextRequest) {
         usuariosIds: usuarios.map((u: any) => u._id),
         creadoPor: p.sub,
     });
+
+    // Notificar a cada usuario asignado
+    const mesasStr = mesasNombres.join(", ");
+    const title = "¡Autoservicio activado!";
+    const body = `Mesa ${mesasStr} lista. Ya podés hacer pedidos desde tu teléfono.`;
+    const usuariosConTokens = await User.find({ _id: { $in: usuarios.map((u: any) => u._id) } })
+        .select("pushSubscriptions fcmTokens").lean() as any[];
+    for (const u of usuariosConTokens) {
+        if (Array.isArray(u.pushSubscriptions) && u.pushSubscriptions.length) {
+            const invalid = await sendPushAndCollectInvalid(u.pushSubscriptions, { title, body, url: "/autoservicio" });
+            if (invalid.length) await User.updateOne({ _id: u._id }, { $pull: { pushSubscriptions: { endpoint: { $in: invalid } } } });
+        }
+        for (const tok of (u.fcmTokens ?? [])) {
+            try { await enviarNotificacionFCM(tok, title, body, "/autoservicio"); }
+            catch (err) { if (isFCMTokenInvalid(err)) await User.updateOne({ _id: u._id }, { $pull: { fcmTokens: tok } }); }
+        }
+    }
 
     return NextResponse.json({ ok: true, sesion, usuarios }, { status: 201 });
 }
