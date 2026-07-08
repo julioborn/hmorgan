@@ -7,7 +7,7 @@ import Loader from "@/components/Loader";
 const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
 const fmt = (n: number) => "$" + new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0 }).format(Math.round(n));
 
-type Item    = { _id: string; menuItemId?: { nombre: string; precio: number; categoria: string }; cantidad: number; nota?: string };
+type Item    = { _id: string; menuItemId?: { nombre: string; precio: number; categoria: string }; cantidad: number; nota?: string; listo?: boolean };
 type Pedido  = { _id: string; mesa?: string; total: number; estado: string; fuente: string; tipoEntrega?: string; items: Item[]; userId?: { nombre: string; apellido: string; role: string; telefono?: string }; notaCliente?: string; notaEmpleado?: string; direccion?: string; costoEnvio?: number; createdAt: string; eventoId?: string; numeroDia?: number; horarioPreferido?: string; telefonoContacto?: string; nombreComanda?: string; deliveryNumero?: number };
 type Pago    = { metodo: "efectivo" | "tarjeta" | "transferencia" | ""; monto: string };
 type Tab     = "pendiente" | "preparando" | "listo" | "entregado";
@@ -31,8 +31,10 @@ export default function AdminPedidosPage() {
 
     const [pedidosActivos, setPedidosActivos]   = useState<boolean | null>(null);
     const [togglingPedidos, setTogglingPedidos] = useState(false);
-    const prevStatesRef = useRef<Record<string, string>>({});
-    const [alertasPedidos, setAlertasPedidos]   = useState<Map<string, number>>(new Map());
+    const prevStatesRef      = useRef<Record<string, string>>({});
+    const prevItemListosRef  = useRef<Record<string, Set<string>>>({});
+    const initialLoadDoneRef = useRef(false);
+    const [alertasPedidos, setAlertasPedidos] = useState<Map<string, number>>(new Map());
 
     // Modal cobrar
     const [cobrarPedido, setCobrarPedido] = useState<Pedido | null>(null);
@@ -58,16 +60,27 @@ export default function AdminPedidosPage() {
             const d = await r.json();
             if (!Array.isArray(d)) return;
             const nuevasAlertas: string[] = [];
+            const loaded = initialLoadDoneRef.current;
             for (const p of d) {
-                const prev = prevStatesRef.current[p._id];
-                if (
-                    (p.estado === "preparando" && prev !== "preparando") ||
-                    (p.estado === "listo" && prev && prev !== "listo")
-                ) {
-                    nuevasAlertas.push(p._id);
+                const prev      = prevStatesRef.current[p._id];
+                const prevItems = prevItemListosRef.current[p._id];
+                if (loaded) {
+                    const itemNuevoListo = prevItems
+                        ? p.items.some((it: Item) => it.listo && !prevItems.has(it._id))
+                        : false;
+                    if (
+                        (p.estado === "pendiente"   && prev === undefined) ||
+                        (p.estado === "preparando"  && prev !== undefined && prev !== "preparando") ||
+                        (p.estado === "listo"       && prev !== undefined && prev !== "listo") ||
+                        itemNuevoListo
+                    ) {
+                        nuevasAlertas.push(p._id);
+                    }
                 }
-                prevStatesRef.current[p._id] = p.estado;
+                prevStatesRef.current[p._id]     = p.estado;
+                prevItemListosRef.current[p._id] = new Set(p.items.filter((it: Item) => it.listo).map((it: Item) => it._id));
             }
+            initialLoadDoneRef.current = true;
             if (nuevasAlertas.length > 0) {
                 const ts = Date.now();
                 setAlertasPedidos(prev => {

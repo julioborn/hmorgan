@@ -150,6 +150,8 @@ export default function CajaPage() {
     const [pedidos, setPedidos] = useState<Pedido[]>([]);
     const [loading, setLoading] = useState(true);
     const prevPedidoStatesRef = useRef<Record<string, string>>({});
+    const prevItemListosRef   = useRef<Record<string, Set<string>>>({});
+    const initialLoadDoneRef  = useRef(false);
     const [alertasPedidos, setAlertasPedidos] = useState<Map<string, number>>(new Map());
     const [listosToast, setListosToast] = useState<{ id: string; label: string; ts: number }[]>([]);
     const [vista, setVista] = useState<Vista>("pendientes");
@@ -504,22 +506,37 @@ export default function CajaPage() {
                 setPedidos(filtrados);
                 detectarAgregados(filtrados);
 
-                // Detectar pedidos que pasaron a "listo" o "preparando" desde otro estado
+                // Detectar transiciones de estado e ítems listos
                 const newStates: Record<string, string> = {};
                 const recienListos: { id: string; label: string; ts: number }[] = [];
                 const nuevasAlertas: string[] = [];
+                const loaded = initialLoadDoneRef.current;
                 for (const p of filtrados) {
                     newStates[p._id] = p.estado;
-                    const prev = prevPedidoStatesRef.current[p._id];
+                    const prev      = prevPedidoStatesRef.current[p._id];
+                    const prevItems = prevItemListosRef.current[p._id];
                     if (p.estado === "listo" && prev && prev !== "listo") {
                         const label = p.mesa ? `Mesa ${p.mesa}` : (p.nombreComanda || `Comanda #${p.numeroDia || ""}`);
                         recienListos.push({ id: p._id, label, ts: Date.now() });
-                        nuevasAlertas.push(p._id);
                     }
-                    if (p.estado === "preparando" && prev !== "preparando") {
-                        nuevasAlertas.push(p._id);
+                    if (loaded) {
+                        const itemNuevoListo = prevItems
+                            ? p.items.some((it: any) => it.listo && !prevItems.has(it._id))
+                            : false;
+                        if (
+                            (p.estado === "pendiente"  && prev === undefined) ||
+                            (p.estado === "preparando" && prev !== undefined && prev !== "preparando") ||
+                            (p.estado === "listo"      && prev !== undefined && prev !== "listo") ||
+                            itemNuevoListo
+                        ) {
+                            nuevasAlertas.push(p._id);
+                        }
                     }
+                    prevItemListosRef.current[p._id] = new Set(
+                        p.items.filter((it: any) => it.listo).map((it: any) => it._id)
+                    );
                 }
+                initialLoadDoneRef.current = true;
                 prevPedidoStatesRef.current = newStates;
                 if (recienListos.length > 0) {
                     setListosToast(prev => [...prev, ...recienListos]);
