@@ -209,7 +209,7 @@ export default function CajaPage() {
     const [reservaDetalle, setReservaDetalle] = useState<ReservaHoy | null>(null);
     const [cambiarMesaModal, setCambiarMesaModal] = useState<Pedido | null>(null);
     const [editingNota, setEditingNota] = useState<{ pedidoId: string; itemId: string; valor: string } | null>(null);
-    const [llamadas, setLlamadas] = useState<{ _id: string; clienteNombre: string; mesa?: string; createdAt: string }[]>([]);
+    const [llamadas, setLlamadas] = useState<{ _id: string; clienteNombre: string; mesa?: string; tipo?: string; createdAt: string }[]>([]);
 
     // Eventos
     const [eventosActivos, setEventosActivos]     = useState<Evento[]>([]);
@@ -1858,22 +1858,25 @@ export default function CajaPage() {
             {/* Notificaciones en el header */}
             {(llamadas.length > 0 || listosToast.length > 0) && (
                 <div className="mt-3 pt-3 border-t border-white/10 flex flex-col gap-2">
-                    {llamadas.map(l => (
-                        <div key={l._id} className="flex items-center gap-2 bg-amber-500/20 border border-amber-400/30 rounded-xl px-3 py-2">
-                            <span className="text-base shrink-0">🔔</span>
-                            <p className="flex-1 text-sm font-bold text-amber-300 truncate">
-                                {l.clienteNombre}{l.mesa ? ` · Mesa ${l.mesa}` : ""}
+                    {llamadas.map(l => {
+                        const esCuenta = l.tipo === "cuenta";
+                        return (
+                        <div key={l._id} className={`flex items-center gap-2 rounded-xl px-3 py-2 border ${esCuenta ? "bg-emerald-500/20 border-emerald-400/30" : "bg-red-500/20 border-red-400/30"}`}>
+                            <span className="text-base shrink-0">{esCuenta ? "🟢" : "🔴"}</span>
+                            <p className={`flex-1 text-sm font-bold truncate ${esCuenta ? "text-emerald-300" : "text-red-300"}`}>
+                                {esCuenta ? "Piden la cuenta · " : "Llama al mozo · "}{l.clienteNombre}{l.mesa ? ` · Mesa ${l.mesa}` : ""}
                             </p>
                             <button
                                 onClick={() => {
                                     fetch(`/api/llamar-mozo/${l._id}`, { method: "PATCH", credentials: "include" }).catch(() => {});
                                     setLlamadas(prev => prev.filter(x => x._id !== l._id));
                                 }}
-                                className="shrink-0 bg-amber-400/30 hover:bg-amber-400/50 text-amber-200 font-black text-xs px-2.5 py-1 rounded-lg transition">
+                                className={`shrink-0 font-black text-xs px-2.5 py-1 rounded-lg transition ${esCuenta ? "bg-emerald-400/30 hover:bg-emerald-400/50 text-emerald-200" : "bg-red-400/30 hover:bg-red-400/50 text-red-200"}`}>
                                 OK
                             </button>
                         </div>
-                    ))}
+                        );
+                    })}
                     {listosToast.map(t => (
                         <div key={`${t.id}-${t.ts}`} className="flex items-center gap-2 bg-emerald-500/20 border border-emerald-400/30 rounded-xl px-3 py-2">
                             <CheckCircle size={15} className="text-emerald-400 shrink-0" />
