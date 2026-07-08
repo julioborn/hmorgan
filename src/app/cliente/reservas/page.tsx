@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "@/context/auth-context";
-import { CalendarDays, Clock, Users, MapPin, CheckCircle, XCircle, Loader2, Plus, Home, Leaf, HelpCircle } from "lucide-react";
+import { CalendarDays, Clock, Users, CheckCircle, XCircle, Loader2, Plus, Home, Leaf, HelpCircle, X } from "lucide-react";
 import { hoyArgentina, formatArgDate } from "@/lib/argentina-time";
 
 type Reserva = {
@@ -21,7 +22,7 @@ const ZONA_OPTIONS = [
     { value: "indiferente", label: "Sin preferencia",  icon: HelpCircle },
 ] as const;
 
-const HORAS = ["19:00","19:30","20:00","20:30","21:00","21:30","22:00"];
+const HORAS = ["19:30","20:00","20:30","21:00","21:30","22:00","22:30","23:00"];
 
 const ESTADO_STYLES: Record<string, { bg: string; text: string; icon: React.ElementType; label: string }> = {
     pendiente:  { bg: "bg-amber-50 border-amber-200",  text: "text-amber-700",   icon: Clock,         label: "Pendiente"  },
@@ -45,11 +46,12 @@ export default function ClienteReservasPage() {
 
     const [form, setForm] = useState({
         fecha: hoyArgentina(),
-        hora: "20:00",
+        hora: "19:30",
         comensales: 2,
         zona: "indiferente" as "adentro" | "afuera" | "indiferente",
         notas: "",
     });
+    const [confirmando, setConfirmando] = useState(false);
 
     const [now, setNow] = useState(() => new Date());
     useEffect(() => {
@@ -94,8 +96,13 @@ export default function ClienteReservasPage() {
         return () => clearInterval(iv);
     }, [user]);
 
-    async function submit(e: React.FormEvent) {
+    function submit(e: React.FormEvent) {
         e.preventDefault();
+        setConfirmando(true);
+    }
+
+    async function ejecutarReserva() {
+        setConfirmando(false);
         setSending(true); setError("");
         try {
             const res = await fetch("/api/reservas", {
@@ -109,7 +116,7 @@ export default function ClienteReservasPage() {
             setReservas(p => [nueva, ...p]);
             setShowForm(false);
             setSuccess(true);
-            setForm({ fecha: hoyArgentina(), hora: "20:00", comensales: 2, zona: "indiferente", notas: "" });
+            setForm({ fecha: hoyArgentina(), hora: "19:30", comensales: 2, zona: "indiferente", notas: "" });
             setTimeout(() => setSuccess(false), 4000);
         } finally { setSending(false); }
     }
@@ -319,6 +326,72 @@ export default function ClienteReservasPage() {
                     </div>
                 )}
             </div>
+
+            {/* Modal de confirmación */}
+            {confirmando && createPortal(
+                <div className="fixed inset-0 z-[200] bg-black/60 flex items-end justify-center p-4"
+                    onClick={() => setConfirmando(false)}>
+                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden"
+                        onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between px-5 pt-5 pb-3">
+                            <span className="text-3xl">📅</span>
+                            <button onClick={() => setConfirmando(false)} className="p-1 text-gray-400 hover:text-gray-600">
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className="px-5 pb-2 space-y-1">
+                            <h2 className="text-xl font-extrabold text-gray-900 leading-tight">¿Confirmamos la reserva?</h2>
+                            <p className="text-sm text-gray-500">Revisá los datos antes de enviar.</p>
+                        </div>
+                        <div className="px-5 py-3 space-y-2">
+                            <div className="flex items-center gap-3 bg-gray-50 rounded-2xl px-4 py-3">
+                                <CalendarDays size={18} className="text-red-500 shrink-0" />
+                                <div>
+                                    <p className="text-xs text-gray-400 font-semibold uppercase">Fecha y hora</p>
+                                    <p className="font-bold text-gray-900 capitalize">
+                                        {formatArgDate(form.fecha, { weekday: "long", day: "numeric", month: "long" })} · {form.hora}hs
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3 bg-gray-50 rounded-2xl px-4 py-3">
+                                <Users size={18} className="text-red-500 shrink-0" />
+                                <div>
+                                    <p className="text-xs text-gray-400 font-semibold uppercase">Comensales</p>
+                                    <p className="font-bold text-gray-900">{form.comensales} persona{form.comensales !== 1 ? "s" : ""}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3 bg-gray-50 rounded-2xl px-4 py-3">
+                                {(() => { const z = ZONA_OPTIONS.find(z => z.value === form.zona)!; const Icon = z.icon; return <Icon size={18} className="text-red-500 shrink-0" />; })()}
+                                <div>
+                                    <p className="text-xs text-gray-400 font-semibold uppercase">Lugar</p>
+                                    <p className="font-bold text-gray-900">{ZONA_OPTIONS.find(z => z.value === form.zona)?.label}</p>
+                                </div>
+                            </div>
+                            {form.notas && (
+                                <div className="flex items-start gap-3 bg-gray-50 rounded-2xl px-4 py-3">
+                                    <span className="text-base shrink-0 mt-0.5">📝</span>
+                                    <div>
+                                        <p className="text-xs text-gray-400 font-semibold uppercase">Observaciones</p>
+                                        <p className="font-bold text-gray-900 text-sm">{form.notas}</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <div className="px-5 py-4 border-t border-gray-100 flex flex-col gap-2">
+                            <button onClick={ejecutarReserva}
+                                className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-2xl text-sm transition active:scale-[0.98]">
+                                <CalendarDays size={15} />
+                                Sí, solicitar reserva
+                            </button>
+                            <button onClick={() => setConfirmando(false)}
+                                className="w-full py-3 rounded-2xl text-sm font-semibold text-gray-500 hover:bg-gray-100 transition">
+                                Revisar datos
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
         </div>
     );
 }
