@@ -516,7 +516,13 @@ export default function CajaPage() {
                 .then(d => { if (Array.isArray(d)) setLlamadas(d); })
                 .catch(() => {});
         fetchLlamadas();
-        const iv = setInterval(() => { loadData(); loadCanjes(); fetchLlamadas(); }, 5000);
+        const fetchReservasPending = () =>
+            fetch("/api/reservas", { credentials: "include" })
+                .then(r => r.json())
+                .then(d => { if (Array.isArray(d)) setReservasPendientes(d.filter((r: any) => r.estado === "pendiente").length); })
+                .catch(() => {});
+        fetchReservasPending();
+        const iv = setInterval(() => { loadData(); loadCanjes(); fetchLlamadas(); fetchReservasPending(); }, 5000);
         return () => clearInterval(iv);
     }, [loadData, loadEvento, loadCanjes, loadRewards]);
 
