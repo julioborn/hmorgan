@@ -2072,26 +2072,22 @@ export default function CajaPage() {
                     {tab === "pedidos" && (
                         <div className="max-w-screen-2xl mx-auto px-4 pt-4">
                             {/* Nueva comanda (cajero actuando como mozo) */}
-                            <div className="flex gap-2 mb-2">
+                            <div className="flex flex-wrap gap-2 mb-2 justify-start">
                                 <button onClick={() => router.push("/empleado/anotador/menu")}
-                                    className="flex-1 flex items-center justify-center gap-2 bg-black text-white font-bold py-3 rounded-2xl transition shadow-sm active:scale-[0.98]">
-                                    <Plus size={18} /> Nueva comanda
+                                    className="flex items-center gap-1.5 bg-black text-white font-bold text-xs px-3 py-2 rounded-xl transition shadow-sm active:scale-[0.98]">
+                                    <Plus size={14} /> Nueva comanda
                                 </button>
                                 <button onClick={() => { setDeliveryForm({ nombre: "", telefono: "", direccion: "", horario: "" }); setDeliveryModal(true); }}
-                                    className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-2xl transition shadow-sm active:scale-[0.98]">
-                                    <Plus size={18} /> Delivery
+                                    className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3 py-2 rounded-xl transition shadow-sm active:scale-[0.98]">
+                                    <Plus size={14} /> Delivery
                                 </button>
                                 <button onClick={() => router.push("/caja/retroactivo")}
-                                    className="flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-3 rounded-2xl transition shadow-sm active:scale-[0.98]"
-                                    title="Asignar puntos">
-                                    <Star size={16} />
-                                    Asignar puntos
+                                    className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-3 py-2 rounded-xl transition shadow-sm active:scale-[0.98]">
+                                    <Star size={14} /> Asignar puntos
                                 </button>
                                 <button onClick={abrirAutoservModal}
-                                    className="flex items-center justify-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold px-3 py-3 rounded-2xl transition shadow-sm active:scale-[0.98]"
-                                    title="Autoservicio">
-                                    <Tablet size={16} />
-                                    Autoservicio
+                                    className="flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs px-3 py-2 rounded-xl transition shadow-sm active:scale-[0.98]">
+                                    <Tablet size={14} /> Autoservicio
                                 </button>
                             </div>
                             <button onClick={editarCostoDelivery}
