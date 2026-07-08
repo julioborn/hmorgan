@@ -272,9 +272,12 @@ export default function CajaPage() {
     const [autoservMesas, setAutoservMesas] = useState<string[]>([]);
     const [autoservUserInput, setAutoservUserInput] = useState("");
     const [autoservUsernames, setAutoservUsernames] = useState<string[]>([]);
+    const [autoservSugerencias, setAutoservSugerencias] = useState<{ _id: string; nombre: string; apellido: string; username: string }[]>([]);
+    const [autoservBuscando, setAutoservBuscando] = useState(false);
     const [autoservSesiones, setAutoservSesiones] = useState<{ _id: string; mesasNombres: string[]; usuariosIds: { _id: string; nombre: string; apellido?: string; username: string }[] }[]>([]);
     const [autoservEnviando, setAutoservEnviando] = useState(false);
     const [autoservError, setAutoservError] = useState("");
+    const autoservDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     async function abrirAutoservModal() {
         const [sRes] = await Promise.all([
@@ -296,11 +299,32 @@ export default function CajaPage() {
         setAutoservMesas(prev => prev.includes(nombre) ? prev.filter(x => x !== nombre) : [...prev, nombre]);
     }
 
+    useEffect(() => {
+        if (autoservDebounceRef.current) clearTimeout(autoservDebounceRef.current);
+        const q = autoservUserInput.trim();
+        if (q.length < 2) { setAutoservSugerencias([]); return; }
+        autoservDebounceRef.current = setTimeout(async () => {
+            setAutoservBuscando(true);
+            try {
+                const r = await fetch(`/api/usuarios/buscar?q=${encodeURIComponent(q)}`, { credentials: "include" });
+                const d = await r.json();
+                setAutoservSugerencias(Array.isArray(d) ? d.filter((u: any) => !autoservUsernames.includes(u.username)) : []);
+            } finally { setAutoservBuscando(false); }
+        }, 300);
+    }, [autoservUserInput, autoservUsernames]);
+
+    function autoservSeleccionarUsuario(u: { _id: string; nombre: string; apellido: string; username: string }) {
+        if (!autoservUsernames.includes(u.username)) setAutoservUsernames(p => [...p, u.username]);
+        setAutoservUserInput("");
+        setAutoservSugerencias([]);
+    }
+
     function autoservAgregarUsername() {
         const u = autoservUserInput.trim().toLowerCase();
         if (!u || autoservUsernames.includes(u)) return;
         setAutoservUsernames(p => [...p, u]);
         setAutoservUserInput("");
+        setAutoservSugerencias([]);
     }
 
     async function autoservCrearSesion() {
@@ -3571,19 +3595,38 @@ export default function CajaPage() {
                         {autoservMesas.length > 0 && (
                             <div className="px-5 py-4 border-t border-gray-100 space-y-3 shrink-0">
                                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Usuarios para Mesa{autoservMesas.length > 1 ? "s" : ""} {autoservMesas.join(", ")}</p>
-                                <div className="flex gap-2">
-                                    <input
-                                        value={autoservUserInput}
-                                        onChange={e => setAutoservUserInput(e.target.value)}
-                                        onKeyDown={e => e.key === "Enter" && (e.preventDefault(), autoservAgregarUsername())}
-                                        placeholder="nombre de usuario"
-                                        style={{ fontSize: "16px" }}
-                                        className="flex-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
-                                    />
-                                    <button onClick={autoservAgregarUsername}
-                                        className="w-11 h-11 flex items-center justify-center rounded-xl bg-purple-600 text-white hover:bg-purple-700 transition shrink-0">
-                                        <UserPlus size={18} />
-                                    </button>
+                                <div className="relative">
+                                    <div className="flex gap-2">
+                                        <input
+                                            value={autoservUserInput}
+                                            onChange={e => setAutoservUserInput(e.target.value)}
+                                            onKeyDown={e => e.key === "Enter" && (e.preventDefault(), autoservAgregarUsername())}
+                                            placeholder="Buscar por nombre o usuario..."
+                                            style={{ fontSize: "16px" }}
+                                            className="flex-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                                        />
+                                        <button onClick={autoservAgregarUsername}
+                                            className="w-11 h-11 flex items-center justify-center rounded-xl bg-purple-600 text-white hover:bg-purple-700 transition shrink-0">
+                                            <UserPlus size={18} />
+                                        </button>
+                                    </div>
+                                    {(autoservSugerencias.length > 0 || autoservBuscando) && (
+                                        <div className="absolute left-0 right-12 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-10 overflow-hidden">
+                                            {autoservBuscando && <p className="px-3 py-2 text-xs text-gray-400">Buscando...</p>}
+                                            {autoservSugerencias.map(u => (
+                                                <button key={u._id} onClick={() => autoservSeleccionarUsuario(u)}
+                                                    className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-purple-50 text-left transition">
+                                                    <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center shrink-0 font-black text-xs text-purple-700">
+                                                        {u.nombre?.[0]?.toUpperCase() ?? "?"}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="font-semibold text-gray-900 text-sm truncate">{u.nombre} {u.apellido}</p>
+                                                        <p className="text-xs text-gray-400">@{u.username}</p>
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                                 {autoservUsernames.length > 0 && (
                                     <div className="flex flex-wrap gap-2">

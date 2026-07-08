@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Tablet, List, LayoutGrid, X, CheckCircle, UserPlus } from "lucide-react";
 import Loader from "@/components/Loader";
@@ -7,6 +7,7 @@ import Loader from "@/components/Loader";
 type Mesa = { _id: string; nombre: string; activa: boolean; zona?: string; x?: number; y?: number; forma?: string; ancho?: number; alto?: number; rotacion?: number; tipo?: string };
 type SalonEl = { _id: string; tipo: string; label?: string; x: number; y: number; ancho: number; alto: number; color: string };
 type Sesion = { _id: string; mesasNombres: string[]; usuariosIds: { _id: string; nombre: string; apellido: string; username: string }[] };
+type UsuarioSug = { _id: string; nombre: string; apellido: string; username: string };
 
 export default function EmpleadoAutoservicioPage() {
     const [mesas, setMesas] = useState<Mesa[]>([]);
@@ -15,13 +16,15 @@ export default function EmpleadoAutoservicioPage() {
     const [loading, setLoading] = useState(true);
     const [vista, setVista] = useState<"lista" | "plano">("lista");
 
-    // Multi-selección de mesas
     const [mesasSeleccionadas, setMesasSeleccionadas] = useState<string[]>([]);
     const [modalOpen, setModalOpen] = useState(false);
     const [userInput, setUserInput] = useState("");
     const [usernames, setUsernames] = useState<string[]>([]);
+    const [sugerencias, setSugerencias] = useState<UsuarioSug[]>([]);
+    const [buscando, setBuscando] = useState(false);
     const [enviando, setEnviando] = useState(false);
     const [error, setError] = useState("");
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     async function cargar() {
         const [mRes, elRes, sRes] = await Promise.all([
@@ -38,6 +41,21 @@ export default function EmpleadoAutoservicioPage() {
 
     useEffect(() => { cargar(); }, []);
 
+    // Debounce búsqueda de usuarios
+    useEffect(() => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        const q = userInput.trim();
+        if (q.length < 2) { setSugerencias([]); return; }
+        debounceRef.current = setTimeout(async () => {
+            setBuscando(true);
+            try {
+                const r = await fetch(`/api/usuarios/buscar?q=${encodeURIComponent(q)}`, { credentials: "include" });
+                const d = await r.json();
+                setSugerencias(Array.isArray(d) ? d.filter((u: UsuarioSug) => !usernames.includes(u.username)) : []);
+            } finally { setBuscando(false); }
+        }, 300);
+    }, [userInput, usernames]);
+
     const mesasConSesion = new Set(sesiones.flatMap(s => s.mesasNombres));
 
     function toggleMesa(nombre: string) {
@@ -47,11 +65,18 @@ export default function EmpleadoAutoservicioPage() {
         );
     }
 
+    function seleccionarUsuario(u: UsuarioSug) {
+        if (!usernames.includes(u.username)) setUsernames(p => [...p, u.username]);
+        setUserInput("");
+        setSugerencias([]);
+    }
+
     function agregarUsername() {
         const u = userInput.trim().toLowerCase();
         if (!u || usernames.includes(u)) return;
         setUsernames(p => [...p, u]);
         setUserInput("");
+        setSugerencias([]);
     }
 
     function abrirModal() {
@@ -64,6 +89,7 @@ export default function EmpleadoAutoservicioPage() {
         setModalOpen(false);
         setUsernames([]);
         setUserInput("");
+        setSugerencias([]);
         setError("");
     }
 
@@ -178,7 +204,6 @@ export default function EmpleadoAutoservicioPage() {
                                         </div>
                                         <div className="flex-1">
                                             <p className={`font-bold ${seleccionada ? "text-white" : "text-gray-900"}`}>Mesa {m.nombre}</p>
-                                            {m.zona && <p className={`text-xs ${seleccionada ? "text-purple-200" : "text-gray-400"}`}>{m.zona}</p>}
                                         </div>
                                         {tieneSession && <span className="text-xs font-bold text-purple-600 bg-purple-100 px-2.5 py-1 rounded-full">Activa</span>}
                                         {seleccionada && <CheckCircle size={20} className="text-white shrink-0" />}
@@ -195,7 +220,6 @@ export default function EmpleadoAutoservicioPage() {
                         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Tocá las mesas para seleccionarlas</p>
                         <div className="relative w-full rounded-xl overflow-hidden border border-gray-200" style={{ paddingBottom: "72%" }}>
                             <div className="absolute inset-0" style={{ backgroundColor: "#f9f5ef", backgroundImage: "linear-gradient(rgba(0,0,0,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.04) 1px,transparent 1px)", backgroundSize: "30px 30px" }}>
-                                {/* Elementos decorativos del salón */}
                                 {elementos.map(el => {
                                     const isLine = el.tipo === "linea_h" || el.tipo === "linea_v";
                                     const isBarra = el.tipo === "barra";
@@ -208,7 +232,6 @@ export default function EmpleadoAutoservicioPage() {
                                         </div>
                                     );
                                 })}
-                                {/* Mesas */}
                                 {mesas.map(m => {
                                     const tieneSession = mesasConSesion.has(m.nombre);
                                     const seleccionada = mesasSeleccionadas.includes(m.nombre);
@@ -254,19 +277,39 @@ export default function EmpleadoAutoservicioPage() {
 
                         <div className="px-5 pb-2 space-y-3">
                             <p className="text-sm text-gray-500">Agregá los usuarios que van a pedir desde su teléfono.</p>
-                            <div className="flex gap-2">
-                                <input
-                                    value={userInput}
-                                    onChange={e => setUserInput(e.target.value)}
-                                    onKeyDown={e => e.key === "Enter" && (e.preventDefault(), agregarUsername())}
-                                    placeholder="nombre de usuario"
-                                    style={{ fontSize: "16px" }}
-                                    className="flex-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
-                                />
-                                <button onClick={agregarUsername}
-                                    className="w-11 h-11 flex items-center justify-center rounded-xl bg-purple-600 text-white hover:bg-purple-700 transition shrink-0">
-                                    <UserPlus size={18} />
-                                </button>
+                            <div className="relative">
+                                <div className="flex gap-2">
+                                    <input
+                                        value={userInput}
+                                        onChange={e => setUserInput(e.target.value)}
+                                        onKeyDown={e => e.key === "Enter" && (e.preventDefault(), agregarUsername())}
+                                        placeholder="Buscar por nombre o usuario..."
+                                        style={{ fontSize: "16px" }}
+                                        className="flex-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                                    />
+                                    <button onClick={agregarUsername}
+                                        className="w-11 h-11 flex items-center justify-center rounded-xl bg-purple-600 text-white hover:bg-purple-700 transition shrink-0">
+                                        <UserPlus size={18} />
+                                    </button>
+                                </div>
+                                {/* Dropdown sugerencias */}
+                                {(sugerencias.length > 0 || buscando) && (
+                                    <div className="absolute left-0 right-12 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-10 overflow-hidden">
+                                        {buscando && <p className="px-3 py-2 text-xs text-gray-400">Buscando...</p>}
+                                        {sugerencias.map(u => (
+                                            <button key={u._id} onClick={() => seleccionarUsuario(u)}
+                                                className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-purple-50 text-left transition">
+                                                <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center shrink-0 font-black text-xs text-purple-700">
+                                                    {u.nombre?.[0]?.toUpperCase() ?? "?"}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="font-semibold text-gray-900 text-sm truncate">{u.nombre} {u.apellido}</p>
+                                                    <p className="text-xs text-gray-400">@{u.username}</p>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                             {usernames.length > 0 && (
                                 <div className="flex flex-wrap gap-2">
