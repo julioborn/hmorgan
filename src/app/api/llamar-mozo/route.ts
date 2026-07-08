@@ -28,8 +28,15 @@ export async function GET(req: NextRequest) {
     if (STAFF_ROLES.includes(payload.role)) {
         const llamadas = await LlamadaMozo.find({ vista: false })
             .sort({ createdAt: -1 })
-            .lean();
-        return NextResponse.json(llamadas);
+            .populate("mozoId", "nombre apellido username")
+            .lean() as any[];
+        const resultado = llamadas.map((l: any) => ({
+            ...l,
+            mozoNombre: l.mozoId
+                ? [l.mozoId.nombre, l.mozoId.apellido].filter(Boolean).join(" ") || l.mozoId.username
+                : null,
+        }));
+        return NextResponse.json(resultado);
     }
 
     // cliente: buscar pedido activo donde es comensal
@@ -62,14 +69,12 @@ export async function POST(req: NextRequest) {
     const cliente = await User.findById(payload.sub).select("nombre apellido").lean() as any;
     const clienteNombre = [cliente?.nombre, cliente?.apellido].filter(Boolean).join(" ") || payload.username || "Cliente";
 
-    const llamada = await LlamadaMozo.create({
-        pedidoId:      pedido._id,
-        clienteId:     payload.sub,
-        clienteNombre,
-        mesa:          pedido.mesa || pedido.nombreComanda || null,
-        mozoId:        pedido.userId,
-        tipo,
-    });
+    // Upsert: si ya hay una llamada pendiente del mismo pedido y tipo, actualizar timestamp en vez de crear otra
+    const llamada = await LlamadaMozo.findOneAndUpdate(
+        { pedidoId: pedido._id, tipo, vista: false },
+        { $set: { clienteNombre, mesa: pedido.mesa || pedido.nombreComanda || null, mozoId: pedido.userId, updatedAt: new Date() }, $setOnInsert: { pedidoId: pedido._id, clienteId: payload.sub, tipo } },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
 
     // Notificar a todos los mozos que tienen comandas activas en este momento
     const mesaLabel = pedido.mesa ? `mesa ${pedido.mesa}` : pedido.nombreComanda || "su mesa";
