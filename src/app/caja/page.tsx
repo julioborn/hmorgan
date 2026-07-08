@@ -96,6 +96,7 @@ const categoryImages: Record<string, string> = {
     MEDIDAS: "/subcategoria-bebidas/medidas.png",
 };
 
+const DEMORA_MS = 25 * 60 * 1000;
 const METODOS = ["efectivo", "tarjeta", "transferencia"] as const;
 const METODO_LABEL: Record<string, string> = { efectivo: "Efectivo", tarjeta: "Tarjeta", transferencia: "Transferencia" };
 const METODO_ICON: Record<string, React.ElementType> = { efectivo: Banknote, tarjeta: CreditCard, transferencia: Send };
@@ -2277,17 +2278,27 @@ export default function CajaPage() {
                                                         : { label: "Bar", cls: "bg-white text-black" };
 
                                         const esAlerta = alertasPedidos.has(p._id) && (Date.now() - (alertasPedidos.get(p._id) ?? 0)) < 35000;
+                                        const tiempoMsDemora = Date.now() - new Date(p.createdAt).getTime();
+                                        const algunoListoCaja = p.items.some(it => it.listo);
+                                        const esDemorada = p.estado === "preparando" && !algunoListoCaja && tiempoMsDemora > DEMORA_MS;
+                                        const minutosEsperaCaja = Math.floor(tiempoMsDemora / 60000);
                                         return (
                                             <motion.div key={p._id}
                                                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                                                className={`rounded-2xl border-2 shadow-sm overflow-hidden flex flex-col h-[500px] bg-white ${esAlerta ? "blink-alerta" : "border-black"}`}>
+                                                className={`rounded-2xl border-2 shadow-sm overflow-hidden flex flex-col h-[500px] bg-white ${esAlerta ? "blink-alerta" : esDemorada ? "border-red-500" : "border-black"}`}>
 
                                                 {/* ── Cabecera ── */}
-                                                <div className="shrink-0 px-4 py-3 bg-black">
+                                                <div className={`shrink-0 px-4 py-3 ${esDemorada ? "bg-red-700" : "bg-black"}`}>
                                                     <div className="flex items-start justify-between gap-3">
                                                         <div className="flex-1 min-w-0">
                                                             <p className="font-black text-white text-xl leading-tight tracking-tight break-words">{titulo}</p>
                                                             <p className="text-xs text-white/65 font-medium mt-0.5">{subtitulo}</p>
+                                                            {esDemorada && (
+                                                                <div className="mt-1.5 flex items-center gap-1 bg-white/20 rounded-lg px-2 py-0.5 w-fit">
+                                                                    <Clock size={11} className="text-white/90 shrink-0" />
+                                                                    <span className="text-[11px] font-black text-white uppercase tracking-wide">Demorada · {minutosEsperaCaja} min</span>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                         <div className="shrink-0 text-right flex flex-col items-end gap-1">
                                                             <div className="flex items-center gap-2">

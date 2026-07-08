@@ -8,6 +8,7 @@ import { useCategoryConfigs } from "@/hooks/useCategoryConfigs";
 
 const BEBIDAS_CATS = new Set(["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"]);
 const PICAR_CATS   = ["PICADAS", "FRITURAS"];
+const DEMORA_MS    = 25 * 60 * 1000;
 const MENU_ORDER   = ["PARRILLA","PIZZAS","HAMBURGUESAS","SANDWICHES","PICADAS Y FRITURAS","ENSALADAS","BEBIDAS","POSTRE Y CAFE"];
 
 const categoryImages: Record<string, string> = {
@@ -333,40 +334,45 @@ export default function CocinaPage() {
                             const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
                             const isNuevo = nuevosIds.has(p._id);
                             const isMarcando = marcando === p._id;
+                            const algunoListo = comida.some(it => it.listo);
+                            const tiempoMs = Date.now() - new Date(p.createdAt).getTime();
+                            const esDemorada = p.estado === "preparando" && !algunoListo && tiempoMs > DEMORA_MS;
+                            const minutosEspera = Math.floor(tiempoMs / 60000);
 
                             return (
                                 <div key={p._id}
-                                    className={`rounded-2xl border shadow-sm overflow-hidden transition-all duration-500 ${isNuevo ? "border-red-300 ring-2 ring-red-200" : "border-gray-200"}`}>
-                                    <div className={`px-4 py-3 border-b ${isNuevo ? "bg-red-50 border-red-100" : "bg-gray-50 border-gray-100"}`}>
+                                    className={`rounded-2xl border shadow-sm overflow-hidden transition-all duration-500 ${esDemorada ? "border-red-500" : isNuevo ? "border-red-300 ring-2 ring-red-200" : "border-gray-200"}`}>
+                                    <div className={`px-4 py-3 border-b ${esDemorada ? "bg-red-600 border-red-500" : isNuevo ? "bg-red-50 border-red-100" : "bg-gray-50 border-gray-100"}`}>
                                         {/* Fila 1: badges de origen */}
                                         <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
+                                            {esDemorada && <span className="text-[10px] font-black uppercase tracking-widest bg-white text-red-600 px-2 py-0.5 rounded-full">⏰ Demorada</span>}
                                             {isNuevo && <span className="text-[10px] font-black uppercase tracking-widest bg-red-600 text-white px-2 py-0.5 rounded-full animate-pulse">Nuevo</span>}
                                             {esDelivery && <span className="text-[10px] font-black uppercase tracking-wide bg-blue-600 text-white px-2 py-0.5 rounded-full">🛵 Delivery</span>}
                                             {esEvento   && <span className="text-[10px] font-black uppercase tracking-wide bg-amber-400 text-black px-2 py-0.5 rounded-full">⭐ Evento</span>}
                                             {esApp      && <span className="text-[10px] font-black uppercase tracking-wide bg-violet-600 text-white px-2 py-0.5 rounded-full">📱 App</span>}
-                                            {esBar      && <span className="text-[10px] font-black uppercase tracking-wide bg-gray-800 text-white px-2 py-0.5 rounded-full">🍽 Bar</span>}
+                                            {esBar      && <span className={`text-[10px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full ${esDemorada ? "bg-white/20 text-white" : "bg-gray-800 text-white"}`}>🍽 Bar</span>}
                                         </div>
                                         {/* Fila 2: mesa/número + hora */}
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2 flex-wrap min-w-0">
-                                                <span className="text-xl font-black text-black leading-tight">{mesaLabel}</span>
+                                                <span className={`text-xl font-black leading-tight ${esDemorada ? "text-white" : "text-black"}`}>{mesaLabel}</span>
                                                 {(mozo || clienteNombre) && (
-                                                    <span className="text-sm text-gray-400 truncate">
+                                                    <span className={`text-sm truncate ${esDemorada ? "text-white/70" : "text-gray-400"}`}>
                                                         {mozo || clienteNombre}
                                                     </span>
                                                 )}
                                             </div>
-                                            <div className="flex items-center gap-1.5 text-gray-400 shrink-0 ml-2">
+                                            <div className={`flex items-center gap-1.5 shrink-0 ml-2 ${esDemorada ? "text-white/70" : "text-gray-400"}`}>
                                                 <Clock size={13} />
-                                                <span className="text-sm">{hora}</span>
+                                                <span className="text-sm">{esDemorada ? `${minutosEspera} min` : hora}</span>
                                             </div>
                                         </div>
                                         {/* Fila 3: dirección + teléfono (solo delivery) */}
                                         {esDelivery && p.direccion && (
-                                            <p className="text-xs text-blue-600 font-semibold mt-1">📍 {p.direccion}</p>
+                                            <p className={`text-xs font-semibold mt-1 ${esDemorada ? "text-white/80" : "text-blue-600"}`}>📍 {p.direccion}</p>
                                         )}
                                         {esDelivery && p.telefonoContacto && (
-                                            <p className="text-xs text-emerald-700 font-semibold mt-0.5 flex items-center gap-1">
+                                            <p className={`text-xs font-semibold mt-0.5 flex items-center gap-1 ${esDemorada ? "text-white/80" : "text-emerald-700"}`}>
                                                 <Phone size={11} className="shrink-0" />{p.telefonoContacto}
                                             </p>
                                         )}
