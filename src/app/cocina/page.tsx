@@ -124,12 +124,18 @@ export default function CocinaPage() {
         setConfirmarId(null);
         setMarcando(id);
         try {
+            // Poner todos los ítems en verde antes de sacar la card
+            setPedidos(prev => prev.map(p =>
+                p._id !== id ? p : { ...p, items: p.items.map(it => ({ ...it, listo: true })) }
+            ));
             await fetch("/api/pedidos", {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
                 body: JSON.stringify({ id, estado: "listo" }),
             });
+            // Breve pausa para que se vea el verde antes de desaparecer
+            await new Promise(r => setTimeout(r, 700));
             setPedidos(prev => prev.filter(p => p._id !== id));
         } catch { }
         finally { setMarcando(null); }
