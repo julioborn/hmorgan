@@ -216,18 +216,16 @@ export default function EmpleadoAutoservicioPage() {
                                     const rot = m.rotacion ?? 0;
                                     const w = m.ancho || (m.forma === "oval" ? 11 : m.forma === "round" ? 5.5 : 7);
                                     const h = m.alto || (m.forma === "oval" ? 5 : m.forma === "round" ? 5.5 : 5);
-                                    const isBanq = m.tipo === "banqueta";
-                                    const bg = isBanq ? "bg-amber-700 border-amber-800 text-amber-100"
-                                        : tieneSession ? "bg-purple-500 border-purple-600 text-white"
+                                    const bg = tieneSession ? "bg-purple-500 border-purple-600 text-white"
                                         : seleccionada ? "bg-purple-600 border-purple-700 text-white ring-2 ring-purple-300"
                                         : "bg-emerald-500 border-emerald-600 text-white";
                                     return (
                                         <div key={m._id}
-                                            onClick={() => !isBanq && !tieneSession && toggleMesa(m.nombre)}
-                                            style={{ position: "absolute", left: `${m.x ?? 10}%`, top: `${m.y ?? 10}%`, transform: `translate(-50%,-50%) rotate(${rot}deg)`, width: `min(${w}%,${w * 7}px)`, height: `min(${h}%,${h * 7.5}px)`, minWidth: "22px", minHeight: "16px", borderRadius: isRound ? "50%" : "8px", cursor: (isBanq || tieneSession) ? "not-allowed" : "pointer", userSelect: "none", zIndex: 2 }}
+                                            onClick={() => !tieneSession && toggleMesa(m.nombre)}
+                                            style={{ position: "absolute", left: `${m.x ?? 10}%`, top: `${m.y ?? 10}%`, transform: `translate(-50%,-50%) rotate(${rot}deg)`, width: `min(${w}%,${w * 7}px)`, height: `min(${h}%,${h * 7.5}px)`, minWidth: "22px", minHeight: "16px", borderRadius: isRound ? "50%" : "8px", cursor: tieneSession ? "not-allowed" : "pointer", userSelect: "none", zIndex: 2 }}
                                             className={`flex items-center justify-center border-2 ${bg} transition-all active:scale-95`}>
                                             <div style={{ transform: `rotate(${-rot}deg)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                                <span style={{ fontSize: "clamp(5px,0.8vw,9px)", fontWeight: 900 }}>{isBanq ? `B${m.nombre}` : m.nombre}</span>
+                                                <span style={{ fontSize: "clamp(5px,0.8vw,9px)", fontWeight: 900 }}>{m.nombre}</span>
                                             </div>
                                         </div>
                                     );
