@@ -68,6 +68,7 @@ export default function AnotadorPage() {
     const [buscandoCliente, setBuscandoCliente] = useState(false);
     const [guardandoComensales, setGuardandoComensales] = useState(false);
     const [editingNota, setEditingNota] = useState<{ pedidoId: string; itemId: string; valor: string } | null>(null);
+    const [sesionesAutoserv, setSesionesAutoserv] = useState<{ mesasNombres: string[] }[]>([]);
 
     // Solo las terminadas cobradas dentro de la sesión de caja actual
     const terminadasSesion = useMemo(() =>
@@ -167,6 +168,11 @@ export default function AnotadorPage() {
                     .catch(() => {})
             );
         }
+        fetches.push(
+            fetch("/api/autoservicio", { credentials: "include" })
+                .then(r => r.json()).then(d => { if (Array.isArray(d)) setSesionesAutoserv(d); })
+                .catch(() => {})
+        );
         await Promise.all(fetches);
         setCambiarMesaModal(c);
     }
@@ -731,7 +737,8 @@ export default function AnotadorPage() {
                                         })}
                                         {mesasDisponibles.filter(m => m.activa).map(m => {
                                             const esActual  = m.nombre === cambiarMesaModal.mesa;
-                                            const ocupada   = !esActual && !!comandas.find(c =>
+                                            const tieneAutoservicio = !esActual && sesionesAutoserv.some(s => s.mesasNombres.includes(m.nombre));
+                                            const ocupada   = !esActual && !tieneAutoservicio && !!comandas.find(c =>
                                                 c.mesa === m.nombre && c._id !== cambiarMesaModal._id
                                             );
                                             const isBanq    = m.tipo === "banqueta";
@@ -739,11 +746,12 @@ export default function AnotadorPage() {
                                             const rot       = m.rotacion ?? 0;
                                             const w         = m.ancho || (m.forma === "oval" ? 11 : m.forma === "round" ? 5.5 : 7);
                                             const h         = m.alto  || (m.forma === "oval" ? 5  : m.forma === "round" ? 5.5 : 5);
-                                            const bloqueada = isBanq || ocupada;
+                                            const bloqueada = isBanq || ocupada || tieneAutoservicio;
                                             const bg = esActual ? "bg-blue-500 border-blue-600 text-white ring-2 ring-blue-300"
-                                                : isBanq      ? "bg-amber-700 border-amber-800 text-amber-100"
-                                                : ocupada     ? "bg-red-500 border-red-600 text-white opacity-70"
-                                                :               "bg-emerald-500 border-emerald-600 text-white";
+                                                : isBanq           ? "bg-amber-700 border-amber-800 text-amber-100"
+                                                : tieneAutoservicio ? "bg-purple-600 border-purple-700 text-white opacity-70"
+                                                : ocupada          ? "bg-red-500 border-red-600 text-white opacity-70"
+                                                :                    "bg-emerald-500 border-emerald-600 text-white";
                                             return (
                                                 <div key={m._id}
                                                     onClick={() => !bloqueada && !esActual && ejecutarCambioMesa(cambiarMesaModal, m.nombre)}

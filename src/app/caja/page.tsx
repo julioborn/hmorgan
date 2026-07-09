@@ -604,7 +604,7 @@ export default function CajaPage() {
         const fetchAutoservActivas = () =>
             fetch("/api/autoservicio", { credentials: "include" })
                 .then(r => r.json())
-                .then(d => { if (Array.isArray(d)) setAutoservActivasCount(d.length); })
+                .then(d => { if (Array.isArray(d)) { setAutoservActivasCount(d.length); setAutoservSesiones(d); } })
                 .catch(() => {});
         fetchAutoservActivas();
         const iv = setInterval(() => { loadData(); loadCanjes(); fetchLlamadas(); fetchReservasPending(); fetchAutoservActivas(); }, 5000);
@@ -1840,6 +1840,8 @@ export default function CajaPage() {
         } finally { setVentaSaving(false); }
     }
 
+    const mesasConAutoserv = new Set(autoservSesiones.flatMap(s => s.mesasNombres));
+
     function renderPlanoSelector(seleccionadas: string[], toggle: (nombre: string) => void, eventoActualId?: string | null) {
         return (
             <div className="relative w-full rounded-xl overflow-hidden border border-gray-200" style={{ paddingBottom: "72%" }}>
@@ -1858,23 +1860,25 @@ export default function CajaPage() {
                     })}
                     {eventoModalMesasPlano.map(m => {
                         const sel = seleccionadas.includes(m.nombre);
-                        const ocupada = !!pedidos.find(p => p.mesa === m.nombre && !["cerrado", "cancelado"].includes(p.estado));
+                        const esAutoservicio = mesasConAutoserv.has(m.nombre);
+                        const ocupada = !esAutoservicio && !!pedidos.find(p => p.mesa === m.nombre && !["cerrado", "cancelado"].includes(p.estado));
                         const reservada = !ocupada && !!reservasHoy.find(r => r.mesaId?._id === m._id);
-                        const otroEvento = !ocupada && !reservada && eventosActivos.some(e =>
+                        const otroEvento = !ocupada && !reservada && !esAutoservicio && eventosActivos.some(e =>
                             e._id !== eventoActualId && (e.mesas ?? []).includes(m.nombre)
                         );
                         const isBanq = m.tipo === "banqueta";
-                        const bloqueada = isBanq || ocupada || reservada || otroEvento;
+                        const bloqueada = isBanq || ocupada || reservada || otroEvento || esAutoservicio;
                         const isRound = m.forma === "round" || m.forma === "oval";
                         const rot = m.rotacion ?? 0;
                         const w = m.ancho || (m.forma === "oval" ? 11 : m.forma === "round" ? 5.5 : 7);
                         const h = m.alto || (m.forma === "oval" ? 5 : m.forma === "round" ? 5.5 : 5);
                         const bg = isBanq ? "bg-amber-700 border-amber-800 text-amber-100"
-                            : ocupada ? "bg-red-500 border-red-600 text-white opacity-80"
-                                : reservada ? "bg-yellow-400 border-yellow-500 text-gray-900 opacity-80"
-                                    : otroEvento ? "bg-purple-500 border-purple-600 text-white opacity-80"
-                                        : sel ? "bg-blue-500 border-blue-600 text-white ring-2 ring-blue-300"
-                                            : "bg-emerald-500 border-emerald-600 text-white";
+                            : esAutoservicio ? "bg-purple-600 border-purple-700 text-white opacity-80"
+                                : ocupada ? "bg-red-500 border-red-600 text-white opacity-80"
+                                    : reservada ? "bg-yellow-400 border-yellow-500 text-gray-900 opacity-80"
+                                        : otroEvento ? "bg-purple-500 border-purple-600 text-white opacity-80"
+                                            : sel ? "bg-blue-500 border-blue-600 text-white ring-2 ring-blue-300"
+                                                : "bg-emerald-500 border-emerald-600 text-white";
                         return (
                             <div key={m._id}
                                 onClick={() => !bloqueada && toggle(m.nombre)}
@@ -2834,6 +2838,7 @@ export default function CajaPage() {
                                 <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-red-400 inline-block" />Ocupada</span>
                                 <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-yellow-400 inline-block" />Reservada hoy</span>
                                 {eventosActivos.length > 0 && <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-blue-500 inline-block" />Evento</span>}
+                                {autoservActivasCount > 0 && <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-purple-600 inline-block" />Autoservicio</span>}
                             </div>
                             <div className="relative w-full rounded-xl overflow-hidden border border-gray-200" style={{ paddingBottom: "72%" }}>
                                 <div className="absolute inset-0" style={{ backgroundColor: "#f9f5ef", backgroundImage: "linear-gradient(rgba(0,0,0,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.04) 1px,transparent 1px)", backgroundSize: "30px 30px" }}>
@@ -2850,12 +2855,13 @@ export default function CajaPage() {
                                         );
                                     })}
                                     {mesasPlano.filter(m => m.activa).map(m => {
-                                        const pedido = pedidoDeMesa(m.nombre);
+                                        const tieneAutoservicio = mesasConAutoserv.has(m.nombre);
+                                        const pedido = tieneAutoservicio ? undefined : pedidoDeMesa(m.nombre);
                                         const ocupada = !!pedido;
-                                        const reserva = !ocupada ? reservasHoy.find(r => r.mesaId?._id === m._id) : undefined;
+                                        const reserva = !ocupada && !tieneAutoservicio ? reservasHoy.find(r => r.mesaId?._id === m._id) : undefined;
                                         const reservada = !!reserva;
                                         const mesasDeEventos = new Set(eventosActivos.flatMap(e => e.mesas ?? []));
-                                        const esEvento = !ocupada && !reservada && mesasDeEventos.has(m.nombre);
+                                        const esEvento = !ocupada && !reservada && !tieneAutoservicio && mesasDeEventos.has(m.nombre);
                                         const isRound = m.forma === "round" || m.forma === "oval";
                                         const isBanq = m.tipo === "banqueta";
                                         const rot = m.rotacion ?? 0;
@@ -2863,10 +2869,11 @@ export default function CajaPage() {
                                         const h = m.alto || (m.forma === "oval" ? 5 : m.forma === "round" ? 5.5 : 5);
                                         const bg = isBanq
                                             ? "bg-amber-700 border-amber-800 text-amber-100"
-                                            : ocupada ? "bg-red-500 border-red-600 text-white"
-                                                : reservada ? "bg-yellow-400 border-yellow-500 text-gray-900"
-                                                    : esEvento ? "bg-blue-500 border-blue-600 text-white"
-                                                        : "bg-emerald-500 border-emerald-600 text-white";
+                                            : tieneAutoservicio ? "bg-purple-600 border-purple-700 text-white"
+                                                : ocupada ? "bg-red-500 border-red-600 text-white"
+                                                    : reservada ? "bg-yellow-400 border-yellow-500 text-gray-900"
+                                                        : esEvento ? "bg-blue-500 border-blue-600 text-white"
+                                                            : "bg-emerald-500 border-emerald-600 text-white";
                                         const clickeable = ocupada || reservada;
                                         return (
                                             <div key={m._id}
@@ -5100,6 +5107,7 @@ export default function CajaPage() {
                             <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 inline-block" />Disponible</span>
                             <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-red-500 inline-block" />Ocupada</span>
                             <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-yellow-400 inline-block" />Reservada</span>
+                            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-purple-600 inline-block" />Autoservicio</span>
                         </div>
 
                         {/* Plano */}
@@ -5125,23 +5133,25 @@ export default function CajaPage() {
                                         {/* Mesas */}
                                         {mesasPlano.filter(m => m.activa).map(m => {
                                             const esActual = m.nombre === cambiarMesaModal.mesa;
-                                            const ocupada = !esActual && !!pedidos.find(p =>
+                                            const tieneAutoservicio = !esActual && mesasConAutoserv.has(m.nombre);
+                                            const ocupada = !esActual && !tieneAutoservicio && !!pedidos.find(p =>
                                                 p.mesa === m.nombre &&
                                                 p._id !== cambiarMesaModal._id &&
                                                 !["cerrado", "cancelado"].includes(p.estado)
                                             );
-                                            const reservada = !esActual && !ocupada && !!reservasHoy.find(r => r.mesaId?._id === m._id);
+                                            const reservada = !esActual && !ocupada && !tieneAutoservicio && !!reservasHoy.find(r => r.mesaId?._id === m._id);
                                             const isBanq = m.tipo === "banqueta";
                                             const isRound = m.forma === "round" || m.forma === "oval";
                                             const rot = m.rotacion ?? 0;
                                             const w = m.ancho || (m.forma === "oval" ? 11 : m.forma === "round" ? 5.5 : 7);
                                             const h = m.alto || (m.forma === "oval" ? 5 : m.forma === "round" ? 5.5 : 5);
-                                            const bloqueada = isBanq || ocupada || reservada;
+                                            const bloqueada = isBanq || ocupada || reservada || tieneAutoservicio;
                                             const bg = esActual ? "bg-blue-500 border-blue-600 text-white ring-2 ring-blue-300"
                                                 : isBanq ? "bg-amber-700 border-amber-800 text-amber-100"
-                                                    : ocupada ? "bg-red-500 border-red-600 text-white opacity-70"
-                                                        : reservada ? "bg-yellow-400 border-yellow-500 text-gray-900 opacity-80"
-                                                            : "bg-emerald-500 border-emerald-600 text-white";
+                                                    : tieneAutoservicio ? "bg-purple-600 border-purple-700 text-white opacity-80"
+                                                        : ocupada ? "bg-red-500 border-red-600 text-white opacity-70"
+                                                            : reservada ? "bg-yellow-400 border-yellow-500 text-gray-900 opacity-80"
+                                                                : "bg-emerald-500 border-emerald-600 text-white";
                                             return (
                                                 <div key={m._id}
                                                     onClick={() => !bloqueada && !esActual && ejecutarCambioMesa(cambiarMesaModal, m.nombre)}

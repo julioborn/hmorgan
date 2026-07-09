@@ -158,6 +158,7 @@ function AnotadorMenuContent() {
     const [ocupadasPlano, setOcupadasPlano]     = useState<Set<string>>(new Set());
     const [reservadasPlano, setReservadasPlano] = useState<Set<string>>(new Set());
     const [eventosPlano, setEventosPlano]       = useState<string[]>([]); // nombres de mesas con evento
+    const [autoservPlano, setAutoservPlano]     = useState<Set<string>>(new Set());
     // Zoom del plano
     const [mapScale, setMapScale]   = useState(1);
     const [mapOffset, setMapOffset] = useState({ x: 0, y: 0 });
@@ -369,15 +370,16 @@ function AnotadorMenuContent() {
 
     async function openMesaPicker() {
         setMesaPickerOpen(true);
-        const [mRes, elRes, pRes, evRes, resRes] = await Promise.all([
+        const [mRes, elRes, pRes, evRes, resRes, asRes] = await Promise.all([
             fetch("/api/admin/mesas?all=true", { credentials: "include" }),
             fetch("/api/superadmin/salon", { credentials: "include" }),
             fetch("/api/pedidos?activos=true", { credentials: "include" }),
             fetch("/api/eventos?activo=true", { credentials: "include" }),
             fetch("/api/reservas", { credentials: "include" }),
+            fetch("/api/autoservicio", { credentials: "include" }),
         ]);
-        const [mData, elData, pData, evData, resData] = await Promise.all([
-            mRes.json(), elRes.json(), pRes.json(), evRes.json(), resRes.json(),
+        const [mData, elData, pData, evData, resData, asData] = await Promise.all([
+            mRes.json(), elRes.json(), pRes.json(), evRes.json(), resRes.json(), asRes.json(),
         ]);
         setMesasPlano(Array.isArray(mData) ? mData : []);
         setElementsPlano(Array.isArray(elData) ? elData : []);
@@ -399,6 +401,8 @@ function AnotadorMenuContent() {
                     .filter(Boolean)
             ));
         }
+        if (Array.isArray(asData))
+            setAutoservPlano(new Set(asData.flatMap((s: any) => s.mesasNombres as string[])));
     }
 
     function addToCart(item: MenuItem) {
@@ -969,15 +973,17 @@ function AnotadorMenuContent() {
                                         return <div key={el._id} style={{ position:"absolute", left:`${el.x}%`, top:`${el.y}%`, transform:"translate(-50%,-50%)", width:`${el.ancho}%`, height:`${el.alto}%`, minWidth:"32px", minHeight:"14px", display:"flex", alignItems:"center", justifyContent:"center", borderRadius:"6px", backgroundColor:isBarra?"#b45309":el.color, border:isBarra?"2px solid #92400e":`1px solid ${el.color==="#fef3c7"?"#d97706":"#9ca3af"}60` }}>{el.label&&<span style={{ fontSize:"clamp(6px,0.9vw,9px)", fontWeight:700, color:isBarra?"#fef3c7":"#374151", whiteSpace:"nowrap" }}>{el.label}</span>}</div>;
                                     })}
                                     {mesasPlano.filter(m => m.activa).map(m => {
-                                        const isOcupada  = ocupadasPlano.has(m.nombre);
-                                        const isReservada = !isOcupada && reservadasPlano.has(m.nombre);
-                                        const isEvento   = !isOcupada && !isReservada && eventosPlano.includes(m.nombre);
+                                        const isAutoserv  = autoservPlano.has(m.nombre);
+                                        const isOcupada  = !isAutoserv && ocupadasPlano.has(m.nombre);
+                                        const isReservada = !isOcupada && !isAutoserv && reservadasPlano.has(m.nombre);
+                                        const isEvento   = !isOcupada && !isReservada && !isAutoserv && eventosPlano.includes(m.nombre);
                                         const isBanq     = m.tipo === "banqueta";
                                         const isSel      = mesas.includes(m.nombre);
-                                        const bloqueada  = isOcupada || isEvento;
+                                        const bloqueada  = isOcupada || isEvento || isAutoserv;
                                         const isRound    = m.forma === "round" || m.forma === "oval";
                                         const rot=m.rotacion??0; const w=m.ancho||(m.forma==="oval"?11:m.forma==="round"?5.5:7); const h=m.alto||(m.forma==="oval"?5:m.forma==="round"?5.5:5);
                                         const bg = isSel        ? "bg-gray-900 border-gray-700 text-white ring-2 ring-white"
+                                            : isAutoserv        ? "bg-purple-600 border-purple-700 text-white opacity-80"
                                             : isOcupada         ? "bg-red-500 border-red-600 text-white opacity-70"
                                             : isReservada       ? "bg-yellow-400 border-yellow-500 text-gray-900 opacity-80"
                                             : isEvento          ? "bg-blue-500 border-blue-600 text-white opacity-80"
@@ -994,6 +1000,7 @@ function AnotadorMenuContent() {
                                 <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-500 inline-block"/>Ocupada</span>
                                 <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-400 inline-block"/>Reservada</span>
                                 <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-500 inline-block"/>Evento</span>
+                                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-purple-600 inline-block"/>Autoservicio</span>
                                 <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-gray-900 inline-block"/>Seleccionada</span>
                                 {mapScale > 1 && (
                                     <button onClick={() => { setMapScale(1); setMapOffset({ x:0, y:0 }); }}
@@ -1018,14 +1025,16 @@ function AnotadorMenuContent() {
                                             return na !== nb ? na - nb : a.nombre.localeCompare(b.nombre);
                                         })
                                         .map(m => {
-                                            const isOcupada   = ocupadasPlano.has(m.nombre);
-                                            const isReservada = !isOcupada && reservadasPlano.has(m.nombre);
-                                            const isEvento    = !isOcupada && !isReservada && eventosPlano.includes(m.nombre);
+                                            const isAutoserv  = autoservPlano.has(m.nombre);
+                                            const isOcupada   = !isAutoserv && ocupadasPlano.has(m.nombre);
+                                            const isReservada = !isOcupada && !isAutoserv && reservadasPlano.has(m.nombre);
+                                            const isEvento    = !isOcupada && !isReservada && !isAutoserv && eventosPlano.includes(m.nombre);
                                             const isBanq      = m.tipo === "banqueta";
                                             const isSel       = mesas.includes(m.nombre);
-                                            const bloqueada   = isOcupada || isEvento;
+                                            const bloqueada   = isOcupada || isEvento || isAutoserv;
                                             const label       = isBanq ? `B${m.nombre}` : m.nombre;
                                             const cls = isSel      ? "bg-gray-900 border-gray-700 text-white"
+                                                : isAutoserv       ? "bg-purple-100 border-purple-300 text-purple-600 opacity-70"
                                                 : isOcupada        ? "bg-red-100 border-red-300 text-red-500 opacity-60"
                                                 : isReservada      ? "bg-yellow-100 border-yellow-300 text-yellow-700"
                                                 : isEvento         ? "bg-blue-100 border-blue-300 text-blue-600 opacity-70"
@@ -1045,6 +1054,7 @@ function AnotadorMenuContent() {
                                     <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-emerald-200 border border-emerald-300 inline-block"/>Libre</span>
                                     <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-200 border border-red-300 inline-block"/>Ocupada</span>
                                     <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-200 border border-yellow-300 inline-block"/>Reservada</span>
+                                    <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-purple-200 border border-purple-300 inline-block"/>Autoservicio</span>
                                     <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-gray-900 inline-block"/>Seleccionada</span>
                                 </div>
                                 {mesas.length > 0 && (

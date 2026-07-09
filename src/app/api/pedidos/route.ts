@@ -7,6 +7,7 @@ import Mensaje from "@/models/Mensaje";
 import { PointTransaction } from "@/models/PointTransaction";
 import { Counter } from "@/models/Counter";
 import { CajaMovement } from "@/models/CajaMovement";
+import { AutoservicioSesion } from "@/models/AutoservicioSesion";
 import jwt from "jsonwebtoken";
 import { sendPushToSubscriptions, sendPushAndCollectInvalid } from "@/lib/push-server";
 import { enviarNotificacionFCM, isFCMTokenInvalid } from "@/lib/firebase-admin";
@@ -127,6 +128,21 @@ export async function POST(req: NextRequest) {
         const { items, tipoEntrega, direccion, fuente, mesa, comensales, nombreComanda, notaEmpleado, notaCliente, horarioPreferido, lat, lng, clienteId, eventoId, comensalesIds, metodoPago, telefonoContacto } = await req.json();
         const esAutoservicio = fuente === "autoservicio";
         const esEmpleado = ["empleado", "cajero", "admin", "superadmin"].includes(payload.role);
+
+        // Empleados no pueden crear comandas en mesas con sesión de autoservicio activa
+        if (esEmpleado && mesa && !esAutoservicio) {
+            const mesasArray = String(mesa).split(",").map((s: string) => s.trim()).filter(Boolean);
+            const sesionActiva = await AutoservicioSesion.findOne({
+                mesasNombres: { $in: mesasArray },
+                estado: "activa",
+            }).lean();
+            if (sesionActiva) {
+                return NextResponse.json(
+                    { message: "Esta mesa tiene un autoservicio activo. No se pueden crear nuevas comandas." },
+                    { status: 409 }
+                );
+            }
+        }
 
         // Pedidos desactivados no bloquean autoservicio (el cliente ya está en el bar)
         if (!config.pedidosActivos && payload.role === "cliente" && !esAutoservicio) {
