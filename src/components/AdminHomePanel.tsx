@@ -242,9 +242,10 @@ export function AdminHome() {
         <section>
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] px-1 mb-2.5">Contenido</p>
           <div className="grid grid-cols-2 gap-2.5">
-            <AdminCard href="/admin/menu"      title="Menú"    Icon={Utensils} />
-            <AdminCard href="/admin/reviews"   title="Reseñas" Icon={Star} />
-            <AdminCard href="/admin/carrousel" title="Fotos"   Icon={Images} />
+            <AdminCard href="/admin/menu"          title="Menú"         Icon={Utensils} />
+            <AdminCard href="/admin/reviews"       title="Reseñas"      Icon={Star} />
+            <AdminCard href="/admin/carrousel"     title="Fotos"        Icon={Images} />
+            <AdminCard href="/admin/invitaciones"  title="Invitaciones" Icon={CalendarDays} />
           </div>
         </section>
 

@@ -109,6 +109,7 @@ function Landing() {
   HOME CLIENTE
    ========================= */
 type MenuDelDiaItem = { _id: string; nombre: string; descripcion?: string; precio: number };
+type Invitacion = { _id: string; titulo: string; descripcion?: string; fecha: string; hora?: string; precio?: number; imagenUrl?: string; colorFondo?: string };
 
 function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: number; userId?: string }) {
   const isOwner = userId === "68b212ac8a60afb869a18626";
@@ -118,6 +119,7 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
   const [menuDelDia, setMenuDelDia] = useState<MenuDelDiaItem[]>([]);
   const [menuDelDiaLoading, setMenuDelDiaLoading] = useState(true);
   const [menuDelDiaTiene, setMenuDelDiaTiene] = useState(false);
+  const [invitaciones, setInvitaciones] = useState<Invitacion[]>([]);
   const [pedidosActivosCount, setPedidosActivosCount] = useState(0);
   const [pedidosActivos, setPedidosActivos] = useState(true);
   const [reservasActivas, setReservasActivas] = useState(true);
@@ -186,9 +188,19 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
       finally { setMenuDelDiaLoading(false); }
     };
 
+    const fetchInvitaciones = async () => {
+      try {
+        const res = await fetch("/api/cliente/invitaciones", { credentials: "include", cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        setInvitaciones(Array.isArray(data) ? data : []);
+      } catch { }
+    };
+
     fetchRewards();
     fetchCarousel();
     fetchMenuDelDia();
+    fetchInvitaciones();
   }, []);
 
   useEffect(() => {
@@ -337,6 +349,61 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
             <p className="text-xs text-blue-600">Te está esperando en la puerta con tu pedido 🛵</p>
           </div>
         </div>
+      )}
+
+      {/* Invitaciones a eventos */}
+      {invitaciones.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-black text-gray-400 uppercase tracking-widest px-1">Eventos</h2>
+          <div className="space-y-3">
+            {invitaciones.map(inv => {
+              const fechaEvento = new Date(inv.fecha);
+              const fechaStr = fechaEvento.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+              const tieneFondo = inv.imagenUrl || inv.colorFondo;
+              return (
+                <div
+                  key={inv._id}
+                  className="relative rounded-2xl overflow-hidden shadow-lg"
+                  style={{
+                    background: inv.imagenUrl ? undefined : (inv.colorFondo || "#111111"),
+                    minHeight: "160px",
+                  }}
+                >
+                  {inv.imagenUrl && (
+                    <>
+                      <img src={inv.imagenUrl} alt={inv.titulo} className="absolute inset-0 w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/55" />
+                    </>
+                  )}
+                  <div className={`relative z-10 p-5 flex flex-col gap-2 ${tieneFondo ? "text-white" : "text-white"}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <h3 className="font-black text-xl leading-tight">{inv.titulo}</h3>
+                      {(inv.precio ?? 0) > 0 && (
+                        <span className="shrink-0 bg-white/20 border border-white/30 backdrop-blur-sm text-white text-sm font-black px-3 py-1 rounded-full">
+                          ${new Intl.NumberFormat("es-AR").format(inv.precio!)}
+                        </span>
+                      )}
+                    </div>
+                    {inv.descripcion && (
+                      <p className="text-sm text-white/80 line-clamp-2">{inv.descripcion}</p>
+                    )}
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="flex items-center gap-1.5 bg-white/20 border border-white/30 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1 rounded-full capitalize">
+                        <CalendarDays size={12} />
+                        {fechaStr}
+                      </span>
+                      {inv.hora && (
+                        <span className="bg-white/20 border border-white/30 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1 rounded-full">
+                          {inv.hora}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
       )}
 
       {/* Carrusel de recompensas */}
