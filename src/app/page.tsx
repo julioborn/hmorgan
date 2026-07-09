@@ -357,7 +357,7 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
           <h2 className="text-sm font-black text-gray-400 uppercase tracking-widest px-1">Eventos</h2>
           <div className="space-y-3">
             {invitaciones.map(inv => {
-              const fechaEvento = new Date(inv.fecha + "T12:00:00");
+              const fechaEvento = new Date(inv.fecha.length === 10 ? inv.fecha + "T12:00:00" : inv.fecha);
               const fechaStr = fechaEvento.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
 
               if (inv.tema === "trasnoche") {

@@ -159,7 +159,7 @@ export default function InvitacionesPage() {
                 )}
 
                 {invitaciones.map(inv => {
-                    const fechaStr = inv.fecha ? fmt.format(new Date(inv.fecha + "T12:00:00")) : "—";
+                    const fechaStr = inv.fecha ? fmt.format(new Date(inv.fecha.length === 10 ? inv.fecha + "T12:00:00" : inv.fecha)) : "—";
                     const bg = inv.imagenUrl
                         ? `url(${inv.imagenUrl}) center/cover`
                         : `linear-gradient(135deg, ${inv.colorFondo}cc, ${inv.colorFondo})`;
