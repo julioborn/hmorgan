@@ -116,8 +116,9 @@ export default function DeliveryPage() {
     if (loading || loadingData) return <div className="flex justify-center py-20"><Loader size={64} /></div>;
     if (!user) return null;
 
-    const enCamino  = pedidos.filter(p => p.estado === "listo");
-    const entregados = pedidos.filter(p => p.estado === "entregado");
+    const enPreparacion = pedidos.filter(p => p.estado === "preparando");
+    const enCamino      = pedidos.filter(p => p.estado === "listo");
+    const entregados    = pedidos.filter(p => p.estado === "entregado");
 
     return (
         <div className="min-h-screen bg-white pb-24">
@@ -130,18 +131,41 @@ export default function DeliveryPage() {
                     <div>
                         <h1 className="text-xl font-black text-gray-900 leading-none">Entregas</h1>
                         <p className="text-sm text-gray-400 mt-1">
-                            {enCamino.length === 0 ? "Sin envíos en camino" : `${enCamino.length} envío${enCamino.length !== 1 ? "s" : ""} en camino`}
+                            {enCamino.length === 0 && enPreparacion.length === 0
+                                ? "Sin envíos pendientes"
+                                : [
+                                    enPreparacion.length > 0 && `${enPreparacion.length} en preparación`,
+                                    enCamino.length > 0 && `${enCamino.length} listo${enCamino.length !== 1 ? "s" : ""}`,
+                                  ].filter(Boolean).join(" · ")}
                         </p>
                     </div>
                 </div>
 
-                {enCamino.length === 0 ? (
+                {/* ── En preparación ─────────────────────────── */}
+                {enPreparacion.length > 0 && (
+                    <>
+                        <p className="text-xs font-bold text-orange-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                            <Loader2 size={12} className="animate-spin" /> En preparación
+                        </p>
+                        <div className="space-y-2 mb-5">
+                            {enPreparacion.map(p => (
+                                <PreparacionCard key={p._id} p={p} />
+                            ))}
+                        </div>
+                    </>
+                )}
+
+                {/* ── Listos para llevar ──────────────────────── */}
+                {enCamino.length > 0 && (
+                    <p className="text-xs font-bold text-blue-500 uppercase tracking-wide mb-2">Listos para llevar</p>
+                )}
+                {enCamino.length === 0 && enPreparacion.length === 0 ? (
                     <div className="text-center py-10">
                         <Truck size={56} className="mx-auto text-gray-100 mb-4" />
                         <p className="font-bold text-gray-400">No hay envíos pendientes</p>
                         <p className="text-sm text-gray-300 mt-1">Los pedidos en camino van a aparecer acá</p>
                     </div>
-                ) : (
+                ) : enCamino.length === 0 ? null : (
                     <div className="space-y-3">
                         {enCamino.map(p => (
                             <PedidoCard key={p._id} p={p}
@@ -203,6 +227,42 @@ export default function DeliveryPage() {
                     )}
                 </div>
 
+            </div>
+        </div>
+    );
+}
+
+/* ── Card "en preparación" (solo lectura) ───────────────────────── */
+function PreparacionCard({ p }: { p: Pedido }) {
+    return (
+        <div className="bg-orange-50 rounded-2xl border border-orange-200 overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3">
+                <div className="min-w-0 flex-1">
+                    <p className="font-black text-gray-900 truncate">
+                        {p.nombreComanda || `${p.userId?.nombre ?? ""} ${p.userId?.apellido ?? ""}`.trim() || "Cliente"}
+                    </p>
+                    {p.direccion && (
+                        <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1 truncate">
+                            <MapPin size={11} className="text-red-400 shrink-0" />{p.direccion}
+                        </p>
+                    )}
+                </div>
+                <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-orange-200 text-orange-700 border border-orange-300 shrink-0 ml-2 flex items-center gap-1">
+                    <Loader2 size={11} className="animate-spin" /> Preparando
+                </span>
+            </div>
+            <div className="px-4 pb-3">
+                <ul className="divide-y divide-orange-100 border border-orange-100 rounded-xl overflow-hidden">
+                    {p.items.map((it, idx) => (
+                        <li key={idx} className="flex items-center gap-2 px-3 py-2 bg-white text-sm">
+                            <span className="font-bold text-gray-400">{it.cantidad}×</span>
+                            <span className="text-gray-700">{it.menuItemId?.nombre || "ítem"}</span>
+                        </li>
+                    ))}
+                </ul>
+                {(p.notaCliente || p.notaEmpleado) && (
+                    <p className="text-xs text-amber-600 italic mt-2">📝 {p.notaCliente || p.notaEmpleado}</p>
+                )}
             </div>
         </div>
     );

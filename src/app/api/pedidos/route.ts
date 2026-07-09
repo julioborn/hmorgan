@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
                 : payload.role === "empleado"
                 ? { fuente: "empleado" }
                 : payload.role === "delivery"
-                ? { tipoEntrega: "envio", estado: { $in: ["listo", "entregado"] } }
+                ? { tipoEntrega: "envio", estado: { $in: ["preparando", "listo", "entregado"] } }
                 : { userId: payload.sub };
 
         const mesaParams = req.nextUrl.searchParams.getAll("mesa");
@@ -361,6 +361,28 @@ export async function PUT(req: NextRequest) {
 
         if (estado === "entregado" || estado === "cancelado") {
             await programarBorradoMensajes(id);
+        }
+
+        // 🛵 Notificar a todos los delivery cuando un envío entra en preparación
+        if (estado === "preparando" && pedido.tipoEntrega === "envio") {
+            const deliveryUsers = await User.find({ role: "delivery" });
+            const notifTitle = "¡Nuevo envío en preparación! 👨🏻‍🍳";
+            const clienteDelivery = pedido.userId ? await User.findById(pedido.userId).lean<any>() : null;
+            const notifBody = `Están preparando un envío${clienteDelivery?.nombre ? ` para ${clienteDelivery.nombre}` : ""}`;
+            for (const du of deliveryUsers) {
+                if (du.pushSubscriptions?.length) {
+                    await sendPushToSubscriptions(du.pushSubscriptions, {
+                        title: notifTitle, body: notifBody,
+                        url: "/delivery",
+                        icon: "/icon-192.png", badge: "/icon-badge-96x96.png",
+                    });
+                }
+                const fcmTokens = new Set<string>([...(du.fcmTokens ?? []), ...(du.tokenFCM ? [du.tokenFCM] : [])]);
+                for (const t of fcmTokens) {
+                    try { await enviarNotificacionFCM(t, notifTitle, notifBody, "/delivery"); }
+                    catch (err) { if (isFCMTokenInvalid(err)) await User.updateOne({ _id: du._id }, { $pull: { fcmTokens: t } }); }
+                }
+            }
         }
 
         // 🛵 Notificar a todos los delivery cuando un envío queda listo
