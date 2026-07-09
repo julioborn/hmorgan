@@ -37,6 +37,7 @@ import { OWNER_USER_ID } from "@/lib/owner";
 export default function Header() {
   const { user, loading, logout } = useAuth();
   const [open, setOpen] = useState(false);
+  const [confirmarLogout, setConfirmarLogout] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -160,7 +161,7 @@ export default function Header() {
           <>
             {/* Overlay */}
             <div
-              onClick={() => setOpen(false)}
+              onClick={() => { setOpen(false); setConfirmarLogout(false); }}
               className="fixed inset-0 bg-black/60 z-40"
             />
 
@@ -223,16 +224,30 @@ export default function Header() {
                 </nav>
 
                 {/* Cerrar sesión */}
-                <button
-                  onClick={() => {
-                    setOpen(false);
-                    logout();
-                  }}
-                  className="mt-8 flex items-center gap-3 px-3 py-2 rounded-lg text-red-500 hover:bg-red-500/10 transition text-lg w-full"
-                >
-                  <LogOut size={20} />
-                  Cerrar sesión
-                </button>
+                {confirmarLogout ? (
+                  <div className="mt-8 flex items-center gap-2">
+                    <button
+                      onClick={() => { setOpen(false); logout(); }}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-red-500 text-white font-bold transition hover:bg-red-600"
+                    >
+                      <LogOut size={18} /> Sí, salir
+                    </button>
+                    <button
+                      onClick={() => setConfirmarLogout(false)}
+                      className="px-3 py-2 rounded-lg text-gray-500 hover:bg-gray-100 transition font-semibold"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmarLogout(true)}
+                    className="mt-8 flex items-center gap-3 px-3 py-2 rounded-lg text-red-500 hover:bg-red-500/10 transition text-lg w-full"
+                  >
+                    <LogOut size={20} />
+                    Cerrar sesión
+                  </button>
+                )}
 
               </div>
             </motion.div>
