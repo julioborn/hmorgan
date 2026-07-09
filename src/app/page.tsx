@@ -227,7 +227,10 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
         const data = await res.json();
         if (!Array.isArray(data)) return;
         setRepartidorAfuera(data.some((p: any) => p.tipoEntrega === "envio" && p.estado === "listo" && p.repartidorAfuera));
-        setPedidosActivosCount(data.filter((p: any) => ["pendiente", "aceptado", "preparando", "listo"].includes(p.estado)).length);
+        setPedidosActivosCount(data.filter((p: any) =>
+            ["pendiente", "aceptado", "preparando", "listo"].includes(p.estado) &&
+            p.fuente !== "autoservicio"
+        ).length);
       } catch { }
     };
     const fetchComandaActiva = async () => {

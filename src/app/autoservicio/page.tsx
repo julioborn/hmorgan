@@ -60,6 +60,7 @@ interface CartDrawerProps {
 }
 
 function CartDrawer({ items, menu, notasProducto, onSetNotaProducto, enviando, error, total, sesion, onClose, onVaciar, onEliminar, onEnviar }: CartDrawerProps) {
+    const [confirmando, setConfirmando] = useState(false);
     return (
         <motion.div
             className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm flex flex-col justify-end"
@@ -117,13 +118,29 @@ function CartDrawer({ items, menu, notasProducto, onSetNotaProducto, enviando, e
                     <p className="mt-3 text-sm text-red-600 font-semibold text-center">{error}</p>
                 )}
                 <div className="flex gap-3 mt-4">
-                    <button onClick={onVaciar} className="flex items-center gap-1 px-4 py-2 rounded-xl border border-gray-300 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition">
+                    <button onClick={() => { onVaciar(); setConfirmando(false); }} className="flex items-center gap-1 px-4 py-2 rounded-xl border border-gray-300 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition">
                         <Trash2 size={16} />
                     </button>
-                    <button onClick={onEnviar} disabled={enviando}
-                        className="flex-1 bg-purple-600 text-white py-3 rounded-xl font-bold text-base disabled:opacity-50 hover:bg-purple-700 transition active:scale-[0.98]">
-                        {enviando ? "Enviando..." : `Confirmar pedido · $${fmt(total)}`}
-                    </button>
+                    {!confirmando ? (
+                        <button onClick={() => setConfirmando(true)} disabled={enviando}
+                            className="flex-1 bg-purple-600 text-white py-3 rounded-xl font-bold text-base disabled:opacity-50 hover:bg-purple-700 transition active:scale-[0.98]">
+                            {`Confirmar pedido · $${fmt(total)}`}
+                        </button>
+                    ) : (
+                        <div className="flex-1 flex flex-col gap-2">
+                            <p className="text-center text-sm font-bold text-gray-700">¿Confirmás el pedido?</p>
+                            <div className="flex gap-2">
+                                <button onClick={() => setConfirmando(false)}
+                                    className="flex-1 py-2.5 rounded-xl border border-gray-300 text-gray-600 text-sm font-semibold transition active:scale-[0.97]">
+                                    Revisar
+                                </button>
+                                <button onClick={onEnviar} disabled={enviando}
+                                    className="flex-1 py-2.5 rounded-xl bg-purple-600 text-white font-black text-sm disabled:opacity-50 transition active:scale-[0.97]">
+                                    {enviando ? "Enviando..." : "Sí, enviar"}
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </motion.div>
         </motion.div>
@@ -139,6 +156,8 @@ export default function AutoservicioPage() {
     const [menu, setMenu] = useState<MenuItem[]>([]);
     const [cargando, setCargando] = useState(true);
     const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null);
+    const catRef = useRef<string | null>(null);
+    catRef.current = categoriaSeleccionada;
     const [items, setItems] = useState<Record<string, number>>({});
     const [notasProducto, setNotasProducto] = useState<Record<string, string>>({});
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -155,6 +174,24 @@ export default function AutoservicioPage() {
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
     }, [categoriaSeleccionada]);
+
+    // Interceptar el botón "atrás" del navegador/iOS para navegar dentro del autoservicio
+    useEffect(() => {
+        if (categoriaSeleccionada !== null) {
+            window.history.pushState({ autoservicio: categoriaSeleccionada }, "");
+        }
+    }, [categoriaSeleccionada]);
+
+    useEffect(() => {
+        function handlePop() {
+            const current = catRef.current;
+            if (current !== null) {
+                setCategoriaSeleccionada(BEBIDAS_CATS.includes(current) ? "BEBIDAS" : null);
+            }
+        }
+        window.addEventListener("popstate", handlePop);
+        return () => window.removeEventListener("popstate", handlePop);
+    }, []);
 
     useEffect(() => {
         if (!user) return;
