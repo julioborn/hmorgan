@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
     Tablet, List, LayoutGrid, X, CheckCircle, UserPlus, Plus, Minus,
-    ChevronLeft, ShoppingCart, UtensilsCrossed, Clock,
+    ChevronLeft, ShoppingCart, UtensilsCrossed, Clock, ChevronDown, Users,
 } from "lucide-react";
 import Loader from "@/components/Loader";
 import { useCategoryConfigs } from "@/hooks/useCategoryConfigs";
@@ -50,12 +50,24 @@ export default function EmpleadoAutoservicioPage() {
     const [notasAdd, setNotasAdd] = useState<Record<string, string>>({});
     const [enviandoItems, setEnviandoItems] = useState(false);
 
-    // Agregar cliente a sesión existente
-    const [agregandoClienteId, setAgregandoClienteId] = useState<string | null>(null);
+    // Agregar cliente a sesión existente (modal)
+    const [agregarModal, setAgregarModal] = useState<{ sesionId: string; label: string } | null>(null);
     const [agregandoInput, setAgregandoInput] = useState("");
     const [agregandoSug, setAgregandoSug] = useState<UsuarioSug[]>([]);
     const [agregandoBuscando, setAgregandoBuscando] = useState(false);
     const debounceAgregarRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [sesionesExpandidas, setSesionesExpandidas] = useState<Set<string>>(new Set());
+
+    function toggleExpandida(id: string) {
+        setSesionesExpandidas(prev => {
+            const next = new Set(prev);
+            next.has(id) ? next.delete(id) : next.add(id);
+            return next;
+        });
+    }
+    function cerrarAgregarModal() {
+        setAgregarModal(null); setAgregandoInput(""); setAgregandoSug([]);
+    }
 
     async function cargar() {
         const [mRes, elRes, sRes] = await Promise.all([
@@ -113,9 +125,7 @@ export default function EmpleadoAutoservicioPage() {
             body: JSON.stringify({ accion: "agregarUsuario", username: usuario.username }),
         });
         if (res.ok) {
-            setAgregandoClienteId(null);
-            setAgregandoInput("");
-            setAgregandoSug([]);
+            cerrarAgregarModal();
             await cargar();
         }
     }
@@ -341,24 +351,29 @@ export default function EmpleadoAutoservicioPage() {
                                 <Plus size={15}/> Asignar nueva
                             </button>
                         </div>
-                    ) : sesiones.map(s => (
+                    ) : sesiones.map(s => {
+                        const expandida = sesionesExpandidas.has(s._id);
+                        return (
                         <div key={s._id} className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden">
                             {/* Header sesión */}
                             <div className="px-4 py-3 bg-purple-600">
-                                <div className="flex items-center gap-3">
-                                    <div className="flex-1">
-                                        <p className="font-black text-white text-base">
+                                <div className="flex items-center gap-2">
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-black text-white text-base leading-tight">
                                             Mesa{s.mesasNombres.length>1?"s":""} {s.mesasNombres.join(", ")}
                                         </p>
-                                        <p className="text-purple-200 text-xs">
-                                            {s.usuariosIds.map(u => `${u.nombre || ""}${u.apellido ? " "+u.apellido : ""} (@${u.username})`).join(", ")}
-                                        </p>
+                                        <button onClick={() => toggleExpandida(s._id)}
+                                            className="flex items-center gap-1 text-purple-200 text-xs mt-0.5 active:opacity-70">
+                                            <Users size={11}/>
+                                            {s.usuariosIds.length} cliente{s.usuariosIds.length !== 1 ? "s" : ""}
+                                            <ChevronDown size={11} className={`transition-transform ${expandida ? "rotate-180" : ""}`}/>
+                                        </button>
                                     </div>
                                     <button onClick={() => abrirAgregar(s)}
                                         className="flex items-center gap-1.5 bg-white text-purple-700 font-bold text-xs px-3 py-1.5 rounded-lg transition hover:bg-purple-50">
                                         <Plus size={13}/> Agregar
                                     </button>
-                                    <button onClick={() => { setAgregandoClienteId(agregandoClienteId === s._id ? null : s._id); setAgregandoInput(""); setAgregandoSug([]); }}
+                                    <button onClick={() => { setAgregarModal({ sesionId: s._id, label: `Mesa${s.mesasNombres.length>1?"s":""} ${s.mesasNombres.join(", ")}` }); setAgregandoInput(""); setAgregandoSug([]); }}
                                         className="p-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg transition"
                                         title="Agregar cliente">
                                         <UserPlus size={14}/>
@@ -368,35 +383,14 @@ export default function EmpleadoAutoservicioPage() {
                                         <X size={14}/>
                                     </button>
                                 </div>
-                                {/* Buscador inline para agregar cliente */}
-                                {agregandoClienteId === s._id && (
-                                    <div className="mt-2 relative">
-                                        <input
-                                            autoFocus
-                                            value={agregandoInput}
-                                            onChange={e => setAgregandoInput(e.target.value)}
-                                            placeholder="Buscar por nombre o @usuario..."
-                                            style={{ fontSize: "16px" }}
-                                            className="w-full px-3 py-2 rounded-xl text-sm text-gray-900 bg-white placeholder-gray-400 focus:outline-none"
-                                        />
-                                        {agregandoBuscando && (
-                                            <p className="text-purple-200 text-xs mt-1">Buscando...</p>
-                                        )}
-                                        {agregandoSug.length > 0 && (
-                                            <div className="absolute top-full left-0 right-0 z-20 bg-white border border-gray-200 rounded-xl shadow-lg mt-1 overflow-hidden">
-                                                {agregandoSug
-                                                    .filter(u => !s.usuariosIds.some(eu => eu._id === u._id))
-                                                    .map(u => (
-                                                        <button key={u._id} onMouseDown={e => e.preventDefault()}
-                                                            onClick={() => agregarClienteASesion(s._id, u)}
-                                                            className="w-full text-left px-3 py-2.5 hover:bg-purple-50 text-sm border-b border-gray-50 last:border-0 transition">
-                                                            <span className="font-semibold text-gray-900">{u.nombre} {u.apellido}</span>
-                                                            <span className="text-gray-400 text-xs ml-2">@{u.username}</span>
-                                                        </button>
-                                                    ))
-                                                }
-                                            </div>
-                                        )}
+                                {/* Lista de clientes desplegable */}
+                                {expandida && (
+                                    <div className="mt-2 pt-2 border-t border-purple-500 flex flex-wrap gap-1.5">
+                                        {s.usuariosIds.map(u => (
+                                            <span key={u._id} className="bg-white/20 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+                                                {u.nombre} {u.apellido}
+                                            </span>
+                                        ))}
                                     </div>
                                 )}
                             </div>
@@ -439,7 +433,8 @@ export default function EmpleadoAutoservicioPage() {
                                 </div>
                             )}
                         </div>
-                    ))}
+                    );
+                    })}
                 </div>
             )}
 
@@ -589,6 +584,60 @@ export default function EmpleadoAutoservicioPage() {
                                 <CheckCircle size={16}/>{enviando ? "Activando..." : "Activar autoservicio"}
                             </button>
                             <button onClick={cerrarModal} className="w-full py-3 rounded-2xl text-sm font-semibold text-gray-500 hover:bg-gray-100 transition">Cancelar</button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* ── Modal: Agregar cliente a sesión activa ── */}
+            {agregarModal && createPortal(
+                <div className="fixed inset-0 z-[300] bg-black/60 flex items-end justify-center p-4"
+                    onClick={cerrarAgregarModal}>
+                    <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden"
+                        onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-100">
+                            <div>
+                                <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Agregar cliente</p>
+                                <h3 className="font-black text-gray-900 text-lg">{agregarModal.label}</h3>
+                            </div>
+                            <button onClick={cerrarAgregarModal} className="p-1.5 text-gray-400 hover:text-gray-600">
+                                <X size={18}/>
+                            </button>
+                        </div>
+                        <div className="px-5 py-4">
+                            <input
+                                autoFocus
+                                value={agregandoInput}
+                                onChange={e => setAgregandoInput(e.target.value)}
+                                placeholder="Buscar por nombre o @usuario..."
+                                style={{ fontSize: "16px" }}
+                                className="w-full px-4 py-3 rounded-2xl border-2 border-gray-200 text-sm focus:outline-none focus:border-purple-400 transition"
+                            />
+                            {agregandoBuscando && <p className="text-xs text-gray-400 mt-2 px-1">Buscando...</p>}
+                            {agregandoSug.length > 0 && (() => {
+                                const sesionActual = sesiones.find(s => s._id === agregarModal.sesionId);
+                                const disponibles = agregandoSug.filter(u => !sesionActual?.usuariosIds.some(eu => eu._id === u._id));
+                                if (!disponibles.length) return null;
+                                return (
+                                    <div className="mt-2 border border-gray-200 rounded-2xl overflow-hidden">
+                                        {disponibles.map(u => (
+                                            <button key={u._id} onMouseDown={e => e.preventDefault()}
+                                                onClick={() => agregarClienteASesion(agregarModal.sesionId, u)}
+                                                className="w-full text-left px-4 py-3 hover:bg-purple-50 border-b border-gray-50 last:border-0 transition">
+                                                <p className="font-semibold text-gray-900 text-sm">{u.nombre} {u.apellido}</p>
+                                                <p className="text-gray-400 text-xs mt-0.5">@{u.username}</p>
+                                            </button>
+                                        ))}
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                        <div className="px-5 pb-5">
+                            <button onClick={cerrarAgregarModal}
+                                className="w-full py-3 rounded-2xl text-sm font-semibold text-gray-500 hover:bg-gray-100 transition">
+                                Cancelar
+                            </button>
                         </div>
                     </div>
                 </div>,
