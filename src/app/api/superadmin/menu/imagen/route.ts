@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 import jwt from "jsonwebtoken";
+import { admin } from "@/lib/firebase-admin";
+import { OWNER_USER_ID } from "@/lib/owner";
 
 export const dynamic = "force-dynamic";
 
 const SECRET = process.env.NEXTAUTH_SECRET!;
-const IMG_DIR = path.join(process.cwd(), "public", "imagenes-menu");
-
-import { OWNER_USER_ID } from "@/lib/owner";
 
 async function authorize(req: NextRequest) {
     const token = req.cookies.get("session")?.value;
@@ -26,12 +23,18 @@ export async function POST(req: NextRequest) {
     const file = formData.get("file") as File | null;
     if (!file) return NextResponse.json({ error: "Sin archivo" }, { status: 400 });
 
-    await mkdir(IMG_DIR, { recursive: true });
-
     const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    const filename = `cat_${Date.now()}.${ext}`;
-    const filePath = path.join(IMG_DIR, filename);
-    await writeFile(filePath, Buffer.from(await file.arrayBuffer()));
+    const filename = `imagenes-menu/cat_${Date.now()}.${ext}`;
+    const buffer = Buffer.from(await file.arrayBuffer());
 
-    return NextResponse.json({ url: `/imagenes-menu/${filename}` });
+    const bucket = admin.storage().bucket();
+    const storageFile = bucket.file(filename);
+
+    await storageFile.save(buffer, {
+        metadata: { contentType: file.type || `image/${ext}` },
+    });
+    await storageFile.makePublic();
+
+    const url = `https://storage.googleapis.com/${bucket.name}/${filename}`;
+    return NextResponse.json({ url });
 }

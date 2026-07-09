@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { CarouselImage } from "@/models/CarouselImage";
-import { unlink } from "fs/promises";
-import path from "path";
+import { admin } from "@/lib/firebase-admin";
 
 export async function DELETE(
     _req: NextRequest,
@@ -16,10 +15,14 @@ export async function DELETE(
     }
 
     try {
-        const filePath = path.join(process.cwd(), "public", image.url);
-        await unlink(filePath);
+        const bucket = admin.storage().bucket();
+        const bucketPrefix = `https://storage.googleapis.com/${bucket.name}/`;
+        if (image.url?.startsWith(bucketPrefix)) {
+            const filePath = image.url.slice(bucketPrefix.length);
+            await bucket.file(filePath).delete({ ignoreNotFound: true });
+        }
     } catch {
-        // El archivo ya no existe, continuar igual
+        // Ignore errors — file may already be gone
     }
 
     await CarouselImage.findByIdAndDelete(params.id);

@@ -1,30 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { CarouselImage } from "@/models/CarouselImage";
-import { writeFile } from "fs/promises";
-import { readdir } from "fs/promises";
-import path from "path";
-
-const CAROUSEL_DIR = path.join(process.cwd(), "public", "imagenes-carrousel");
+import { admin } from "@/lib/firebase-admin";
 
 async function seedIfEmpty() {
     const count = await CarouselImage.countDocuments();
     if (count > 0) return;
-
-    let files: string[] = [];
-    try {
-        files = await readdir(CAROUSEL_DIR);
-        files = files.filter((f) => /\.(jpe?g|png|webp|gif)$/i.test(f));
-    } catch {
-        return;
-    }
-
-    const seeds = files.map((filename, i) => ({
-        filename,
-        url: `/imagenes-carrousel/${filename}`,
-        orden: i,
-    }));
-    if (seeds.length > 0) await CarouselImage.insertMany(seeds);
+    // No filesystem seed on Vercel — skip if no docs exist
 }
 
 export async function GET() {
@@ -45,18 +27,25 @@ export async function POST(req: NextRequest) {
     }
 
     const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    const filename = `carrousel_${Date.now()}.${ext}`;
-    const filePath = path.join(CAROUSEL_DIR, filename);
-
+    const filename = `imagenes-carrousel/carrousel_${Date.now()}.${ext}`;
     const buffer = Buffer.from(await file.arrayBuffer());
-    await writeFile(filePath, buffer);
+
+    const bucket = admin.storage().bucket();
+    const storageFile = bucket.file(filename);
+
+    await storageFile.save(buffer, {
+        metadata: { contentType: file.type || `image/${ext}` },
+    });
+    await storageFile.makePublic();
+
+    const url = `https://storage.googleapis.com/${bucket.name}/${filename}`;
 
     const last = await CarouselImage.findOne().sort({ orden: -1 }).lean() as any;
     const orden = last ? last.orden + 1 : 0;
 
     const image = await CarouselImage.create({
         filename,
-        url: `/imagenes-carrousel/${filename}`,
+        url,
         orden,
     });
 
