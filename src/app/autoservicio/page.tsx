@@ -264,17 +264,14 @@ export default function AutoservicioPage() {
         if (!sesion || totalItems === 0) return;
         const seleccion = Object.entries(items)
             .filter(([_, cant]) => cant > 0)
-            .map(([id, cant]) => ({ menuItemId: id, cantidad: cant, nota: notasProducto[id]?.trim() || undefined }));
+            .map(([id, cant]) => ({ menuItemId: id, cantidad: cant }));
         setEnviando(true);
         setPedidoError("");
         try {
-            const res = await fetch("/api/pedidos", {
+            const res = await fetch("/api/autoservicio/pedido", {
                 method: "POST", credentials: "include",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    items: seleccion, fuente: "autoservicio",
-                    mesa: sesion.mesasNombres.join(", "), tipoEntrega: "retira",
-                }),
+                body: JSON.stringify({ items: seleccion, notasProducto }),
             });
             if (res.ok) {
                 setItems({});
@@ -282,10 +279,10 @@ export default function AutoservicioPage() {
                 setDrawerOpen(false);
                 setPedidoOk(true);
                 setTimeout(() => setPedidoOk(false), 5000);
-                await fetchComanda(); // refrescar inmediatamente
+                await fetchComanda();
             } else {
                 const data = await res.json().catch(() => ({}));
-                setPedidoError(data.message || "Error al enviar el pedido");
+                setPedidoError(data.error || "Error al enviar el pedido");
             }
         } catch {
             setPedidoError("Error de conexión");
