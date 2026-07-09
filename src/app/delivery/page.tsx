@@ -185,10 +185,10 @@ export default function DeliveryPage() {
                             {entregados.map(p => (
                                 <div key={p._id} className="bg-gray-50 rounded-xl border border-gray-100 px-4 py-3 flex items-center justify-between">
                                     <div className="min-w-0 flex-1">
-                                        <p className="font-bold text-gray-700 text-sm truncate">
+                                        <p className="font-bold text-gray-700 text-sm break-words">
                                             {p.nombreComanda || `${p.userId?.nombre ?? ""} ${p.userId?.apellido ?? ""}`.trim() || "Cliente"}
                                         </p>
-                                        {p.direccion && <p className="text-xs text-gray-400 truncate flex items-center gap-1 mt-0.5"><MapPin size={11} />{p.direccion}</p>}
+                                        {p.direccion && <p className="text-xs text-gray-400 break-words flex items-start gap-1 mt-0.5"><MapPin size={11} className="shrink-0 mt-0.5" />{p.direccion}</p>}
                                     </div>
                                     <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 shrink-0 ml-2 flex items-center gap-1">
                                         <Clock size={11} /> Entregado
@@ -238,12 +238,12 @@ function PreparacionCard({ p }: { p: Pedido }) {
         <div className="bg-orange-50 rounded-2xl border border-orange-200 overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3">
                 <div className="min-w-0 flex-1">
-                    <p className="font-black text-gray-900 truncate">
+                    <p className="font-black text-gray-900 break-words">
                         {p.nombreComanda || `${p.userId?.nombre ?? ""} ${p.userId?.apellido ?? ""}`.trim() || "Cliente"}
                     </p>
                     {p.direccion && (
-                        <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1 truncate">
-                            <MapPin size={11} className="text-red-400 shrink-0" />{p.direccion}
+                        <p className="text-xs text-gray-500 mt-0.5 flex items-start gap-1 break-words">
+                            <MapPin size={11} className="text-red-400 shrink-0 mt-0.5" />{p.direccion}
                         </p>
                     )}
                 </div>
@@ -279,9 +279,9 @@ function PedidoCard({ p, avisandoId, updatingId, onAvisar, onEntregado }: {
     const fmt = (n: number) => new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0 }).format(n);
     return (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
-                <div className="min-w-0 flex-1">
-                    <p className="font-black text-gray-900 truncate">
+            <div className="flex items-start justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
+                <div className="flex-1 mr-2">
+                    <p className="font-black text-gray-900 break-words">
                         {p.nombreComanda || `${p.userId?.nombre ?? ""} ${p.userId?.apellido ?? ""}`.trim() || "Cliente"}
                     </p>
                     <p className="text-xs text-gray-400 mt-0.5">
