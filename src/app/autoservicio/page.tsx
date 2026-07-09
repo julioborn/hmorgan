@@ -43,34 +43,22 @@ const categoryIcons: Record<string, React.ElementType> = {
     "POSTRE Y CAFE": CakeSlice,
 };
 
-/* ─── CategoryCard — fuera del componente principal para evitar remount en cada render ── */
+/* ─── CategoryCard — fuera del componente para evitar remount en cada render ── */
 interface CategoryCardProps {
-    cat: string;
-    idx: number;
-    bg: string | undefined;
-    pos: string;
-    isSpecial: boolean;
-    count: number;
-    onClick: () => void;
+    cat: string; idx: number; bg: string | undefined; pos: string;
+    isSpecial: boolean; count: number; onClick: () => void;
 }
-
 function CategoryCard({ cat, idx, bg, pos, isSpecial, count, onClick }: CategoryCardProps) {
     return (
-        <motion.button
-            onClick={onClick}
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
+        <motion.button onClick={onClick} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.04 }}
-            className={`relative w-full rounded-2xl overflow-hidden shadow-md active:scale-[0.97] transition-transform ${isSpecial ? "col-span-2 h-56" : "h-36"}`}
-        >
+            className={`relative w-full rounded-2xl overflow-hidden shadow-md active:scale-[0.97] transition-transform ${isSpecial ? "col-span-2 h-56" : "h-36"}`}>
             {bg
                 ? <MenuImg src={bg} alt={cat} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: pos }} />
                 : <div className={`absolute inset-0 ${isSpecial ? "bg-gradient-to-br from-amber-400 to-amber-600" : "bg-gradient-to-br from-gray-800 to-gray-600"}`} />
             }
             <div className={`absolute inset-0 bg-gradient-to-t ${isSpecial ? "from-black/75 via-black/10 to-transparent" : "from-black/85 via-black/30 to-black/10"}`} />
-            {isSpecial && (
-                <span className="absolute top-3 left-3 bg-white/90 text-amber-700 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">Hoy</span>
-            )}
+            {isSpecial && <span className="absolute top-3 left-3 bg-white/90 text-amber-700 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">Hoy</span>}
             <div className="absolute bottom-3 left-0 right-0 px-2 text-center">
                 <p className="text-white font-black text-sm tracking-tight leading-tight">{cat}</p>
                 <p className="text-white/60 text-[11px] font-medium mt-0.5">{count} {count === 1 ? "producto" : "productos"}</p>
@@ -81,34 +69,19 @@ function CategoryCard({ cat, idx, bg, pos, isSpecial, count, onClick }: Category
 
 /* ─── CartDrawer ─────────────────────────────────────────────────── */
 interface CartDrawerProps {
-    items: Record<string, number>;
-    menu: MenuItem[];
-    notasProducto: Record<string, string>;
-    onSetNotaProducto: (id: string, nota: string) => void;
-    enviando: boolean;
-    error: string;
-    total: number;
-    sesion: Sesion;
-    onClose: () => void;
-    onVaciar: () => void;
-    onEliminar: (id: string) => void;
-    onEnviar: () => void;
+    items: Record<string, number>; menu: MenuItem[]; notasProducto: Record<string, string>;
+    onSetNotaProducto: (id: string, nota: string) => void; enviando: boolean; error: string;
+    total: number; sesion: Sesion; onClose: () => void; onVaciar: () => void;
+    onEliminar: (id: string) => void; onEnviar: () => void;
 }
-
 function CartDrawer({ items, menu, notasProducto, onSetNotaProducto, enviando, error, total, sesion, onClose, onVaciar, onEliminar, onEnviar }: CartDrawerProps) {
     const [confirmando, setConfirmando] = useState(false);
     return (
-        <motion.div
-            className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm flex flex-col justify-end"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={onClose}
-        >
-            <motion.div
-                initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-                transition={{ type: "spring", damping: 25 }}
-                onClick={e => e.stopPropagation()}
-                className="relative bg-white rounded-t-3xl max-h-[85dvh] overflow-y-auto p-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]"
-            >
+        <motion.div className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm flex flex-col justify-end"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
+            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 25 }} onClick={e => e.stopPropagation()}
+                className="relative bg-white rounded-t-3xl max-h-[85dvh] overflow-y-auto p-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]">
                 <div className="flex items-center gap-2 mb-1">
                     <Tablet size={18} className="text-purple-600" />
                     <h3 className="text-2xl font-extrabold text-black">Tu pedido</h3>
@@ -116,7 +89,6 @@ function CartDrawer({ items, menu, notasProducto, onSetNotaProducto, enviando, e
                 <p className="text-xs text-purple-500 font-semibold mb-4">
                     Mesa{sesion.mesasNombres.length > 1 ? "s" : ""} {sesion.mesasNombres.join(", ")}
                 </p>
-
                 <div className="space-y-3">
                     {Object.entries(items).map(([id, cant]) => {
                         const producto = menu.find(m => m._id === id);
@@ -128,62 +100,41 @@ function CartDrawer({ items, menu, notasProducto, onSetNotaProducto, enviando, e
                                         <p className="font-semibold text-black">{producto.nombre}</p>
                                         <p className="text-sm text-gray-500">×{cant} — ${fmt(producto.precio * cant)}</p>
                                     </div>
-                                    <button onClick={() => onEliminar(id)} className="text-red-500 hover:text-red-700 p-1">
-                                        <X size={18} />
-                                    </button>
+                                    <button onClick={() => onEliminar(id)} className="text-red-500 hover:text-red-700 p-1"><X size={18} /></button>
                                 </div>
-                                <input
-                                    type="text"
-                                    placeholder="Observación para este producto"
-                                    value={notasProducto[id] || ""}
-                                    onChange={e => onSetNotaProducto(id, e.target.value)}
+                                <input type="text" placeholder="Observación para este producto"
+                                    value={notasProducto[id] || ""} onChange={e => onSetNotaProducto(id, e.target.value)}
                                     style={{ fontSize: "16px" }}
-                                    className="mt-1.5 w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-purple-400 bg-gray-50"
-                                />
+                                    className="mt-1.5 w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-purple-400 bg-gray-50" />
                             </div>
                         );
                     })}
                 </div>
-
                 <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
                     <span className="font-black text-lg text-black">Total</span>
                     <span className="font-black text-lg text-purple-600">${fmt(total)}</span>
                 </div>
-
-                {error && (
-                    <p className="mt-3 text-sm text-red-600 font-semibold text-center">{error}</p>
-                )}
-
+                {error && <p className="mt-3 text-sm text-red-600 font-semibold text-center">{error}</p>}
                 <div className="flex gap-3 mt-4">
-                    <button
-                        onClick={() => { onVaciar(); setConfirmando(false); }}
-                        className="flex items-center gap-1 px-4 py-2 rounded-xl border border-gray-300 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition"
-                    >
+                    <button onClick={() => { onVaciar(); setConfirmando(false); }}
+                        className="flex items-center gap-1 px-4 py-2 rounded-xl border border-gray-300 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition">
                         <Trash2 size={16} />
                     </button>
                     {!confirmando ? (
-                        <button
-                            onClick={() => setConfirmando(true)}
-                            disabled={enviando}
-                            className="flex-1 bg-purple-600 text-white py-3 rounded-xl font-bold text-base disabled:opacity-50 hover:bg-purple-700 transition active:scale-[0.98]"
-                        >
+                        <button onClick={() => setConfirmando(true)} disabled={enviando}
+                            className="flex-1 bg-purple-600 text-white py-3 rounded-xl font-bold text-base disabled:opacity-50 hover:bg-purple-700 transition active:scale-[0.98]">
                             {`Confirmar pedido · $${fmt(total)}`}
                         </button>
                     ) : (
                         <div className="flex-1 flex flex-col gap-2">
                             <p className="text-center text-sm font-bold text-gray-700">¿Confirmás el pedido?</p>
                             <div className="flex gap-2">
-                                <button
-                                    onClick={() => setConfirmando(false)}
-                                    className="flex-1 py-2.5 rounded-xl border border-gray-300 text-gray-600 text-sm font-semibold transition active:scale-[0.97]"
-                                >
+                                <button onClick={() => setConfirmando(false)}
+                                    className="flex-1 py-2.5 rounded-xl border border-gray-300 text-gray-600 text-sm font-semibold transition active:scale-[0.97]">
                                     Revisar
                                 </button>
-                                <button
-                                    onClick={onEnviar}
-                                    disabled={enviando}
-                                    className="flex-1 py-2.5 rounded-xl bg-purple-600 text-white font-black text-sm disabled:opacity-50 transition active:scale-[0.97]"
-                                >
+                                <button onClick={onEnviar} disabled={enviando}
+                                    className="flex-1 py-2.5 rounded-xl bg-purple-600 text-white font-black text-sm disabled:opacity-50 transition active:scale-[0.97]">
                                     {enviando ? "Enviando..." : "Sí, enviar"}
                                 </button>
                             </div>
@@ -214,8 +165,8 @@ export default function AutoservicioPage() {
     const [pedidoOk, setPedidoOk] = useState(false);
     const [pedidoError, setPedidoError] = useState("");
 
-    // Comanda activa + llamar
-    const [pedidosActivos, setPedidosActivos] = useState<any[]>([]);
+    // Comanda activa — todos los usuarios de la sesión
+    const [comanda, setComanda] = useState<{ pedidos: any[]; totalGeneral: number }>({ pedidos: [], totalGeneral: 0 });
     const [comandaOpen, setComandaOpen] = useState(true);
     const [llamadaEnviada, setLlamadaEnviada] = useState<Set<"mozo" | "cuenta">>(new Set());
     const [llamarConfirm, setLlamarConfirm] = useState<"mozo" | "cuenta" | null>(null);
@@ -242,57 +193,54 @@ export default function AutoservicioPage() {
         return () => window.removeEventListener("popstate", handlePop);
     }, []);
 
+    async function fetchComanda() {
+        try {
+            const res = await fetch("/api/autoservicio/comanda", { credentials: "include" });
+            const data = await res.json();
+            setComanda(prev => {
+                const sig = (data.pedidos ?? []).map((p: any) => `${p._id}:${p.estado}:${p.total}`).join(",");
+                const ant = prev.pedidos.map((p: any) => `${p._id}:${p.estado}:${p.total}`).join(",");
+                return sig === ant ? prev : { pedidos: data.pedidos ?? [], totalGeneral: data.totalGeneral ?? 0 };
+            });
+        } catch { }
+    }
+
     useEffect(() => {
         if (!user) return;
         (async () => {
             try {
-                const [sesRes, menuRes, pedRes] = await Promise.all([
+                const [sesRes, menuRes] = await Promise.all([
                     fetch("/api/autoservicio", { credentials: "include" }),
                     fetch("/api/menu?cliente=true"),
-                    fetch("/api/pedidos?activos=true", { credentials: "include" }),
                 ]);
                 const sesData = await sesRes.json();
                 setSesion(sesData.sesion ?? null);
                 const menuData = await menuRes.json();
                 setMenu(Array.isArray(menuData) ? menuData.filter((i: MenuItem) => i.activo) : []);
-                const pedData = await pedRes.json();
-                if (Array.isArray(pedData)) {
-                    setPedidosActivos(pedData.filter((p: any) =>
-                        p.fuente === "autoservicio" &&
-                        ["pendiente", "preparando", "listo"].includes(p.estado)
-                    ));
-                }
+                await fetchComanda();
             } finally { setCargando(false); }
         })();
     }, [user]);
 
-    // Polling comanda activa — solo actualiza el estado si algo cambió
+    // Polling comanda — solo re-renderiza si algo cambió
     useEffect(() => {
         if (!user) return;
-        const iv = setInterval(async () => {
-            try {
-                const res = await fetch("/api/pedidos?activos=true", { credentials: "include" });
-                const data = await res.json();
-                if (!Array.isArray(data)) return;
-                const next = data.filter((p: any) =>
-                    p.fuente === "autoservicio" &&
-                    ["pendiente", "preparando", "listo"].includes(p.estado)
-                );
-                setPedidosActivos(prev => {
-                    const sig = next.map((p: any) => `${p._id}:${p.estado}:${p.total}`).join(",");
-                    const ant = prev.map((p: any) => `${p._id}:${p.estado}:${p.total}`).join(",");
-                    return sig === ant ? prev : next;
-                });
-            } catch { }
-        }, 5000);
+        const iv = setInterval(fetchComanda, 5000);
         return () => clearInterval(iv);
     }, [user]);
 
     const totalItems = Object.values(items).reduce((a, b) => a + b, 0);
     const total = menu.reduce((acc, item) => acc + item.precio * (items[item._id] || 0), 0);
 
-    const todosLosItems = pedidosActivos.flatMap((p: any) => p.items || []);
-    const totalComanda = pedidosActivos.reduce((s: number, p: any) => s + (p.total || 0), 0);
+    // Agrupar pedidos de la comanda por usuario
+    const usuariosComanda = comanda.pedidos.reduce((acc: Record<string, { nombre: string; items: any[]; total: number }>, p: any) => {
+        const uid = p.userId?._id || "unknown";
+        const nombre = [p.userId?.nombre, p.userId?.apellido].filter(Boolean).join(" ") || "Usuario";
+        if (!acc[uid]) acc[uid] = { nombre, items: [], total: 0 };
+        acc[uid].items.push(...(p.items || []));
+        acc[uid].total += p.total || 0;
+        return acc;
+    }, {});
 
     function llamar(tipo: "mozo" | "cuenta") {
         if (llamadaEnviada.has(tipo)) return;
@@ -321,14 +269,11 @@ export default function AutoservicioPage() {
         setPedidoError("");
         try {
             const res = await fetch("/api/pedidos", {
-                method: "POST",
-                credentials: "include",
+                method: "POST", credentials: "include",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    items: seleccion,
-                    fuente: "autoservicio",
-                    mesa: sesion.mesasNombres.join(", "),
-                    tipoEntrega: "retira",
+                    items: seleccion, fuente: "autoservicio",
+                    mesa: sesion.mesasNombres.join(", "), tipoEntrega: "retira",
                 }),
             });
             if (res.ok) {
@@ -337,15 +282,7 @@ export default function AutoservicioPage() {
                 setDrawerOpen(false);
                 setPedidoOk(true);
                 setTimeout(() => setPedidoOk(false), 5000);
-                // Refrescar comanda activa inmediatamente
-                const pedRes = await fetch("/api/pedidos?activos=true", { credentials: "include" });
-                const pedData = await pedRes.json();
-                if (Array.isArray(pedData)) {
-                    setPedidosActivos(pedData.filter((p: any) =>
-                        p.fuente === "autoservicio" &&
-                        ["pendiente", "preparando", "listo"].includes(p.estado)
-                    ));
-                }
+                await fetchComanda(); // refrescar inmediatamente
             } else {
                 const data = await res.json().catch(() => ({}));
                 setPedidoError(data.message || "Error al enviar el pedido");
@@ -363,7 +300,8 @@ export default function AutoservicioPage() {
     );
 
     if (!user || sesion === null) return (
-        <div className="bg-white flex flex-col items-center justify-center gap-4 px-6 text-center" style={{ minHeight: "calc(100dvh - calc(env(safe-area-inset-top) + 98px))" }}>
+        <div className="bg-white flex flex-col items-center justify-center gap-4 px-6 text-center"
+            style={{ minHeight: "calc(100dvh - calc(env(safe-area-inset-top) + 98px))" }}>
             <div className="w-20 h-20 rounded-3xl bg-purple-50 flex items-center justify-center">
                 <Tablet size={40} className="text-purple-400" />
             </div>
@@ -390,13 +328,11 @@ export default function AutoservicioPage() {
             <AnimatePresence>
                 {totalItems > 0 && (
                     <div className="fixed bottom-32 right-5 z-[9999]">
-                        <motion.button
-                            layout
+                        <motion.button layout
                             initial={{ opacity: 0, scale: 1.4 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
                             transition={{ type: "spring", stiffness: 300, damping: 22 }}
                             onClick={() => setDrawerOpen(true)}
-                            className="relative px-6 py-3 bg-gradient-to-r from-purple-600 to-violet-600 text-white rounded-full shadow-[0_0_25px_rgba(147,51,234,0.6)] flex items-center gap-3 font-bold text-lg active:scale-95 border border-white/10"
-                        >
+                            className="relative px-6 py-3 bg-gradient-to-r from-purple-600 to-violet-600 text-white rounded-full shadow-[0_0_25px_rgba(147,51,234,0.6)] flex items-center gap-3 font-bold text-lg active:scale-95 border border-white/10">
                             <div className="relative flex items-center justify-center">
                                 <ShoppingCart size={28} strokeWidth={2.4} />
                                 <motion.span key={totalItems} initial={{ scale: 0 }} animate={{ scale: 1 }}
@@ -435,15 +371,11 @@ export default function AutoservicioPage() {
                     {llamarConfirm === "mozo" ? "¿Llamar al mozo?" : "¿Pedir la cuenta?"}
                 </p>
                 <p className="text-sm text-gray-500 mb-5">
-                    {llamarConfirm === "mozo"
-                        ? "El mozo irá a tu mesa de inmediato."
-                        : "Se le avisará al mozo para traerte la cuenta."}
+                    {llamarConfirm === "mozo" ? "El mozo irá a tu mesa de inmediato." : "Se le avisará al mozo para traerte la cuenta."}
                 </p>
                 <div className="flex gap-3">
                     <button onClick={() => setLlamarConfirm(null)}
-                        className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-bold text-gray-500">
-                        Cancelar
-                    </button>
+                        className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-bold text-gray-500">Cancelar</button>
                     <button onClick={confirmarLlamar}
                         className={`flex-1 py-3 rounded-xl text-sm font-black text-white ${llamarConfirm === "mozo" ? "bg-red-600" : "bg-gray-900"}`}>
                         {llamarConfirm === "mozo" ? "Llamar" : "Pedir cuenta"}
@@ -468,45 +400,51 @@ export default function AutoservicioPage() {
                 <p className="text-xs text-gray-400 mt-0.5">Elegí una categoría</p>
             </div>
 
-            {/* Comanda activa */}
-            {todosLosItems.length > 0 && (
+            {/* Comanda activa — agrupada por usuario */}
+            {comanda.pedidos.length > 0 && (
                 <div className="px-5 mb-3">
                     <div className="bg-purple-50 border border-purple-100 rounded-2xl overflow-hidden">
-                        <button
-                            onClick={() => setComandaOpen(v => !v)}
-                            className="w-full px-4 py-3 flex items-center justify-between active:bg-purple-100 transition"
-                        >
+                        <button onClick={() => setComandaOpen(v => !v)}
+                            className="w-full px-4 py-3 flex items-center justify-between active:bg-purple-100 transition">
                             <div className="flex items-center gap-2">
                                 <Receipt size={14} className="text-purple-600" />
-                                <span className="text-xs font-black text-purple-700 uppercase tracking-wider">Mi cuenta actual</span>
+                                <span className="text-xs font-black text-purple-700 uppercase tracking-wider">Cuenta de la mesa</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <span className="text-sm font-black text-purple-700">${fmt(totalComanda)}</span>
-                                {comandaOpen
-                                    ? <ChevronUp size={14} className="text-purple-500" />
-                                    : <ChevronDown size={14} className="text-purple-500" />}
+                                <span className="text-sm font-black text-purple-700">${fmt(comanda.totalGeneral)}</span>
+                                {comandaOpen ? <ChevronUp size={14} className="text-purple-500" /> : <ChevronDown size={14} className="text-purple-500" />}
                             </div>
                         </button>
                         {comandaOpen && (
-                            <div className="border-t border-purple-100 divide-y divide-purple-50">
-                                {todosLosItems.map((it: any, i: number) => (
-                                    <div key={i} className="flex items-center gap-3 px-4 py-2.5">
-                                        <span className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center text-xs font-black text-purple-700 shrink-0">
-                                            {it.cantidad}
-                                        </span>
-                                        <span className="flex-1 text-sm font-semibold text-gray-800 truncate">
-                                            {it.menuItemId?.nombre || "Ítem"}
-                                        </span>
-                                        {it.menuItemId?.precio != null && (
-                                            <span className="text-sm font-bold text-gray-600 shrink-0">
-                                                ${fmt(it.menuItemId.precio * it.cantidad)}
-                                            </span>
-                                        )}
+                            <div className="border-t border-purple-100">
+                                {Object.entries(usuariosComanda).map(([uid, u]) => (
+                                    <div key={uid}>
+                                        {/* Nombre del usuario */}
+                                        <div className="flex items-center justify-between px-4 py-2 bg-purple-100/40">
+                                            <span className="text-xs font-black text-purple-700">{u.nombre}</span>
+                                            <span className="text-xs font-bold text-purple-500">${fmt(u.total)}</span>
+                                        </div>
+                                        {/* Items del usuario */}
+                                        <div className="divide-y divide-purple-50">
+                                            {u.items.map((it: any, i: number) => (
+                                                <div key={i} className="flex items-center gap-3 px-4 py-2">
+                                                    <span className="w-5 h-5 rounded-full bg-purple-100 flex items-center justify-center text-[10px] font-black text-purple-700 shrink-0">
+                                                        {it.cantidad}
+                                                    </span>
+                                                    <span className="flex-1 text-sm text-gray-700 truncate">{it.menuItemId?.nombre || "Ítem"}</span>
+                                                    {it.menuItemId?.precio != null && (
+                                                        <span className="text-xs font-bold text-gray-500 shrink-0">
+                                                            ${fmt(it.menuItemId.precio * it.cantidad)}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 ))}
-                                <div className="flex justify-between items-center px-4 py-3 bg-purple-100/60">
-                                    <span className="text-xs font-black text-purple-700 uppercase tracking-wider">Total</span>
-                                    <span className="text-base font-black text-purple-700">${fmt(totalComanda)}</span>
+                                <div className="flex justify-between items-center px-4 py-3 bg-purple-100/60 border-t border-purple-100">
+                                    <span className="text-xs font-black text-purple-700 uppercase tracking-wider">Total mesa</span>
+                                    <span className="text-base font-black text-purple-700">${fmt(comanda.totalGeneral)}</span>
                                 </div>
                             </div>
                         )}
@@ -516,25 +454,15 @@ export default function AutoservicioPage() {
 
             {/* Llamar mozo / Pedir cuenta */}
             <div className="px-5 mb-4 flex gap-3">
-                <button
-                    onClick={() => llamar("mozo")}
-                    disabled={llamadaEnviada.has("mozo")}
+                <button onClick={() => llamar("mozo")} disabled={llamadaEnviada.has("mozo")}
                     className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-3.5 rounded-2xl font-black text-sm transition-all active:scale-[0.97] shadow-sm
-                        ${llamadaEnviada.has("mozo")
-                            ? "bg-red-50 border-2 border-red-200 text-red-600 cursor-default"
-                            : "bg-red-600 text-white"}`}
-                >
+                        ${llamadaEnviada.has("mozo") ? "bg-red-50 border-2 border-red-200 text-red-600 cursor-default" : "bg-red-600 text-white"}`}>
                     <Bell size={18} />
                     {llamadaEnviada.has("mozo") ? "¡En camino!" : "Llamar mozo"}
                 </button>
-                <button
-                    onClick={() => llamar("cuenta")}
-                    disabled={llamadaEnviada.has("cuenta")}
+                <button onClick={() => llamar("cuenta")} disabled={llamadaEnviada.has("cuenta")}
                     className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-3.5 rounded-2xl font-black text-sm transition-all active:scale-[0.97] shadow-sm
-                        ${llamadaEnviada.has("cuenta")
-                            ? "bg-gray-100 border-2 border-gray-200 text-gray-500 cursor-default"
-                            : "bg-gray-900 text-white"}`}
-                >
+                        ${llamadaEnviada.has("cuenta") ? "bg-gray-100 border-2 border-gray-200 text-gray-500 cursor-default" : "bg-gray-900 text-white"}`}>
                     <Receipt size={18} />
                     {llamadaEnviada.has("cuenta") ? "¡Avisado!" : "Pedir cuenta"}
                 </button>
@@ -548,18 +476,7 @@ export default function AutoservicioPage() {
                     const count = cat === "BEBIDAS"
                         ? menu.filter(i => BEBIDAS_CATS.includes(i.categoria)).length
                         : menu.filter(i => i.categoria === cat).length;
-                    return (
-                        <CategoryCard
-                            key={cat}
-                            cat={cat}
-                            idx={idx}
-                            bg={bg}
-                            pos={pos}
-                            isSpecial={isSpecial}
-                            count={count}
-                            onClick={() => setCategoriaSeleccionada(cat)}
-                        />
-                    );
+                    return <CategoryCard key={cat} cat={cat} idx={idx} bg={bg} pos={pos} isSpecial={isSpecial} count={count} onClick={() => setCategoriaSeleccionada(cat)} />;
                 })}
             </div>
             <Portal>
@@ -604,18 +521,7 @@ export default function AutoservicioPage() {
                         const bg = getImage(cat);
                         const pos = getPosition(cat);
                         const count = menu.filter(i => i.categoria === cat).length;
-                        return (
-                            <CategoryCard
-                                key={cat}
-                                cat={cat}
-                                idx={idx}
-                                bg={bg}
-                                pos={pos}
-                                isSpecial={false}
-                                count={count}
-                                onClick={() => setCategoriaSeleccionada(cat)}
-                            />
-                        );
+                        return <CategoryCard key={cat} cat={cat} idx={idx} bg={bg} pos={pos} isSpecial={false} count={count} onClick={() => setCategoriaSeleccionada(cat)} />;
                     })}
                 </div>
                 <Portal>
