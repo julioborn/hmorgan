@@ -1314,9 +1314,10 @@ export default function CajaPage() {
         const esEmpleado = p.fuente === "empleado";
         const base = p.mesa ? mesaLabel(p.mesa) : p.tipoEntrega === "envio" ? "Envío a domicilio" : "Retira en barra";
         const mesa = !esEmpleado && p.numeroDia ? `Pedido #${p.numeroDia} · ${base}` : base;
-        const comensalesStr = p.comensalesIds?.length
-            ? p.comensalesIds.map(c => `${c.nombre} ${c.apellido}`.trim()).join(", ")
-            : "";
+        const comensalesArr = (p.comensalesIds ?? []).map(c => `${c.nombre} ${c.apellido}`.trim());
+        const comensalesStr = comensalesArr.length > 2
+            ? comensalesArr.slice(0, 2).join(", ") + "..."
+            : comensalesArr.join(", ");
         const cliente = esEmpleado
             ? [p.nombreComanda, comensalesStr].filter(Boolean).join(" / ") || "-"
             : (p.userId?.nombre ? `${p.userId.nombre}${p.userId.apellido ? " " + p.userId.apellido : ""}` : "-");
