@@ -3450,28 +3450,55 @@ export default function CajaPage() {
                                         });
                                     })()}
                                 </div>
-                            ) : (
-                                /* Lista de productos de la categoría seleccionada */
+                            ) : menuGestCatActiva === "BEBIDAS" ? (
+                                /* Subcategorías de bebidas */
                                 <>
                                     <div className="flex items-center gap-2 mb-3">
                                         <button onClick={() => setMenuGestCatActiva(null)}
                                             className="flex items-center gap-1.5 text-sm font-bold text-gray-700 hover:text-black transition">
                                             <X size={15} /> Categorías
                                         </button>
+                                        <span className="text-sm font-black text-gray-900">BEBIDAS</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {BEBIDAS_CATS.filter(bc => menuGest.some(m => m.categoria === bc)).map(cat => {
+                                            const img = categoryImages[cat];
+                                            const count = menuGest.filter(m => m.categoria === cat).length;
+                                            return (
+                                                <div key={cat} className="relative h-28 rounded-2xl overflow-hidden shadow-sm">
+                                                    <button onClick={() => setMenuGestCatActiva(cat)} className="absolute inset-0 w-full h-full active:scale-[0.97] transition-transform">
+                                                        {img ? <MenuImg src={img} alt={cat} className="absolute inset-0 w-full h-full object-cover" /> : <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-600" />}
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/10" />
+                                                        <div className="absolute bottom-2.5 left-0 right-0 px-2 text-center">
+                                                            <p className="text-white font-black text-xs tracking-tight leading-tight">{cat}</p>
+                                                            <p className="text-white/70 text-[11px] mt-0.5">{count} productos</p>
+                                                        </div>
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </>
+                            ) : (
+                                /* Lista de productos de la categoría seleccionada */
+                                <>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <button onClick={() => setMenuGestCatActiva(BEBIDAS_CATS.includes(menuGestCatActiva!) ? "BEBIDAS" : null)}
+                                            className="flex items-center gap-1.5 text-sm font-bold text-gray-700 hover:text-black transition">
+                                            <X size={15} /> {BEBIDAS_CATS.includes(menuGestCatActiva!) ? "Bebidas" : "Categorías"}
+                                        </button>
                                         <span className="text-sm font-black text-gray-900">{menuGestCatActiva}</span>
                                     </div>
                                     <div className="space-y-2">
                                         {menuGest.filter(i =>
-                                            menuGestCatActiva === "BEBIDAS" ? BEBIDAS_CATS.includes(i.categoria)
-                                                : menuGestCatActiva === "PICADAS Y FRITURAS" ? PICAR_CATS.includes(i.categoria)
-                                                    : i.categoria === menuGestCatActiva
+                                            menuGestCatActiva === "PICADAS Y FRITURAS" ? PICAR_CATS.includes(i.categoria)
+                                                : i.categoria === menuGestCatActiva
                                         ).map(item => (
                                             <MenuGestCard key={item._id} item={item} onToggle={toggleMenuGestActivo} onEdit={abrirEditarMenuGest} onDelete={eliminarMenuGestItem} />
                                         ))}
                                         {menuGest.filter(i =>
-                                            menuGestCatActiva === "BEBIDAS" ? BEBIDAS_CATS.includes(i.categoria)
-                                                : menuGestCatActiva === "PICADAS Y FRITURAS" ? PICAR_CATS.includes(i.categoria)
-                                                    : i.categoria === menuGestCatActiva
+                                            menuGestCatActiva === "PICADAS Y FRITURAS" ? PICAR_CATS.includes(i.categoria)
+                                                : i.categoria === menuGestCatActiva
                                         ).length === 0 && <p className="text-center text-gray-700 py-10">Sin productos.</p>}
                                     </div>
                                 </>
