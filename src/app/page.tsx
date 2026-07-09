@@ -374,10 +374,20 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
                     {/* Grid suave de textura */}
                     <div className="absolute inset-0 opacity-10 pointer-events-none"
                       style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.07) 1px,transparent 1px)", backgroundSize: "28px 28px" }} />
-                    {/* Chispas decorativas */}
-                    <span className="tn-spark1 absolute top-4 right-6 text-yellow-300 text-sm select-none">✦</span>
-                    <span className="tn-spark2 absolute top-10 right-14 text-pink-300 text-xs select-none">✦</span>
-                    <span className="tn-spark3 absolute bottom-6 left-8 text-purple-300 text-xs select-none">✦</span>
+                    {/* Destellos */}
+                    <span className="tn-spark1  absolute top-3    right-5  text-white      text-base  select-none leading-none">✦</span>
+                    <span className="tn-spark2  absolute top-9    right-14 text-pink-200   text-sm    select-none leading-none">✦</span>
+                    <span className="tn-spark3  absolute bottom-7 left-7   text-purple-200 text-sm    select-none leading-none">✦</span>
+                    <span className="tn-spark4  absolute top-5    left-16  text-white      text-xs    select-none leading-none">✦</span>
+                    <span className="tn-spark5  absolute bottom-4 right-8  text-white      text-xs    select-none leading-none">✦</span>
+                    <span className="tn-spark6  absolute top-14   left-5   text-pink-300   text-base  select-none leading-none">✦</span>
+                    <span className="tn-spark7  absolute bottom-9 right-20 text-purple-100 text-xs    select-none leading-none">✦</span>
+                    <span className="tn-spark8  absolute top-7    right-28 text-white      text-sm    select-none leading-none">✦</span>
+                    <span className="tn-twinkle1 absolute top-2   left-1/2 text-white      text-[10px] select-none leading-none">•</span>
+                    <span className="tn-twinkle2 absolute top-1/2 right-3  text-pink-100  text-[8px]  select-none leading-none">•</span>
+                    <span className="tn-twinkle3 absolute bottom-3 left-1/3 text-white     text-[10px] select-none leading-none">•</span>
+                    <span className="tn-twinkle4 absolute top-1/3 left-10  text-purple-100 text-[8px] select-none leading-none">•</span>
+                    <span className="tn-twinkle5 absolute bottom-8 right-1/3 text-white    text-[10px] select-none leading-none">•</span>
                     {/* Contenido */}
                     <div className="relative z-10 p-5 flex flex-col" style={{ minHeight: "180px" }}>
                       {/* Título + precio */}
