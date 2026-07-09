@@ -68,6 +68,11 @@ export async function GET(req: NextRequest) {
         // No se aplica al chequeo de mesas ocupadas, que sigue viendo todas para evitar choques.
         if (propiasParam === "true") query.userId = payload.sub;
 
+        // Empleados con filtro de mesa: también ver pedidos de autoservicio de esa mesa
+        if (mesaParams.length > 0 && payload.role === "empleado") {
+            query = { $or: [{ fuente: "empleado" }, { fuente: "autoservicio" }] };
+        }
+
         if (mesaParams.length > 0 && payload.role !== "cliente") {
             query.mesa = mesaParams.length === 1 ? mesaParams[0] : { $in: mesaParams };
         }

@@ -2347,7 +2347,7 @@ export default function CajaPage() {
                                                                         <ArrowLeftRight size={12} />
                                                                     </button>
                                                                 )}
-                                                                {p.tipoEntrega !== "envio" && (
+                                                                {p.tipoEntrega !== "envio" && p.fuente !== "autoservicio" && (
                                                                     <button onClick={() => abrirComensalesModalCaja(p)}
                                                                         className="p-1.5 rounded-full bg-white/20 hover:bg-white/40 text-white transition"
                                                                         title="Comensales">

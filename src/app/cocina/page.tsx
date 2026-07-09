@@ -312,10 +312,11 @@ export default function CocinaPage() {
                     <div className="max-w-2xl mx-auto px-3 pt-4 space-y-4">
                         {pedidos.map(p => {
                             const comida = foodItems(p.items);
-                            const esDelivery = p.tipoEntrega === "envio";
-                            const esEvento   = !!p.eventoId;
-                            const esApp      = p.fuente === "cliente";
-                            const esBar      = p.fuente === "empleado" && !esDelivery;
+                            const esDelivery      = p.tipoEntrega === "envio";
+                            const esEvento        = !!p.eventoId;
+                            const esApp           = p.fuente === "cliente";
+                            const esAutoservicio  = p.fuente === "autoservicio";
+                            const esBar           = p.fuente === "empleado" && !esDelivery;
 
                             const mesaLabel = esDelivery
                                 ? (p.deliveryNumero ? `Delivery #${p.deliveryNumero}` : "Delivery")
@@ -327,7 +328,7 @@ export default function CocinaPage() {
                             const mozo = esBar && p.userId
                                 ? `${p.userId.nombre} ${p.userId.apellido}`.trim()
                                 : null;
-                            const clienteNombre = esApp && p.userId
+                            const clienteNombre = (esApp || esAutoservicio) && p.userId
                                 ? `${p.userId.nombre} ${p.userId.apellido}`.trim()
                                 : p.nombreComanda || null;
 
@@ -345,12 +346,13 @@ export default function CocinaPage() {
                                     <div className={`px-4 py-3 border-b ${esDemorada ? "bg-red-600 border-red-500" : isNuevo ? "bg-red-50 border-red-100" : "bg-gray-50 border-gray-100"}`}>
                                         {/* Fila 1: badges de origen */}
                                         <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
-                                            {esDemorada && <span className="text-[10px] font-black uppercase tracking-widest bg-white text-red-600 px-2 py-0.5 rounded-full">⏰ Demorada</span>}
-                                            {isNuevo && <span className="text-[10px] font-black uppercase tracking-widest bg-red-600 text-white px-2 py-0.5 rounded-full animate-pulse">Nuevo</span>}
-                                            {esDelivery && <span className="text-[10px] font-black uppercase tracking-wide bg-blue-600 text-white px-2 py-0.5 rounded-full">🛵 Delivery</span>}
-                                            {esEvento   && <span className="text-[10px] font-black uppercase tracking-wide bg-amber-400 text-black px-2 py-0.5 rounded-full">⭐ Evento</span>}
-                                            {esApp      && <span className="text-[10px] font-black uppercase tracking-wide bg-violet-600 text-white px-2 py-0.5 rounded-full">📱 App</span>}
-                                            {esBar      && <span className={`text-[10px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full ${esDemorada ? "bg-white/20 text-white" : "bg-gray-800 text-white"}`}>🍽 Bar</span>}
+                                            {esDemorada     && <span className="text-[10px] font-black uppercase tracking-widest bg-white text-red-600 px-2 py-0.5 rounded-full">⏰ Demorada</span>}
+                                            {isNuevo        && <span className="text-[10px] font-black uppercase tracking-widest bg-red-600 text-white px-2 py-0.5 rounded-full animate-pulse">Nuevo</span>}
+                                            {esDelivery     && <span className="text-[10px] font-black uppercase tracking-wide bg-blue-600 text-white px-2 py-0.5 rounded-full">🛵 Delivery</span>}
+                                            {esEvento       && <span className="text-[10px] font-black uppercase tracking-wide bg-amber-400 text-black px-2 py-0.5 rounded-full">⭐ Evento</span>}
+                                            {esApp          && <span className="text-[10px] font-black uppercase tracking-wide bg-violet-600 text-white px-2 py-0.5 rounded-full">📱 App</span>}
+                                            {esAutoservicio && <span className="text-[10px] font-black uppercase tracking-wide bg-purple-600 text-white px-2 py-0.5 rounded-full">🖥 Autoservicio</span>}
+                                            {esBar          && <span className={`text-[10px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full ${esDemorada ? "bg-white/20 text-white" : "bg-gray-800 text-white"}`}>🍽 Bar</span>}
                                         </div>
                                         {/* Fila 2: mesa/número + hora */}
                                         <div className="flex items-center justify-between">
