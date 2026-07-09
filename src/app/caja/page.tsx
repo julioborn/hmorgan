@@ -2285,11 +2285,13 @@ export default function CajaPage() {
 
                                         const subtitulo = esApp
                                             ? `${p.numeroDia ? `#${p.numeroDia} · ` : ""}${p.tipoEntrega === "envio" ? "Envío a domicilio" : "Retiro en local"}`
-                                            : esCajaDelivery
-                                                ? `Delivery${p.deliveryNumero ? ` #${p.deliveryNumero}` : ""}${p.direccion ? ` · ${p.direccion}` : ""}`
-                                                : esMozo
-                                                    ? `Mozo: ${[p.userId?.nombre, p.userId?.apellido].filter(Boolean).join(" ")}`
-                                                    : "Caja";
+                                            : esAutoservicio
+                                                ? [p.userId?.nombre, p.userId?.apellido].filter(Boolean).join(" ") || "Autoservicio"
+                                                : esCajaDelivery
+                                                    ? `Delivery${p.deliveryNumero ? ` #${p.deliveryNumero}` : ""}${p.direccion ? ` · ${p.direccion}` : ""}`
+                                                    : esMozo
+                                                        ? `Mozo: ${[p.userId?.nombre, p.userId?.apellido].filter(Boolean).join(" ")}`
+                                                        : "Caja";
 
                                         const tipoBadge = esEvento
                                             ? { label: "Evento", cls: "bg-amber-400 text-black" }

@@ -211,7 +211,7 @@ export async function POST(req: NextRequest) {
             direccion: tipoEntrega === "envio" ? direccion : undefined,
             estado: "pendiente",
             cancelableUntil,
-            fuente: esPedidoApp ? "cliente" : "empleado",
+            fuente: esAutoservicio ? "autoservicio" : esPedidoApp ? "cliente" : "empleado",
             numeroDia,
             mesa: mesa || undefined,
             comensales: Number(comensales) || 0,
