@@ -52,6 +52,7 @@ export default function EmpleadoAutoservicioPage() {
 
     // Agregar cliente a sesión existente (modal)
     const [agregarModal, setAgregarModal] = useState<{ sesionId: string; label: string } | null>(null);
+    const [confirmarCierreId, setConfirmarCierreId] = useState<string | null>(null);
     const [agregandoInput, setAgregandoInput] = useState("");
     const [agregandoSug, setAgregandoSug] = useState<UsuarioSug[]>([]);
     const [agregandoBuscando, setAgregandoBuscando] = useState(false);
@@ -378,10 +379,23 @@ export default function EmpleadoAutoservicioPage() {
                                         title="Agregar cliente">
                                         <UserPlus size={14}/>
                                     </button>
-                                    <button onClick={() => cerrarSesion(s._id)}
-                                        className="p-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg transition">
-                                        <X size={14}/>
-                                    </button>
+                                    {confirmarCierreId === s._id ? (
+                                        <div className="flex items-center gap-1">
+                                            <button onClick={() => { cerrarSesion(s._id); setConfirmarCierreId(null); }}
+                                                className="flex items-center gap-1 bg-red-500 hover:bg-red-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg transition">
+                                                <X size={12}/> Cerrar
+                                            </button>
+                                            <button onClick={() => setConfirmarCierreId(null)}
+                                                className="text-purple-200 hover:text-white text-xs px-2 py-1.5 rounded-lg transition">
+                                                No
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button onClick={() => setConfirmarCierreId(s._id)}
+                                            className="p-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg transition">
+                                            <X size={14}/>
+                                        </button>
+                                    )}
                                 </div>
                                 {/* Lista de clientes desplegable */}
                                 {expandida && (
