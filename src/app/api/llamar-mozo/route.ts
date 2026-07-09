@@ -58,7 +58,10 @@ export async function POST(req: NextRequest) {
     await connectMongoDB();
 
     const pedido = await Pedido.findOne({
-        comensalesIds: payload.sub,
+        $or: [
+            { comensalesIds: payload.sub },
+            { userId: payload.sub, fuente: "autoservicio" },
+        ],
         estado: { $in: ["pendiente", "preparando", "listo"] },
     }).lean() as any;
 

@@ -5,6 +5,7 @@ import {
     UtensilsCrossed, Pizza, Beef, Sandwich, Salad, Beer,
     CupSoda, Martini, BottleWine, GlassWater, Beaker,
     CakeSlice, Hamburger, Milk, X, Trash2, ShoppingCart, ChevronLeft, Tablet,
+    Bell, Receipt, ChevronDown, ChevronUp,
 } from "lucide-react";
 import Loader from "@/components/Loader";
 import Portal from "@/components/Portal";
@@ -145,6 +146,12 @@ export default function AutoservicioPage() {
     const [pedidoOk, setPedidoOk] = useState(false);
     const [pedidoError, setPedidoError] = useState("");
 
+    // Comanda activa + llamar
+    const [pedidosActivos, setPedidosActivos] = useState<any[]>([]);
+    const [comandaOpen, setComandaOpen] = useState(true);
+    const [llamadaEnviada, setLlamadaEnviada] = useState<Set<"mozo" | "cuenta">>(new Set());
+    const [llamarConfirm, setLlamarConfirm] = useState<"mozo" | "cuenta" | null>(null);
+
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
     }, [categoriaSeleccionada]);
@@ -153,20 +160,68 @@ export default function AutoservicioPage() {
         if (!user) return;
         (async () => {
             try {
-                const [sesRes, menuRes] = await Promise.all([
+                const [sesRes, menuRes, pedRes] = await Promise.all([
                     fetch("/api/autoservicio", { credentials: "include" }),
                     fetch("/api/menu?cliente=true"),
+                    fetch("/api/pedidos?activos=true", { credentials: "include" }),
                 ]);
                 const sesData = await sesRes.json();
                 setSesion(sesData.sesion ?? null);
                 const menuData = await menuRes.json();
                 setMenu(Array.isArray(menuData) ? menuData.filter((i: MenuItem) => i.activo) : []);
+                const pedData = await pedRes.json();
+                if (Array.isArray(pedData)) {
+                    setPedidosActivos(pedData.filter((p: any) =>
+                        p.fuente === "autoservicio" &&
+                        ["pendiente", "preparando", "listo"].includes(p.estado)
+                    ));
+                }
             } finally { setCargando(false); }
         })();
     }, [user]);
 
+    // Polling: refrescar comanda activa cada 5 segundos
+    useEffect(() => {
+        if (!user) return;
+        const iv = setInterval(async () => {
+            try {
+                const res = await fetch("/api/pedidos?activos=true", { credentials: "include" });
+                const data = await res.json();
+                if (Array.isArray(data)) {
+                    setPedidosActivos(data.filter((p: any) =>
+                        p.fuente === "autoservicio" &&
+                        ["pendiente", "preparando", "listo"].includes(p.estado)
+                    ));
+                }
+            } catch { }
+        }, 5000);
+        return () => clearInterval(iv);
+    }, [user]);
+
     const totalItems = Object.values(items).reduce((a, b) => a + b, 0);
     const total = menu.reduce((acc, item) => acc + item.precio * (items[item._id] || 0), 0);
+
+    // Items + total de la comanda activa (todos los pedidos autoservicio activos)
+    const todosLosItems = pedidosActivos.flatMap((p: any) => p.items || []);
+    const totalComanda = pedidosActivos.reduce((s: number, p: any) => s + (p.total || 0), 0);
+
+    function llamar(tipo: "mozo" | "cuenta") {
+        if (llamadaEnviada.has(tipo)) return;
+        setLlamarConfirm(tipo);
+    }
+
+    async function confirmarLlamar() {
+        if (!llamarConfirm) return;
+        const tipo = llamarConfirm;
+        setLlamarConfirm(null);
+        setLlamadaEnviada(prev => new Set([...prev, tipo]));
+        setTimeout(() => setLlamadaEnviada(prev => { const s = new Set(prev); s.delete(tipo); return s; }), 60000);
+        await fetch("/api/llamar-mozo", {
+            method: "POST", credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tipo }),
+        }).catch(() => { });
+    }
 
     async function enviarPedido() {
         if (!sesion || totalItems === 0) return;
@@ -193,6 +248,15 @@ export default function AutoservicioPage() {
                 setDrawerOpen(false);
                 setPedidoOk(true);
                 setTimeout(() => setPedidoOk(false), 5000);
+                // Refrescar comanda activa inmediatamente
+                const pedRes = await fetch("/api/pedidos?activos=true", { credentials: "include" });
+                const pedData = await pedRes.json();
+                if (Array.isArray(pedData)) {
+                    setPedidosActivos(pedData.filter((p: any) =>
+                        p.fuente === "autoservicio" &&
+                        ["pendiente", "preparando", "listo"].includes(p.estado)
+                    ));
+                }
             } else {
                 const data = await res.json().catch(() => ({}));
                 setPedidoError(data.message || "Error al enviar el pedido");
@@ -297,11 +361,37 @@ export default function AutoservicioPage() {
         onEnviar: enviarPedido,
     };
 
+    /* Modal confirmar llamar */
+    const llamarModal = llamarConfirm && (
+        <div className="fixed inset-0 z-[9999] flex items-end justify-center bg-black/50 p-4" onClick={() => setLlamarConfirm(null)}>
+            <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+                <p className="text-lg font-black text-gray-900 mb-1">
+                    {llamarConfirm === "mozo" ? "¿Llamar al mozo?" : "¿Pedir la cuenta?"}
+                </p>
+                <p className="text-sm text-gray-500 mb-5">
+                    {llamarConfirm === "mozo"
+                        ? "El mozo irá a tu mesa de inmediato."
+                        : "Se le avisará al mozo para traerte la cuenta."}
+                </p>
+                <div className="flex gap-3">
+                    <button onClick={() => setLlamarConfirm(null)}
+                        className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-bold text-gray-500">
+                        Cancelar
+                    </button>
+                    <button onClick={confirmarLlamar}
+                        className={`flex-1 py-3 rounded-xl text-sm font-black text-white ${llamarConfirm === "mozo" ? "bg-red-600" : "bg-gray-900"}`}>
+                        {llamarConfirm === "mozo" ? "Llamar" : "Pedir cuenta"}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+
     /* ── Vista categorías ── */
     if (!categoriaSeleccionada) return (
         <div className="bg-white min-h-screen pb-10">
             {toastOk}
-            <div className="px-5 pt-6 pb-2">
+            <div className="px-5 pt-6 pb-3">
                 <div className="flex items-center gap-2 mb-0.5">
                     <Tablet size={20} className="text-purple-600" />
                     <h1 className="text-3xl font-black text-black tracking-tight">Autoservicio</h1>
@@ -311,7 +401,80 @@ export default function AutoservicioPage() {
                 </p>
                 <p className="text-xs text-gray-400 mt-0.5">Elegí una categoría</p>
             </div>
-            <div className="px-5 py-3 grid grid-cols-2 gap-3">
+
+            {/* Comanda activa */}
+            {todosLosItems.length > 0 && (
+                <div className="px-5 mb-3">
+                    <div className="bg-purple-50 border border-purple-100 rounded-2xl overflow-hidden">
+                        <button
+                            onClick={() => setComandaOpen(v => !v)}
+                            className="w-full px-4 py-3 flex items-center justify-between active:bg-purple-100 transition"
+                        >
+                            <div className="flex items-center gap-2">
+                                <Receipt size={14} className="text-purple-600" />
+                                <span className="text-xs font-black text-purple-700 uppercase tracking-wider">Mi cuenta actual</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-black text-purple-700">${fmt(totalComanda)}</span>
+                                {comandaOpen
+                                    ? <ChevronUp size={14} className="text-purple-500" />
+                                    : <ChevronDown size={14} className="text-purple-500" />}
+                            </div>
+                        </button>
+                        {comandaOpen && (
+                            <div className="border-t border-purple-100 divide-y divide-purple-50">
+                                {todosLosItems.map((it: any, i: number) => (
+                                    <div key={i} className="flex items-center gap-3 px-4 py-2.5">
+                                        <span className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center text-xs font-black text-purple-700 shrink-0">
+                                            {it.cantidad}
+                                        </span>
+                                        <span className="flex-1 text-sm font-semibold text-gray-800 truncate">
+                                            {it.menuItemId?.nombre || "Ítem"}
+                                        </span>
+                                        {it.menuItemId?.precio != null && (
+                                            <span className="text-sm font-bold text-gray-600 shrink-0">
+                                                ${fmt(it.menuItemId.precio * it.cantidad)}
+                                            </span>
+                                        )}
+                                    </div>
+                                ))}
+                                <div className="flex justify-between items-center px-4 py-3 bg-purple-100/60">
+                                    <span className="text-xs font-black text-purple-700 uppercase tracking-wider">Total</span>
+                                    <span className="text-base font-black text-purple-700">${fmt(totalComanda)}</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Llamar mozo / Pedir cuenta */}
+            <div className="px-5 mb-4 flex gap-3">
+                <button
+                    onClick={() => llamar("mozo")}
+                    disabled={llamadaEnviada.has("mozo")}
+                    className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-3.5 rounded-2xl font-black text-sm transition-all active:scale-[0.97] shadow-sm
+                        ${llamadaEnviada.has("mozo")
+                            ? "bg-red-50 border-2 border-red-200 text-red-600 cursor-default"
+                            : "bg-red-600 text-white"}`}
+                >
+                    <Bell size={18} />
+                    {llamadaEnviada.has("mozo") ? "¡En camino!" : "Llamar mozo"}
+                </button>
+                <button
+                    onClick={() => llamar("cuenta")}
+                    disabled={llamadaEnviada.has("cuenta")}
+                    className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-3.5 rounded-2xl font-black text-sm transition-all active:scale-[0.97] shadow-sm
+                        ${llamadaEnviada.has("cuenta")
+                            ? "bg-gray-100 border-2 border-gray-200 text-gray-500 cursor-default"
+                            : "bg-gray-900 text-white"}`}
+                >
+                    <Receipt size={18} />
+                    {llamadaEnviada.has("cuenta") ? "¡Avisado!" : "Pedir cuenta"}
+                </button>
+            </div>
+
+            <div className="px-5 py-1 grid grid-cols-2 gap-3">
                 {categoriasNavegacion.map((cat, idx) => (
                     <CategoryCard key={cat} cat={cat} idx={idx} onClick={() => setCategoriaSeleccionada(cat)} />
                 ))}
@@ -319,6 +482,7 @@ export default function AutoservicioPage() {
             <Portal>
                 <CartButton />
                 <AnimatePresence>{drawerOpen && <CartDrawer {...cartDrawerProps} />}</AnimatePresence>
+                {llamarModal}
             </Portal>
         </div>
     );
@@ -360,6 +524,7 @@ export default function AutoservicioPage() {
                 <Portal>
                     <CartButton />
                     <AnimatePresence>{drawerOpen && <CartDrawer {...cartDrawerProps} />}</AnimatePresence>
+                    {llamarModal}
                 </Portal>
             </div>
         );
@@ -450,6 +615,7 @@ export default function AutoservicioPage() {
             <Portal>
                 <CartButton />
                 <AnimatePresence>{drawerOpen && <CartDrawer {...cartDrawerProps} />}</AnimatePresence>
+                {llamarModal}
             </Portal>
         </div>
     );

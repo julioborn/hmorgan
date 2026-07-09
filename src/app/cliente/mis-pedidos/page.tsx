@@ -59,10 +59,12 @@ export default function MisPedidosPage() {
         emerald: "border-emerald-500 bg-emerald-100 text-emerald-700",
     };
 
-    const activos = pedidos.filter(
+    // Solo pedidos de la app (fuente "cliente"), no autoservicio
+    const pedidosApp = pedidos.filter((p) => p.fuente !== "autoservicio");
+    const activos = pedidosApp.filter(
         (p) => p.estado === "pendiente" || p.estado === "preparando" || p.estado === "listo"
     );
-    const completados = pedidos.filter((p) => p.estado === "entregado");
+    const completados = pedidosApp.filter((p) => p.estado === "entregado");
     const pedidosActuales = vista === "activos" ? activos : completados;
     const totalPages = Math.max(1, Math.ceil(pedidosActuales.length / PAGE_SIZE));
     const pagedPedidos = pedidosActuales.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
