@@ -369,11 +369,13 @@ export default function CajaPage() {
         if (!file) return;
         setMenuGestImgUploading(true);
         try {
+            const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
             const fd = new FormData();
-            fd.append("file", file);
+            fd.append("file", file, `upload.${ext}`);
             const res = await fetch("/api/superadmin/menu/imagen", { method: "POST", credentials: "include", body: fd });
-            const data = await res.json();
-            if (!res.ok) { swalBase.fire({ title: "Error", text: data.error || "No se pudo subir la imagen", icon: "error" }); return; }
+            let data: any = {};
+            try { data = await res.json(); } catch { /* respuesta no-JSON */ }
+            if (!res.ok) { swalBase.fire({ title: "Error", text: data?.error || "No se pudo subir la imagen", icon: "error" }); return; }
             await fetch("/api/categories/config", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ categoria: "MENÚ DEL DÍA", imageUrl: data.url }) });
         } catch { swalBase.fire({ title: "Error", text: "No se pudo conectar", icon: "error" }); }
         finally { setMenuGestImgUploading(false); if (menuGestImgRef.current) menuGestImgRef.current.value = ""; }

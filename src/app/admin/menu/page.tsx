@@ -182,11 +182,13 @@ export default function AdminMenuPage() {
         setUploadingImg(true);
         setUploadImgError(null);
         try {
+            const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
             const fd = new FormData();
-            fd.append("file", file);
+            fd.append("file", file, `upload.${ext}`);
             const res = await fetch("/api/superadmin/menu/imagen", { method: "POST", credentials: "include", body: fd });
-            const data = await res.json();
-            if (!res.ok) { setUploadImgError(data.error || `Error ${res.status}`); return; }
+            let data: any = {};
+            try { data = await res.json(); } catch { /* respuesta no-JSON */ }
+            if (!res.ok) { setUploadImgError(data?.error || `Error ${res.status}`); return; }
             setEditingConfig(c => ({ ...c, imageUrl: data.url }));
         } catch (err: any) {
             setUploadImgError(err?.message || "Error al subir");

@@ -19,22 +19,27 @@ async function authorize(req: NextRequest) {
 export async function POST(req: NextRequest) {
     if (!await authorize(req)) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-    const formData = await req.formData();
-    const file = formData.get("file") as File | null;
-    if (!file) return NextResponse.json({ error: "Sin archivo" }, { status: 400 });
+    try {
+        const formData = await req.formData();
+        const file = formData.get("file") as File | null;
+        if (!file) return NextResponse.json({ error: "Sin archivo" }, { status: 400 });
 
-    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    const filename = `imagenes-menu/cat_${Date.now()}.${ext}`;
-    const buffer = Buffer.from(await file.arrayBuffer());
+        const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+        const filename = `imagenes-menu/cat_${Date.now()}.${ext}`;
+        const buffer = Buffer.from(await file.arrayBuffer());
 
-    const bucket = admin.storage().bucket();
-    const storageFile = bucket.file(filename);
+        const bucket = admin.storage().bucket();
+        const storageFile = bucket.file(filename);
 
-    await storageFile.save(buffer, {
-        metadata: { contentType: file.type || `image/${ext}` },
-    });
-    await storageFile.makePublic();
+        await storageFile.save(buffer, {
+            metadata: { contentType: file.type || `image/${ext}` },
+        });
+        await storageFile.makePublic();
 
-    const url = `https://storage.googleapis.com/${bucket.name}/${filename}`;
-    return NextResponse.json({ url });
+        const url = `https://storage.googleapis.com/${bucket.name}/${filename}`;
+        return NextResponse.json({ url });
+    } catch (err: any) {
+        console.error("[imagen/route] upload error:", err?.message);
+        return NextResponse.json({ error: err?.message || "Error al subir imagen" }, { status: 500 });
+    }
 }

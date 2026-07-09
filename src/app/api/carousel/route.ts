@@ -26,30 +26,30 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "No se proporcionó archivo" }, { status: 400 });
     }
 
-    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    const filename = `imagenes-carrousel/carrousel_${Date.now()}.${ext}`;
-    const buffer = Buffer.from(await file.arrayBuffer());
+    try {
+        const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+        const filename = `imagenes-carrousel/carrousel_${Date.now()}.${ext}`;
+        const buffer = Buffer.from(await file.arrayBuffer());
 
-    const bucket = admin.storage().bucket();
-    const storageFile = bucket.file(filename);
+        const bucket = admin.storage().bucket();
+        const storageFile = bucket.file(filename);
 
-    await storageFile.save(buffer, {
-        metadata: { contentType: file.type || `image/${ext}` },
-    });
-    await storageFile.makePublic();
+        await storageFile.save(buffer, {
+            metadata: { contentType: file.type || `image/${ext}` },
+        });
+        await storageFile.makePublic();
 
-    const url = `https://storage.googleapis.com/${bucket.name}/${filename}`;
+        const url = `https://storage.googleapis.com/${bucket.name}/${filename}`;
 
-    const last = await CarouselImage.findOne().sort({ orden: -1 }).lean() as any;
-    const orden = last ? last.orden + 1 : 0;
+        const last = await CarouselImage.findOne().sort({ orden: -1 }).lean() as any;
+        const orden = last ? last.orden + 1 : 0;
 
-    const image = await CarouselImage.create({
-        filename,
-        url,
-        orden,
-    });
-
-    return NextResponse.json(image, { status: 201 });
+        const image = await CarouselImage.create({ filename, url, orden });
+        return NextResponse.json(image, { status: 201 });
+    } catch (err: any) {
+        console.error("[carousel/route] upload error:", err?.message);
+        return NextResponse.json({ error: err?.message || "Error al subir imagen" }, { status: 500 });
+    }
 }
 
 export async function PUT(req: NextRequest) {
