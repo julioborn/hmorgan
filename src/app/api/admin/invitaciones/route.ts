@@ -25,11 +25,12 @@ export async function POST(req: NextRequest) {
     if (!auth(req)) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     await connectMongoDB();
     const body = await req.json();
-    const { titulo, descripcion, fecha, hora, precio, imagenUrl, colorFondo, activo, destinatarios, usuariosIds } = body;
+    const { titulo, descripcion, fecha, hora, precio, imagenUrl, colorFondo, activo, tema, destinatarios, usuariosIds } = body;
     if (!titulo || !fecha) return NextResponse.json({ error: "Título y fecha son requeridos" }, { status: 400 });
     const inv = await InvitacionEvento.create({
         titulo, descripcion, fecha, hora, precio: Number(precio) || 0,
         imagenUrl, colorFondo, activo: !!activo,
+        tema: tema || "default",
         destinatarios: destinatarios || "todos",
         usuariosIds: destinatarios === "seleccionados" ? (usuariosIds || []) : [],
     });

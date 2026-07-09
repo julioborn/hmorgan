@@ -16,6 +16,7 @@ type Invitacion = {
     imagenUrl: string;
     colorFondo: string;
     activo: boolean;
+    tema: "default" | "trasnoche";
     destinatarios: "todos" | "seleccionados";
     usuariosIds: string[];
 };
@@ -23,7 +24,7 @@ type Invitacion = {
 const EMPTY: Omit<Invitacion, "_id"> = {
     titulo: "", descripcion: "", fecha: "", hora: "", precio: 0,
     imagenUrl: "", colorFondo: "#111111", activo: false,
-    destinatarios: "todos", usuariosIds: [],
+    tema: "default", destinatarios: "todos", usuariosIds: [],
 };
 
 const fmt = new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -72,7 +73,8 @@ export default function InvitacionesPage() {
             fecha: inv.fecha ? inv.fecha.slice(0, 10) : "",
             hora: inv.hora, precio: inv.precio,
             imagenUrl: inv.imagenUrl, colorFondo: inv.colorFondo,
-            activo: inv.activo, destinatarios: inv.destinatarios,
+            activo: inv.activo, tema: inv.tema ?? "default",
+            destinatarios: inv.destinatarios,
             usuariosIds: inv.usuariosIds ?? [],
         });
         setBuscarUsuario("");
@@ -317,6 +319,23 @@ export default function InvitacionesPage() {
                                         onChange={e => setForm(f => ({ ...f, colorFondo: e.target.value }))}
                                         className="w-10 h-10 rounded-xl border border-gray-200 cursor-pointer p-0.5" />
                                     <span className="text-sm text-gray-500 font-mono">{form.colorFondo}</span>
+                                </div>
+                            </div>
+
+                            {/* Estilo visual */}
+                            <div>
+                                <label className="text-[11px] font-black text-gray-500 uppercase tracking-wide">Estilo visual</label>
+                                <div className="mt-2 grid grid-cols-2 gap-2">
+                                    <button type="button" onClick={() => setForm(f => ({ ...f, tema: "default" }))}
+                                        className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border-2 transition ${form.tema === "default" ? "border-black bg-black text-white" : "border-gray-200 text-gray-500 hover:border-gray-400"}`}>
+                                        <span className="text-xl">🎫</span>
+                                        <span className="text-xs font-black">Estándar</span>
+                                    </button>
+                                    <button type="button" onClick={() => setForm(f => ({ ...f, tema: "trasnoche" }))}
+                                        className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border-2 transition ${form.tema === "trasnoche" ? "border-purple-600 bg-[#0a0010] text-white" : "border-gray-200 text-gray-500 hover:border-purple-300"}`}>
+                                        <span className="text-xl">🪩</span>
+                                        <span className="text-xs font-black">Trasnoche</span>
+                                    </button>
                                 </div>
                             </div>
 

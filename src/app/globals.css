@@ -91,6 +91,49 @@ select {
   max-width: 100vw;
 }
 
+/* ── Tema Trasnoche ────────────────────────────────────────────────────── */
+@keyframes tn-orb1 {
+  0%, 100% { transform: translate(0%, 0%) scale(1);   opacity: 0.55; }
+  30%       { transform: translate(35%, -18%) scale(1.35); opacity: 0.35; }
+  65%       { transform: translate(-15%, 30%) scale(0.8); opacity: 0.65; }
+}
+@keyframes tn-orb2 {
+  0%, 100% { transform: translate(0%, 0%) scale(1);    opacity: 0.5; }
+  35%       { transform: translate(-30%, -25%) scale(1.4); opacity: 0.3; }
+  70%       { transform: translate(25%, 20%) scale(0.85); opacity: 0.6; }
+}
+@keyframes tn-orb3 {
+  0%, 100% { transform: translate(0%, 0%) scale(1);   opacity: 0.4; }
+  50%       { transform: translate(-20%, -30%) scale(1.3); opacity: 0.65; }
+}
+@keyframes tn-glow {
+  0%, 100% { box-shadow: 0 0 22px rgba(168,85,247,0.55), 0 0 55px rgba(168,85,247,0.2); }
+  50%       { box-shadow: 0 0 28px rgba(236,72,153,0.65), 0 0 70px rgba(236,72,153,0.28); }
+}
+@keyframes tn-shimmer {
+  0%   { background-position: -250% center; }
+  100% { background-position: 250% center; }
+}
+@keyframes tn-spark {
+  0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
+  50%       { opacity: 1; transform: scale(1) rotate(180deg); }
+}
+.trasnoche-card  { animation: tn-glow 3s ease-in-out infinite; }
+.tn-orb1         { animation: tn-orb1 9s  ease-in-out infinite; }
+.tn-orb2         { animation: tn-orb2 12s ease-in-out infinite; }
+.tn-orb3         { animation: tn-orb3 7s  ease-in-out infinite reverse; }
+.tn-shimmer-text {
+  background: linear-gradient(90deg, #e879f9, #a78bfa, #f9a8d4, #818cf8, #e879f9);
+  background-size: 250% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: tn-shimmer 4s linear infinite;
+}
+.tn-spark1 { animation: tn-spark 2.4s ease-in-out infinite; }
+.tn-spark2 { animation: tn-spark 3.1s ease-in-out infinite 0.8s; }
+.tn-spark3 { animation: tn-spark 2.8s ease-in-out infinite 1.5s; }
+
 /* Ocultar scrollbar horizontal en pills de categorías */
 .scrollbar-hide {
   -ms-overflow-style: none;

@@ -109,7 +109,7 @@ function Landing() {
   HOME CLIENTE
    ========================= */
 type MenuDelDiaItem = { _id: string; nombre: string; descripcion?: string; precio: number };
-type Invitacion = { _id: string; titulo: string; descripcion?: string; fecha: string; hora?: string; precio?: number; imagenUrl?: string; colorFondo?: string };
+type Invitacion = { _id: string; titulo: string; descripcion?: string; fecha: string; hora?: string; precio?: number; imagenUrl?: string; colorFondo?: string; tema?: string };
 
 function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: number; userId?: string }) {
   const isOwner = userId === "68b212ac8a60afb869a18626";
@@ -359,7 +359,54 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
             {invitaciones.map(inv => {
               const fechaEvento = new Date(inv.fecha);
               const fechaStr = fechaEvento.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
-              const tieneFondo = inv.imagenUrl || inv.colorFondo;
+
+              if (inv.tema === "trasnoche") {
+                return (
+                  <div key={inv._id} className="trasnoche-card relative rounded-2xl overflow-hidden shadow-2xl border border-purple-900/60" style={{ minHeight: "180px" }}>
+                    {/* Fondo oscuro */}
+                    <div className="absolute inset-0 bg-[#07000f]" />
+                    {/* Orbes de luz animados */}
+                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                      <div className="tn-orb1 absolute w-56 h-56 rounded-full bg-purple-600 blur-3xl opacity-50 -top-16 -left-10" />
+                      <div className="tn-orb2 absolute w-44 h-44 rounded-full bg-pink-500 blur-3xl opacity-40 -bottom-12 -right-8" />
+                      <div className="tn-orb3 absolute w-36 h-36 rounded-full bg-blue-600 blur-2xl opacity-35 top-1/2 right-1/4" />
+                    </div>
+                    {/* Grid suave de textura */}
+                    <div className="absolute inset-0 opacity-10 pointer-events-none"
+                      style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.07) 1px,transparent 1px)", backgroundSize: "28px 28px" }} />
+                    {/* Chispas decorativas */}
+                    <span className="tn-spark1 absolute top-4 right-6 text-yellow-300 text-sm select-none">✦</span>
+                    <span className="tn-spark2 absolute top-10 right-14 text-pink-300 text-xs select-none">✦</span>
+                    <span className="tn-spark3 absolute bottom-6 left-8 text-purple-300 text-xs select-none">✦</span>
+                    {/* Contenido */}
+                    <div className="relative z-10 p-5 flex flex-col gap-2">
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="tn-shimmer-text font-black text-2xl leading-tight">{inv.titulo}</h3>
+                        {(inv.precio ?? 0) > 0 && (
+                          <span className="shrink-0 bg-white/10 border border-purple-400/40 backdrop-blur-sm text-purple-200 text-sm font-black px-3 py-1 rounded-full">
+                            ${new Intl.NumberFormat("es-AR").format(inv.precio!)}
+                          </span>
+                        )}
+                      </div>
+                      {inv.descripcion && (
+                        <p className="text-sm text-purple-200/80 line-clamp-2">{inv.descripcion}</p>
+                      )}
+                      <div className="flex items-center gap-3 mt-1 flex-wrap">
+                        <span className="flex items-center gap-1.5 bg-white/10 border border-purple-400/30 backdrop-blur-sm text-purple-100 text-xs font-semibold px-3 py-1 rounded-full capitalize">
+                          <CalendarDays size={12} />
+                          {fechaStr}
+                        </span>
+                        {inv.hora && (
+                          <span className="bg-white/10 border border-purple-400/30 backdrop-blur-sm text-purple-100 text-xs font-semibold px-3 py-1 rounded-full">
+                            {inv.hora}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
               return (
                 <div
                   key={inv._id}
@@ -375,7 +422,7 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
                       <div className="absolute inset-0 bg-black/55" />
                     </>
                   )}
-                  <div className={`relative z-10 p-5 flex flex-col gap-2 ${tieneFondo ? "text-white" : "text-white"}`}>
+                  <div className="relative z-10 p-5 flex flex-col gap-2 text-white">
                     <div className="flex items-start justify-between gap-3">
                       <h3 className="font-black text-xl leading-tight">{inv.titulo}</h3>
                       {(inv.precio ?? 0) > 0 && (

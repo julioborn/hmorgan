@@ -10,6 +10,7 @@ const InvitacionEventoSchema = new Schema(
         imagenUrl: { type: String, default: "" },
         colorFondo: { type: String, default: "#111111" },
         activo: { type: Boolean, default: false },
+        tema: { type: String, enum: ["default", "trasnoche"], default: "default" },
         destinatarios: { type: String, enum: ["todos", "seleccionados"], default: "todos" },
         usuariosIds: [{ type: Schema.Types.ObjectId, ref: "User" }],
     },

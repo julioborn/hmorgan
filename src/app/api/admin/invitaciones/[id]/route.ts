@@ -18,12 +18,13 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     if (!auth(req)) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     await connectMongoDB();
     const body = await req.json();
-    const { titulo, descripcion, fecha, hora, precio, imagenUrl, colorFondo, activo, destinatarios, usuariosIds } = body;
+    const { titulo, descripcion, fecha, hora, precio, imagenUrl, colorFondo, activo, tema, destinatarios, usuariosIds } = body;
     const update: any = {
         titulo, descripcion, fecha, hora,
         precio: Number(precio) || 0,
         imagenUrl, colorFondo,
         activo: !!activo,
+        tema: tema || "default",
         destinatarios: destinatarios || "todos",
         usuariosIds: destinatarios === "seleccionados" ? (usuariosIds || []) : [],
     };
