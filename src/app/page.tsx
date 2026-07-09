@@ -587,19 +587,11 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
           accent="from-red-600 to-red-800"
         />
         <ActionCard
-          href={isOwner || sesionAutoserv ? "/autoservicio" : "/"}
+          href="/autoservicio"
           title="Autoservicio"
           Icon={Tablet}
-          accent={isOwner || sesionAutoserv ? "from-red-600 to-red-800" : "from-gray-400 to-gray-500"}
-          disabled={!isOwner && !sesionAutoserv}
+          accent="from-red-600 to-red-800"
           greenDot={sesionAutoserv}
-          onDisabledClick={() => swalBase.fire({
-            title: "Próximamente",
-            text: "Esta función estará disponible muy pronto.",
-            icon: "info",
-            timer: 2200,
-            showConfirmButton: false,
-          })}
         />
         <ActionCard
           href="/cliente/reservas"

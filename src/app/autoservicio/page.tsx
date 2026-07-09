@@ -43,6 +43,42 @@ const categoryIcons: Record<string, React.ElementType> = {
     "POSTRE Y CAFE": CakeSlice,
 };
 
+/* ─── CategoryCard — fuera del componente principal para evitar remount en cada render ── */
+interface CategoryCardProps {
+    cat: string;
+    idx: number;
+    bg: string | undefined;
+    pos: string;
+    isSpecial: boolean;
+    count: number;
+    onClick: () => void;
+}
+
+function CategoryCard({ cat, idx, bg, pos, isSpecial, count, onClick }: CategoryCardProps) {
+    return (
+        <motion.button
+            onClick={onClick}
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: idx * 0.04 }}
+            className={`relative w-full rounded-2xl overflow-hidden shadow-md active:scale-[0.97] transition-transform ${isSpecial ? "col-span-2 h-56" : "h-36"}`}
+        >
+            {bg
+                ? <MenuImg src={bg} alt={cat} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: pos }} />
+                : <div className={`absolute inset-0 ${isSpecial ? "bg-gradient-to-br from-amber-400 to-amber-600" : "bg-gradient-to-br from-gray-800 to-gray-600"}`} />
+            }
+            <div className={`absolute inset-0 bg-gradient-to-t ${isSpecial ? "from-black/75 via-black/10 to-transparent" : "from-black/85 via-black/30 to-black/10"}`} />
+            {isSpecial && (
+                <span className="absolute top-3 left-3 bg-white/90 text-amber-700 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">Hoy</span>
+            )}
+            <div className="absolute bottom-3 left-0 right-0 px-2 text-center">
+                <p className="text-white font-black text-sm tracking-tight leading-tight">{cat}</p>
+                <p className="text-white/60 text-[11px] font-medium mt-0.5">{count} {count === 1 ? "producto" : "productos"}</p>
+            </div>
+        </motion.button>
+    );
+}
+
 /* ─── CartDrawer ─────────────────────────────────────────────────── */
 interface CartDrawerProps {
     items: Record<string, number>;
@@ -117,25 +153,37 @@ function CartDrawer({ items, menu, notasProducto, onSetNotaProducto, enviando, e
                 {error && (
                     <p className="mt-3 text-sm text-red-600 font-semibold text-center">{error}</p>
                 )}
+
                 <div className="flex gap-3 mt-4">
-                    <button onClick={() => { onVaciar(); setConfirmando(false); }} className="flex items-center gap-1 px-4 py-2 rounded-xl border border-gray-300 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition">
+                    <button
+                        onClick={() => { onVaciar(); setConfirmando(false); }}
+                        className="flex items-center gap-1 px-4 py-2 rounded-xl border border-gray-300 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition"
+                    >
                         <Trash2 size={16} />
                     </button>
                     {!confirmando ? (
-                        <button onClick={() => setConfirmando(true)} disabled={enviando}
-                            className="flex-1 bg-purple-600 text-white py-3 rounded-xl font-bold text-base disabled:opacity-50 hover:bg-purple-700 transition active:scale-[0.98]">
+                        <button
+                            onClick={() => setConfirmando(true)}
+                            disabled={enviando}
+                            className="flex-1 bg-purple-600 text-white py-3 rounded-xl font-bold text-base disabled:opacity-50 hover:bg-purple-700 transition active:scale-[0.98]"
+                        >
                             {`Confirmar pedido · $${fmt(total)}`}
                         </button>
                     ) : (
                         <div className="flex-1 flex flex-col gap-2">
                             <p className="text-center text-sm font-bold text-gray-700">¿Confirmás el pedido?</p>
                             <div className="flex gap-2">
-                                <button onClick={() => setConfirmando(false)}
-                                    className="flex-1 py-2.5 rounded-xl border border-gray-300 text-gray-600 text-sm font-semibold transition active:scale-[0.97]">
+                                <button
+                                    onClick={() => setConfirmando(false)}
+                                    className="flex-1 py-2.5 rounded-xl border border-gray-300 text-gray-600 text-sm font-semibold transition active:scale-[0.97]"
+                                >
                                     Revisar
                                 </button>
-                                <button onClick={onEnviar} disabled={enviando}
-                                    className="flex-1 py-2.5 rounded-xl bg-purple-600 text-white font-black text-sm disabled:opacity-50 transition active:scale-[0.97]">
+                                <button
+                                    onClick={onEnviar}
+                                    disabled={enviando}
+                                    className="flex-1 py-2.5 rounded-xl bg-purple-600 text-white font-black text-sm disabled:opacity-50 transition active:scale-[0.97]"
+                                >
                                     {enviando ? "Enviando..." : "Sí, enviar"}
                                 </button>
                             </div>
@@ -158,6 +206,7 @@ export default function AutoservicioPage() {
     const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null);
     const catRef = useRef<string | null>(null);
     catRef.current = categoriaSeleccionada;
+
     const [items, setItems] = useState<Record<string, number>>({});
     const [notasProducto, setNotasProducto] = useState<Record<string, string>>({});
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -175,7 +224,7 @@ export default function AutoservicioPage() {
         window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
     }, [categoriaSeleccionada]);
 
-    // Interceptar el botón "atrás" del navegador/iOS para navegar dentro del autoservicio
+    // Interceptar back del navegador/iOS para navegar dentro del autoservicio
     useEffect(() => {
         if (categoriaSeleccionada !== null) {
             window.history.pushState({ autoservicio: categoriaSeleccionada }, "");
@@ -217,19 +266,23 @@ export default function AutoservicioPage() {
         })();
     }, [user]);
 
-    // Polling: refrescar comanda activa cada 5 segundos
+    // Polling comanda activa — solo actualiza el estado si algo cambió
     useEffect(() => {
         if (!user) return;
         const iv = setInterval(async () => {
             try {
                 const res = await fetch("/api/pedidos?activos=true", { credentials: "include" });
                 const data = await res.json();
-                if (Array.isArray(data)) {
-                    setPedidosActivos(data.filter((p: any) =>
-                        p.fuente === "autoservicio" &&
-                        ["pendiente", "preparando", "listo"].includes(p.estado)
-                    ));
-                }
+                if (!Array.isArray(data)) return;
+                const next = data.filter((p: any) =>
+                    p.fuente === "autoservicio" &&
+                    ["pendiente", "preparando", "listo"].includes(p.estado)
+                );
+                setPedidosActivos(prev => {
+                    const sig = next.map((p: any) => `${p._id}:${p.estado}:${p.total}`).join(",");
+                    const ant = prev.map((p: any) => `${p._id}:${p.estado}:${p.total}`).join(",");
+                    return sig === ant ? prev : next;
+                });
             } catch { }
         }, 5000);
         return () => clearInterval(iv);
@@ -238,7 +291,6 @@ export default function AutoservicioPage() {
     const totalItems = Object.values(items).reduce((a, b) => a + b, 0);
     const total = menu.reduce((acc, item) => acc + item.precio * (items[item._id] || 0), 0);
 
-    // Items + total de la comanda activa (todos los pedidos autoservicio activos)
     const todosLosItems = pedidosActivos.flatMap((p: any) => p.items || []);
     const totalComanda = pedidosActivos.reduce((s: number, p: any) => s + (p.total || 0), 0);
 
@@ -333,27 +385,6 @@ export default function AutoservicioPage() {
         }),
     ];
 
-    function CategoryCard({ cat, idx, onClick }: { cat: string; idx: number; onClick: () => void }) {
-        const bg = getImage(cat);
-        const pos = getPosition(cat);
-        const isSpecial = cat === "MENÚ DEL DÍA";
-        const count = cat === "BEBIDAS"
-            ? menu.filter(i => BEBIDAS_CATS.includes(i.categoria)).length
-            : menu.filter(i => i.categoria === cat).length;
-        return (
-            <motion.button onClick={onClick} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.04 }}
-                className={`relative w-full rounded-2xl overflow-hidden shadow-md active:scale-[0.97] transition-transform ${isSpecial ? "col-span-2 h-56" : "h-36"}`}>
-                {bg ? <MenuImg src={bg} alt={cat} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: pos }} /> : <div className={`absolute inset-0 ${isSpecial ? "bg-gradient-to-br from-amber-400 to-amber-600" : "bg-gradient-to-br from-gray-800 to-gray-600"}`} />}
-                <div className={`absolute inset-0 bg-gradient-to-t ${isSpecial ? "from-black/75 via-black/10 to-transparent" : "from-black/85 via-black/30 to-black/10"}`} />
-                {isSpecial && <span className="absolute top-3 left-3 bg-white/90 text-amber-700 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">Hoy</span>}
-                <div className="absolute bottom-3 left-0 right-0 px-2 text-center">
-                    <p className="text-white font-black text-sm tracking-tight leading-tight">{cat}</p>
-                    <p className="text-white/60 text-[11px] font-medium mt-0.5">{count} {count === 1 ? "producto" : "productos"}</p>
-                </div>
-            </motion.button>
-        );
-    }
-
     function CartButton() {
         return (
             <AnimatePresence>
@@ -381,7 +412,6 @@ export default function AutoservicioPage() {
         );
     }
 
-    /* Toast pedido ok */
     const toastOk = pedidoOk && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] bg-emerald-500 text-white px-5 py-3 rounded-2xl shadow-lg font-bold text-sm flex items-center gap-2">
             ✓ Pedido enviado
@@ -398,7 +428,6 @@ export default function AutoservicioPage() {
         onEnviar: enviarPedido,
     };
 
-    /* Modal confirmar llamar */
     const llamarModal = llamarConfirm && (
         <div className="fixed inset-0 z-[9999] flex items-end justify-center bg-black/50 p-4" onClick={() => setLlamarConfirm(null)}>
             <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -512,9 +541,26 @@ export default function AutoservicioPage() {
             </div>
 
             <div className="px-5 py-1 grid grid-cols-2 gap-3">
-                {categoriasNavegacion.map((cat, idx) => (
-                    <CategoryCard key={cat} cat={cat} idx={idx} onClick={() => setCategoriaSeleccionada(cat)} />
-                ))}
+                {categoriasNavegacion.map((cat, idx) => {
+                    const bg = getImage(cat);
+                    const pos = getPosition(cat);
+                    const isSpecial = cat === "MENÚ DEL DÍA";
+                    const count = cat === "BEBIDAS"
+                        ? menu.filter(i => BEBIDAS_CATS.includes(i.categoria)).length
+                        : menu.filter(i => i.categoria === cat).length;
+                    return (
+                        <CategoryCard
+                            key={cat}
+                            cat={cat}
+                            idx={idx}
+                            bg={bg}
+                            pos={pos}
+                            isSpecial={isSpecial}
+                            count={count}
+                            onClick={() => setCategoriaSeleccionada(cat)}
+                        />
+                    );
+                })}
             </div>
             <Portal>
                 <CartButton />
@@ -554,9 +600,23 @@ export default function AutoservicioPage() {
                     </div>
                 </div>
                 <div className="px-5 py-5 grid grid-cols-2 gap-3">
-                    {subCats.map((cat, idx) => (
-                        <CategoryCard key={cat} cat={cat} idx={idx} onClick={() => setCategoriaSeleccionada(cat)} />
-                    ))}
+                    {subCats.map((cat, idx) => {
+                        const bg = getImage(cat);
+                        const pos = getPosition(cat);
+                        const count = menu.filter(i => i.categoria === cat).length;
+                        return (
+                            <CategoryCard
+                                key={cat}
+                                cat={cat}
+                                idx={idx}
+                                bg={bg}
+                                pos={pos}
+                                isSpecial={false}
+                                count={count}
+                                onClick={() => setCategoriaSeleccionada(cat)}
+                            />
+                        );
+                    })}
                 </div>
                 <Portal>
                     <CartButton />
