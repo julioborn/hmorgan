@@ -287,6 +287,13 @@ export default function CajaPage() {
     const [autoservError, setAutoservError] = useState("");
     const autoservDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // Agregar cliente a sesión existente (desde modal caja)
+    const [autoservAgregarId, setAutoservAgregarId] = useState<string | null>(null);
+    const [autoservAgregarInput, setAutoservAgregarInput] = useState("");
+    const [autoservAgregarSug, setAutoservAgregarSug] = useState<{ _id: string; nombre: string; apellido: string; username: string }[]>([]);
+    const [autoservAgregarBuscando, setAutoservAgregarBuscando] = useState(false);
+    const autoservAgregarDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
     async function abrirAutoservModal() {
         const [sRes] = await Promise.all([
             fetch("/api/autoservicio", { credentials: "include" }),
@@ -322,6 +329,20 @@ export default function CajaPage() {
             } finally { setAutoservBuscando(false); }
         }, 300);
     }, [autoservUserInput, autoservUsernames]);
+
+    useEffect(() => {
+        if (autoservAgregarDebounceRef.current) clearTimeout(autoservAgregarDebounceRef.current);
+        const q = autoservAgregarInput.trim();
+        if (q.length < 2) { setAutoservAgregarSug([]); return; }
+        autoservAgregarDebounceRef.current = setTimeout(async () => {
+            setAutoservAgregarBuscando(true);
+            try {
+                const r = await fetch(`/api/usuarios/buscar?q=${encodeURIComponent(q)}`, { credentials: "include" });
+                const d = await r.json();
+                setAutoservAgregarSug(Array.isArray(d) ? d : []);
+            } finally { setAutoservAgregarBuscando(false); }
+        }, 300);
+    }, [autoservAgregarInput]);
 
     function autoservSeleccionarUsuario(u: { _id: string; nombre: string; apellido: string; username: string }) {
         if (!autoservUsernames.includes(u.username)) setAutoservUsernames(p => [...p, u.username]);
@@ -362,6 +383,22 @@ export default function CajaPage() {
         const sRes = await fetch("/api/autoservicio", { credentials: "include" });
         const sData = await sRes.json();
         setAutoservSesiones(Array.isArray(sData) ? sData : []);
+    }
+
+    async function autoservAgregarCliente(sesionId: string, usuario: { _id: string; nombre: string; apellido: string; username: string }) {
+        const res = await fetch(`/api/autoservicio/${sesionId}`, {
+            method: "PATCH", credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ accion: "agregarUsuario", username: usuario.username }),
+        });
+        if (res.ok) {
+            setAutoservAgregarId(null);
+            setAutoservAgregarInput("");
+            setAutoservAgregarSug([]);
+            const sRes = await fetch("/api/autoservicio", { credentials: "include" });
+            const sData = await sRes.json();
+            setAutoservSesiones(Array.isArray(sData) ? sData : []);
+        }
     }
 
     async function uploadMenuDelDiaImg(e: React.ChangeEvent<HTMLInputElement>) {
@@ -3661,15 +3698,50 @@ export default function CajaPage() {
                                 <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Sesiones activas</p>
                                 <div className="space-y-2 max-h-36 overflow-y-auto">
                                     {autoservSesiones.map(s => (
-                                        <div key={s._id} className="flex items-center gap-3 bg-purple-50 border border-purple-200 rounded-xl px-3 py-2">
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-bold text-gray-900 text-sm">Mesa{s.mesasNombres.length > 1 ? "s" : ""} {s.mesasNombres.join(", ")}</p>
-                                                <p className="text-xs text-gray-500 truncate">{s.usuariosIds.map(u => u.nombre || u.username).join(", ")}</p>
+                                        <div key={s._id} className="bg-purple-50 border border-purple-200 rounded-xl px-3 py-2">
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-bold text-gray-900 text-sm">Mesa{s.mesasNombres.length > 1 ? "s" : ""} {s.mesasNombres.join(", ")}</p>
+                                                    <p className="text-xs text-gray-500 truncate">{s.usuariosIds.map(u => `${u.nombre || ""}${u.apellido ? " "+u.apellido : ""} (@${u.username})`).join(", ")}</p>
+                                                </div>
+                                                <button onClick={() => { setAutoservAgregarId(autoservAgregarId === s._id ? null : s._id); setAutoservAgregarInput(""); setAutoservAgregarSug([]); }}
+                                                    title="Agregar cliente"
+                                                    className="p-1.5 rounded-lg bg-white hover:bg-purple-100 text-purple-500 border border-purple-200 transition">
+                                                    <UserPlus size={13} />
+                                                </button>
+                                                <button onClick={() => autoservCerrarSesion(s._id)}
+                                                    className="p-1.5 rounded-lg bg-white hover:bg-red-50 hover:text-red-600 text-gray-400 border border-gray-200 transition">
+                                                    <X size={14} />
+                                                </button>
                                             </div>
-                                            <button onClick={() => autoservCerrarSesion(s._id)}
-                                                className="p-1.5 rounded-lg bg-white hover:bg-red-50 hover:text-red-600 text-gray-400 border border-gray-200 transition">
-                                                <X size={14} />
-                                            </button>
+                                            {autoservAgregarId === s._id && (
+                                                <div className="mt-2 relative">
+                                                    <input
+                                                        autoFocus
+                                                        value={autoservAgregarInput}
+                                                        onChange={e => setAutoservAgregarInput(e.target.value)}
+                                                        placeholder="Buscar por nombre o @usuario..."
+                                                        style={{ fontSize: "16px" }}
+                                                        className="w-full px-3 py-2 rounded-xl text-sm border border-purple-200 bg-white focus:outline-none focus:ring-2 focus:ring-purple-300"
+                                                    />
+                                                    {autoservAgregarBuscando && <p className="text-xs text-purple-400 mt-1">Buscando...</p>}
+                                                    {autoservAgregarSug.length > 0 && (
+                                                        <div className="absolute top-full left-0 right-0 z-30 bg-white border border-gray-200 rounded-xl shadow-lg mt-1 overflow-hidden">
+                                                            {autoservAgregarSug
+                                                                .filter(u => !s.usuariosIds.some(eu => eu._id === u._id))
+                                                                .map(u => (
+                                                                    <button key={u._id} onMouseDown={e => e.preventDefault()}
+                                                                        onClick={() => autoservAgregarCliente(s._id, u)}
+                                                                        className="w-full text-left px-3 py-2.5 hover:bg-purple-50 text-sm border-b border-gray-50 last:border-0 transition">
+                                                                        <span className="font-semibold text-gray-900">{u.nombre} {u.apellido}</span>
+                                                                        <span className="text-gray-400 text-xs ml-2">@{u.username}</span>
+                                                                    </button>
+                                                                ))
+                                                            }
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>

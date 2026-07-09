@@ -50,6 +50,13 @@ export default function EmpleadoAutoservicioPage() {
     const [notasAdd, setNotasAdd] = useState<Record<string, string>>({});
     const [enviandoItems, setEnviandoItems] = useState(false);
 
+    // Agregar cliente a sesión existente
+    const [agregandoClienteId, setAgregandoClienteId] = useState<string | null>(null);
+    const [agregandoInput, setAgregandoInput] = useState("");
+    const [agregandoSug, setAgregandoSug] = useState<UsuarioSug[]>([]);
+    const [agregandoBuscando, setAgregandoBuscando] = useState(false);
+    const debounceAgregarRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
     async function cargar() {
         const [mRes, elRes, sRes] = await Promise.all([
             fetch("/api/admin/mesas", { credentials: "include" }),
@@ -83,6 +90,35 @@ export default function EmpleadoAutoservicioPage() {
     }
 
     useEffect(() => { cargar(); }, []);
+
+    // Búsqueda debounce para agregar cliente a sesión existente
+    useEffect(() => {
+        if (debounceAgregarRef.current) clearTimeout(debounceAgregarRef.current);
+        const q = agregandoInput.trim();
+        if (q.length < 2) { setAgregandoSug([]); return; }
+        debounceAgregarRef.current = setTimeout(async () => {
+            setAgregandoBuscando(true);
+            try {
+                const r = await fetch(`/api/usuarios/buscar?q=${encodeURIComponent(q)}`, { credentials: "include" });
+                const d = await r.json();
+                setAgregandoSug(Array.isArray(d) ? d : []);
+            } finally { setAgregandoBuscando(false); }
+        }, 300);
+    }, [agregandoInput]);
+
+    async function agregarClienteASesion(sesionId: string, usuario: UsuarioSug) {
+        const res = await fetch(`/api/autoservicio/${sesionId}`, {
+            method: "PATCH", credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ accion: "agregarUsuario", username: usuario.username }),
+        });
+        if (res.ok) {
+            setAgregandoClienteId(null);
+            setAgregandoInput("");
+            setAgregandoSug([]);
+            await cargar();
+        }
+    }
 
     // Búsqueda de usuarios con debounce
     useEffect(() => {
@@ -308,23 +344,61 @@ export default function EmpleadoAutoservicioPage() {
                     ) : sesiones.map(s => (
                         <div key={s._id} className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden">
                             {/* Header sesión */}
-                            <div className="flex items-center gap-3 px-4 py-3 bg-purple-600">
-                                <div className="flex-1">
-                                    <p className="font-black text-white text-base">
-                                        Mesa{s.mesasNombres.length>1?"s":""} {s.mesasNombres.join(", ")}
-                                    </p>
-                                    <p className="text-purple-200 text-xs">
-                                        {s.usuariosIds.map(u => u.nombre || u.username).join(", ")}
-                                    </p>
+                            <div className="px-4 py-3 bg-purple-600">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex-1">
+                                        <p className="font-black text-white text-base">
+                                            Mesa{s.mesasNombres.length>1?"s":""} {s.mesasNombres.join(", ")}
+                                        </p>
+                                        <p className="text-purple-200 text-xs">
+                                            {s.usuariosIds.map(u => `${u.nombre || ""}${u.apellido ? " "+u.apellido : ""} (@${u.username})`).join(", ")}
+                                        </p>
+                                    </div>
+                                    <button onClick={() => abrirAgregar(s)}
+                                        className="flex items-center gap-1.5 bg-white text-purple-700 font-bold text-xs px-3 py-1.5 rounded-lg transition hover:bg-purple-50">
+                                        <Plus size={13}/> Agregar
+                                    </button>
+                                    <button onClick={() => { setAgregandoClienteId(agregandoClienteId === s._id ? null : s._id); setAgregandoInput(""); setAgregandoSug([]); }}
+                                        className="p-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg transition"
+                                        title="Agregar cliente">
+                                        <UserPlus size={14}/>
+                                    </button>
+                                    <button onClick={() => cerrarSesion(s._id)}
+                                        className="p-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg transition">
+                                        <X size={14}/>
+                                    </button>
                                 </div>
-                                <button onClick={() => abrirAgregar(s)}
-                                    className="flex items-center gap-1.5 bg-white text-purple-700 font-bold text-xs px-3 py-1.5 rounded-lg transition hover:bg-purple-50">
-                                    <Plus size={13}/> Agregar
-                                </button>
-                                <button onClick={() => cerrarSesion(s._id)}
-                                    className="p-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg transition">
-                                    <X size={14}/>
-                                </button>
+                                {/* Buscador inline para agregar cliente */}
+                                {agregandoClienteId === s._id && (
+                                    <div className="mt-2 relative">
+                                        <input
+                                            autoFocus
+                                            value={agregandoInput}
+                                            onChange={e => setAgregandoInput(e.target.value)}
+                                            placeholder="Buscar por nombre o @usuario..."
+                                            style={{ fontSize: "16px" }}
+                                            className="w-full px-3 py-2 rounded-xl text-sm text-gray-900 bg-white placeholder-gray-400 focus:outline-none"
+                                        />
+                                        {agregandoBuscando && (
+                                            <p className="text-purple-200 text-xs mt-1">Buscando...</p>
+                                        )}
+                                        {agregandoSug.length > 0 && (
+                                            <div className="absolute top-full left-0 right-0 z-20 bg-white border border-gray-200 rounded-xl shadow-lg mt-1 overflow-hidden">
+                                                {agregandoSug
+                                                    .filter(u => !s.usuariosIds.some(eu => eu._id === u._id))
+                                                    .map(u => (
+                                                        <button key={u._id} onMouseDown={e => e.preventDefault()}
+                                                            onClick={() => agregarClienteASesion(s._id, u)}
+                                                            className="w-full text-left px-3 py-2.5 hover:bg-purple-50 text-sm border-b border-gray-50 last:border-0 transition">
+                                                            <span className="font-semibold text-gray-900">{u.nombre} {u.apellido}</span>
+                                                            <span className="text-gray-400 text-xs ml-2">@{u.username}</span>
+                                                        </button>
+                                                    ))
+                                                }
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Pedidos de la sesión */}
