@@ -1,17 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { CarouselImage } from "@/models/CarouselImage";
-import { admin } from "@/lib/firebase-admin";
-
-async function seedIfEmpty() {
-    const count = await CarouselImage.countDocuments();
-    if (count > 0) return;
-    // No filesystem seed on Vercel — skip if no docs exist
-}
+import { put } from "@vercel/blob";
 
 export async function GET() {
     await connectMongoDB();
-    await seedIfEmpty();
     const images = await CarouselImage.find({}).sort({ orden: 1 }).lean();
     return NextResponse.json(images);
 }
@@ -29,22 +22,21 @@ export async function POST(req: NextRequest) {
     try {
         const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
         const filename = `imagenes-carrousel/carrousel_${Date.now()}.${ext}`;
-        const buffer = Buffer.from(await file.arrayBuffer());
 
-        const bucket = admin.storage().bucket();
-        const storageFile = bucket.file(filename);
-
-        await storageFile.save(buffer, {
-            metadata: { contentType: file.type || `image/${ext}` },
+        const blob = await put(filename, file, {
+            access: "public",
+            contentType: file.type || `image/${ext}`,
         });
-        await storageFile.makePublic();
-
-        const url = `https://storage.googleapis.com/${bucket.name}/${filename}`;
 
         const last = await CarouselImage.findOne().sort({ orden: -1 }).lean() as any;
         const orden = last ? last.orden + 1 : 0;
 
-        const image = await CarouselImage.create({ filename, url, orden });
+        const image = await CarouselImage.create({
+            filename,
+            url: blob.url,
+            orden,
+        });
+
         return NextResponse.json(image, { status: 201 });
     } catch (err: any) {
         console.error("[carousel/route] upload error:", err?.message);

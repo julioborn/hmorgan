@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
-import { admin } from "@/lib/firebase-admin";
+import { put } from "@vercel/blob";
 import { OWNER_USER_ID } from "@/lib/owner";
 
 export const dynamic = "force-dynamic";
@@ -26,18 +26,13 @@ export async function POST(req: NextRequest) {
 
         const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
         const filename = `imagenes-menu/cat_${Date.now()}.${ext}`;
-        const buffer = Buffer.from(await file.arrayBuffer());
 
-        const bucket = admin.storage().bucket();
-        const storageFile = bucket.file(filename);
-
-        await storageFile.save(buffer, {
-            metadata: { contentType: file.type || `image/${ext}` },
+        const blob = await put(filename, file, {
+            access: "public",
+            contentType: file.type || `image/${ext}`,
         });
-        await storageFile.makePublic();
 
-        const url = `https://storage.googleapis.com/${bucket.name}/${filename}`;
-        return NextResponse.json({ url });
+        return NextResponse.json({ url: blob.url });
     } catch (err: any) {
         console.error("[imagen/route] upload error:", err?.message);
         return NextResponse.json({ error: err?.message || "Error al subir imagen" }, { status: 500 });
