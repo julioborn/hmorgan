@@ -379,7 +379,8 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
                     <span className="tn-spark2 absolute top-10 right-14 text-pink-300 text-xs select-none">✦</span>
                     <span className="tn-spark3 absolute bottom-6 left-8 text-purple-300 text-xs select-none">✦</span>
                     {/* Contenido */}
-                    <div className="relative z-10 p-5 flex flex-col gap-2">
+                    <div className="relative z-10 p-5 flex flex-col" style={{ minHeight: "180px" }}>
+                      {/* Título + precio */}
                       <div className="flex items-start justify-between gap-3">
                         <h3 className="tn-shimmer-text font-black text-2xl leading-tight">{inv.titulo}</h3>
                         {(inv.precio ?? 0) > 0 && (
@@ -389,9 +390,10 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
                         )}
                       </div>
                       {inv.descripcion && (
-                        <p className="text-sm text-purple-200/80 line-clamp-2">{inv.descripcion}</p>
+                        <p className="text-sm text-purple-200/80 line-clamp-2 mt-2">{inv.descripcion}</p>
                       )}
-                      <div className="flex items-center gap-3 mt-1 flex-wrap">
+                      {/* Fecha y hora — esquina inferior derecha */}
+                      <div className="flex items-center justify-end gap-2 mt-auto pt-4">
                         <span className="flex items-center gap-1.5 bg-white/10 border border-purple-400/30 backdrop-blur-sm text-purple-100 text-xs font-semibold px-3 py-1 rounded-full capitalize">
                           <CalendarDays size={12} />
                           {fechaStr}
