@@ -159,7 +159,7 @@ export default function InvitacionesPage() {
                 )}
 
                 {invitaciones.map(inv => {
-                    const fechaStr = inv.fecha ? fmt.format(new Date(inv.fecha)) : "—";
+                    const fechaStr = inv.fecha ? fmt.format(new Date(inv.fecha + "T12:00:00")) : "—";
                     const bg = inv.imagenUrl
                         ? `url(${inv.imagenUrl}) center/cover`
                         : `linear-gradient(135deg, ${inv.colorFondo}cc, ${inv.colorFondo})`;
@@ -283,16 +283,16 @@ export default function InvitacionesPage() {
                                     className="mt-1 w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-black transition resize-none" />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="min-w-0">
                                     <label className="text-[11px] font-black text-gray-500 uppercase tracking-wide">Fecha *</label>
                                     <input type="date" value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))}
-                                        className="mt-1 w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-black transition" />
+                                        className="mt-1 w-full min-w-0 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-black transition" />
                                 </div>
-                                <div>
+                                <div className="min-w-0">
                                     <label className="text-[11px] font-black text-gray-500 uppercase tracking-wide">Hora</label>
                                     <input type="time" value={form.hora} onChange={e => setForm(f => ({ ...f, hora: e.target.value }))}
-                                        className="mt-1 w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-black transition" />
+                                        className="mt-1 w-full min-w-0 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-black transition" />
                                 </div>
                             </div>
 
