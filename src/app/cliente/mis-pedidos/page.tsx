@@ -70,7 +70,7 @@ export default function MisPedidosPage() {
     return (
         <div className="p-6 min-h-screen bg-white">
             <div className="flex items-center justify-between mb-10">
-                <h1 className="text-4xl font-extrabold text-black">Delivery</h1>
+                <h1 className="text-4xl font-extrabold text-black">Mis Pedidos</h1>
                 <Link
                     href="/cliente/pedidos"
                     className="flex items-center gap-2 bg-black text-white px-4 py-2.5 rounded-xl font-semibold text-sm hover:bg-gray-800 transition active:scale-[0.97]"
@@ -276,9 +276,21 @@ function PedidosLista({
                             {/* Cabecera */}
                             <div className="flex justify-between items-start mb-3">
                                 <div>
-                                    <h2 className="text-lg font-bold text-gray-900">
-                                        Pedido
-                                    </h2>
+                                    <div className="flex items-center gap-2 mb-0.5">
+                                        <h2 className="text-lg font-bold text-gray-900">Pedido</h2>
+                                        {p.fuente === "autoservicio" && (
+                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">Autoservicio</span>
+                                        )}
+                                        {p.fuente === "cliente" && p.tipoEntrega === "envio" && (
+                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">Envío</span>
+                                        )}
+                                        {p.fuente === "cliente" && p.tipoEntrega !== "envio" && (
+                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">Retiro</span>
+                                        )}
+                                    </div>
+                                    {p.fuente === "autoservicio" && p.mesa && (
+                                        <p className="text-xs text-purple-600 font-medium">Mesa {p.mesa}</p>
+                                    )}
                                     {p.tipoEntrega === "envio" && p.direccion && (
                                         <p className="text-sm text-gray-700 mt-1">
                                             📍 <span className="font-medium">{p.direccion}</span>
