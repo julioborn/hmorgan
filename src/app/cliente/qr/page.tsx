@@ -96,7 +96,6 @@ export default function MiQRPage() {
                         {user.puntos ?? 0}
                         <span className="ml-1 text-red-600 text-2xl font-bold">pts</span>
                     </div>
-                    <p className="text-xs text-gray-400 mt-1">puntos acumulados</p>
                 </div>
             </div>
 
