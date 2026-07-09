@@ -181,12 +181,13 @@ export default function AnotadorPage() {
     }
 
     async function ejecutarCambioMesa(comanda: Comanda, nuevaMesa: string) {
+        const mesaOrigen = comanda.mesa ? `Mesa ${comanda.mesa}` : "Sin mesa";
         const { isConfirmed } = await swalBase.fire({
-            title: "¿Transferir mesa?",
-            html: `<p class="text-gray-600 text-sm">De <strong>Mesa ${comanda.mesa}</strong> → <strong>Mesa ${nuevaMesa}</strong></p>`,
+            title: comanda.mesa ? "¿Transferir mesa?" : "¿Asignar mesa?",
+            html: `<p class="text-gray-600 text-sm">De <strong>${mesaOrigen}</strong> → <strong>Mesa ${nuevaMesa}</strong></p>`,
             icon: "question",
             showCancelButton: true,
-            confirmButtonText: "Sí, transferir",
+            confirmButtonText: comanda.mesa ? "Sí, transferir" : "Sí, asignar",
             cancelButtonText: "Cancelar",
         });
         if (!isConfirmed) return;
@@ -529,14 +530,12 @@ export default function AnotadorPage() {
                                     {cajaAbierta !== false && !esTerminados && (
                                         <div className="px-4 pb-3 flex items-center justify-between gap-2">
                                             <div className="flex items-center gap-2">
-                                                {c.mesa && (
-                                                    <button
-                                                        onClick={() => abrirCambiarMesa(c)}
-                                                        className="flex items-center gap-1.5 text-gray-600 hover:bg-gray-100 border border-gray-200 px-3 py-2 rounded-xl text-sm transition active:scale-95"
-                                                        title="Transferir mesa">
-                                                        <ArrowLeftRight size={14} />
-                                                    </button>
-                                                )}
+                                                <button
+                                                    onClick={() => abrirCambiarMesa(c)}
+                                                    className="flex items-center gap-1.5 text-gray-600 hover:bg-gray-100 border border-gray-200 px-3 py-2 rounded-xl text-sm transition active:scale-95"
+                                                    title={c.mesa ? "Transferir mesa" : "Asignar mesa"}>
+                                                    <ArrowLeftRight size={14} />
+                                                </button>
                                                 <button
                                                     onClick={() => abrirComensalesModal(c)}
                                                     className="flex items-center gap-1.5 text-gray-600 hover:bg-gray-100 border border-gray-200 px-3 py-2 rounded-xl text-sm transition active:scale-95"
@@ -691,10 +690,12 @@ export default function AnotadorPage() {
                         onClick={e => e.stopPropagation()}>
                         <div className="bg-black px-4 py-3 flex items-center justify-between">
                             <div>
-                                <p className="font-black text-white text-sm">Transferir mesa</p>
+                                <p className="font-black text-white text-sm">{cambiarMesaModal.mesa ? "Transferir mesa" : "Asignar mesa"}</p>
                                 <p className="text-xs text-white/60">
-                                    Actual: <span className="text-white font-bold">Mesa {cambiarMesaModal.mesa}</span>
-                                    {" · "}Tocá una mesa disponible
+                                    {cambiarMesaModal.mesa
+                                        ? <>Actual: <span className="text-white font-bold">Mesa {cambiarMesaModal.mesa}</span> · Tocá una mesa disponible</>
+                                        : "Tocá una mesa disponible para asignarla"
+                                    }
                                 </p>
                             </div>
                             <button onClick={() => setCambiarMesaModal(null)} className="text-white/60 hover:text-white transition">

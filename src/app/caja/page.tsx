@@ -2335,10 +2335,10 @@ export default function CajaPage() {
                                                                         </svg>
                                                                     </a>
                                                                 )}
-                                                                {!esApp && p.mesa && (
+                                                                {!esApp && (
                                                                     <button onClick={() => setCambiarMesaModal(p)}
                                                                         className="p-1.5 rounded-full bg-white/20 hover:bg-white/40 text-white transition"
-                                                                        title="Transferir mesa">
+                                                                        title={p.mesa ? "Transferir mesa" : "Asignar mesa"}>
                                                                         <ArrowLeftRight size={12} />
                                                                     </button>
                                                                 )}
