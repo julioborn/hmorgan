@@ -210,7 +210,7 @@ export default function AutoservicioPage() {
     );
 
     if (!user || sesion === null) return (
-        <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4 px-6 text-center">
+        <div className="bg-white flex flex-col items-center justify-center gap-4 px-6 text-center" style={{ minHeight: "calc(100dvh - calc(env(safe-area-inset-top) + 98px))" }}>
             <div className="w-20 h-20 rounded-3xl bg-purple-50 flex items-center justify-center">
                 <Tablet size={40} className="text-purple-400" />
             </div>
