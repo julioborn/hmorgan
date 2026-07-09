@@ -14,6 +14,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 import Loader from "@/components/Loader";
 import { AdminHome, AdminCard } from "@/components/AdminHomePanel";
+import { useCategoryConfigs } from "@/hooks/useCategoryConfigs";
 
 const container =
   "mx-auto w-full max-w-screen-sm md:max-w-2xl lg:max-w-4xl xl:max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8";
@@ -116,6 +117,7 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [carouselImages, setCarouselImages] = useState<CarouselImg[]>([]);
   const [loadingRewards, setLoadingRewards] = useState(true);
+  const categoryConfigMap = useCategoryConfigs();
   const [menuDelDia, setMenuDelDia] = useState<MenuDelDiaItem[]>([]);
   const [menuDelDiaLoading, setMenuDelDiaLoading] = useState(true);
   const [menuDelDiaTiene, setMenuDelDiaTiene] = useState(false);
@@ -530,7 +532,7 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
         ) : (
           <Link href="/cliente/menu" className="block">
             <div className="relative rounded-2xl overflow-hidden shadow-lg h-56">
-              <img src="/menu-del-dia.jpeg" alt="Menú del Día" className="w-full h-full object-cover" />
+              <img src={categoryConfigMap["MENÚ DEL DÍA"]?.imageUrl || "/menu-del-dia.jpeg"} alt="Menú del Día" className="w-full h-full object-cover" style={{ objectPosition: categoryConfigMap["MENÚ DEL DÍA"]?.imagePosition || "50% 50%" }} />
               <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
               <span className="absolute top-3 left-3 bg-white/90 text-amber-700 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">Hoy</span>
               <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-2">
