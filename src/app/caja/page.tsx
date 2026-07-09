@@ -748,7 +748,7 @@ export default function CajaPage() {
 
     useEffect(() => {
         if (tab !== "mesas") return;
-        // Cargar reservas de hoy cada vez que se entra al tab de mesas
+        // Cargar reservas de hoy y sesiones de autoservicio cada vez que se entra al tab de mesas
         fetch("/api/reservas", { credentials: "include" })
             .then(r => r.json())
             .then(data => {
@@ -759,6 +759,10 @@ export default function CajaPage() {
                     String(r.fecha).slice(0, 10) === hoy
                 ));
             })
+            .catch(() => { });
+        fetch("/api/autoservicio", { credentials: "include" })
+            .then(r => r.json())
+            .then(d => { if (Array.isArray(d)) { setAutoservActivasCount(d.length); setAutoservSesiones(d); } })
             .catch(() => { });
     }, [tab]);
 
@@ -2921,7 +2925,7 @@ export default function CajaPage() {
                                                 style={{ position: "absolute", left: `${m.x ?? 10}%`, top: `${m.y ?? 10}%`, transform: `translate(-50%,-50%) rotate(${rot}deg)`, width: `min(${w}%,${w * 7}px)`, height: `min(${h}%,${h * 7.5}px)`, minWidth: "22px", minHeight: "16px", borderRadius: isRound ? "50%" : "8px", cursor: clickeable ? "pointer" : "default", userSelect: "none", zIndex: 2 }}
                                                 className={`flex items-center justify-center border-2 ${bg} ${clickeable ? "hover:brightness-110 active:scale-95 transition-all" : ""}`}>
                                                 <div style={{ transform: `rotate(${-rot}deg)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                                    <span style={{ fontSize: "clamp(5px,0.8vw,9px)", fontWeight: 900 }}>{m.nombre}</span>
+                                                    <span style={{ fontSize: "clamp(5px,0.8vw,9px)", fontWeight: 900 }}>{isBanq ? `B${m.nombre}` : m.nombre}</span>
                                                 </div>
                                             </div>
                                         );
