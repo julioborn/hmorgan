@@ -4,6 +4,7 @@ import { Pedido } from "@/models/Pedido";
 import { MenuItem } from "@/models/MenuItem";
 import { User } from "@/models/User";
 import { Counter } from "@/models/Counter";
+import Config from "@/models/Config";
 import jwt from "jsonwebtoken";
 import { sendPushToSubscriptions } from "@/lib/push-server";
 import { enviarNotificacionFCM, isFCMTokenInvalid } from "@/lib/firebase-admin";
@@ -31,19 +32,28 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
+    let body: any = {};
+    try { body = await req.json(); } catch {}
+
+    const esCliente = payload.role === "cliente";
     if (!ROLES_EDITAN_PEDIDO.includes(payload.role)) {
-        return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+        if (!(esCliente && body.accion === "cambiarTipoEntrega")) {
+            return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+        }
     }
 
     await connectMongoDB();
 
     const pedido = await Pedido.findById(params.id);
     if (!pedido) return NextResponse.json({ error: "Pedido no encontrado" }, { status: 404 });
+
+    if (esCliente && pedido.userId?.toString() !== payload.sub) {
+        return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
+
     if (["cerrado", "cancelado"].includes(pedido.estado)) {
         return NextResponse.json({ error: "El pedido ya está cerrado" }, { status: 400 });
     }
-
-    const body = await req.json();
 
     // ── Notificar al cliente si el pedido es de la app ─────────────────────
     async function notificarClienteModificacion(titulo: string, mensaje: string) {
@@ -133,6 +143,60 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         if (!item) return NextResponse.json({ error: "Ítem no encontrado" }, { status: 404 });
         item.nota = nota?.trim() || undefined;
         await pedido.save();
+        return NextResponse.json({ ok: true, pedido });
+    }
+
+    // ── Cliente cambia tipo de entrega (retira ↔ envio) ───────────────────
+    if (body.accion === "cambiarTipoEntrega") {
+        const { nuevaTipo, direccion } = body;
+        if (!["pendiente", "preparando"].includes(pedido.estado)) {
+            return NextResponse.json({ error: "Ya no se puede cambiar el tipo de entrega" }, { status: 400 });
+        }
+
+        if (nuevaTipo === "envio") {
+            if (!direccion?.trim()) return NextResponse.json({ error: "Dirección requerida" }, { status: 400 });
+            const config = await Config.findOne().lean<any>();
+            const costoEnvio = config?.costoDelivery ?? 0;
+            const keyDel = `delivery-${hoyArgentina()}`;
+            const cnt = await Counter.findOneAndUpdate({ _id: keyDel }, { $inc: { seq: 1 } }, { upsert: true, new: true });
+            (pedido as any).tipoEntrega = "envio";
+            (pedido as any).direccion = direccion.trim();
+            (pedido as any).costoEnvio = costoEnvio;
+            pedido.total = pedido.total + costoEnvio;
+            (pedido as any).deliveryNumero = cnt.seq;
+
+        } else if (nuevaTipo === "retira") {
+            const costoAnterior = (pedido as any).costoEnvio ?? 0;
+            (pedido as any).tipoEntrega = "retira";
+            pedido.total = Math.max(0, pedido.total - costoAnterior);
+            (pedido as any).costoEnvio = 0;
+
+        } else {
+            return NextResponse.json({ error: "Tipo inválido" }, { status: 400 });
+        }
+
+        await pedido.save();
+
+        // Notificar al admin
+        const admin = await User.findOne({ role: "admin" });
+        if (admin) {
+            const clienteDoc = await User.findById(pedido.userId).select("nombre apellido").lean<any>();
+            const nombre = clienteDoc ? `${clienteDoc.nombre} ${clienteDoc.apellido}`.trim() : "Un cliente";
+            const notifTitle = "Cambio en pedido";
+            const notifBody = `${nombre} cambió su pedido a ${nuevaTipo === "envio" ? "envío a domicilio" : "retiro en local"}`;
+            if (admin.pushSubscriptions?.length) {
+                await sendPushToSubscriptions(admin.pushSubscriptions, {
+                    title: notifTitle, body: notifBody, url: "/caja",
+                    icon: "/icon-192.png", badge: "/icon-badge-96x96.png",
+                });
+            }
+            const fcmTokens = new Set<string>([...(admin.fcmTokens ?? []), ...(admin.tokenFCM ? [admin.tokenFCM] : [])]);
+            for (const t of fcmTokens) {
+                try { await enviarNotificacionFCM(t, notifTitle, notifBody, "/caja"); }
+                catch (err) { if (isFCMTokenInvalid(err)) await User.updateOne({ _id: admin._id }, { $pull: { fcmTokens: t } }); }
+            }
+        }
+
         return NextResponse.json({ ok: true, pedido });
     }
 
