@@ -26,15 +26,28 @@ export async function POST(req: NextRequest) {
 
     const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
 
+    const costoEnvio = (pedido as any).costoEnvio ?? 0;
+    const mpItems = [
+        ...pedido.items.map((item: any) => ({
+            id: item.menuItemId._id.toString(),
+            title: item.menuItemId.nombre as string,
+            quantity: item.cantidad as number,
+            unit_price: item.menuItemId.precio as number,
+            currency_id: "ARS",
+        })),
+        ...(costoEnvio > 0 ? [{
+            id: "envio",
+            title: "Costo de envío",
+            quantity: 1,
+            unit_price: costoEnvio as number,
+            currency_id: "ARS",
+        }] : []),
+    ];
+
     const result = await preference.create({
         body: {
-            items: pedido.items.map((item: any) => ({
-                id: item.menuItemId._id.toString(),
-                title: item.menuItemId.nombre as string,
-                quantity: item.cantidad as number,
-                unit_price: item.menuItemId.precio as number,
-                currency_id: "ARS",
-            })),
+            items: mpItems,
+            statement_descriptor: "HMorgan Bar",
             back_urls: {
                 success: `${baseUrl}/cliente/pedidos?pago=ok`,
                 failure: `${baseUrl}/cliente/pedidos?pago=error`,

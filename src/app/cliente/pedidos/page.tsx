@@ -298,12 +298,15 @@ function CartDrawer({
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Método de pago</p>
                     <div className="flex gap-2">
                         <button onClick={() => setMetodoPago("efectivo")}
-                            className={`flex-1 py-2 rounded-xl font-semibold text-sm border transition ${metodoPago === "efectivo" ? "bg-red-600 text-white border-red-600" : "bg-white text-gray-700 border-gray-300"}`}>
-                            💵 Efectivo
+                            className={`flex-1 py-2 rounded-xl font-semibold text-sm border transition ${metodoPago === "efectivo" ? "bg-green-600 text-white border-green-600" : "bg-white text-gray-700 border-gray-300"}`}>
+                            Efectivo
                         </button>
                         <button onClick={() => setMetodoPago("mercadopago")}
-                            className={`flex-1 py-2 rounded-xl font-semibold text-sm border transition ${metodoPago === "mercadopago" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-700 border-gray-300"}`}>
-                            💳 Mercado Pago
+                            className={`flex-1 py-2 rounded-xl font-semibold text-sm border transition flex items-center justify-center gap-2 ${metodoPago === "mercadopago" ? "bg-[#009EE3] text-white border-[#009EE3]" : "bg-white text-gray-700 border-gray-300"}`}>
+                            <svg viewBox="0 0 32 32" width="16" height="16" fill="currentColor" className="shrink-0">
+                                <path d="M16 2l2.47 7.6L26.5 7.06l-5.56 5.56L28 16l-7.06 2.06 2.94 8.4-6.44-4.94L16 30l-1.44-8.48-6.44 4.94 2.94-8.4L4 16l7.06-3.38-5.56-5.56 8.03 2.54z"/>
+                            </svg>
+                            Mercado Pago
                         </button>
                     </div>
                 </div>
@@ -318,7 +321,7 @@ function CartDrawer({
                     <button
                         onClick={onEnviar}
                         disabled={enviando}
-                        className={`flex-1 text-white py-3 rounded-xl font-bold text-base disabled:opacity-50 transition ${metodoPago === "mercadopago" ? "bg-blue-600 hover:bg-blue-700" : "bg-red-600 hover:bg-red-700"}`}
+                        className={`flex-1 text-white py-3 rounded-xl font-bold text-base disabled:opacity-50 transition ${metodoPago === "mercadopago" ? "bg-[#009EE3] hover:bg-[#0088cc]" : "bg-green-600 hover:bg-green-700"}`}
                     >
                         {enviando
                             ? "Procesando..."
