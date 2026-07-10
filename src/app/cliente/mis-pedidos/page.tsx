@@ -100,16 +100,20 @@ export default function MisPedidosPage() {
         emerald: "border-emerald-500 bg-emerald-100 text-emerald-700",
     };
 
+    const ESTADOS_FINALES = ["entregado", "cerrado", "cobrado"];
     const pedidosApp = pedidos.filter((p) => p.fuente !== "autoservicio");
     const activos = pedidosApp.filter(
         (p) => p.estado === "pendiente" || p.estado === "preparando" || p.estado === "listo"
     );
-    const completados = pedidosApp.filter((p) => p.estado === "entregado");
+    const completados = pedidosApp.filter((p) => ESTADOS_FINALES.includes(p.estado));
     const pedidosActuales = vista === "activos" ? activos : completados;
     const totalPages = Math.max(1, Math.ceil(pedidosActuales.length / PAGE_SIZE));
     const pagedPedidos = pedidosActuales.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-    const getEstadoIndex = (estado: string) => estados.findIndex((e) => e.key === estado);
+    const getEstadoIndex = (estado: string) => {
+        if (ESTADOS_FINALES.includes(estado)) return estados.length - 1;
+        return estados.findIndex((e) => e.key === estado);
+    };
 
     const barColors: Record<EstadoColor, string> = {
         yellow: "bg-yellow-500",
