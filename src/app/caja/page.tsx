@@ -215,6 +215,11 @@ export default function CajaPage() {
     const [cambiarMesaModal, setCambiarMesaModal] = useState<Pedido | null>(null);
     const [editDireccionModal, setEditDireccionModal] = useState<{ pedidoId: string; direccion: string } | null>(null);
     const [savingDireccion, setSavingDireccion] = useState(false);
+    const [cambiarEntregaModal, setCambiarEntregaModal] = useState<{ pedidoId: string } | null>(null);
+    const [ceDir, setCeDir] = useState("");
+    const [ceTel, setCeTel] = useState("");
+    const [ceCosto, setCeCosto] = useState("");
+    const [ceSaving, setCeSaving] = useState(false);
     const [editingNota, setEditingNota] = useState<{ pedidoId: string; itemId: string; valor: string } | null>(null);
     const [llamadas, setLlamadas] = useState<{ _id: string; clienteNombre: string; mesa?: string; tipo?: string; mozoNombre?: string; createdAt: string }[]>([]);
 
@@ -955,6 +960,31 @@ export default function CajaPage() {
                 setEditDireccionModal(null);
             }
         } finally { setSavingDireccion(false); }
+    }
+
+    async function ejecutarCambiarEntrega() {
+        if (!cambiarEntregaModal || !ceDir.trim()) return;
+        setCeSaving(true);
+        try {
+            const res = await fetch(`/api/pedidos/${cambiarEntregaModal.pedidoId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({
+                    accion: "cambiarEntrega",
+                    direccion: ceDir.trim(),
+                    telefonoContacto: ceTel.trim() || undefined,
+                    costoEnvio: Number(ceCosto) || 0,
+                }),
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setPedidos(prev => prev.map(p =>
+                    p._id === cambiarEntregaModal.pedidoId ? { ...p, ...data.pedido } : p
+                ));
+                setCambiarEntregaModal(null);
+            }
+        } finally { setCeSaving(false); }
     }
 
     async function abrirSelectorProducto(
@@ -2397,6 +2427,18 @@ export default function CajaPage() {
                                                                         className="p-1.5 rounded-full bg-white/20 hover:bg-white/40 text-white transition"
                                                                         title="Comensales">
                                                                         <Users size={12} />
+                                                                    </button>
+                                                                )}
+                                                                {esApp && p.tipoEntrega !== "envio" && !["cancelado", "cerrado", "entregado"].includes(p.estado) && (
+                                                                    <button onClick={() => {
+                                                                        setCambiarEntregaModal({ pedidoId: p._id });
+                                                                        setCeDir("");
+                                                                        setCeTel(p.userId?.telefono || "");
+                                                                        setCeCosto(String(costoDelivery || ""));
+                                                                    }}
+                                                                        className="p-1.5 rounded-full bg-blue-500/80 hover:bg-blue-400 text-white transition"
+                                                                        title="Cambiar a domicilio">
+                                                                        <Truck size={12} />
                                                                     </button>
                                                                 )}
                                                                 <button onClick={() => eliminarPedidoCaja(p)}
@@ -5154,6 +5196,74 @@ export default function CajaPage() {
                                     {savingDireccion ? "Guardando..." : "Guardar"}
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal cambiar a domicilio */}
+            {cambiarEntregaModal && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60"
+                    onClick={() => !ceSaving && setCambiarEntregaModal(null)}>
+                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden"
+                        onClick={e => e.stopPropagation()}>
+                        <div className="bg-blue-600 px-5 py-4 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Truck size={18} className="text-white" />
+                                <div>
+                                    <h3 className="font-black text-white text-base leading-tight">Cambiar a domicilio</h3>
+                                    <p className="text-blue-200 text-xs">El pedido pasará a ser un envío</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setCambiarEntregaModal(null)} className="p-1 text-white/60 hover:text-white"><X size={16} /></button>
+                        </div>
+                        <div className="px-5 py-4 space-y-3">
+                            <div>
+                                <label className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-1 block">Dirección *</label>
+                                <input
+                                    autoFocus
+                                    value={ceDir}
+                                    onChange={e => setCeDir(e.target.value)}
+                                    onKeyDown={e => e.key === "Enter" && ejecutarCambiarEntrega()}
+                                    placeholder="Ej: San Martín 456"
+                                    style={{ fontSize: "16px" }}
+                                    className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-blue-400 transition"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-1 block">Teléfono de contacto</label>
+                                <input
+                                    value={ceTel}
+                                    onChange={e => setCeTel(e.target.value)}
+                                    placeholder="Ej: 3408123456"
+                                    style={{ fontSize: "16px" }}
+                                    className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-blue-400 transition"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-1 block">Costo de envío</label>
+                                <input
+                                    type="number"
+                                    value={ceCosto}
+                                    onChange={e => setCeCosto(e.target.value)}
+                                    placeholder="0"
+                                    min="0"
+                                    style={{ fontSize: "16px" }}
+                                    className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-blue-400 transition"
+                                />
+                                <p className="text-xs text-gray-400 mt-1">Se suma al total del pedido</p>
+                            </div>
+                        </div>
+                        <div className="px-5 pb-5 flex gap-2">
+                            <button onClick={() => setCambiarEntregaModal(null)} disabled={ceSaving}
+                                className="flex-1 py-2.5 border-2 border-gray-200 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-50 transition">
+                                Cancelar
+                            </button>
+                            <button onClick={ejecutarCambiarEntrega} disabled={ceSaving || !ceDir.trim()}
+                                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-black disabled:opacity-50 transition flex items-center justify-center gap-1.5">
+                                {ceSaving ? <Loader2 size={14} className="animate-spin" /> : <Truck size={14} />}
+                                Confirmar
+                            </button>
                         </div>
                     </div>
                 </div>

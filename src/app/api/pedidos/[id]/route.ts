@@ -3,9 +3,11 @@ import { connectMongoDB } from "@/lib/mongodb";
 import { Pedido } from "@/models/Pedido";
 import { MenuItem } from "@/models/MenuItem";
 import { User } from "@/models/User";
+import { Counter } from "@/models/Counter";
 import jwt from "jsonwebtoken";
 import { sendPushToSubscriptions } from "@/lib/push-server";
 import { enviarNotificacionFCM, isFCMTokenInvalid } from "@/lib/firebase-admin";
+import { hoyArgentina } from "@/lib/argentina-time";
 
 const SECRET = process.env.NEXTAUTH_SECRET!;
 
@@ -131,6 +133,50 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         if (!item) return NextResponse.json({ error: "Ítem no encontrado" }, { status: 404 });
         item.nota = nota?.trim() || undefined;
         await pedido.save();
+        return NextResponse.json({ ok: true, pedido });
+    }
+
+    // ── Convertir retiro a envío a domicilio ───────────────────────────────
+    if (body.accion === "cambiarEntrega") {
+        if (!["cajero", "admin", "superadmin"].includes(payload.role)) {
+            return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+        }
+        const { direccion, telefonoContacto, costoEnvio } = body;
+        if (!direccion?.trim()) return NextResponse.json({ error: "Dirección requerida" }, { status: 400 });
+
+        const costo = Number(costoEnvio) || 0;
+        const keyDel = `delivery-${hoyArgentina()}`;
+        const cnt = await Counter.findOneAndUpdate({ _id: keyDel }, { $inc: { seq: 1 } }, { upsert: true, new: true });
+
+        (pedido as any).tipoEntrega = "envio";
+        (pedido as any).direccion = direccion.trim();
+        if (telefonoContacto?.trim()) (pedido as any).telefonoContacto = telefonoContacto.trim();
+        (pedido as any).costoEnvio = costo;
+        pedido.total = pedido.total + costo;
+        (pedido as any).deliveryNumero = cnt.seq;
+        await pedido.save();
+
+        await notificarClienteModificacion("Tu pedido se actualizó", "Tu pedido ahora será enviado a tu domicilio 🛵");
+
+        if (["preparando", "listo"].includes(pedido.estado)) {
+            const deliveryUsers = await User.find({ role: "delivery" });
+            const notifTitle = pedido.estado === "listo" ? "¡Pedido listo para llevar! 🛵" : "¡Nuevo envío en preparación! 👨🏻‍🍳";
+            const notifBody = `Nuevo envío a: ${direccion.trim()}`;
+            for (const du of deliveryUsers) {
+                if (du.pushSubscriptions?.length) {
+                    await sendPushToSubscriptions(du.pushSubscriptions, {
+                        title: notifTitle, body: notifBody, url: "/delivery",
+                        icon: "/icon-192.png", badge: "/icon-badge-96x96.png",
+                    });
+                }
+                const fcmTokens = new Set<string>([...(du.fcmTokens ?? []), ...(du.tokenFCM ? [du.tokenFCM] : [])]);
+                for (const t of fcmTokens) {
+                    try { await enviarNotificacionFCM(t, notifTitle, notifBody, "/delivery"); }
+                    catch (err) { if (isFCMTokenInvalid(err)) await User.updateOne({ _id: du._id }, { $pull: { fcmTokens: t } }); }
+                }
+            }
+        }
+
         return NextResponse.json({ ok: true, pedido });
     }
 
