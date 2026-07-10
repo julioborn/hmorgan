@@ -4,7 +4,7 @@ import { swalBase } from "@/lib/swalConfig";
 import { hoyArgentina, formatArgDate } from "@/lib/argentina-time";
 import {
     MapPin, MessageCircle, Check, X,
-    Loader2, Phone, ChevronDown, Plus, Search, Users,
+    Loader2, Phone, ChevronDown, Plus, Search, Users, Pencil,
 } from "lucide-react";
 
 type Reserva = {
@@ -156,6 +156,18 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
     const [crearError, setCrearError]     = useState("");
     const busquedaRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // ── Editar reserva ─────────────────────────────────────────────
+    const [editModal, setEditModal]         = useState<Reserva | null>(null);
+    const [editNombre, setEditNombre]       = useState("");
+    const [editTelefono, setEditTelefono]   = useState("");
+    const [editFecha, setEditFecha]         = useState("");
+    const [editHora, setEditHora]           = useState("");
+    const [editComensales, setEditComensales] = useState(2);
+    const [editZona, setEditZona]           = useState<"adentro"|"afuera"|"indiferente">("indiferente");
+    const [editNotas, setEditNotas]         = useState("");
+    const [editSaving, setEditSaving]       = useState(false);
+    const [editError, setEditError]         = useState("");
+
     const fetchReservas = useCallback(async () => {
         const r = await fetch("/api/reservas", { credentials: "include" });
         const d = await r.json();
@@ -283,10 +295,43 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
         setPickerSelected(null);
     }
 
-    const filtered = reservas.filter(r => r.estado === tab);
+    function openEdit(r: Reserva) {
+        setEditModal(r);
+        setEditNombre(r.nombreContacto || "");
+        setEditTelefono(r.telefonoContacto || r.userId?.telefono || "");
+        setEditFecha(r.fecha.slice(0, 10));
+        setEditHora(r.hora);
+        setEditComensales(r.comensales);
+        setEditZona(r.zona);
+        setEditNotas(r.notas || "");
+        setEditError("");
+    }
+
+    async function guardarEdicion() {
+        if (!editModal) return;
+        if (!editFecha || !editHora) { setEditError("Fecha y hora son obligatorias"); return; }
+        setEditSaving(true);
+        const updates: Record<string, unknown> = {
+            fecha: editFecha,
+            hora: editHora,
+            comensales: editComensales,
+            zona: editZona,
+            notas: editNotas.trim() || undefined,
+        };
+        if (!editModal.userId) {
+            updates.nombreContacto = editNombre.trim();
+            updates.telefonoContacto = editTelefono.trim() || undefined;
+        }
+        await updateReserva(editModal._id, updates);
+        setEditSaving(false);
+        setEditModal(null);
+    }
+
+    const hoy = hoyArgentina();
+    const filtered = reservas.filter(r => r.estado === tab && r.fecha?.slice(0, 10) >= hoy);
     const counts = {
-        pendiente:  reservas.filter(r => r.estado === "pendiente").length,
-        confirmada: reservas.filter(r => r.estado === "confirmada").length,
+        pendiente:  reservas.filter(r => r.estado === "pendiente" && r.fecha?.slice(0, 10) >= hoy).length,
+        confirmada: reservas.filter(r => r.estado === "confirmada" && r.fecha?.slice(0, 10) >= hoy).length,
     };
 
     return (
@@ -407,6 +452,11 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
                                             <MapPin size={12} />
                                             {r.mesaId?.nombre ? `Mesa ${r.mesaId.nombre}` : "Asignar mesa"}
                                             <ChevronDown size={11} className="text-gray-400" />
+                                        </button>
+
+                                        <button onClick={() => openEdit(r)}
+                                            className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-xs font-semibold text-gray-700 transition border border-gray-200">
+                                            <Pencil size={12} /> Editar
                                         </button>
 
                                         {r.estado === "pendiente" && (
@@ -598,6 +648,101 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
                                 className="w-full flex items-center justify-center gap-2 bg-black text-white font-black py-3.5 rounded-xl text-sm tracking-wide hover:bg-gray-800 disabled:opacity-50 transition">
                                 {crearSaving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
                                 Crear reserva
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Modal editar reserva ────────────────────────────── */}
+            {editModal && (
+                <div className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4">
+                    <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md shadow-2xl overflow-hidden flex flex-col" style={{ maxHeight: "92vh" }}>
+                        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
+                            <h2 className="font-black text-gray-900 flex-1 text-lg">Editar reserva</h2>
+                            <button onClick={() => setEditModal(null)} className="p-1 text-gray-400 hover:text-gray-700"><X size={20} /></button>
+                        </div>
+
+                        <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
+                            {/* Nombre/teléfono solo si es sin cuenta */}
+                            {!editModal.userId && (
+                                <div className="space-y-3">
+                                    <div>
+                                        <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Nombre *</label>
+                                        <input value={editNombre} onChange={e => setEditNombre(e.target.value)}
+                                            className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-black focus:outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Teléfono</label>
+                                        <input value={editTelefono} onChange={e => setEditTelefono(e.target.value)} type="tel"
+                                            className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-black focus:outline-none" />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Fecha */}
+                            <div>
+                                <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Fecha *</label>
+                                <input type="date" min={hoyArgentina()} value={editFecha} onChange={e => setEditFecha(e.target.value)}
+                                    className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-black focus:outline-none" />
+                            </div>
+
+                            {/* Hora */}
+                            <div>
+                                <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">Horario *</label>
+                                <div className="grid grid-cols-4 gap-1.5">
+                                    {HORAS.map(h => (
+                                        <button key={h} onClick={() => setEditHora(h)}
+                                            className={`py-2 rounded-xl text-sm font-bold border-2 transition ${editHora === h ? "border-black bg-black text-white" : "border-gray-200 text-gray-700 hover:border-gray-400"}`}>
+                                            {h}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Comensales */}
+                            <div>
+                                <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">Comensales</label>
+                                <div className="flex items-center gap-4">
+                                    <button onClick={() => setEditComensales(c => Math.max(1, c - 1))}
+                                        className="w-10 h-10 rounded-full border-2 border-gray-200 text-xl font-bold text-gray-700 flex items-center justify-center hover:border-gray-400 transition">−</button>
+                                    <span className="text-2xl font-black text-gray-900 min-w-[2rem] text-center">{editComensales}</span>
+                                    <button onClick={() => setEditComensales(c => Math.min(20, c + 1))}
+                                        className="w-10 h-10 rounded-full border-2 border-gray-200 text-xl font-bold text-gray-700 flex items-center justify-center hover:border-gray-400 transition">+</button>
+                                </div>
+                            </div>
+
+                            {/* Zona */}
+                            <div>
+                                <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">Preferencia de zona</label>
+                                <div className="flex gap-2">
+                                    {(["adentro","afuera","indiferente"] as const).map(z => (
+                                        <button key={z} onClick={() => setEditZona(z)}
+                                            className={`flex-1 py-2 rounded-xl text-xs font-bold border-2 transition ${editZona === z ? "border-black bg-black text-white" : "border-gray-200 text-gray-600 hover:border-gray-400"}`}>
+                                            {ZONA_LABEL[z]}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Notas */}
+                            <div>
+                                <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Observaciones</label>
+                                <textarea value={editNotas} onChange={e => setEditNotas(e.target.value)}
+                                    rows={2} placeholder="Opcional"
+                                    className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-black focus:outline-none resize-none" />
+                            </div>
+
+                            {editError && (
+                                <p className="text-sm text-red-600 font-semibold text-center bg-red-50 rounded-xl px-3 py-2">{editError}</p>
+                            )}
+                        </div>
+
+                        <div className="px-5 py-4 border-t border-gray-100 shrink-0">
+                            <button onClick={guardarEdicion} disabled={editSaving}
+                                className="w-full flex items-center justify-center gap-2 bg-black text-white font-black py-3.5 rounded-xl text-sm tracking-wide hover:bg-gray-800 disabled:opacity-50 transition">
+                                {editSaving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                                Guardar cambios
                             </button>
                         </div>
                     </div>
