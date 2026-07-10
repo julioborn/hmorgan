@@ -124,18 +124,9 @@ export default function MisPedidosPage() {
 
     return (
         <div className="p-6 min-h-screen bg-white">
-            <div className="flex items-center justify-between mb-10">
-                <h1 className="text-4xl font-extrabold text-black">Mis Pedidos</h1>
-                <Link
-                    href="/cliente/pedidos"
-                    className="flex items-center gap-2 bg-black text-white px-4 py-2.5 rounded-xl font-semibold text-sm hover:bg-gray-800 transition active:scale-[0.97]"
-                >
-                    <PackagePlus size={16} />
-                    Nuevo pedido
-                </Link>
-            </div>
+            <h1 className="text-4xl font-extrabold text-black mb-8">Mis Pedidos</h1>
 
-            <div className="flex justify-center gap-4 mb-8">
+            <div className="flex justify-center gap-4 mb-6">
                 <button
                     onClick={() => { setVista("activos"); setPage(1); }}
                     className={`px-6 py-2 rounded-full text-sm font-medium border transition-all ${vista === "activos"
@@ -154,6 +145,16 @@ export default function MisPedidosPage() {
                 >
                     Finalizados
                 </button>
+            </div>
+
+            <div className="flex justify-center mb-8">
+                <Link
+                    href="/cliente/pedidos"
+                    className="flex items-center gap-2 bg-black text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-gray-800 transition active:scale-[0.97]"
+                >
+                    <PackagePlus size={16} />
+                    Nuevo pedido
+                </Link>
             </div>
 
             {pedidosActuales.length === 0 ? (
