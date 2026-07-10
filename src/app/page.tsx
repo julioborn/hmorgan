@@ -14,6 +14,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 import Loader from "@/components/Loader";
 import { AdminHome, AdminCard } from "@/components/AdminHomePanel";
+import { OWNER_USER_ID } from "@/lib/owner";
 import { useCategoryConfigs } from "@/hooks/useCategoryConfigs";
 
 const container =
@@ -34,7 +35,7 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && user?.role === "superadmin") router.replace("/admin");
+    if (!loading && user?.role === "superadmin" && user?.id !== OWNER_USER_ID) router.replace("/admin");
   }, [user, loading, router]);
 
   if (loading) {
@@ -50,7 +51,7 @@ export default function Home() {
   if (user.role === "cajero") { if (typeof window !== "undefined") window.location.replace("/caja"); return null; }
   if (user.role === "delivery") { if (typeof window !== "undefined") window.location.replace("/delivery"); return null; }
   if (user.role === "cocina") { if (typeof window !== "undefined") window.location.replace("/cocina"); return null; }
-  if (user.role === "admin" || user.role === "superadmin") return <AdminHome />;
+  if ((user.role === "admin" || user.role === "superadmin") && user.id !== OWNER_USER_ID) return <AdminHome />;
   if (user.role === "empleado") return <EmployeeHome nombre={user.nombre} />;
   return <ClientHome nombre={user.nombre} puntos={user.puntos ?? 0} userId={user.id} />;
 }

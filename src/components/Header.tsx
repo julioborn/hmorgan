@@ -150,7 +150,7 @@ export default function Header() {
 
         {/* DERECHA — campanita */}
         <div className="flex-1 flex justify-end items-center gap-1 pr-1">
-          {user && (user.role === "admin" || user.role === "cliente") && (
+          {user && (user.role === "admin" || user.role === "cliente" || user.id === OWNER_USER_ID) && (
             <NotifBell />
           )}
         </div>
