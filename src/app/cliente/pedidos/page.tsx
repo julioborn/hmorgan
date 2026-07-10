@@ -163,6 +163,8 @@ interface CartDrawerProps {
     enviando: boolean;
     total: number;
     costoEnvio: number;
+    metodoPago: string;
+    setMetodoPago: (v: string) => void;
     onClose: () => void;
     onVaciar: () => void;
     onEliminar: (id: string) => void;
@@ -175,7 +177,8 @@ function CartDrawer({
     usarOtraDireccion, setUsarOtraDireccion,
     horarioPreferido, setHorarioPreferido,
     notasProducto, onSetNotaProducto, onSelectCoords,
-    enviando, total, costoEnvio, onClose, onVaciar, onEliminar, onEnviar,
+    enviando, total, costoEnvio, metodoPago, setMetodoPago,
+    onClose, onVaciar, onEliminar, onEnviar,
 }: CartDrawerProps) {
     const totalFinal = total + (tipoEntrega === "envio" ? costoEnvio : 0);
     return (
@@ -290,6 +293,21 @@ function CartDrawer({
                     </div>
                 )}
 
+                {/* Método de pago */}
+                <div className="mt-4">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Método de pago</p>
+                    <div className="flex gap-2">
+                        <button onClick={() => setMetodoPago("efectivo")}
+                            className={`flex-1 py-2 rounded-xl font-semibold text-sm border transition ${metodoPago === "efectivo" ? "bg-red-600 text-white border-red-600" : "bg-white text-gray-700 border-gray-300"}`}>
+                            💵 Efectivo
+                        </button>
+                        <button onClick={() => setMetodoPago("mercadopago")}
+                            className={`flex-1 py-2 rounded-xl font-semibold text-sm border transition ${metodoPago === "mercadopago" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-700 border-gray-300"}`}>
+                            💳 Mercado Pago
+                        </button>
+                    </div>
+                </div>
+
                 <div className="flex gap-3 mt-4">
                     <button
                         onClick={onVaciar}
@@ -300,9 +318,13 @@ function CartDrawer({
                     <button
                         onClick={onEnviar}
                         disabled={enviando}
-                        className="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold text-base disabled:opacity-50 hover:bg-red-700 transition"
+                        className={`flex-1 text-white py-3 rounded-xl font-bold text-base disabled:opacity-50 transition ${metodoPago === "mercadopago" ? "bg-blue-600 hover:bg-blue-700" : "bg-red-600 hover:bg-red-700"}`}
                     >
-                        {enviando ? "Enviando..." : `Confirmar pedido · $${formatPrice(totalFinal)}`}
+                        {enviando
+                            ? "Procesando..."
+                            : metodoPago === "mercadopago"
+                                ? `Pagar con Mercado Pago · $${formatPrice(totalFinal)}`
+                                : `Confirmar pedido · $${formatPrice(totalFinal)}`}
                     </button>
                 </div>
             </motion.div>
@@ -337,6 +359,7 @@ export default function PedidosClientePage() {
     const [mapLng, setMapLng] = useState<number | null>(null);
     const [telefono, setTelefono] = useState<string>("");
     const [costoEnvio, setCostoEnvio] = useState<number>(0);
+    const [metodoPago, setMetodoPago] = useState<string>("efectivo");
     const router = useRouter();
 
     // Manejo de regreso desde Mercado Pago
@@ -459,10 +482,10 @@ export default function PedidosClientePage() {
         const totalFinalConfirm = total + (tipoEntrega === "envio" ? costoEnvio : 0);
         const { isConfirmed } = await swalBase.fire({
             title: "¿Confirmás el pedido?",
-            html: `<p class="text-gray-600 text-sm">Total: <strong>$${formatPrice(totalFinalConfirm)}</strong>${tipoEntrega === "envio" ? " · Con envío a domicilio" : " · Retirás en el bar"}</p>`,
+            html: `<p class="text-gray-600 text-sm">Total: <strong>$${formatPrice(totalFinalConfirm)}</strong>${tipoEntrega === "envio" ? " · Con envío a domicilio" : " · Retirás en el bar"}</p>${metodoPago === "mercadopago" ? '<p class="text-blue-600 text-sm font-semibold mt-1">💳 Vas a pagar con Mercado Pago</p>' : ""}`,
             icon: "question",
             showCancelButton: true,
-            confirmButtonText: "Sí, confirmar",
+            confirmButtonText: metodoPago === "mercadopago" ? "Ir a pagar" : "Sí, confirmar",
             cancelButtonText: "Revisar",
         });
         if (!isConfirmed) return;
@@ -486,10 +509,29 @@ export default function PedidosClientePage() {
                     lat: tipoEntrega === "envio" && mapLat ? mapLat : undefined,
                     lng: tipoEntrega === "envio" && mapLng ? mapLng : undefined,
                     horarioPreferido: horarioPreferido.trim() || undefined,
+                    metodoPago: metodoPago === "mercadopago" ? "mercadopago" : undefined,
                 }),
             });
 
             if (res.ok) {
+                const data = await res.json();
+
+                if (metodoPago === "mercadopago") {
+                    // Crear preference de MP y redirigir al checkout
+                    const prefRes = await fetch("/api/pagos/mp/preference", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ pedidoId: data.pedido._id }),
+                    });
+                    const prefData = await prefRes.json();
+                    if (prefRes.ok && prefData.init_point) {
+                        window.location.href = prefData.init_point;
+                        return;
+                    }
+                    await swalBase.fire("❌", "No se pudo generar el link de pago. Tu pedido fue creado igualmente.", "error");
+                    return;
+                }
+
                 setDrawerOpen(false);
                 await swalBase.fire({ icon: "success", title: "Pedido enviado correctamente", timer: 2000, showConfirmButton: false });
                 setItems({});
@@ -556,6 +598,7 @@ export default function PedidosClientePage() {
         onSetNotaProducto: (id, nota) => setNotasProducto(prev => ({ ...prev, [id]: nota })),
         onSelectCoords: (lat, lng) => { setMapLat(lat); setMapLng(lng); },
         enviando, total, costoEnvio,
+        metodoPago, setMetodoPago,
         onClose: () => setDrawerOpen(false),
         onVaciar: vaciarCarrito,
         onEliminar: eliminarProducto,
