@@ -105,11 +105,12 @@ export default function Header() {
   ];
 
   const links =
-    user?.role === "superadmin" ? linksSuper :
-    user?.role === "admin"      ? linksAdmin :
-    user?.role === "cajero"     ? linksCajero :
-    user?.role === "delivery"   ? linksDelivery :
-    user?.role === "empleado"   ? linksEmpleado :
+    user?.id === OWNER_USER_ID   ? linksCliente :
+    user?.role === "superadmin"  ? linksSuper :
+    user?.role === "admin"       ? linksAdmin :
+    user?.role === "cajero"      ? linksCajero :
+    user?.role === "delivery"    ? linksDelivery :
+    user?.role === "empleado"    ? linksEmpleado :
     linksCliente;
 
   if (loading) return null;

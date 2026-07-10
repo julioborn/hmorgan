@@ -108,7 +108,7 @@ export default function MisPedidosPage() {
 
     async function fetchPedidosCliente() {
         try {
-            const res = await fetch("/api/pedidos", { cache: "no-store" });
+            const res = await fetch("/api/pedidos?mios=true", { cache: "no-store" });
             if (!res.ok) throw new Error("Error al cargar pedidos");
             const data = await res.json();
             if (JSON.stringify(data) !== JSON.stringify(pedidos)) {

@@ -3,6 +3,7 @@ import { connectMongoDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import jwt from "jsonwebtoken";
 import type { Types } from "mongoose";
+import { OWNER_USER_ID } from "@/lib/owner";
 
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET!;
 
@@ -31,6 +32,9 @@ export async function GET(req: NextRequest) {
 
     if (!u) return NextResponse.json({ user: null });
 
+    const isOwner = u._id.toString() === OWNER_USER_ID;
+    const effectiveRole = isOwner ? "superadmin" : u.role;
+
     // Armamos el user serializable
     const safeUser = {
       id: u._id.toString(),
@@ -38,7 +42,7 @@ export async function GET(req: NextRequest) {
       apellido: u.apellido,
       dni: u.dni,
       telefono: u.telefono,
-      role: u.role,
+      role: effectiveRole,
       qrToken: u.qrToken,
       puntos: u.puntos ?? 0,
     };
@@ -46,19 +50,15 @@ export async function GET(req: NextRequest) {
     // Base response
     const res = NextResponse.json({ user: safeUser });
 
-    // 🔁 Sliding session: si faltan < 30 días, renovamos por 1 año
-    const now = Math.floor(Date.now() / 1000);
-    const exp = typeof (payload as any).exp === "number" ? (payload as any).exp : 0;
-    const timeLeft = exp - now;
-    const THIRTY_DAYS = 60 * 60 * 24 * 30;
+    const isProd = process.env.NODE_ENV === "production";
 
-    if (timeLeft > 0 && timeLeft < THIRTY_DAYS) {
+    // El owner siempre recibe un JWT con role superadmin actualizado
+    if (isOwner) {
       const fresh = jwt.sign(
-        { sub: u._id.toString(), role: u.role },
+        { sub: u._id.toString(), role: "superadmin" },
         NEXTAUTH_SECRET,
         { expiresIn: "365d" }
       );
-      const isProd = process.env.NODE_ENV === "production";
       res.cookies.set("session", fresh, {
         httpOnly: true,
         sameSite: "lax",
@@ -66,6 +66,27 @@ export async function GET(req: NextRequest) {
         path: "/",
         maxAge: 60 * 60 * 24 * 365,
       });
+    } else {
+      // 🔁 Sliding session: si faltan < 30 días, renovamos por 1 año
+      const now = Math.floor(Date.now() / 1000);
+      const exp = typeof (payload as any).exp === "number" ? (payload as any).exp : 0;
+      const timeLeft = exp - now;
+      const THIRTY_DAYS = 60 * 60 * 24 * 30;
+
+      if (timeLeft > 0 && timeLeft < THIRTY_DAYS) {
+        const fresh = jwt.sign(
+          { sub: u._id.toString(), role: u.role },
+          NEXTAUTH_SECRET,
+          { expiresIn: "365d" }
+        );
+        res.cookies.set("session", fresh, {
+          httpOnly: true,
+          sameSite: "lax",
+          secure: isProd,
+          path: "/",
+          maxAge: 60 * 60 * 24 * 365,
+        });
+      }
     }
 
     return res;

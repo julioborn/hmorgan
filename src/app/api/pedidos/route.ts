@@ -14,6 +14,7 @@ import { enviarNotificacionFCM, isFCMTokenInvalid } from "@/lib/firebase-admin";
 import Config from "@/models/Config";
 import { getPointsRatio } from "@/lib/getPointsRatio";
 import { hoyArgentina } from "@/lib/argentina-time";
+import { OWNER_USER_ID } from "@/lib/owner";
 
 // Numeración diaria de pedidos de la app (se reinicia cada día, hora Argentina)
 async function siguienteNumeroDelDia(): Promise<number> {
@@ -62,6 +63,8 @@ export async function GET(req: NextRequest) {
         const activosParam = req.nextUrl.searchParams.get("activos");
         const fuenteParam = req.nextUrl.searchParams.get("fuente");
         const propiasParam = req.nextUrl.searchParams.get("propias");
+        const miosParam = req.nextUrl.searchParams.get("mios");
+        if (miosParam === "true") query.userId = payload.sub;
         const terminadosHoyParam = req.nextUrl.searchParams.get("terminadosHoy");
         const entregadosSemanaParam = req.nextUrl.searchParams.get("entregadosSemana");
 
@@ -127,7 +130,8 @@ export async function POST(req: NextRequest) {
 
         const { items, tipoEntrega, direccion, fuente, mesa, comensales, nombreComanda, notaEmpleado, notaCliente, horarioPreferido, lat, lng, clienteId, eventoId, comensalesIds, metodoPago, telefonoContacto } = await req.json();
         const esAutoservicio = fuente === "autoservicio";
-        const esEmpleado = ["empleado", "cajero", "admin", "superadmin"].includes(payload.role);
+        const esOwnerComoCliente = payload.sub === OWNER_USER_ID && fuente === "cliente";
+        const esEmpleado = !esOwnerComoCliente && ["empleado", "cajero", "admin", "superadmin"].includes(payload.role);
 
         // Empleados no pueden crear comandas en mesas con sesión de autoservicio activa
         if (esEmpleado && mesa && !esAutoservicio) {
@@ -145,7 +149,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Pedidos desactivados no bloquean autoservicio (el cliente ya está en el bar)
-        if (!config.pedidosActivos && payload.role === "cliente" && !esAutoservicio) {
+        if (!config.pedidosActivos && (payload.role === "cliente" || esOwnerComoCliente) && !esAutoservicio) {
             return NextResponse.json(
                 { message: "Los pedidos están desactivados temporalmente" },
                 { status: 403 }
