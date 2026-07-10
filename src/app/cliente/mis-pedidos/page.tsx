@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Clock, Flame, CheckCircle, Truck, ChevronLeft, ChevronRight, PackagePlus, MapPin, X, ArrowLeftRight, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -9,6 +9,71 @@ import Loader from "@/components/Loader";
 import { swalBase } from "@/lib/swalConfig";
 
 type EstadoColor = "yellow" | "orange" | "blue" | "emerald";
+type NominatimResult = { place_id: number; display_name: string; lat: string; lon: string };
+
+function AddressAutocomplete({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+    const [query, setQuery] = useState(value);
+    const [results, setResults] = useState<NominatimResult[]>([]);
+    const [searching, setSearching] = useState(false);
+    const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => { setQuery(value); }, [value]);
+
+    async function buscar(q: string) {
+        if (q.trim().length < 3) { setResults([]); return; }
+        setSearching(true);
+        try {
+            const r = await fetch(
+                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ", Calchaquí, Santa Fe, Argentina")}&format=json&limit=5&countrycodes=ar&addressdetails=1`,
+                { headers: { "Accept-Language": "es" } }
+            );
+            const data = await r.json();
+            setResults(Array.isArray(data) ? data : []);
+        } catch { }
+        setSearching(false);
+    }
+
+    function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
+        const v = e.target.value;
+        setQuery(v);
+        onChange(v);
+        setResults([]);
+        if (timer.current) clearTimeout(timer.current);
+        timer.current = setTimeout(() => buscar(v), 600);
+    }
+
+    function handleSelect(r: NominatimResult) {
+        const clean = r.display_name.split(",").slice(0, 2).join(",").trim();
+        setQuery(clean);
+        onChange(clean);
+        setResults([]);
+    }
+
+    return (
+        <div className="relative">
+            <input
+                autoFocus
+                type="text"
+                placeholder="Ej: San Martín 456"
+                value={query}
+                onChange={handleInput}
+                style={{ fontSize: "16px" }}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-blue-400 transition"
+            />
+            {searching && <p className="text-xs text-gray-400 mt-1 pl-1">Buscando...</p>}
+            {results.length > 0 && !searching && (
+                <ul className="absolute z-50 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1 max-h-48 overflow-y-auto">
+                    {results.map((r) => (
+                        <li key={r.place_id} onClick={() => handleSelect(r)}
+                            className="px-3 py-2.5 text-sm hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0">
+                            {r.display_name.split(",").slice(0, 3).join(",")}
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </div>
+    );
+}
 
 const formatPrice = (n: number) =>
     new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0 }).format(n);
@@ -24,6 +89,14 @@ export default function MisPedidosPage() {
     const [cambioModal, setCambioModal] = useState<{ pedidoId: string; costoEnvio: number } | null>(null);
     const [nuevaDireccion, setNuevaDireccion] = useState("");
     const [cambiandoId, setCambiandoId] = useState<string | null>(null);
+    const [direccionGuardada, setDireccionGuardada] = useState("");
+
+    useEffect(() => {
+        fetch("/api/cliente/perfil", { cache: "no-store" })
+            .then(r => r.json())
+            .then(d => { if (d?.direccion) setDireccionGuardada(d.direccion); })
+            .catch(() => {});
+    }, []);
 
     useEffect(() => {
         let interval: any;
@@ -79,7 +152,7 @@ export default function MisPedidosPage() {
                 cancelButtonText: "Cancelar",
             }).then(r => { if (r.isConfirmed) ejecutarCambio(p._id, "retira"); });
         } else {
-            setNuevaDireccion("");
+            setNuevaDireccion(direccionGuardada);
             setCambioModal({ pedidoId: p._id, costoEnvio: 0 });
         }
     }
@@ -351,15 +424,7 @@ export default function MisPedidosPage() {
                         </div>
                         <div className="px-5 py-4">
                             <label className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-1 block">Dirección *</label>
-                            <input
-                                autoFocus
-                                value={nuevaDireccion}
-                                onChange={e => setNuevaDireccion(e.target.value)}
-                                onKeyDown={e => e.key === "Enter" && nuevaDireccion.trim() && ejecutarCambio(cambioModal.pedidoId, "envio", nuevaDireccion)}
-                                placeholder="Ej: San Martín 456"
-                                style={{ fontSize: "16px" }}
-                                className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-blue-400 transition"
-                            />
+                            <AddressAutocomplete value={nuevaDireccion} onChange={setNuevaDireccion} />
                             <p className="text-xs text-gray-400 mt-2">Se sumará el costo de envío al total si corresponde.</p>
                         </div>
                         <div className="px-5 pb-5 flex gap-2">
