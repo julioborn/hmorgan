@@ -19,6 +19,72 @@ import ReservasManager from "@/components/ReservasManager";
 import { hoyArgentina } from "@/lib/argentina-time";
 import MenuImg from "@/components/MenuImg";
 
+type NominatimResult = { place_id: number; display_name: string; lat: string; lon: string };
+
+function AddressAutocomplete({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+    const [query, setQuery] = useState(value);
+    const [results, setResults] = useState<NominatimResult[]>([]);
+    const [searching, setSearching] = useState(false);
+    const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => { setQuery(value); }, [value]);
+
+    async function buscar(q: string) {
+        if (q.trim().length < 3) { setResults([]); return; }
+        setSearching(true);
+        try {
+            const r = await fetch(
+                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ", Calchaquí, Santa Fe, Argentina")}&format=json&limit=5&countrycodes=ar&addressdetails=1`,
+                { headers: { "Accept-Language": "es" } }
+            );
+            const data = await r.json();
+            setResults(Array.isArray(data) ? data : []);
+        } catch { }
+        setSearching(false);
+    }
+
+    function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
+        const v = e.target.value;
+        setQuery(v);
+        onChange(v);
+        setResults([]);
+        if (timer.current) clearTimeout(timer.current);
+        timer.current = setTimeout(() => buscar(v), 600);
+    }
+
+    function handleSelect(r: NominatimResult) {
+        const clean = r.display_name.split(",").slice(0, 2).join(",").trim();
+        setQuery(clean);
+        onChange(clean);
+        setResults([]);
+    }
+
+    return (
+        <div className="relative">
+            <input
+                autoFocus
+                type="text"
+                placeholder="Ej: San Martín 456"
+                value={query}
+                onChange={handleInput}
+                style={{ fontSize: "16px" }}
+                className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-blue-400 transition"
+            />
+            {searching && <p className="text-xs text-gray-400 mt-1 pl-1">Buscando...</p>}
+            {results.length > 0 && !searching && (
+                <ul className="absolute z-50 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1 max-h-48 overflow-y-auto">
+                    {results.map((r) => (
+                        <li key={r.place_id} onClick={() => handleSelect(r)}
+                            className="px-3 py-2.5 text-sm hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0">
+                            {r.display_name.split(",").slice(0, 3).join(",")}
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </div>
+    );
+}
+
 type Pedido = {
     _id: string;
     mesa?: string;
@@ -5220,15 +5286,7 @@ export default function CajaPage() {
                         <div className="px-5 py-4 space-y-3">
                             <div>
                                 <label className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-1 block">Dirección *</label>
-                                <input
-                                    autoFocus
-                                    value={ceDir}
-                                    onChange={e => setCeDir(e.target.value)}
-                                    onKeyDown={e => e.key === "Enter" && ejecutarCambiarEntrega()}
-                                    placeholder="Ej: San Martín 456"
-                                    style={{ fontSize: "16px" }}
-                                    className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-blue-400 transition"
-                                />
+                                <AddressAutocomplete value={ceDir} onChange={setCeDir} />
                             </div>
                             <div>
                                 <label className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-1 block">Teléfono de contacto</label>
