@@ -33,6 +33,11 @@ type Pedido = {
 
 const fmt = (n: number) => new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0 }).format(n);
 
+function mapsUrl(p: Pedido): string {
+    if (p.lat && p.lng) return `https://www.google.com/maps?q=${p.lat},${p.lng}`;
+    return `https://www.google.com/maps/search/${encodeURIComponent(`${p.direccion}, Calchaquí, Santa Fe, Argentina, 3050`)}`;
+}
+
 const METODO_LABEL: Record<string, string> = {
     efectivo: "Efectivo", tarjeta: "Tarjeta", transferencia: "Transferencia", mercadopago: "MercadoPago",
 };
@@ -188,7 +193,12 @@ export default function DeliveryPage() {
                                         <p className="font-bold text-gray-700 text-sm break-words">
                                             {p.nombreComanda || `${p.userId?.nombre ?? ""} ${p.userId?.apellido ?? ""}`.trim() || "Cliente"}
                                         </p>
-                                        {p.direccion && <p className="text-xs text-gray-400 break-words flex items-start gap-1 mt-0.5"><MapPin size={11} className="shrink-0 mt-0.5" />{p.direccion}</p>}
+                                        {p.direccion && (
+                                            <a href={mapsUrl(p)} target="_blank" rel="noopener noreferrer"
+                                                className="text-xs text-blue-500 break-words flex items-start gap-1 mt-0.5">
+                                                <MapPin size={11} className="shrink-0 mt-0.5" />{p.direccion}
+                                            </a>
+                                        )}
                                     </div>
                                     <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 shrink-0 ml-2 flex items-center gap-1">
                                         <Clock size={11} /> Entregado
@@ -242,9 +252,10 @@ function PreparacionCard({ p }: { p: Pedido }) {
                         {p.nombreComanda || `${p.userId?.nombre ?? ""} ${p.userId?.apellido ?? ""}`.trim() || "Cliente"}
                     </p>
                     {p.direccion && (
-                        <p className="text-xs text-gray-500 mt-0.5 flex items-start gap-1 break-words">
-                            <MapPin size={11} className="text-red-400 shrink-0 mt-0.5" />{p.direccion}
-                        </p>
+                        <a href={mapsUrl(p)} target="_blank" rel="noopener noreferrer"
+                            className="text-xs text-blue-500 mt-0.5 flex items-start gap-1 break-words">
+                            <MapPin size={11} className="shrink-0 mt-0.5" />{p.direccion}
+                        </a>
                     )}
                 </div>
                 <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-orange-200 text-orange-700 border border-orange-300 shrink-0 ml-2 flex items-center gap-1">
@@ -294,16 +305,10 @@ function PedidoCard({ p, avisandoId, updatingId, onAvisar, onEntregado }: {
             </div>
             <div className="px-4 py-3 space-y-2.5">
                 {p.direccion && (
-                    <div className="flex items-start gap-2 text-sm text-gray-700">
-                        <MapPin size={15} className="text-red-500 mt-0.5 shrink-0" />
-                        <span className="font-semibold">{p.direccion}</span>
-                    </div>
-                )}
-                {p.lat && p.lng && (
-                    <a href={`https://www.google.com/maps?q=${p.lat},${p.lng}`} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-sm text-blue-600 font-semibold">
-                        <MapPin size={15} className="text-blue-500 shrink-0" />
-                        Ver en Google Maps
+                    <a href={mapsUrl(p)} target="_blank" rel="noopener noreferrer"
+                        className="flex items-start gap-2 text-sm text-blue-600 font-semibold break-words">
+                        <MapPin size={15} className="text-blue-500 mt-0.5 shrink-0" />
+                        {p.direccion}
                     </a>
                 )}
                 {(p.telefonoContacto || p.userId?.telefono) && (
@@ -385,10 +390,11 @@ function ComandaHistorial({ p }: { p: Pedido }) {
             <div className="px-4 py-3 space-y-2">
                 {/* Dirección */}
                 {p.direccion && (
-                    <div className="flex items-start gap-1.5 text-sm text-gray-700">
-                        <MapPin size={14} className="text-red-500 mt-0.5 shrink-0" />
-                        <span className="font-semibold">{p.direccion}</span>
-                    </div>
+                    <a href={mapsUrl(p)} target="_blank" rel="noopener noreferrer"
+                        className="flex items-start gap-1.5 text-sm text-blue-600 font-semibold break-words">
+                        <MapPin size={14} className="text-blue-500 mt-0.5 shrink-0" />
+                        {p.direccion}
+                    </a>
                 )}
                 {/* Horario preferido */}
                 {p.horarioPreferido && (
