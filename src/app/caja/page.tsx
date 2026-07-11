@@ -2413,18 +2413,18 @@ export default function CajaPage() {
                                             Delivery
                                             {cntDelivery > 0 && <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 text-[10px] font-black rounded-full bg-red-500 text-white flex items-center justify-center">{cntDelivery}</span>}
                                         </button>
-                                        {eventosActivos.length > 0 && (
-                                            <button onClick={() => setFiltroFuente("eventos")} className={`${btnBase} ${filtroFuente === "eventos" ? "bg-amber-400 text-black shadow ring-2 ring-amber-400 ring-offset-2" : "bg-amber-50 text-amber-700 hover:bg-amber-100 border-2 border-amber-200"}`}>
-                                                Eventos
-                                                {cntEventos > 0 && <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 text-[10px] font-black rounded-full bg-amber-600 text-white flex items-center justify-center">{cntEventos}</span>}
-                                            </button>
-                                        )}
                                         <button onClick={() => setFiltroFuente("timbre")}
                                             className={`${btnBase} flex items-center justify-center gap-1 ${filtroFuente === "timbre" ? active : inactive}`}>
                                             Timbre
                                             {mozoCount > 0 && <span className="min-w-[16px] px-0.5 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-black text-center leading-tight">{mozoCount}</span>}
                                             {cuentaCount > 0 && <span className="min-w-[16px] px-0.5 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-black text-center leading-tight">{cuentaCount}</span>}
                                         </button>
+                                        {eventosActivos.length > 0 && (
+                                            <button onClick={() => setFiltroFuente("eventos")} className={`${btnBase} ${filtroFuente === "eventos" ? "bg-amber-400 text-black shadow ring-2 ring-amber-400 ring-offset-2" : "bg-amber-50 text-amber-700 hover:bg-amber-100 border-2 border-amber-200"}`}>
+                                                Eventos
+                                                {cntEventos > 0 && <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 text-[10px] font-black rounded-full bg-amber-600 text-white flex items-center justify-center">{cntEventos}</span>}
+                                            </button>
+                                        )}
                                     </div>
                                 );
                             })()}
