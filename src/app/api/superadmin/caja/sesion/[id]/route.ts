@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { CajaSession } from "@/models/CajaSession";
 import { CajaMovement } from "@/models/CajaMovement";
+// These imports register the models needed for the nested populate chain:
+// CajaMovement.pedidoId → Pedido → eventoId (Evento), userId/clienteId (User)
+import "@/models/Pedido";
+import "@/models/Evento";
+import "@/models/User";
 import jwt from "jsonwebtoken";
 import { OWNER_USER_ID } from "@/lib/owner";
 
