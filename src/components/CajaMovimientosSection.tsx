@@ -252,9 +252,14 @@ export function PedidoModal({ group, onClose, onSave }: { group: MovGroup; onClo
         ? `Mesa ${pedido.mesa}${pedido.nombreComanda ? ` · ${pedido.nombreComanda}` : ""}`
         : pedido.nombreComanda || "Pedido";
 
-    const esApp      = pedido.fuente === "app";
-    const cliente    = nombreU(pedido.clienteId);
-    const cajero     = nombreU(pedido.userId);
+    const esCliente  = pedido.fuente === "cliente";
+    const esMozo     = pedido.fuente === "empleado";
+    // Para pedidos de app, userId ES el cliente (no un cajero)
+    const clienteNombre = esCliente
+        ? (nombreU(pedido.clienteId) || nombreU(pedido.userId))
+        : nombreU(pedido.clienteId);
+    const mozoNombre    = esMozo ? nombreU(pedido.userId) : null;
+    const cajeroNombre  = !esCliente && !esMozo ? nombreU(pedido.userId) : null;
     const evento     = (pedido.eventoId as any)?.nombre as string | undefined;
     const multiCobro = group.cobros.length > 1;
 
@@ -269,7 +274,7 @@ export function PedidoModal({ group, onClose, onSave }: { group: MovGroup; onClo
                         <div>
                             <p className="font-black text-white text-sm leading-tight">{titulo}</p>
                             <p className="text-[10px] text-white/40 mt-0.5">
-                                {esApp ? "Pedido app" : evento ? `Comanda evento` : "Barra / mesa"} · {formatHora(group.createdAt)}
+                                {esCliente ? "Pedido app" : evento ? "Comanda evento" : esMozo ? "Barra / mesa" : "Caja"} · {formatHora(group.createdAt)}
                                 {multiCobro && ` · ${group.cobros.length} cobros`}
                             </p>
                             {evento && (
@@ -282,22 +287,28 @@ export function PedidoModal({ group, onClose, onSave }: { group: MovGroup; onClo
                     </button>
                 </div>
 
-                {/* Cliente / cajero */}
-                {(cliente || cajero) && (
+                {/* Cliente / mozo / cajero */}
+                {(clienteNombre || mozoNombre || cajeroNombre) && (
                     <div className="border-b border-gray-100 px-4 py-2.5 flex gap-6 bg-gray-50 shrink-0">
-                        {cliente && (
+                        {clienteNombre && (
                             <div>
                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Cliente</p>
-                                <p className="text-sm font-black text-gray-800">{cliente}</p>
+                                <p className="text-sm font-black text-gray-800">{clienteNombre}</p>
                                 {pedido.clienteId?.telefono && (
                                     <p className="text-[11px] text-gray-400">{pedido.clienteId.telefono}</p>
                                 )}
                             </div>
                         )}
-                        {cajero && (
+                        {mozoNombre && (
+                            <div>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Mozo</p>
+                                <p className="text-sm font-semibold text-gray-700">{mozoNombre}</p>
+                            </div>
+                        )}
+                        {cajeroNombre && (
                             <div>
                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Cajero</p>
-                                <p className="text-sm font-semibold text-gray-700">{cajero}</p>
+                                <p className="text-sm font-semibold text-gray-700">{cajeroNombre}</p>
                             </div>
                         )}
                     </div>
