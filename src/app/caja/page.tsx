@@ -193,7 +193,7 @@ const ESTADO_BADGE: Record<string, string> = {
     cerrado: "bg-white/15 text-white border border-white/20",
 };
 
-type Vista = "pendientes" | "preparando" | "listos" | "finalizados";
+type Vista = "pendientes" | "preparando" | "listos" | "finalizados" | "llamadas";
 const VISTA_MAP: Record<string, Vista> = {
     pendiente: "pendientes", preparando: "preparando", listo: "listos", entregado: "finalizados",
 };
@@ -2080,7 +2080,7 @@ export default function CajaPage() {
     // Pendientes de cobro: la burbuja de Finalizados desaparece apenas se cobra (pasa a "cerrado")
     const entregadosPendientesCobro = pedidosFiltrados.filter(p => p.estado === "entregado");
 
-    let lista = vista === "pendientes" ? pendientes : vista === "preparando" ? preparando : vista === "listos" ? listos : finalizados;
+    let lista = vista === "pendientes" ? pendientes : vista === "preparando" ? preparando : vista === "listos" ? listos : vista === "llamadas" ? [] : finalizados;
     // Mozo primero
     lista = [...lista].sort((a, b) => {
         const aEmp = a.fuente === "empleado" || a.userId?.role === "empleado";
@@ -2290,6 +2290,16 @@ export default function CajaPage() {
                                     {pendientes.length + preparando.length + listos.length}
                                 </span>
                             )}
+                            {llamadas.filter(l => l.tipo !== "cuenta").length > 0 && (
+                                <span className="min-w-[18px] h-[18px] px-1 text-[10px] font-black rounded-full bg-red-500 text-white flex items-center justify-center leading-none">
+                                    {llamadas.filter(l => l.tipo !== "cuenta").length}
+                                </span>
+                            )}
+                            {llamadas.filter(l => l.tipo === "cuenta").length > 0 && (
+                                <span className="min-w-[18px] h-[18px] px-1 text-[10px] font-black rounded-full bg-emerald-500 text-white flex items-center justify-center leading-none">
+                                    {llamadas.filter(l => l.tipo === "cuenta").length}
+                                </span>
+                            )}
                         </button>
                         <button onClick={() => setTab("caja")}
                             className={`flex-1 py-3.5 text-sm font-black transition flex items-center justify-center gap-2 ${tab === "caja" ? "text-gray-900 border-b-2 border-black" : "text-gray-700 hover:text-gray-600"
@@ -2410,14 +2420,74 @@ export default function CajaPage() {
                             })()}
 
                             {/* Sub-tabs estado */}
-                            <div className="flex gap-2 mb-5">
-                                {renderTabBtn("pendientes", "Pendientes", pendientes.length)}
-                                {renderTabBtn("preparando", "Preparando", preparando.length)}
-                                {renderTabBtn("listos", "Listos", listos.length)}
-                                {renderTabBtn("finalizados", "Finalizados", entregadosPendientesCobro.length)}
-                            </div>
+                            {(() => {
+                                const mozoCount = llamadas.filter(l => l.tipo !== "cuenta").length;
+                                const cuentaCount = llamadas.filter(l => l.tipo === "cuenta").length;
+                                return (
+                                    <div className="flex gap-2 mb-5">
+                                        {renderTabBtn("pendientes", "Pendientes", pendientes.length)}
+                                        {renderTabBtn("preparando", "Preparando", preparando.length)}
+                                        {renderTabBtn("listos", "Listos", listos.length)}
+                                        {renderTabBtn("finalizados", "Finalizados", entregadosPendientesCobro.length)}
+                                        <button onClick={() => setVista("llamadas")}
+                                            className={`relative flex-1 py-2.5 text-xs font-black transition rounded-xl flex items-center justify-center gap-1.5 ${vista === "llamadas" ? "bg-black text-white shadow-md" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+                                            Timbre
+                                            {mozoCount > 0 && (
+                                                <span className="min-w-[1.3rem] px-1 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-black text-center leading-tight">
+                                                    {mozoCount}
+                                                </span>
+                                            )}
+                                            {cuentaCount > 0 && (
+                                                <span className="min-w-[1.3rem] px-1 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-black text-center leading-tight">
+                                                    {cuentaCount}
+                                                </span>
+                                            )}
+                                        </button>
+                                    </div>
+                                );
+                            })()}
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 items-start">
+                            {/* Vista llamadas */}
+                            {vista === "llamadas" && (
+                                <div className="max-w-lg space-y-3">
+                                    {llamadas.length === 0 ? (
+                                        <div className="text-center py-16 text-gray-400">
+                                            <p className="text-4xl mb-3">🔔</p>
+                                            <p className="font-semibold">Sin llamadas pendientes</p>
+                                        </div>
+                                    ) : llamadas.map(l => {
+                                        const esCuenta = l.tipo === "cuenta";
+                                        const hora = l.createdAt ? new Date(l.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : "";
+                                        return (
+                                            <div key={l._id} className={`flex items-center gap-4 p-4 rounded-2xl border-2 ${esCuenta ? "border-emerald-200 bg-emerald-50" : "border-red-200 bg-red-50"}`}>
+                                                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${esCuenta ? "bg-emerald-500" : "bg-red-600"} text-white shadow-sm`}>
+                                                    {esCuenta
+                                                        ? <Wallet size={18} />
+                                                        : <MessageCircle size={18} />}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-black text-gray-900 text-sm truncate">{l.clienteNombre}</p>
+                                                    {l.mesa && <p className="text-xs text-gray-500">Mesa {l.mesa}</p>}
+                                                    <p className={`text-xs font-bold mt-0.5 ${esCuenta ? "text-emerald-600" : "text-red-600"}`}>
+                                                        {esCuenta ? "Pide la cuenta" : "Llama al mozo"} · {hora}
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    onClick={() => {
+                                                        fetch(`/api/llamar-mozo/${l._id}`, { method: "PATCH", credentials: "include" }).catch(() => {});
+                                                        setLlamadas(prev => prev.filter(x => x._id !== l._id));
+                                                    }}
+                                                    title="Marcar como atendido"
+                                                    className={`p-2.5 rounded-xl shrink-0 transition ${esCuenta ? "bg-emerald-200 hover:bg-emerald-300 text-emerald-700" : "bg-red-200 hover:bg-red-300 text-red-700"}`}>
+                                                    <CheckCircle size={18} />
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            <div className={vista === "llamadas" ? "hidden" : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 items-start"}>
                                 <AnimatePresence>
                                     {lista.length === 0 ? (
                                         <p className="col-span-full text-center text-gray-700 py-12">Sin pedidos en este estado.</p>
