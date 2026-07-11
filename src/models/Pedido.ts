@@ -45,6 +45,7 @@ const PedidoSchema = new Schema(
         clienteId:      { type: Schema.Types.ObjectId, ref: "User" },
         eventoId:       { type: Schema.Types.ObjectId, ref: "Evento" },
         comensalesIds:  [{ type: Schema.Types.ObjectId, ref: "User" }],
+        primeraComidaAt: { type: Date },
     },
     { timestamps: true }
 );

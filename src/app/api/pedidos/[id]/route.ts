@@ -267,12 +267,19 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     pedido.total = await recalcularTotal(pedido.items as any[]);
     if (notaEmpleado) pedido.notaEmpleado = notaEmpleado;
 
+    // Revisar categorías de los ítems nuevos (necesario para ambas condiciones siguientes)
+    const newMenuItemIds = items.map((i: any) => i.menuItemId);
+    const newMenuItems = await MenuItem.find({ _id: { $in: newMenuItemIds } }, "categoria").lean<any[]>();
+    const tieneComidaNueva = newMenuItems.some((m: any) => !BEBIDAS_CATS_SERVER.has((m.categoria || "").toUpperCase()));
+
     // Si estaba en "listo" y se agregaron ítems de comida → volver a preparando
-    if (pedido.estado === "listo") {
-        const newMenuItemIds = items.map((i: any) => i.menuItemId);
-        const newMenuItems = await MenuItem.find({ _id: { $in: newMenuItemIds } }, "categoria").lean<any[]>();
-        const tieneComida = newMenuItems.some((m: any) => !BEBIDAS_CATS_SERVER.has((m.categoria || "").toUpperCase()));
-        if (tieneComida) pedido.estado = "preparando";
+    if (pedido.estado === "listo" && tieneComidaNueva) {
+        pedido.estado = "preparando";
+    }
+
+    // Si ahora está en "preparando" y se agregaron ítems de comida → registrar primera comida si falta
+    if (pedido.estado === "preparando" && tieneComidaNueva && !(pedido as any).primeraComidaAt) {
+        (pedido as any).primeraComidaAt = new Date();
     }
 
     await pedido.save();

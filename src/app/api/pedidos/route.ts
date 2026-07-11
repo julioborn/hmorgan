@@ -353,8 +353,21 @@ export async function PUT(req: NextRequest) {
             }
         }
 
+        const BEBIDAS_CATS_SERVER = new Set(["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"]);
         const update: Record<string, unknown> = { estado };
         if (estado === "entregado") update.repartidorAfuera = false;
+
+        // Si pasa a "preparando", registrar cuándo llegó el primer ítem de cocina
+        if (estado === "preparando") {
+            const pedidoActual = await Pedido.findById(id).lean<any>();
+            if (pedidoActual && !pedidoActual.primeraComidaAt) {
+                const menuItemIds = (pedidoActual.items || []).map((i: any) => i.menuItemId);
+                const menuItemDocs = await MenuItem.find({ _id: { $in: menuItemIds } }, "categoria").lean<any[]>();
+                const tieneComida = menuItemDocs.some(m => !BEBIDAS_CATS_SERVER.has((m.categoria || "").toUpperCase()));
+                if (tieneComida) update.primeraComidaAt = new Date();
+            }
+        }
+
         const pedido = await Pedido.findByIdAndUpdate(id, update, { new: true });
         if (!pedido) {
             return NextResponse.json({ message: "Pedido no encontrado" }, { status: 404 });

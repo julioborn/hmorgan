@@ -38,6 +38,7 @@ type Pedido = {
     estado: string;
     items: Item[];
     createdAt: string;
+    primeraComidaAt?: string;
     userId?: { nombre: string; apellido: string };
     tipoEntrega?: string;
     eventoId?: string;
@@ -336,7 +337,8 @@ export default function CocinaPage() {
                             const isNuevo = nuevosIds.has(p._id);
                             const isMarcando = marcando === p._id;
                             const algunoListo = comida.some(it => it.listo);
-                            const tiempoMs = Date.now() - new Date(p.createdAt).getTime();
+                            const refComidaMs = new Date(p.primeraComidaAt ?? p.createdAt).getTime();
+                            const tiempoMs = Date.now() - refComidaMs;
                             const esDemorada = p.estado === "preparando" && !algunoListo && tiempoMs > DEMORA_MS;
                             const minutosEspera = Math.floor(tiempoMs / 60000);
 
