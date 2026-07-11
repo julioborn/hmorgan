@@ -1,11 +1,11 @@
 "use client";
 import useSWR from "swr";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
     ChevronLeft, ChevronDown, ChevronUp,
     TrendingUp, TrendingDown, Banknote, CreditCard, Send,
-    Package, AlertCircle, Receipt, Ticket, Pencil, Check, Star,
+    Package, AlertCircle, Receipt, Ticket, Pencil, Check, Star, Loader2,
 } from "lucide-react";
 import Loader from "@/components/Loader";
 import {
@@ -14,7 +14,7 @@ import {
     nombreU, formatFecha, formatHora,
 } from "@/components/CajaMovimientosSection";
 
-// ── Types (page-specific) ─────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 type Producto = {
     nombre: string;
@@ -23,7 +23,8 @@ type Producto = {
     total: number;
 };
 
-type Sesion = {
+// Lightweight — returned by the historial list endpoint (no movement detail)
+type SesionSummary = {
     _id: string;
     estado: "abierta" | "cerrada";
     montoInicial: number;
@@ -38,6 +39,10 @@ type Sesion = {
     neto: number;
     cantMovimientos: number;
     totales: Record<string, { ingreso: number; egreso: number; excedente: number }>;
+};
+
+// Full — returned by the sesion/[id] detail endpoint
+type SesionDetail = SesionSummary & {
     movimientos: Movement[];
     productos: Record<string, Producto>;
 };
@@ -69,7 +74,7 @@ type EventoCerrado = {
     }>;
 };
 
-// ── Helpers (page-specific) ───────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 const fetcher = (url: string) =>
     fetch(url, { credentials: "include" }).then(r => {
@@ -82,7 +87,7 @@ const fmt = (n: number) =>
 
 // ── Detalle Sesion ────────────────────────────────────────────────────────────
 
-function DetalleSesion({ s, onRefresh }: { s: Sesion; onRefresh: () => void }) {
+function DetalleSesion({ s, onRefresh }: { s: SesionDetail; onRefresh: () => void }) {
     const productos = Object.values(s.productos).sort((a, b) => b.total - a.total);
     const totalExcedente = Object.values(s.totales).reduce((sum, t) => sum + (t.excedente || 0), 0);
 
@@ -90,11 +95,9 @@ function DetalleSesion({ s, onRefresh }: { s: Sesion; onRefresh: () => void }) {
         + (s.totales["efectivo"]?.ingreso || 0)
         - (s.totales["efectivo"]?.egreso  || 0);
 
-    // Secciones colapsables
     const [productosOpen,   setProductosOpen]   = useState(false);
     const [movimientosOpen, setMovimientosOpen] = useState(true);
 
-    // Estado edición montoCierre
     const [editando,    setEditando]    = useState(false);
     const [editValor,   setEditValor]   = useState("");
     const [confirmando, setConfirmando] = useState(false);
@@ -119,7 +122,7 @@ function DetalleSesion({ s, onRefresh }: { s: Sesion; onRefresh: () => void }) {
         if (res.ok) { setEditando(false); setConfirmando(false); onRefresh(); }
     }
 
-    const nuevoMonto     = Number(editValor) || 0;
+    const nuevoMonto      = Number(editValor) || 0;
     const nuevaDiferencia = nuevoMonto - efectivoSistema;
 
     return (
@@ -158,11 +161,9 @@ function DetalleSesion({ s, onRefresh }: { s: Sesion; onRefresh: () => void }) {
                     )}
                 </div>
 
-                {/* Editor inline */}
                 {editando && (
                     <div className="rounded-2xl border-2 border-black bg-gray-50 p-4 space-y-3">
                         <p className="text-xs font-black text-gray-700 uppercase tracking-wide">Corregir contado al cierre</p>
-
                         <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2.5">
                             <span className="text-gray-400 font-bold">$</span>
                             <input
@@ -173,8 +174,6 @@ function DetalleSesion({ s, onRefresh }: { s: Sesion; onRefresh: () => void }) {
                                 placeholder="0"
                             />
                         </div>
-
-                        {/* Cálculo automático */}
                         {editValor !== "" && (
                             <div className="space-y-1 text-xs">
                                 <div className="flex justify-between text-gray-500">
@@ -191,8 +190,6 @@ function DetalleSesion({ s, onRefresh }: { s: Sesion; onRefresh: () => void }) {
                                 </div>
                             </div>
                         )}
-
-                        {/* Botones */}
                         {!confirmando ? (
                             <div className="flex gap-2">
                                 <button onClick={cancelar} className="flex-1 py-2 border border-gray-300 rounded-xl text-xs font-bold text-gray-600 hover:border-gray-500 transition">
@@ -257,7 +254,6 @@ function DetalleSesion({ s, onRefresh }: { s: Sesion; onRefresh: () => void }) {
                             );
                         })}
                     </div>
-
                     {totalExcedente > 0 && (
                         <div className="mt-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-center justify-between">
                             <span className="text-xs font-bold text-amber-700">Total propinas / excedentes</span>
@@ -267,7 +263,7 @@ function DetalleSesion({ s, onRefresh }: { s: Sesion; onRefresh: () => void }) {
                 </div>
             )}
 
-            {/* Productos vendidos — colapsable */}
+            {/* Productos vendidos */}
             {productos.length > 0 && (
                 <div className="border-t border-gray-100">
                     <button
@@ -280,7 +276,7 @@ function DetalleSesion({ s, onRefresh }: { s: Sesion; onRefresh: () => void }) {
                                 Productos vendidos
                             </span>
                             <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">
-                                {productos.reduce((s, p) => s + p.cantidad, 0)} ítems
+                                {productos.reduce((sum, p) => sum + p.cantidad, 0)} ítems
                             </span>
                         </span>
                         {productosOpen ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
@@ -309,7 +305,7 @@ function DetalleSesion({ s, onRefresh }: { s: Sesion; onRefresh: () => void }) {
                 </div>
             )}
 
-            {/* Movimientos — colapsable */}
+            {/* Movimientos */}
             {s.movimientos.length > 0 && (
                 <div className="border-t border-gray-100">
                     <button
@@ -365,14 +361,13 @@ function DetalleEvento({ ev }: { ev: EventoCerrado }) {
         .sort((a, b) => b.total - a.total);
 
     const metodos = [
-        { label: "Efectivo",      icon: Banknote,    key: "efectivo",      total: cd.totalEfectivo,      ventas: cd.ventasEfectivo,      comandas: cd.comandasEfectivo },
-        { label: "Transferencia", icon: Send,         key: "transferencia", total: cd.totalTransferencia, ventas: cd.ventasTransferencia, comandas: cd.comandasTransferencia },
-        { label: "Tarjeta",       icon: CreditCard,   key: "tarjeta",       total: cd.totalTarjeta,       ventas: cd.ventasTarjeta,       comandas: cd.comandasTarjeta },
+        { label: "Efectivo",      icon: Banknote,   key: "efectivo",      total: cd.totalEfectivo,      ventas: cd.ventasEfectivo,      comandas: cd.comandasEfectivo },
+        { label: "Transferencia", icon: Send,        key: "transferencia", total: cd.totalTransferencia, ventas: cd.ventasTransferencia, comandas: cd.comandasTransferencia },
+        { label: "Tarjeta",       icon: CreditCard,  key: "tarjeta",       total: cd.totalTarjeta,       ventas: cd.ventasTarjeta,       comandas: cd.comandasTarjeta },
     ].filter(m => m.total > 0);
 
     return (
         <div className="border-t border-gray-100 divide-y divide-gray-100">
-
             {cd.entradasCantidad > 0 && (
                 <div className="px-4 py-3 flex items-center gap-3">
                     <Ticket size={14} className="text-gray-400 shrink-0" />
@@ -449,23 +444,61 @@ function DetalleEvento({ ev }: { ev: EventoCerrado }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function CajaHistorialPage() {
-    const SWR_OPTS = { revalidateOnFocus: true, revalidateOnMount: true, shouldRetryOnError: true, errorRetryCount: 4 };
+    const SWR_OPTS = { revalidateOnFocus: false, revalidateOnMount: true, shouldRetryOnError: true, errorRetryCount: 3 };
 
     const { data: sesiones, isLoading: loadingSesiones, error: errSesiones, mutate: reloadSesiones } =
-        useSWR<Sesion[]>("/api/superadmin/caja/historial", fetcher, SWR_OPTS);
+        useSWR<SesionSummary[]>("/api/superadmin/caja/historial", fetcher, SWR_OPTS);
     const { data: eventosData, isLoading: loadingEventos, error: errEventos } =
         useSWR<EventoCerrado[]>("/api/eventos?cerrado=true", fetcher, SWR_OPTS);
 
-    const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
-    const [expandidosEv, setExpandidosEv] = useState<Set<string>>(new Set());
+    const [expandidas,     setExpandidas]     = useState<Set<string>>(new Set());
+    const [expandidosEv,   setExpandidosEv]   = useState<Set<string>>(new Set());
+    const [detalles,       setDetalles]       = useState<Record<string, SesionDetail>>({});
+    const [loadingDetalle, setLoadingDetalle] = useState<Set<string>>(new Set());
 
     const eventosCerrados = Array.isArray(eventosData) ? eventosData : [];
 
+    const fetchDetalle = useCallback(async (id: string) => {
+        setLoadingDetalle(prev => { const n = new Set(prev); n.add(id); return n; });
+        try {
+            const res = await fetch(`/api/superadmin/caja/sesion/${id}`, { credentials: "include" });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            setDetalles(prev => ({
+                ...prev,
+                [id]: {
+                    ...data.sesion,
+                    movimientos: data.movimientos,
+                    productos: data.productos,
+                    totales: data.totales,
+                    totalIngreso: data.totalIngreso,
+                    totalEgreso: data.totalEgreso,
+                    neto: data.neto,
+                    cantMovimientos: data.cantMovimientos,
+                },
+            }));
+        } catch {
+            // silently fail — user can retry by collapsing and re-expanding
+        } finally {
+            setLoadingDetalle(prev => { const n = new Set(prev); n.delete(id); return n; });
+        }
+    }, []);
+
     function toggle(id: string) {
-        setExpandidas(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+        const wasOpen = expandidas.has(id);
+        setExpandidas(prev => { const n = new Set(prev); wasOpen ? n.delete(id) : n.add(id); return n; });
+        if (!wasOpen && !detalles[id] && !loadingDetalle.has(id)) {
+            fetchDetalle(id);
+        }
     }
+
     function toggleEv(id: string) {
         setExpandidosEv(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+    }
+
+    function handleRefreshSesion(id: string) {
+        reloadSesiones();
+        fetchDetalle(id);
     }
 
     return (
@@ -490,69 +523,91 @@ export default function CajaHistorialPage() {
                         <h2 className="text-lg font-extrabold text-black whitespace-nowrap">Sesiones de Caja</h2>
                         <div className="flex-1 h-px bg-gray-200" />
                     </div>
-                <div className="space-y-4">
-                    {sesiones.map(s => {
-                        const open = expandidas.has(s._id);
-                        return (
-                            <div key={s._id} className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+                    <div className="space-y-4">
+                        {sesiones.map(s => {
+                            const open   = expandidas.has(s._id);
+                            const detail = detalles[s._id];
+                            const loading = loadingDetalle.has(s._id);
 
-                                {/* Header */}
-                                <div className={`px-4 py-3 border-b ${s.estado === "abierta" ? "bg-emerald-50 border-emerald-100" : "bg-gray-900 border-gray-800"}`}>
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <p className={`font-black text-base leading-tight ${s.estado === "abierta" ? "text-emerald-800" : "text-white"}`}>
-                                                {formatFecha(s.fechaApertura)}
-                                            </p>
-                                            <p className={`text-xs mt-0.5 ${s.estado === "abierta" ? "text-emerald-600" : "text-white/50"}`}>
-                                                {formatHora(s.fechaApertura)}
-                                                {s.fechaCierre && ` → ${formatHora(s.fechaCierre)}`}
-                                            </p>
-                                            <p className={`text-[10px] mt-0.5 ${s.estado === "abierta" ? "text-emerald-500" : "text-white/40"}`}>
-                                                Abrió: {nombreU(s.abiertaPor) ?? "—"}
-                                                {s.cerradaPor && ` · Cerró: ${nombreU(s.cerradaPor) ?? "—"}`}
-                                            </p>
+                            return (
+                                <div key={s._id} className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+
+                                    {/* Header */}
+                                    <div className={`px-4 py-3 border-b ${s.estado === "abierta" ? "bg-emerald-50 border-emerald-100" : "bg-gray-900 border-gray-800"}`}>
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className={`font-black text-base leading-tight ${s.estado === "abierta" ? "text-emerald-800" : "text-white"}`}>
+                                                    {formatFecha(s.fechaApertura)}
+                                                </p>
+                                                <p className={`text-xs mt-0.5 ${s.estado === "abierta" ? "text-emerald-600" : "text-white/50"}`}>
+                                                    {formatHora(s.fechaApertura)}
+                                                    {s.fechaCierre && ` → ${formatHora(s.fechaCierre)}`}
+                                                </p>
+                                                <p className={`text-[10px] mt-0.5 ${s.estado === "abierta" ? "text-emerald-500" : "text-white/40"}`}>
+                                                    Abrió: {nombreU(s.abiertaPor) ?? "—"}
+                                                    {s.cerradaPor && ` · Cerró: ${nombreU(s.cerradaPor) ?? "—"}`}
+                                                </p>
+                                            </div>
+                                            <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${s.estado === "abierta" ? "bg-emerald-200 text-emerald-800" : "bg-white/10 text-white/70"}`}>
+                                                {s.estado === "abierta" ? "Abierta" : "Cerrada"}
+                                            </span>
                                         </div>
-                                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${s.estado === "abierta" ? "bg-emerald-200 text-emerald-800" : "bg-white/10 text-white/70"}`}>
-                                            {s.estado === "abierta" ? "Abierta" : "Cerrada"}
+                                    </div>
+
+                                    {/* Stats */}
+                                    <div className="px-4 py-3 grid grid-cols-3 gap-2 border-b border-gray-100">
+                                        <div className="text-center">
+                                            <p className="text-[10px] text-gray-400 uppercase font-bold">Ingresos</p>
+                                            <p className="text-base font-black text-emerald-600">{fmt(s.totalIngreso)}</p>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-[10px] text-gray-400 uppercase font-bold">Egresos</p>
+                                            <p className="text-base font-black text-red-500">{fmt(s.totalEgreso)}</p>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-[10px] text-gray-400 uppercase font-bold">Neto</p>
+                                            <p className={`text-base font-black ${s.neto >= 0 ? "text-gray-900" : "text-red-600"}`}>{fmt(s.neto)}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Expanded detail */}
+                                    {open && detail && (
+                                        <DetalleSesion s={detail} onRefresh={() => handleRefreshSesion(s._id)} />
+                                    )}
+                                    {open && loading && (
+                                        <div className="flex justify-center py-8">
+                                            <Loader2 size={24} className="animate-spin text-gray-400" />
+                                        </div>
+                                    )}
+                                    {open && !detail && !loading && (
+                                        <div className="py-6 text-center">
+                                            <p className="text-xs text-gray-400 mb-2">No se pudo cargar el detalle</p>
+                                            <button
+                                                onClick={() => fetchDetalle(s._id)}
+                                                className="text-xs font-bold text-blue-600 underline"
+                                            >
+                                                Reintentar
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    <button
+                                        onClick={() => toggle(s._id)}
+                                        className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-gray-50 transition"
+                                    >
+                                        <p className="text-[11px] text-gray-400">
+                                            {s.cantMovimientos} movimiento{s.cantMovimientos !== 1 ? "s" : ""}
+                                            {s.montoInicial > 0 && ` · Apertura: ${fmt(s.montoInicial)}`}
+                                            {detail && Object.keys(detail.productos).length > 0 && ` · ${Object.keys(detail.productos).length} productos`}
+                                        </p>
+                                        <span className="flex items-center gap-1 text-[11px] font-bold text-gray-500">
+                                            {open ? <><ChevronUp size={13} />Ocultar</> : <><ChevronDown size={13} />Ver detalle</>}
                                         </span>
-                                    </div>
+                                    </button>
                                 </div>
-
-                                {/* Stats */}
-                                <div className="px-4 py-3 grid grid-cols-3 gap-2 border-b border-gray-100">
-                                    <div className="text-center">
-                                        <p className="text-[10px] text-gray-400 uppercase font-bold">Ingresos</p>
-                                        <p className="text-base font-black text-emerald-600">{fmt(s.totalIngreso)}</p>
-                                    </div>
-                                    <div className="text-center">
-                                        <p className="text-[10px] text-gray-400 uppercase font-bold">Egresos</p>
-                                        <p className="text-base font-black text-red-500">{fmt(s.totalEgreso)}</p>
-                                    </div>
-                                    <div className="text-center">
-                                        <p className="text-[10px] text-gray-400 uppercase font-bold">Neto</p>
-                                        <p className={`text-base font-black ${s.neto >= 0 ? "text-gray-900" : "text-red-600"}`}>{fmt(s.neto)}</p>
-                                    </div>
-                                </div>
-
-                                {open && <DetalleSesion s={s} onRefresh={reloadSesiones} />}
-
-                                <button
-                                    onClick={() => toggle(s._id)}
-                                    className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-gray-50 transition"
-                                >
-                                    <p className="text-[11px] text-gray-400">
-                                        {s.cantMovimientos} movimiento{s.cantMovimientos !== 1 ? "s" : ""}
-                                        {s.montoInicial > 0 && ` · Apertura: ${fmt(s.montoInicial)}`}
-                                        {Object.keys(s.productos).length > 0 && ` · ${Object.keys(s.productos).length} productos`}
-                                    </p>
-                                    <span className="flex items-center gap-1 text-[11px] font-bold text-gray-500">
-                                        {open ? <><ChevronUp size={13} />Ocultar</> : <><ChevronDown size={13} />Ver detalle</>}
-                                    </span>
-                                </button>
-                            </div>
-                        );
-                    })}
-                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             )}
 
@@ -572,7 +627,7 @@ export default function CajaHistorialPage() {
                 {eventosCerrados.length > 0 && (
                     <div className="space-y-4">
                         {eventosCerrados.map(ev => {
-                            const cd = ev.cierreData;
+                            const cd   = ev.cierreData;
                             const open = expandidosEv.has(ev._id);
                             const fechaCierre = cd?.fecha ? formatFecha(cd.fecha) : formatFecha(ev.updatedAt);
                             const horaCierre  = cd?.fecha ? formatHora(cd.fecha)  : formatHora(ev.updatedAt);
