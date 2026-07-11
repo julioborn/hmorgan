@@ -223,7 +223,7 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
   useEffect(() => {
     const fetchEnvios = async () => {
       try {
-        const res = await fetch("/api/pedidos", { credentials: "include", cache: "no-store" });
+        const res = await fetch("/api/pedidos?mios=true", { credentials: "include", cache: "no-store" });
         if (!res.ok) return;
         const data = await res.json();
         if (!Array.isArray(data)) return;
