@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 // v2
 const PRINT_SERVER = process.env.NEXT_PUBLIC_PRINT_SERVER_URL ?? "http://localhost:3001";
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -34,7 +34,7 @@ function AddressAutocomplete({ value, onChange }: { value: string; onChange: (v:
         setSearching(true);
         try {
             const r = await fetch(
-                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ", CalchaquÃ­, Santa Fe, Argentina")}&format=json&limit=5&countrycodes=ar&addressdetails=1`,
+                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ", Calchaquí, Santa Fe, Argentina")}&format=json&limit=5&countrycodes=ar&addressdetails=1`,
                 { headers: { "Accept-Language": "es" } }
             );
             const data = await r.json();
@@ -64,7 +64,7 @@ function AddressAutocomplete({ value, onChange }: { value: string; onChange: (v:
             <input
                 autoFocus
                 type="text"
-                placeholder="Ej: San MartÃ­n 456"
+                placeholder="Ej: San Martín 456"
                 value={query}
                 onChange={handleInput}
                 style={{ fontSize: "16px" }}
@@ -147,7 +147,7 @@ type CanjePendiente = {
 type RewardItem = { _id: string; titulo: string; descripcion?: string; puntos: number; activo: boolean; tema?: string };
 type ReservaHoy = { _id: string; mesaId: { _id: string; nombre: string }; hora: string; comensales: number; estado: string; userId?: { nombre: string; apellido: string }; notas?: string };
 
-// CategorÃ­as que se imprimen en la comandera de la barra; el resto va a cocina
+// Categorías que se imprimen en la comandera de la barra; el resto va a cocina
 const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
 const PICAR_CATS = ["PICADAS", "FRITURAS"];
 const MENU_ORDER = ["PARRILLA", "PIZZAS", "HAMBURGUESAS", "SANDWICHES", "PICADAS Y FRITURAS", "ENSALADAS", "BEBIDAS", "POSTRE Y CAFE"];
@@ -155,7 +155,7 @@ const categoryImages: Record<string, string> = {
     PARRILLA: "/parrilla.jpg", PIZZAS: "/pizzas.jpg", HAMBURGUESAS: "/hamburguesas.jpg",
     SANDWICHES: "/sandwiches.jpg", "PICADAS Y FRITURAS": "/picada.jpg", ENSALADAS: "/ensaladas.jpg",
     BEBIDAS: "/bebidas.jpeg", "POSTRE Y CAFE": "/postreycafe.jpeg",
-    "MENÃš DEL DÃA": "/menu-del-dia.jpeg",
+    "MENÚ DEL DÍA": "/menu-del-dia.jpeg",
     CERVEZAS: "/subcategoria-bebidas/cervezas.png", VINOS: "/subcategoria-bebidas/vinos.png",
     GASEOSAS: "/subcategoria-bebidas/gaseosas.png", JARROS: "/subcategoria-bebidas/jarros.png",
     COCKTAILS: "/subcategoria-bebidas/cocktails.png", WHISKY: "/subcategoria-bebidas/whisky.png",
@@ -204,7 +204,7 @@ export default function CajaPage() {
     const [tab, setTab] = useState<"pedidos" | "caja" | "reservas" | "mesas" | "eventos" | "canjes" | "menu">("pedidos");
     const [canjesPendientes, setCanjesPendientes] = useState<CanjePendiente[]>([]);
     const [canjeProcessing, setCanjeProcessing] = useState<string | null>(null);
-    // GestiÃ³n de rewards en tab Canjes
+    // Gestión de rewards en tab Canjes
     const [rewards, setRewards] = useState<RewardItem[]>([]);
     const [rewardForm, setRewardForm] = useState({ titulo: "", descripcion: "", puntos: 0, tema: "" });
     const [rewardEditId, setRewardEditId] = useState<string | null>(null);
@@ -339,7 +339,7 @@ export default function CajaPage() {
     const ventaVideoRef = useRef<HTMLVideoElement>(null);
     const ventaStreamRef = useRef<MediaStream | null>(null);
 
-    // ”€”€ GestiÃ³n de menÃº (tab MenÃº) ”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€
+    // ── Gestión de menú (tab Menú) ──────────────────────────────────────────
     const [menuGest, setMenuGest] = useState<MenuItemLite[]>([]);
     const [menuGestLoading, setMenuGestLoading] = useState(false);
     const [menuGestCat, setMenuGestCat] = useState<string>("todas");
@@ -353,7 +353,7 @@ export default function CajaPage() {
     const [menuGestImgUploading, setMenuGestImgUploading] = useState(false);
     const menuGestImgRef = useRef<HTMLInputElement>(null);
 
-    // ”€”€ Autoservicio modal (caja) ”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€
+    // ── Autoservicio modal (caja) ───────────────────────────────────────────
     const [autoservActivasCount, setAutoservActivasCount] = useState(0);
     const [autoservModal, setAutoservModal] = useState(false);
     const [autoservVista, setAutoservVista] = useState<"lista" | "plano">("lista");
@@ -367,7 +367,7 @@ export default function CajaPage() {
     const [autoservError, setAutoservError] = useState("");
     const autoservDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Agregar cliente a sesiÃ³n existente (desde modal caja)
+    // Agregar cliente a sesión existente (desde modal caja)
     const [autoservAgregarId, setAutoservAgregarId] = useState<string | null>(null);
     const [autoservAgregarInput, setAutoservAgregarInput] = useState("");
     const [autoservAgregarSug, setAutoservAgregarSug] = useState<{ _id: string; nombre: string; apellido: string; username: string }[]>([]);
@@ -448,7 +448,7 @@ export default function CajaPage() {
                 body: JSON.stringify({ mesasNombres: autoservMesas, usernames: autoservUsernames }),
             });
             const data = await res.json();
-            if (!res.ok) { setAutoservError(data.error || "Error al crear sesiÃ³n"); return; }
+            if (!res.ok) { setAutoservError(data.error || "Error al crear sesión"); return; }
             setAutoservMesas([]);
             setAutoservUsernames([]);
             setAutoservUserInput("");
@@ -493,7 +493,7 @@ export default function CajaPage() {
             let data: any = {};
             try { data = await res.json(); } catch { /* respuesta no-JSON */ }
             if (!res.ok) { swalBase.fire({ title: "Error", text: data?.error || "No se pudo subir la imagen", icon: "error" }); return; }
-            await fetch("/api/categories/config", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ categoria: "MENÃš DEL DÃA", imageUrl: data.url }) });
+            await fetch("/api/categories/config", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ categoria: "MENÚ DEL DÍA", imageUrl: data.url }) });
         } catch { swalBase.fire({ title: "Error", text: "No se pudo conectar", icon: "error" }); }
         finally { setMenuGestImgUploading(false); if (menuGestImgRef.current) menuGestImgRef.current.value = ""; }
     }
@@ -508,7 +508,7 @@ export default function CajaPage() {
     async function saveMenuGestItem() {
         const precio = parseFloat(menuGestForm.precio.replace(/\./g, "").replace(",", ".")) || 0;
         if (!menuGestForm.nombre.trim() || !menuGestForm.categoria.trim() || precio <= 0) {
-            await swalBase.fire({ title: "CompletÃ¡ nombre, precio y categorÃ­a", icon: "warning" }); return;
+            await swalBase.fire({ title: "Completá nombre, precio y categoría", icon: "warning" }); return;
         }
         setMenuGestSaving(true);
         try {
@@ -532,7 +532,7 @@ export default function CajaPage() {
     }
 
     async function eliminarMenuGestItem(id: string) {
-        const r = await swalBase.fire({ title: "¿Eliminar producto?", text: "Esta acciÃ³n no se puede deshacer.", icon: "warning", showCancelButton: true, confirmButtonText: "SÃ­, eliminar", cancelButtonText: "Cancelar" });
+        const r = await swalBase.fire({ title: "¿Eliminar producto?", text: "Esta acción no se puede deshacer.", icon: "warning", showCancelButton: true, confirmButtonText: "Sí, eliminar", cancelButtonText: "Cancelar" });
         if (!r.isConfirmed) return;
         await fetch(`/api/menu/${id}`, { method: "DELETE", credentials: "include" });
         await loadMenuGest();
@@ -545,7 +545,7 @@ export default function CajaPage() {
         setMenuGestShowForm(true);
     }
 
-    // Ãtems cuyo "impreso" ya se estÃ¡ marcando/imprimiendo en este mismo instante,
+    // Ítems cuyo "impreso" ya se está marcando/imprimiendo en este mismo instante,
     // para no dispararlos dos veces si el poll de 5s cae justo en el medio.
     const itemsImprimiendoRef = useRef<Set<string>>(new Set());
 
@@ -556,12 +556,12 @@ export default function CajaPage() {
                 method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
                 body: JSON.stringify({ accion: "marcarImpreso", itemIds }),
             });
-        } catch { /* si falla, sigue "impreso: false" y se reintenta en el prÃ³ximo poll */ }
+        } catch { /* si falla, sigue "impreso: false" y se reintenta en el próximo poll */ }
     }
 
-    // Detecta Ã­tems agregados a comandas ya aceptadas (impreso: false en la base, no en
+    // Detecta ítems agregados a comandas ya aceptadas (impreso: false en la base, no en
     // memoria del navegador) y los imprime individualmente en BARRA o COCINA. Al venir del
-    // servidor, funciona sin importar recargas de pÃ¡gina o desde quÃ© dispositivo se agregÃ³.
+    // servidor, funciona sin importar recargas de página o desde qué dispositivo se agregó.
     function detectarAgregados(lista: Pedido[]) {
         for (const p of lista) {
             if (!["preparando", "listo"].includes(p.estado)) continue;
@@ -608,7 +608,7 @@ export default function CajaPage() {
                 fetch("/api/superadmin/caja", { credentials: "include" }),
                 fetch("/api/pedidos", { credentials: "include" }),
             ]);
-            // Solo actualizar sesiÃ³n si la respuesta es vÃ¡lida (evita que un
+            // Solo actualizar sesión si la respuesta es válida (evita que un
             // error de auth transite falso null y muestre pantalla de apertura)
             if (!cajaRes.ok) return;
             const [cajaData, pedData] = await Promise.all([cajaRes.json(), pedRes.json()]);
@@ -628,7 +628,7 @@ export default function CajaPage() {
                 setPedidos(filtrados);
                 detectarAgregados(filtrados);
 
-                // Detectar transiciones de estado e Ã­tems listos
+                // Detectar transiciones de estado e ítems listos
                 const newStates: Record<string, string> = {};
                 const recienListos: { id: string; label: string; ts: number }[] = [];
                 const nuevasAlertas: string[] = [];
@@ -753,7 +753,7 @@ export default function CajaPage() {
             .catch(() => { });
     }, [cambiarMesaModal]);
 
-    // BÃºsqueda de comensales en modal de venta de evento
+    // Búsqueda de comensales en modal de venta de evento
     useEffect(() => {
         if (ventaComensalesSearch.length < 2) { setVentaComensalesResults([]); return; }
         const t = setTimeout(async () => {
@@ -783,7 +783,7 @@ export default function CajaPage() {
                 const detector = typeof (window as any).BarcodeDetector !== "undefined"
                     ? new (window as any).BarcodeDetector({ formats: ["qr_code"] })
                     : null;
-                if (!detector) { setVentaQrError("UsÃ¡ el campo manual o Chrome/Edge en Android"); return; }
+                if (!detector) { setVentaQrError("Usá el campo manual o Chrome/Edge en Android"); return; }
                 const scan = async () => {
                     if (!active || !ventaVideoRef.current) return;
                     try {
@@ -793,7 +793,7 @@ export default function CajaPage() {
                     if (active) requestAnimationFrame(scan);
                 };
                 ventaVideoRef.current?.addEventListener("loadeddata", () => { if (active) requestAnimationFrame(scan); }, { once: true });
-            } catch { setVentaQrError("No se pudo acceder a la cÃ¡mara"); }
+            } catch { setVentaQrError("No se pudo acceder a la cámara"); }
         })();
         return () => { active = false; };
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -803,9 +803,9 @@ export default function CajaPage() {
         try {
             const parsed = JSON.parse(raw);
             const token = parsed.qrToken as string;
-            if (!token) { setVentaQrError("QR invÃ¡lido"); return; }
+            if (!token) { setVentaQrError("QR inválido"); return; }
             await lookupVentaQrToken(token);
-        } catch { setVentaQrError("QR invÃ¡lido €” no es un cÃ³digo de H. Morgan"); }
+        } catch { setVentaQrError("QR inválido — no es un código de H. Morgan"); }
     }
 
     async function lookupVentaQrToken(token: string) {
@@ -893,7 +893,7 @@ export default function CajaPage() {
     }
 
     async function rechazarPedido(id: string) {
-        const r = await swalBase.fire({ title: "¿Rechazar pedido?", icon: "warning", showCancelButton: true, confirmButtonText: "SÃ­, rechazar", cancelButtonText: "Cancelar" });
+        const r = await swalBase.fire({ title: "¿Rechazar pedido?", icon: "warning", showCancelButton: true, confirmButtonText: "Sí, rechazar", cancelButtonText: "Cancelar" });
         if (!r.isConfirmed) return;
         await fetch(`/api/pedidos?id=${id}`, { method: "DELETE", credentials: "include" });
         loadData();
@@ -902,9 +902,9 @@ export default function CajaPage() {
     async function eliminarItemPedido(pedidoId: string, itemId: string, nombre: string) {
         const r = await swalBase.fire({
             title: "¿Eliminar producto?",
-            text: `Se quitarÃ¡ "${nombre}" de la comanda.`,
+            text: `Se quitará "${nombre}" de la comanda.`,
             icon: "warning", showCancelButton: true,
-            confirmButtonText: "SÃ­, eliminar", cancelButtonText: "Cancelar",
+            confirmButtonText: "Sí, eliminar", cancelButtonText: "Cancelar",
         });
         if (!r.isConfirmed) return;
         await fetch(`/api/pedidos/${pedidoId}`, {
@@ -928,7 +928,7 @@ export default function CajaPage() {
             .filter(it => it._id && it.menuItemId)
             .map(it => ({
                 itemId: it._id!,
-                nombre: it.menuItemId?.nombre || "Ãtem",
+                nombre: it.menuItemId?.nombre || "Ítem",
                 precio: it.menuItemId?.precio || 0,
                 max: it.cantidad,
                 selected: 0,
@@ -950,7 +950,7 @@ export default function CajaPage() {
         if (!cpModal) return;
         const selected = cpItems.filter(i => i.selected > 0);
         if (selected.length === 0) {
-            await swalBase.fire({ title: "SeleccionÃ¡ al menos un Ã­tem", icon: "warning" }); return;
+            await swalBase.fire({ title: "Seleccioná al menos un ítem", icon: "warning" }); return;
         }
         const total = selected.reduce((s, i) => s + i.precio * i.selected, 0);
         setCpSaving(true);
@@ -981,10 +981,10 @@ export default function CajaPage() {
         const mesaActual = pedido.mesa ? mesaLabel(pedido.mesa) : "Sin mesa";
         const { isConfirmed } = await swalBase.fire({
             title: "¿Transferir mesa?",
-            html: `<p class="text-gray-600 text-sm">De <strong>${mesaActual}</strong> †’ <strong>Mesa ${nuevaMesa}</strong></p>`,
+            html: `<p class="text-gray-600 text-sm">De <strong>${mesaActual}</strong> → <strong>Mesa ${nuevaMesa}</strong></p>`,
             icon: "question",
             showCancelButton: true,
-            confirmButtonText: "SÃ­, transferir",
+            confirmButtonText: "Sí, transferir",
             cancelButtonText: "Cancelar",
         });
         if (!isConfirmed) return;
@@ -1002,16 +1002,16 @@ export default function CajaPage() {
         const titulo = p.mesa ? mesaLabel(p.mesa) : p.nombreComanda || (p.userId ? `${p.userId.nombre}` : "Pedido");
         const r1 = await swalBase.fire({
             title: "¿Eliminar pedido?",
-            text: `Se eliminarÃ¡ permanentemente el pedido de ${titulo}.`,
+            text: `Se eliminará permanentemente el pedido de ${titulo}.`,
             icon: "warning", showCancelButton: true,
             confirmButtonText: "Continuar", cancelButtonText: "Cancelar",
         });
         if (!r1.isConfirmed) return;
         const r2 = await swalBase.fire({
-            title: "ConfirmaciÃ³n final",
-            text: "Esta acciÃ³n no se puede deshacer. ¿Confirmar eliminaciÃ³n?",
+            title: "Confirmación final",
+            text: "Esta acción no se puede deshacer. ¿Confirmar eliminación?",
             icon: "error", showCancelButton: true,
-            confirmButtonText: "SÃ­, eliminar", cancelButtonText: "No, volver",
+            confirmButtonText: "Sí, eliminar", cancelButtonText: "No, volver",
         });
         if (!r2.isConfirmed) return;
         await fetch(`/api/pedidos?id=${p._id}`, { method: "DELETE", credentials: "include" });
@@ -1080,9 +1080,9 @@ export default function CajaPage() {
         if (!editItemModal || editItemModal.modo !== "reemplazar") return;
         const r = await swalBase.fire({
             title: "¿Cambiar producto?",
-            text: `"${editItemModal.nombreActual}" se reemplazarÃ¡ por "${nuevoNombre}".`,
+            text: `"${editItemModal.nombreActual}" se reemplazará por "${nuevoNombre}".`,
             icon: "question", showCancelButton: true,
-            confirmButtonText: "SÃ­, cambiar", cancelButtonText: "Cancelar",
+            confirmButtonText: "Sí, cambiar", cancelButtonText: "Cancelar",
         });
         if (!r.isConfirmed) return;
         await fetch(`/api/pedidos/${editItemModal.pedido._id}`, {
@@ -1115,12 +1115,12 @@ export default function CajaPage() {
         const totalUnidades = editItemCart.reduce((a, i) => a + i.cantidad, 0);
 
         const r = await swalBase.fire({
-            title: `¿Agregar ${totalUnidades} Ã­tem${totalUnidades !== 1 ? "s" : ""}?`,
+            title: `¿Agregar ${totalUnidades} ítem${totalUnidades !== 1 ? "s" : ""}?`,
             text: yaAceptado
-                ? "Se imprimirÃ¡n directo en cocina/barra."
+                ? "Se imprimirán directo en cocina/barra."
                 : "Se agregan a la comanda.",
             icon: "question", showCancelButton: true,
-            confirmButtonText: "SÃ­, agregar", cancelButtonText: "Cancelar",
+            confirmButtonText: "Sí, agregar", cancelButtonText: "Cancelar",
         });
         if (!r.isConfirmed) return;
 
@@ -1147,9 +1147,9 @@ export default function CajaPage() {
     async function cerrarCaja() {
         const confirm = await swalBase.fire({
             title: "¿Confirmar cierre de caja?",
-            text: "Esta acciÃ³n no se puede deshacer. La caja quedarÃ¡ cerrada.",
+            text: "Esta acción no se puede deshacer. La caja quedará cerrada.",
             icon: "warning", showCancelButton: true,
-            confirmButtonText: "SÃ­, cerrar caja", cancelButtonText: "Cancelar",
+            confirmButtonText: "Sí, cerrar caja", cancelButtonText: "Cancelar",
         });
         if (!confirm.isConfirmed) return;
         setCloseSaving(true);
@@ -1174,7 +1174,7 @@ export default function CajaPage() {
                 setCloseError(err.error || `Error ${res.status}`);
             }
         } catch {
-            setCloseError("Error de conexiÃ³n");
+            setCloseError("Error de conexión");
         } finally { setCloseSaving(false); }
     }
 
@@ -1188,7 +1188,7 @@ export default function CajaPage() {
             showCancelButton: true,
             confirmButtonText: "Guardar",
             cancelButtonText: "Cancelar",
-            inputValidator: v => (!v || Number(v) < 0 ? "IngresÃ¡ un monto vÃ¡lido" : undefined),
+            inputValidator: v => (!v || Number(v) < 0 ? "Ingresá un monto válido" : undefined),
         });
         if (!isConfirmed || value === undefined) return;
         const nuevo = Number(value);
@@ -1223,7 +1223,7 @@ export default function CajaPage() {
     }
 
     async function eliminarEgreso(id: string, concepto: string) {
-        const ok = await swalBase.fire({ title: `¿Eliminar egreso?`, text: `"${concepto}" serÃ¡ eliminado.`, icon: "warning", showCancelButton: true, confirmButtonText: "SÃ­, eliminar", cancelButtonText: "Cancelar" });
+        const ok = await swalBase.fire({ title: `¿Eliminar egreso?`, text: `"${concepto}" será eliminado.`, icon: "warning", showCancelButton: true, confirmButtonText: "Sí, eliminar", cancelButtonText: "Cancelar" });
         if (!ok.isConfirmed) return;
         await fetch(`/api/superadmin/caja/movimiento/${id}`, { method: "DELETE", credentials: "include" });
         loadData();
@@ -1350,7 +1350,7 @@ export default function CajaPage() {
 
         const printItems = itemsOverride ?? pedido.items.map(i => ({
             cantidad: i.cantidad,
-            nombre: i.menuItemId?.nombre || "Ãtem",
+            nombre: i.menuItemId?.nombre || "Ítem",
             precio: i.menuItemId?.precio || 0,
         }));
         const displayTotal = itemsOverride ? totalConDescuento : (pedido.total ?? totalConDescuento);
@@ -1360,7 +1360,7 @@ export default function CajaPage() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    mesa: pedido.mesa || "€”",
+                    mesa: pedido.mesa || "—",
                     fecha,
                     hora,
                     items: printItems,
@@ -1372,13 +1372,13 @@ export default function CajaPage() {
                 }),
             });
             if (res.ok) return;
-        } catch { /* servidor no disponible †’ fallback */ }
+        } catch { /* servidor no disponible → fallback */ }
 
         // Fallback: ventana del navegador
         const rows = printItems.map(i =>
             `<tr><td>${i.cantidad}x ${i.nombre}</td><td style="text-align:right">${formatMoney(i.precio * i.cantidad)}</td></tr>`
         ).join("") + (!itemsOverride && pedido.tipoEntrega === "envio" && (pedido.costoEnvio || costoDelivery) > 0
-            ? `<tr><td>EnvÃ­o a domicilio</td><td style="text-align:right">${formatMoney(pedido.costoEnvio || costoDelivery)}</td></tr>` : "");
+            ? `<tr><td>Envío a domicilio</td><td style="text-align:right">${formatMoney(pedido.costoEnvio || costoDelivery)}</td></tr>` : "");
         const descuentoRow = descuento > 0
             ? `<tr><td class="desc">Descuento</td><td class="desc" style="text-align:right">- ${formatMoney(descuento)}</td></tr>
                <tr><td class="total">A COBRAR</td><td class="total" style="text-align:right">${formatMoney(totalConDescuento)}</td></tr>` : "";
@@ -1400,7 +1400,7 @@ export default function CajaPage() {
             <tr><td class="total">TOTAL</td><td class="total" style="text-align:right">${formatMoney(displayTotal)}</td></tr>
             ${descuentoRow}${pagosRows}${vueltoRow}
         </table>
-        <div class="legal">Comprobante no vÃ¡lido como factura</div></body></html>`;
+        <div class="legal">Comprobante no válido como factura</div></body></html>`;
         const w = window.open("", "_blank", "width=320,height=500,toolbar=0,menubar=0");
         if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 200); }
     }
@@ -1410,7 +1410,7 @@ export default function CajaPage() {
         const fecha = new Date().toLocaleDateString("es-AR");
         const printItems = pedido.items.map(i => ({
             cantidad: i.cantidad,
-            nombre: i.menuItemId?.nombre || "Ãtem",
+            nombre: i.menuItemId?.nombre || "Ítem",
             precio: i.menuItemId?.precio || 0,
         }));
         const total = pedido.total ?? 0;
@@ -1421,7 +1421,7 @@ export default function CajaPage() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    mesa: pedido.mesa || "€”",
+                    mesa: pedido.mesa || "—",
                     fecha, hora,
                     items: printItems,
                     total,
@@ -1433,13 +1433,13 @@ export default function CajaPage() {
                 }),
             });
             if (res.ok) return;
-        } catch { /* servidor no disponible †’ fallback */ }
+        } catch { /* servidor no disponible → fallback */ }
 
         // Fallback: ventana del navegador
         const rows = printItems.map(i =>
             `<tr><td>${i.cantidad}x ${i.nombre}</td><td style="text-align:right">${formatMoney(i.precio * i.cantidad)}</td></tr>`
         ).join("") + (costoEnvioVal > 0
-            ? `<tr><td>EnvÃ­o a domicilio</td><td style="text-align:right">${formatMoney(costoEnvioVal)}</td></tr>` : "");
+            ? `<tr><td>Envío a domicilio</td><td style="text-align:right">${formatMoney(costoEnvioVal)}</td></tr>` : "");
         const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cuenta</title><style>
             *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Courier New',monospace;font-size:12px;padding:12px;max-width:280px}
             h2{text-align:center;font-size:15px;letter-spacing:2px;margin-bottom:2px}
@@ -1449,7 +1449,7 @@ export default function CajaPage() {
             .total{font-size:14px;font-weight:bold}
         </style></head><body>
         <h2>CUENTA</h2>
-        <div class="sub">Mesa ${pedido.mesa || "€”"} · ${fecha} ${hora}</div>
+        <div class="sub">Mesa ${pedido.mesa || "—"} · ${fecha} ${hora}</div>
         <hr/><table>${rows}</table><hr/>
         <table>
             <tr><td class="total">TOTAL</td><td class="total" style="text-align:right">${formatMoney(total)}</td></tr>
@@ -1466,7 +1466,7 @@ export default function CajaPage() {
         const base = eventoNombre
             ? `EVENTO: ${eventoNombre}`
             : p.mesa ? mesaLabel(p.mesa)
-            : p.tipoEntrega === "envio" ? "EnvÃ­o a domicilio"
+            : p.tipoEntrega === "envio" ? "Envío a domicilio"
             : "Retira en barra";
         const mesa = !esEmpleado && p.numeroDia ? `Pedido #${p.numeroDia} · ${base}` : base;
         const comensalesArr = (p.comensalesIds ?? []).map(c => `${c.nombre} ${c.apellido}`.trim());
@@ -1487,13 +1487,13 @@ export default function CajaPage() {
         const filas = items.map(it =>
             `<tr>
                 <td style="font-size:22px;font-weight:900;padding:4px 10px 4px 0;white-space:nowrap">${it.cantidad}x</td>
-                <td style="font-size:20px;font-weight:700;padding:4px 0">${it.menuItemId?.nombre ?? "Ãtem"}</td>
+                <td style="font-size:20px;font-weight:700;padding:4px 0">${it.menuItemId?.nombre ?? "Ítem"}</td>
             </tr>`
         ).join("");
         const costoEnvioEfectivo = p.tipoEntrega === "envio" ? (p.costoEnvio || costoDelivery) : 0;
         const recargo = costoEnvioEfectivo > 0
             ? `<tr style="border-top:2px dashed #000">
-                <td style="font-size:16px;font-weight:900;padding:6px 10px 4px 0;white-space:nowrap">ðŸ›µ</td>
+                <td style="font-size:16px;font-weight:900;padding:6px 10px 4px 0;white-space:nowrap">🛵</td>
                 <td style="font-size:16px;font-weight:900;padding:6px 0">Recargo delivery: ${formatMoney(costoEnvioEfectivo)}</td>
               </tr>`
             : "";
@@ -1511,9 +1511,9 @@ export default function CajaPage() {
             table { width:100%; border-collapse:collapse; }
             .nota { font-size:14px; margin-top:6px; padding:6px; border:2px solid #000; border-radius:4px; }
         </style></head><body>
-        <div class="centro"><div class="badge">¬› ${titulo} ¬›</div></div>
+        <div class="centro"><div class="badge">⬛ ${titulo} ⬛</div></div>
         <div class="sep"></div>
-        ${p.eventoId ? `<div style="text-align:center;background:#000;color:#fff;font-weight:900;font-size:20px;padding:6px 8px;border-radius:4px;margin-bottom:6px;letter-spacing:1px">˜… EVENTO ˜…</div>` : ""}
+        ${p.eventoId ? `<div style="text-align:center;background:#000;color:#fff;font-weight:900;font-size:20px;padding:6px 8px;border-radius:4px;margin-bottom:6px;letter-spacing:1px">★ EVENTO ★</div>` : ""}
         <div class="meta-grande">${mesa}</div>
         <div class="meta-grande">Cliente: ${cliente}</div>
         ${direccion ? `<div class="meta-grande">Dir: ${direccion}</div>` : ""}
@@ -1523,7 +1523,7 @@ export default function CajaPage() {
         <div class="sep"></div>
         <table>${filas}${recargo}</table>
         <div class="sep"></div>
-        ${nota ? `<div class="nota">ðŸ“ ${nota}</div>` : ""}
+        ${nota ? `<div class="nota">📝 ${nota}</div>` : ""}
         </body></html>`;
     }
 
@@ -1540,17 +1540,17 @@ export default function CajaPage() {
         const { mesa, cliente, mozo, direccion } = datosComanda(p);
         const nota = p.notaEmpleado || p.notaCliente || "";
 
-        // Se imprime todo de nuevo (comanda completa) †’ todos los Ã­tems quedan "impresos"
-        // para que el chequeo de agregados no los vuelva a imprimir sueltos despuÃ©s.
+        // Se imprime todo de nuevo (comanda completa) → todos los ítems quedan "impresos"
+        // para que el chequeo de agregados no los vuelva a imprimir sueltos después.
         const itemIds = p.items.map(it => it._id).filter((id): id is string => !!id);
         await marcarItemsImpresos(p._id, itemIds);
 
-        // Intentar servidor local de impresiÃ³n
+        // Intentar servidor local de impresión
         try {
             const promesas: Promise<Response>[] = [];
             const costoEnvioEfectivoPrint = p.tipoEntrega === "envio" ? (p.costoEnvio || costoDelivery) : 0;
             const recargoItem = costoEnvioEfectivoPrint > 0
-                ? [{ cantidad: 1, nombre: `ðŸ›µ Recargo delivery: ${formatMoney(costoEnvioEfectivoPrint)}` }]
+                ? [{ cantidad: 1, nombre: `🛵 Recargo delivery: ${formatMoney(costoEnvioEfectivoPrint)}` }]
                 : [];
             if (comida.length > 0) promesas.push(
                 fetch(`${PRINT_SERVER}/imprimir/comanda`, {
@@ -1561,7 +1561,7 @@ export default function CajaPage() {
                         mesa, cliente, mozo, direccion, hora, nota,
                         horarioPreferido: p.horarioPreferido || undefined,
                         items: [
-                            ...comida.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ãtem", nota: it.nota || undefined })),
+                            ...comida.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined })),
                             ...recargoItem,
                         ],
                     }),
@@ -1576,7 +1576,7 @@ export default function CajaPage() {
                         mesa, cliente, mozo, direccion, hora,
                         horarioPreferido: p.horarioPreferido || undefined,
                         items: [
-                            ...bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ãtem", nota: it.nota || undefined })),
+                            ...bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined })),
                             ...recargoItem,
                         ],
                     }),
@@ -1584,18 +1584,18 @@ export default function CajaPage() {
             );
             if (promesas.length > 0) {
                 await Promise.all(promesas);
-                return; // impresiÃ³n exitosa
+                return; // impresión exitosa
             }
-        } catch { /* servidor no disponible †’ fallback */ }
+        } catch { /* servidor no disponible → fallback */ }
 
         // Fallback: ventana del navegador
         if (comida.length > 0) abrirEImprimir(comandaHtml(p, "COCINA", comida));
         if (bebidas.length > 0) setTimeout(() => abrirEImprimir(comandaHtml(p, "BARRA", bebidas)), 600);
     }
 
-    // ReimpresiÃ³n automÃ¡tica de Ã­tems agregados a una comanda ya aceptada. Si el servidor
-    // local no estÃ¡ disponible (ej. probando sin impresora conectada), cae a la ventana de
-    // impresiÃ³n del navegador, igual que printComanda.
+    // Reimpresión automática de ítems agregados a una comanda ya aceptada. Si el servidor
+    // local no está disponible (ej. probando sin impresora conectada), cae a la ventana de
+    // impresión del navegador, igual que printComanda.
     async function printItemsAgregados(p: Pedido, itemsNuevos: Pedido["items"]) {
         const bebidas = itemsNuevos.filter(it => BEBIDAS_CATS.includes(it.menuItemId?.categoria || ""));
         const comida = itemsNuevos.filter(it => !BEBIDAS_CATS.includes(it.menuItemId?.categoria || ""));
@@ -1615,7 +1615,7 @@ export default function CajaPage() {
                         impresora: "Cocina", titulo: "COCINA",
                         mesa, cliente, mozo, direccion, hora, nota,
                         horarioPreferido: p.horarioPreferido || undefined,
-                        items: comida.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ãtem", nota: it.nota || undefined })),
+                        items: comida.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined })),
                     }),
                 })
             );
@@ -1627,15 +1627,15 @@ export default function CajaPage() {
                         impresora: "Barra", titulo: "BARRA",
                         mesa, cliente, mozo, direccion, hora,
                         horarioPreferido: p.horarioPreferido || undefined,
-                        items: bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ãtem", nota: it.nota || undefined })),
+                        items: bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined })),
                     }),
                 })
             );
             if (promesas.length > 0) {
                 await Promise.all(promesas);
-                return; // impresiÃ³n exitosa
+                return; // impresión exitosa
             }
-        } catch { /* servidor no disponible †’ fallback */ }
+        } catch { /* servidor no disponible → fallback */ }
 
         // Fallback: ventana del navegador
         if (comida.length > 0) abrirEImprimir(comandaHtml(p, "COCINA", comida));
@@ -1705,7 +1705,7 @@ export default function CajaPage() {
             });
             if (res.ok) { await loadRewards(); setRewardFormOpen(false); setRewardEditId(null); }
             else { const d = await res.json(); await swalBase.fire({ title: "Error", text: d.error || "No se pudo guardar", icon: "error" }); }
-        } catch { await swalBase.fire({ title: "Error de conexiÃ³n", icon: "error" }); }
+        } catch { await swalBase.fire({ title: "Error de conexión", icon: "error" }); }
         finally { setRewardSaving(false); }
     }
 
@@ -1716,7 +1716,7 @@ export default function CajaPage() {
 
     async function eliminarReward(id: string) {
         const r = await swalBase.fire({
-            title: "¿Eliminar canje?", text: "Esta acciÃ³n no se puede deshacer.",
+            title: "¿Eliminar canje?", text: "Esta acción no se puede deshacer.",
             icon: "warning", showCancelButton: true,
             confirmButtonText: "Eliminar", cancelButtonText: "Cancelar",
         });
@@ -1738,7 +1738,7 @@ export default function CajaPage() {
             const data = await res.json();
             if (!res.ok) { await swalBase.fire({ title: "Error", text: data.message || "No se pudo procesar", icon: "error" }); return; }
             setCanjesPendientes(prev => prev.filter(c => c._id !== canjeId));
-        } catch { await swalBase.fire({ title: "Error de conexiÃ³n", icon: "error" }); }
+        } catch { await swalBase.fire({ title: "Error de conexión", icon: "error" }); }
         finally { setCanjeProcessing(null); }
     }
 
@@ -1805,7 +1805,7 @@ export default function CajaPage() {
         const entradasCantidad = tarjetas.reduce((a: number, t: any) => a + t.cantidad, 0);
         const entradasTotal = entradasCantidad * precioTarjeta;
 
-        // Comandas cobradas por mÃ©todo
+        // Comandas cobradas por método
         const cobradas = pedidosEv.filter(p => p.estado === "cerrado");
         const sinCobrar = pedidosEv.filter(p => p.estado !== "cerrado" && p.estado !== "cancelado");
         const comandasEfectivo = cobradas.filter(p => p.metodoPago === "efectivo").reduce((a, p) => a + p.total, 0);
@@ -1813,7 +1813,7 @@ export default function CajaPage() {
         const comandasTarjeta = cobradas.filter(p => p.metodoPago === "tarjeta").reduce((a, p) => a + p.total, 0);
         const comandasSinCobrar = sinCobrar.reduce((a, p) => a + p.total, 0);
 
-        // Totales por mÃ©todo (ventas directas + comandas cobradas; entradas aparte)
+        // Totales por método (ventas directas + comandas cobradas; entradas aparte)
         const totalEfectivo = ventasEfectivo + comandasEfectivo;
         const totalTransferencia = ventasTransferencia + comandasTransferencia;
         const totalTarjeta = ventasTarjeta + comandasTarjeta;
@@ -1883,7 +1883,7 @@ export default function CajaPage() {
             .meta-grande { font-size:18px; font-weight:700; margin:4px 0; }
             table { width:100%; border-collapse:collapse; }
         </style></head><body>
-        <div class="centro"><div class="badge">¬› ${titulo} ¬›</div></div>
+        <div class="centro"><div class="badge">⬛ ${titulo} ⬛</div></div>
         <div class="sep"></div>
         <div class="meta-grande">Evento: ${titulo}</div>
         <div class="meta-grande">Pago: ${cliente}</div>
@@ -1954,7 +1954,7 @@ export default function CajaPage() {
     }
 
     async function eliminarVenta(eventoId: string, ventaId: string) {
-        const r = await swalBase.fire({ title: "¿Eliminar venta?", text: "Esta acciÃ³n no se puede deshacer.", icon: "warning", showCancelButton: true, confirmButtonText: "SÃ­, eliminar", cancelButtonText: "Cancelar" });
+        const r = await swalBase.fire({ title: "¿Eliminar venta?", text: "Esta acción no se puede deshacer.", icon: "warning", showCancelButton: true, confirmButtonText: "Sí, eliminar", cancelButtonText: "Cancelar" });
         if (!r.isConfirmed) return;
         const res = await fetch(`/api/eventos/${eventoId}`, {
             method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
@@ -2077,7 +2077,7 @@ export default function CajaPage() {
         return true;
     });
 
-    // Pedidos listos para cobrar: estado listo O entregado (ambos estados vÃ¡lidos)
+    // Pedidos listos para cobrar: estado listo O entregado (ambos estados válidos)
     const paraCobrar = pedidosFiltrados.filter(p => p.estado === "listo" || p.estado === "entregado");
 
     // Listas por estado
@@ -2089,7 +2089,7 @@ export default function CajaPage() {
     const entregadosPendientesCobro = pedidosFiltrados.filter(p => p.estado === "entregado");
 
     let lista = vista === "pendientes" ? pendientes : vista === "preparando" ? preparando : vista === "listos" ? listos : vista === "llamadas" ? [] : finalizados;
-    // Mozo primero; en listos ordenar por mesa numÃ©rico
+    // Mozo primero; en listos ordenar por mesa numérico
     lista = [...lista].sort((a, b) => {
         const aEmp = a.fuente === "empleado" || a.userId?.role === "empleado";
         const bEmp = b.fuente === "empleado" || b.userId?.role === "empleado";
@@ -2179,7 +2179,7 @@ export default function CajaPage() {
                                 ) : (
                                     <>
                                         <span className="w-1.5 h-1.5 rounded-full bg-red-400 inline-block" />
-                                        <span className="text-xs text-red-400 font-semibold">Sin sesiÃ³n activa</span>
+                                        <span className="text-xs text-red-400 font-semibold">Sin sesión activa</span>
                                     </>
                                 )}
                             </div>
@@ -2225,7 +2225,7 @@ export default function CajaPage() {
                             const label = [esCuenta ? "Cuenta" : "Mozo", l.clienteNombre, l.mesa ? `Mesa ${l.mesa}` : null, !esCuenta && l.mozoNombre ? l.mozoNombre : null, hora].filter(Boolean).join(" · ");
                             return (
                                 <div key={l._id} className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 border ${esCuenta ? "bg-emerald-500/20 border-emerald-400/30" : "bg-red-500/20 border-red-400/30"}`}>
-                                    <span className="text-xs shrink-0">{esCuenta ? "ðŸŸ¢" : "ðŸ”´"}</span>
+                                    <span className="text-xs shrink-0">{esCuenta ? "🟢" : "🔴"}</span>
                                     <span className={`text-xs font-bold whitespace-nowrap ${esCuenta ? "text-emerald-300" : "text-red-300"}`}>{label}</span>
                                     <button
                                         onClick={() => {
@@ -2265,7 +2265,7 @@ export default function CajaPage() {
                                     <Wallet size={30} className="text-white" />
                                 </div>
                                 <h2 className="font-black text-white text-2xl tracking-tight">Abrir caja</h2>
-                                <p className="text-sm text-white/50 mt-1">IngresÃ¡ el efectivo inicial</p>
+                                <p className="text-sm text-white/50 mt-1">Ingresá el efectivo inicial</p>
                             </div>
                             {/* Body */}
                             <div className="px-6 py-6 space-y-4">
@@ -2364,11 +2364,11 @@ export default function CajaPage() {
                         <button onClick={() => setTab("menu")}
                             className={`flex-1 py-3.5 text-sm font-black transition flex items-center justify-center gap-2 ${tab === "menu" ? "text-gray-900 border-b-2 border-black" : "text-gray-700 hover:text-gray-600"
                                 }`}>
-                            <UtensilsCrossed size={15} /> MenÃº
+                            <UtensilsCrossed size={15} /> Menú
                         </button>
                     </div>
 
-                    {/* ”€”€ TAB PEDIDOS ”€”€ */}
+                    {/* ── TAB PEDIDOS ── */}
                     {tab === "pedidos" && (
                         <div className="max-w-screen-2xl mx-auto px-4 pt-4">
                             {/* Nueva comanda (cajero actuando como mozo) */}
@@ -2456,7 +2456,7 @@ export default function CajaPage() {
                             {filtroFuente === "timbre" && (
                                 llamadas.length === 0 ? (
                                     <div className="text-center py-16 text-gray-400">
-                                        <p className="text-4xl mb-3">ðŸ””</p>
+                                        <p className="text-4xl mb-3">🔔</p>
                                         <p className="font-semibold">Sin llamadas pendientes</p>
                                     </div>
                                 ) : (
@@ -2519,7 +2519,7 @@ export default function CajaPage() {
                                             : (p.mesa ? mesaLabel(p.mesa) : p.nombreComanda || (eventoNombre ?? (esCajaDelivery ? "Delivery" : esCaja ? "Caja" : "Sin mesa")));
 
                                         const subtitulo = esApp
-                                            ? `${p.numeroDia ? `#${p.numeroDia} · ` : ""}${p.tipoEntrega === "envio" ? "EnvÃ­o a domicilio" : "Retiro en local"}`
+                                            ? `${p.numeroDia ? `#${p.numeroDia} · ` : ""}${p.tipoEntrega === "envio" ? "Envío a domicilio" : "Retiro en local"}`
                                             : esAutoservicio
                                                 ? [p.userId?.nombre, p.userId?.apellido].filter(Boolean).join(" ") || "Autoservicio"
                                                 : esCajaDelivery
@@ -2548,7 +2548,7 @@ export default function CajaPage() {
                                                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                                                 className={`rounded-2xl border-2 shadow-sm overflow-hidden flex flex-col h-[600px] bg-white ${esAlerta ? "blink-alerta" : esDemorada ? "border-red-500" : "border-black"}`}>
 
-                                                {/* ”€”€ Cabecera ”€”€ */}
+                                                {/* ── Cabecera ── */}
                                                 <div className={`shrink-0 px-4 py-3 ${esDemorada ? "bg-red-700" : "bg-black"}`}>
                                                     <div className="flex items-start justify-between gap-3">
                                                         <div className="flex-1 min-w-0">
@@ -2611,7 +2611,7 @@ export default function CajaPage() {
                                                     </div>
                                                 </div>
 
-                                                {/* ”€”€ Cuerpo ”€”€ */}
+                                                {/* ── Cuerpo ── */}
                                                 <div className="p-3 flex flex-col flex-1 min-h-0 bg-white">
 
                                                     {/* Info extra delivery manual */}
@@ -2659,12 +2659,12 @@ export default function CajaPage() {
                                                                         : p.mpEstadoPago === "en_proceso" ? "bg-amber-100 text-amber-700"
                                                                             : "bg-blue-100 text-blue-700"
                                                                     }`}>
-                                                                    ðŸ’³ MP {p.mpEstadoPago === "aprobado" ? "Pagado" : p.mpEstadoPago === "rechazado" ? "Rechazado" : p.mpEstadoPago === "en_proceso" ? "En proceso" : "Pendiente"}
+                                                                    💳 MP {p.mpEstadoPago === "aprobado" ? "Pagado" : p.mpEstadoPago === "rechazado" ? "Rechazado" : p.mpEstadoPago === "en_proceso" ? "En proceso" : "Pendiente"}
                                                                 </span>
                                                             )}
                                                             {p.metodoPago === "efectivo" && (
                                                                 <span className="text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wide bg-gray-100 text-gray-600">
-                                                                    ðŸ’µ Efectivo
+                                                                    💵 Efectivo
                                                                 </span>
                                                             )}
                                                         </div>
@@ -2677,7 +2677,7 @@ export default function CajaPage() {
                                                             return (
                                                                 <li key={it._id || idx} className={`px-3 py-2 transition-colors ${it.listo ? "bg-emerald-50" : ""}`}>
                                                                     <div className="flex items-center gap-2">
-                                                                        <span className={`font-black text-sm shrink-0 ${it.listo ? "text-emerald-600" : "text-gray-900"}`}>{it.cantidad}Ã—</span>
+                                                                        <span className={`font-black text-sm shrink-0 ${it.listo ? "text-emerald-600" : "text-gray-900"}`}>{it.cantidad}×</span>
                                                                         <span className={`text-sm font-semibold flex-1 min-w-0 truncate ${it.listo ? "text-emerald-700" : "text-gray-900"}`}>{it.menuItemId?.nombre}</span>
                                                                         {p.estado !== "cerrado" && p.estado !== "cancelado" && it._id && (
                                                                             <div className="flex items-center gap-1 shrink-0">
@@ -2685,11 +2685,11 @@ export default function CajaPage() {
                                                                                     className={`p-1.5 rounded-lg transition ${isEditingThis || it.nota ? "bg-amber-100 text-amber-600 hover:bg-amber-200" : "bg-gray-100 text-gray-400 hover:bg-gray-200"}`}>
                                                                                     <MessageCircle size={12} />
                                                                                 </button>
-                                                                                <button onClick={() => abrirSelectorProducto(p, { modo: "reemplazar", itemId: it._id!, nombreActual: it.menuItemId?.nombre || "Ã­tem" })}
+                                                                                <button onClick={() => abrirSelectorProducto(p, { modo: "reemplazar", itemId: it._id!, nombreActual: it.menuItemId?.nombre || "ítem" })}
                                                                                     className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 transition">
                                                                                     <Pencil size={12} />
                                                                                 </button>
-                                                                                <button onClick={() => eliminarItemPedido(p._id, it._id!, it.menuItemId?.nombre || "Ã­tem")}
+                                                                                <button onClick={() => eliminarItemPedido(p._id, it._id!, it.menuItemId?.nombre || "ítem")}
                                                                                     className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition">
                                                                                     <Trash2 size={12} />
                                                                                 </button>
@@ -2697,7 +2697,7 @@ export default function CajaPage() {
                                                                         )}
                                                                     </div>
                                                                     {it.nota && !isEditingThis && (
-                                                                        <p className="text-[11px] text-amber-700 italic mt-0.5 ml-5 truncate">œ {it.nota}</p>
+                                                                        <p className="text-[11px] text-amber-700 italic mt-0.5 ml-5 truncate">✏ {it.nota}</p>
                                                                     )}
                                                                     {isEditingThis && (
                                                                         <div className="mt-1.5 ml-5 flex gap-1.5">
@@ -2707,11 +2707,11 @@ export default function CajaPage() {
                                                                                 value={editingNota.valor}
                                                                                 onChange={e => setEditingNota(s => s ? { ...s, valor: e.target.value } : null)}
                                                                                 onKeyDown={e => { if (e.key === "Enter") guardarNota(p._id, it._id!, editingNota.valor); if (e.key === "Escape") setEditingNota(null); }}
-                                                                                placeholder="Nota del Ã­tem€¦"
+                                                                                placeholder="Nota del ítem…"
                                                                                 className="flex-1 text-xs border border-amber-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-amber-400 bg-amber-50"
                                                                             />
                                                                             <button onClick={() => guardarNota(p._id, it._id!, editingNota.valor)} className="px-2 py-1 bg-amber-500 text-white rounded-lg text-[10px] font-black">OK</button>
-                                                                            <button onClick={() => setEditingNota(null)} className="px-2 py-1 bg-gray-200 text-gray-600 rounded-lg text-[10px] font-bold">œ•</button>
+                                                                            <button onClick={() => setEditingNota(null)} className="px-2 py-1 bg-gray-200 text-gray-600 rounded-lg text-[10px] font-bold">✕</button>
                                                                         </div>
                                                                     )}
                                                                 </li>
@@ -2740,7 +2740,7 @@ export default function CajaPage() {
                                                                 <span>Subtotal</span><span>{formatMoney(p.total - (p.costoEnvio || costoDelivery))}</span>
                                                             </div>
                                                             <div className="flex justify-between text-xs text-gray-500">
-                                                                <span>EnvÃ­o</span><span>{formatMoney(p.costoEnvio || costoDelivery)}</span>
+                                                                <span>Envío</span><span>{formatMoney(p.costoEnvio || costoDelivery)}</span>
                                                             </div>
                                                             <div className="flex justify-between font-black text-gray-900 text-lg">
                                                                 <span>Total</span><span>{formatMoney(p.total)}</span>
@@ -2797,12 +2797,12 @@ export default function CajaPage() {
                                                                     );
                                                                 })}
                                                             </div>
-                                                            {/* BotÃ³n pasar a listo €” solo cuando estÃ¡ preparando */}
+                                                            {/* Botón pasar a listo — solo cuando está preparando */}
                                                             {p.estado === "preparando" && (
                                                                 <button
                                                                     disabled={isUpdating}
                                                                     onClick={async () => {
-                                                                        const ok = await swalBase.fire({ title: "¿Pasar a listo?", text: "El mozo o el cliente serÃ¡n notificados.", icon: "question", showCancelButton: true, confirmButtonText: "SÃ­, listo", cancelButtonText: "Cancelar" });
+                                                                        const ok = await swalBase.fire({ title: "¿Pasar a listo?", text: "El mozo o el cliente serán notificados.", icon: "question", showCancelButton: true, confirmButtonText: "Sí, listo", cancelButtonText: "Cancelar" });
                                                                         if (ok.isConfirmed) await avanzarEstado(p, "listo");
                                                                     }}
                                                                     className="w-full flex items-center justify-center gap-2 bg-black hover:bg-gray-800 disabled:opacity-50 text-white font-black py-2.5 rounded-xl transition text-sm"
@@ -2833,7 +2833,7 @@ export default function CajaPage() {
                                                                 <div className="w-full flex gap-1.5">
                                                                     <button onClick={() => { setConfirmarCuentaId(null); printCuenta(p); }}
                                                                         className="flex-1 flex items-center justify-center gap-1 bg-gray-800 text-white font-bold py-2 rounded-xl text-sm transition">
-                                                                        <Printer size={13} /> SÃ­, imprimir
+                                                                        <Printer size={13} /> Sí, imprimir
                                                                     </button>
                                                                     <button onClick={() => setConfirmarCuentaId(null)}
                                                                         className="flex-1 border border-gray-300 bg-white text-gray-500 font-bold py-2 rounded-xl text-sm hover:bg-gray-50 transition">
@@ -2863,11 +2863,11 @@ export default function CajaPage() {
                         </div>
                     )}
 
-                    {/* ”€”€ TAB COBRAR ”€”€ */}
+                    {/* ── TAB COBRAR ── */}
                     {tab === "caja" && (
                         <div className="max-w-screen-2xl mx-auto px-4 pt-4">
 
-                            {/* ”€”€ Egresos ”€”€ */}
+                            {/* ── Egresos ── */}
                             <div className="mb-5">
                                 <div className="flex items-center justify-between mb-2">
                                     <h2 className="font-black text-gray-900 text-base tracking-tight flex items-center gap-1.5">
@@ -2881,7 +2881,7 @@ export default function CajaPage() {
                                     </button>
                                 </div>
                                 {egresos.length === 0 ? (
-                                    <p className="text-xs text-gray-400 py-2">Sin egresos registrados en esta sesiÃ³n.</p>
+                                    <p className="text-xs text-gray-400 py-2">Sin egresos registrados en esta sesión.</p>
                                 ) : (
                                     <div className="space-y-1.5">
                                         {egresos.map(e => (
@@ -2890,7 +2890,7 @@ export default function CajaPage() {
                                                     <p className="text-sm font-bold text-gray-900 truncate">{e.concepto}</p>
                                                     <p className="text-xs text-gray-400">{METODO_LABEL[e.metodoPago as typeof METODOS[number]] || e.metodoPago} · {new Date(e.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</p>
                                                 </div>
-                                                <span className="text-sm font-black text-red-600 shrink-0">ˆ’{formatMoney(e.monto)}</span>
+                                                <span className="text-sm font-black text-red-600 shrink-0">−{formatMoney(e.monto)}</span>
                                                 <button onClick={() => { setGastoEditId(e._id); setGastoForm({ concepto: e.concepto, monto: String(e.monto), metodo: (e.metodoPago as typeof METODOS[number]) || "efectivo" }); setGastoModal(true); }}
                                                     className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 transition shrink-0">
                                                     <Pencil size={12} />
@@ -2920,7 +2920,7 @@ export default function CajaPage() {
                                             <Wallet size={28} className="text-gray-600" />
                                         </div>
                                         <p className="font-bold text-gray-700">Sin pedidos para cobrar</p>
-                                        <p className="text-sm mt-1 text-gray-600">Aparecen acÃ¡ cuando el pedido estÃ¡ Listo o Finalizado</p>
+                                        <p className="text-sm mt-1 text-gray-600">Aparecen acá cuando el pedido está Listo o Finalizado</p>
                                     </div>
                                 ) : paraCobrar.map(p => {
                                     const esApp = p.fuente !== "empleado";
@@ -2931,7 +2931,7 @@ export default function CajaPage() {
                                         : (p.mesa ? mesaLabel(p.mesa) : p.nombreComanda || (!esMozo ? "Caja" : "Sin mesa"));
 
                                     const subtitulo = esApp
-                                        ? `${p.numeroDia ? `#${p.numeroDia} · ` : ""}${p.tipoEntrega === "envio" ? "EnvÃ­o" : "Local"}`
+                                        ? `${p.numeroDia ? `#${p.numeroDia} · ` : ""}${p.tipoEntrega === "envio" ? "Envío" : "Local"}`
                                         : esMozo
                                             ? `Mozo: ${[p.userId?.nombre, p.userId?.apellido].filter(Boolean).join(" ")}`
                                             : "Caja";
@@ -2942,7 +2942,7 @@ export default function CajaPage() {
 
                                     return (
                                         <div key={p._id} className={`rounded-2xl border-2 shadow-sm overflow-hidden flex flex-col h-[500px] ${cardBorder} bg-white`}>
-                                            {/* ”€”€ Cabecera coloreada ”€”€ */}
+                                            {/* ── Cabecera coloreada ── */}
                                             <div className={`shrink-0 px-4 py-3 ${accentBg}`}>
                                                 <div className="flex items-start justify-between gap-3">
                                                     <div className="flex-1 min-w-0">
@@ -2950,7 +2950,7 @@ export default function CajaPage() {
                                                         <p className="text-xs text-white/65 font-medium mt-0.5">{subtitulo}</p>
                                                         <p className="text-xs text-white/45 mt-0.5">
                                                             {format(new Date(p.createdAt), "HH:mm", { locale: es })}
-                                                            {p.tipoEntrega === "envio" ? " · EnvÃ­o" : ""}
+                                                            {p.tipoEntrega === "envio" ? " · Envío" : ""}
                                                             {p.comensales ? <span className="inline-flex items-center gap-0.5 ml-1">{p.comensales}<User size={10} /></span> : ""}
                                                         </p>
                                                         {esApp && p.horarioPreferido && (
@@ -2968,14 +2968,14 @@ export default function CajaPage() {
                                                 </div>
                                             </div>
 
-                                            {/* ”€”€ Items ”€”€ */}
+                                            {/* ── Items ── */}
                                             <div className="px-4 py-3 flex-1 min-h-0 overflow-y-auto space-y-1">
                                                 {p.items.map((item, idx) => {
                                                     const isEditingThis = editingNota?.pedidoId === p._id && editingNota?.itemId === item._id;
                                                     return (
                                                         <div key={item._id || idx} className={`rounded-lg px-2 py-1.5 -mx-2 transition-colors ${item.listo ? "bg-emerald-50" : ""}`}>
                                                             <div className="flex items-center gap-2">
-                                                                <span className={`font-black text-sm shrink-0 ${item.listo ? "text-emerald-600" : "text-gray-900"}`}>{item.cantidad}Ã—</span>
+                                                                <span className={`font-black text-sm shrink-0 ${item.listo ? "text-emerald-600" : "text-gray-900"}`}>{item.cantidad}×</span>
                                                                 <span className={`text-sm font-semibold flex-1 min-w-0 truncate ${item.listo ? "text-emerald-700" : "text-gray-900"}`}>{item.menuItemId?.nombre}</span>
                                                                 <span className="text-xs text-gray-700 shrink-0">{formatMoney((item.menuItemId?.precio || 0) * item.cantidad)}</span>
                                                                 {item._id && (
@@ -2984,11 +2984,11 @@ export default function CajaPage() {
                                                                             className={`p-1 rounded-lg transition ${isEditingThis || item.nota ? "bg-amber-100 text-amber-600 hover:bg-amber-200" : "bg-gray-100 text-gray-400 hover:bg-gray-200"}`}>
                                                                             <MessageCircle size={11} />
                                                                         </button>
-                                                                        <button onClick={() => abrirSelectorProducto(p, { modo: "reemplazar", itemId: item._id!, nombreActual: item.menuItemId?.nombre || "Ã­tem" })}
+                                                                        <button onClick={() => abrirSelectorProducto(p, { modo: "reemplazar", itemId: item._id!, nombreActual: item.menuItemId?.nombre || "ítem" })}
                                                                             className="p-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 transition">
                                                                             <Pencil size={11} />
                                                                         </button>
-                                                                        <button onClick={() => eliminarItemPedido(p._id, item._id!, item.menuItemId?.nombre || "Ã­tem")}
+                                                                        <button onClick={() => eliminarItemPedido(p._id, item._id!, item.menuItemId?.nombre || "ítem")}
                                                                             className="p-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition">
                                                                             <Trash2 size={11} />
                                                                         </button>
@@ -2996,7 +2996,7 @@ export default function CajaPage() {
                                                                 )}
                                                             </div>
                                                             {item.nota && !isEditingThis && (
-                                                                <p className="text-[11px] text-amber-700 italic mt-0.5 ml-5 truncate">œ {item.nota}</p>
+                                                                <p className="text-[11px] text-amber-700 italic mt-0.5 ml-5 truncate">✏ {item.nota}</p>
                                                             )}
                                                             {isEditingThis && (
                                                                 <div className="mt-1.5 ml-5 flex gap-1.5">
@@ -3006,11 +3006,11 @@ export default function CajaPage() {
                                                                         value={editingNota.valor}
                                                                         onChange={e => setEditingNota(s => s ? { ...s, valor: e.target.value } : null)}
                                                                         onKeyDown={e => { if (e.key === "Enter") guardarNota(p._id, item._id!, editingNota.valor); if (e.key === "Escape") setEditingNota(null); }}
-                                                                        placeholder="Nota del Ã­tem€¦"
+                                                                        placeholder="Nota del ítem…"
                                                                         className="flex-1 text-xs border border-amber-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-amber-400 bg-amber-50"
                                                                     />
                                                                     <button onClick={() => guardarNota(p._id, item._id!, editingNota.valor)} className="px-2 py-1 bg-amber-500 text-white rounded-lg text-[10px] font-black">OK</button>
-                                                                    <button onClick={() => setEditingNota(null)} className="px-2 py-1 bg-gray-200 text-gray-600 rounded-lg text-[10px] font-bold">œ•</button>
+                                                                    <button onClick={() => setEditingNota(null)} className="px-2 py-1 bg-gray-200 text-gray-600 rounded-lg text-[10px] font-bold">✕</button>
                                                                 </div>
                                                             )}
                                                         </div>
@@ -3018,7 +3018,7 @@ export default function CajaPage() {
                                                 })}
                                                 {p.tipoEntrega === "envio" && (p.costoEnvio || costoDelivery) > 0 && (
                                                     <div className="flex justify-between text-xs text-gray-700 border-t border-gray-100 pt-1.5 mt-1">
-                                                        <span>EnvÃ­o a domicilio</span>
+                                                        <span>Envío a domicilio</span>
                                                         <span>{formatMoney(p.costoEnvio || costoDelivery)}</span>
                                                     </div>
                                                 )}
@@ -3033,13 +3033,13 @@ export default function CajaPage() {
                                                 </button>
                                             </div>
 
-                                            {/* ”€”€ Botones cobrar ”€”€ */}
+                                            {/* ── Botones cobrar ── */}
                                             <div className="px-3 pb-3 flex flex-col gap-2">
                                                 {confirmarCuentaId === p._id ? (
                                                     <div className="w-full flex gap-2">
                                                         <button onClick={() => { setConfirmarCuentaId(null); printCuenta(p); }}
                                                             className="flex-1 flex items-center justify-center gap-1.5 bg-gray-800 text-white font-bold py-2.5 rounded-xl text-sm tracking-wide transition">
-                                                            <Printer size={14} /> SÃ­, imprimir
+                                                            <Printer size={14} /> Sí, imprimir
                                                         </button>
                                                         <button onClick={() => setConfirmarCuentaId(null)}
                                                             className="flex-1 border border-gray-300 bg-white text-gray-500 font-bold py-2.5 rounded-xl text-sm tracking-wide hover:bg-gray-50 transition">
@@ -3073,7 +3073,7 @@ export default function CajaPage() {
                         </div>
                     )}
 
-                    {/* ”€”€ TAB MESAS ”€”€ */}
+                    {/* ── TAB MESAS ── */}
                     {tab === "mesas" && (
                         <div className="max-w-4xl mx-auto px-4 pt-4">
                             <div className="flex items-center gap-4 mb-4 text-xs text-gray-500 flex-wrap">
@@ -3137,18 +3137,18 @@ export default function CajaPage() {
                         </div>
                     )}
 
-                    {/* ”€”€ TAB RESERVAS ”€”€ */}
+                    {/* ── TAB RESERVAS ── */}
                     {tab === "reservas" && (
                         <div className="max-w-2xl mx-auto px-4 pt-4">
                             <ReservasManager onPendingCountChange={setReservasPendientes} />
                         </div>
                     )}
 
-                    {/* ”€”€ TAB EVENTOS ”€”€ */}
+                    {/* ── TAB EVENTOS ── */}
                     {tab === "eventos" && (
                         <div className="max-w-2xl mx-auto px-4 pt-4 pb-10 space-y-4">
 
-                            {/* BotÃ³n crear siempre visible */}
+                            {/* Botón crear siempre visible */}
                             <button onClick={abrirCrearEvento}
                                 className="w-full flex items-center justify-center gap-2 bg-black hover:bg-gray-700 text-white font-bold py-3 rounded-2xl transition active:scale-95">
                                 <Plus size={18} /> Nuevo evento
@@ -3171,7 +3171,7 @@ export default function CajaPage() {
                                 return (
                                     <div key={ev._id} className="bg-white rounded-2xl border-2 border-black shadow-sm overflow-hidden">
 
-                                        {/* ”€”€ Header ”€”€ */}
+                                        {/* ── Header ── */}
                                         <div className="bg-black px-5 py-4">
                                             <div className="flex items-start justify-between gap-3">
                                                 <div className="flex-1 min-w-0">
@@ -3181,7 +3181,7 @@ export default function CajaPage() {
                                                     </div>
                                                     <h2 className="font-black text-white text-2xl leading-tight truncate">{ev.nombre}</h2>
                                                     <p className="text-sm font-bold text-white/50 mt-0.5">Total: <span className="text-white font-black">{formatMoney(totalEvento)}</span></p>
-                                                    {/* Precio tarjeta con ediciÃ³n inline */}
+                                                    {/* Precio tarjeta con edición inline */}
                                                     {editPrecioEventoId === ev._id ? (
                                                         <div className="flex items-center gap-2 mt-2">
                                                             <input
@@ -3219,7 +3219,7 @@ export default function CajaPage() {
 
                                         <div className="p-4 space-y-4">
 
-                                            {/* ”€”€ Stats ”€”€ */}
+                                            {/* ── Stats ── */}
                                             <div className="grid grid-cols-3 gap-3">
                                                 <div className="bg-gray-50 rounded-xl p-3 text-center border border-gray-200">
                                                     <p className="text-lg font-black text-gray-900">{totalTarjetas}</p>
@@ -3238,7 +3238,7 @@ export default function CajaPage() {
                                                 </div>
                                             </div>
 
-                                            {/* ”€”€ Desglose entradas por mÃ©todo ”€”€ */}
+                                            {/* ── Desglose entradas por método ── */}
                                             {totalTarjetas > 0 && (() => {
                                                 const tarjetasArr = (ev as any).tarjetas ?? [];
                                                 const METODO_NOMBRE: Record<string, string> = { efectivo: "Efectivo", transferencia: "Transferencia", tarjeta: "Tarjeta" };
@@ -3265,7 +3265,7 @@ export default function CajaPage() {
                                                                 const Icon = METODO_ICON[metodo] || Banknote;
                                                                 return (
                                                                     <div key={metodo} className="rounded-xl border border-gray-200 overflow-hidden">
-                                                                        {/* Fila total del mÃ©todo */}
+                                                                        {/* Fila total del método */}
                                                                         <div className="flex items-center justify-between bg-gray-50 px-3 py-2">
                                                                             <span className="flex items-center gap-1.5 text-sm font-semibold text-gray-700">
                                                                                 <Icon size={13} className="text-gray-500" />
@@ -3290,7 +3290,7 @@ export default function CajaPage() {
                                                                                         <button
                                                                                             onClick={() => { setEditTarjetaId(t._id); setEditTarjetaMetodo(t.metodoPago || "efectivo"); }}
                                                                                             className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition"
-                                                                                            title="Cambiar mÃ©todo de pago">
+                                                                                            title="Cambiar método de pago">
                                                                                             <Pencil size={11} />
                                                                                         </button>
                                                                                         <button
@@ -3356,7 +3356,7 @@ export default function CajaPage() {
                                                 );
                                             })()}
 
-                                            {/* ”€”€ Botones de acciÃ³n ”€”€ */}
+                                            {/* ── Botones de acción ── */}
                                             <div className="grid grid-cols-3 gap-2">
                                                 <button onClick={() => abrirVentaModal(ev._id)}
                                                     className="flex flex-col items-center gap-1 bg-black hover:bg-gray-800 text-white font-bold py-3 rounded-xl transition text-xs">
@@ -3372,7 +3372,7 @@ export default function CajaPage() {
                                                 </button>
                                             </div>
 
-                                            {/* ”€”€ Mesas ”€”€ */}
+                                            {/* ── Mesas ── */}
                                             {(ev.mesas ?? []).length > 0 && (
                                                 <div>
                                                     <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">Mesas asignadas</p>
@@ -3382,7 +3382,7 @@ export default function CajaPage() {
                                                 </div>
                                             )}
 
-                                            {/* ”€”€ Comandas ”€”€ */}
+                                            {/* ── Comandas ── */}
                                             {pedidosEv.length > 0 && (() => {
                                                 const colKey = `${ev._id}:comandas`;
                                                 const colapsado = seccionesColapsadas.has(colKey);
@@ -3412,7 +3412,7 @@ export default function CajaPage() {
                                                 );
                                             })()}
 
-                                            {/* ”€”€ Ventas directas ”€”€ */}
+                                            {/* ── Ventas directas ── */}
                                             {ev.ventas.length > 0 && (() => {
                                                 const colKeyV = `${ev._id}:ventas`;
                                                 const colapsadoV = seccionesColapsadas.has(colKeyV);
@@ -3440,20 +3440,19 @@ export default function CajaPage() {
                                                                 <div className="flex items-center gap-1">
                                                                     <button disabled={pagina === 0}
                                                                         onClick={() => setVentasPagina(p => ({ ...p, [ev._id]: pagina - 1 }))}
-                                                                        className="w-6 h-6 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 disabled:opacity-30 hover:border-gray-400 transition text-xs font-bold">€¹</button>
+                                                                        className="w-6 h-6 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 disabled:opacity-30 hover:border-gray-400 transition text-xs font-bold">‹</button>
                                                                     <span className="text-[10px] text-gray-400 font-bold">{pagina + 1}/{totalPags}</span>
                                                                     <button disabled={pagina >= totalPags - 1}
                                                                         onClick={() => setVentasPagina(p => ({ ...p, [ev._id]: pagina + 1 }))}
-                                                                        className="w-6 h-6 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 disabled:opacity-30 hover:border-gray-400 transition text-xs font-bold">€º</button>
+                                                                        className="w-6 h-6 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 disabled:opacity-30 hover:border-gray-400 transition text-xs font-bold">›</button>
                                                                 </div>
                                                             )}
                                                         </div>
                                                         {!colapsadoV && (
                                                             <div className="space-y-1.5">
                                                                 {slice.map(v => {
-                                                                    const pagosV = (((v as any).pagos as { metodoPago: string; monto: number }[] | undefined)?.filter(pg => pg.monto > 0) ?? []).length > 0
-                                                                        ? (((v as any).pagos as { metodoPago: string; monto: number }[]).filter(pg => pg.monto > 0))
-                                                                        : (v.metodoPago ? [{ metodoPago: v.metodoPago, monto: v.total }] : []);
+                                                                    const _rawPagos = ((v as any).pagos as { metodoPago: string; monto: number }[] | undefined)?.filter(pg => pg.monto > 0) ?? [];
+                                                                    const pagosV: { metodoPago: string; monto: number }[] = _rawPagos.length > 0 ? _rawPagos : (v.metodoPago ? [{ metodoPago: v.metodoPago, monto: v.total }] : []);
                                                                     const metodoLabel = pagosV.length > 1
                                                                         ? pagosV.map(pg => METODO_LABEL[pg.metodoPago] || pg.metodoPago).join(" + ")
                                                                         : METODO_LABEL[v.metodoPago] || v.metodoPago;
@@ -3461,7 +3460,7 @@ export default function CajaPage() {
                                                                     const isExp = expanded.has(v._id);
                                                                     return (
                                                                         <div key={v._id} className="rounded-xl border border-gray-200 overflow-hidden">
-                                                                            {/* Fila header €” siempre visible */}
+                                                                            {/* Fila header — siempre visible */}
                                                                             <div className="flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-gray-50 transition"
                                                                                 onClick={() => toggleV(v._id)}>
                                                                                 <IconV size={13} className="text-gray-400 shrink-0" />
@@ -3482,12 +3481,12 @@ export default function CajaPage() {
                                                                                 </button>
                                                                                 <ChevronDown size={13} className={`text-gray-400 shrink-0 transition-transform ${isExp ? "rotate-180" : ""}`} />
                                                                             </div>
-                                                                            {/* Detalle de Ã­tems y pagos €” colapsable */}
+                                                                            {/* Detalle de ítems y pagos — colapsable */}
                                                                             {isExp && (
                                                                                 <div className="border-t border-gray-100 px-3 py-2 bg-gray-50 space-y-1">
                                                                                     {v.items.map((it, i) => (
                                                                                         <div key={i} className="flex justify-between text-xs text-gray-600">
-                                                                                            <span>{it.cantidad}Ã— {it.nombre}</span>
+                                                                                            <span>{it.cantidad}× {it.nombre}</span>
                                                                                             <span className="font-semibold">{formatMoney(it.precio * it.cantidad)}</span>
                                                                                         </div>
                                                                                     ))}
@@ -3525,11 +3524,11 @@ export default function CajaPage() {
 
                         </div>
                     )}
-                    {/* ”€”€ TAB CANJES ”€”€ */}
+                    {/* ── TAB CANJES ── */}
                     {tab === "canjes" && (
                         <div className="max-w-2xl mx-auto px-4 pt-4 pb-10 space-y-6">
 
-                            {/* ”€”€ Solicitudes pendientes ”€”€ */}
+                            {/* ── Solicitudes pendientes ── */}
                             <section>
                                 <p className="text-xs font-black text-gray-700 uppercase tracking-widest mb-3">Solicitudes pendientes</p>
                                 {canjesPendientes.length === 0 ? (
@@ -3576,7 +3575,7 @@ export default function CajaPage() {
                                 )}
                             </section>
 
-                            {/* ”€”€ GestiÃ³n de canjes disponibles ”€”€ */}
+                            {/* ── Gestión de canjes disponibles ── */}
                             <section>
                                 <div className="flex items-center justify-between mb-3">
                                     <p className="text-xs font-black text-gray-700 uppercase tracking-widest">Canjes disponibles</p>
@@ -3593,7 +3592,7 @@ export default function CajaPage() {
                                         <input
                                             value={rewardForm.titulo}
                                             onChange={e => setRewardForm(p => ({ ...p, titulo: e.target.value }))}
-                                            placeholder="TÃ­tulo *"
+                                            placeholder="Título *"
                                             className="w-full px-3 py-2.5 border border-black rounded-xl text-sm focus:outline-none focus:border-gray-400"
                                         />
                                         <input
@@ -3606,14 +3605,14 @@ export default function CajaPage() {
                                         <textarea
                                             value={rewardForm.descripcion}
                                             onChange={e => setRewardForm(p => ({ ...p, descripcion: e.target.value }))}
-                                            placeholder="DescripciÃ³n (opcional)"
+                                            placeholder="Descripción (opcional)"
                                             rows={2}
                                             className="w-full px-3 py-2.5 border border-black rounded-xl text-sm focus:outline-none focus:border-gray-400 resize-none"
                                         />
                                         <select value={rewardForm.tema} onChange={e => setRewardForm(p => ({ ...p, tema: e.target.value }))}
                                             className="w-full px-3 py-2.5 border border-black rounded-xl text-sm focus:outline-none focus:border-gray-400 bg-white">
-                                            <option value="">Tarjeta estÃ¡ndar</option>
-                                            <option value="argentina">ðŸ‡¦ðŸ‡· Especial Argentina €” Mundial 2026</option>
+                                            <option value="">Tarjeta estándar</option>
+                                            <option value="argentina">🇦🇷 Especial Argentina — Mundial 2026</option>
                                         </select>
                                         <div className="flex gap-2 pt-1">
                                             <button onClick={() => { setRewardFormOpen(false); setRewardEditId(null); }}
@@ -3639,7 +3638,7 @@ export default function CajaPage() {
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2 flex-wrap">
                                                         <p className="font-bold text-gray-900 text-sm">{r.titulo}</p>
-                                                        {r.tema === "argentina" && <span className="text-[10px] bg-blue-100 text-blue-700 font-bold px-1.5 py-0.5 rounded-full">ðŸ‡¦ðŸ‡· Mundial</span>}
+                                                        {r.tema === "argentina" && <span className="text-[10px] bg-blue-100 text-blue-700 font-bold px-1.5 py-0.5 rounded-full">🇦🇷 Mundial</span>}
                                                     </div>
                                                     {r.descripcion && <p className="text-xs text-gray-500 mt-0.5 truncate">{r.descripcion}</p>}
                                                     <p className="text-xs font-black text-red-600 mt-1">{r.puntos} pts</p>
@@ -3666,13 +3665,13 @@ export default function CajaPage() {
                         </div>
                     )}
 
-                    {/* ”€”€ TAB MENÃš ”€”€ */}
+                    {/* ── TAB MENÚ ── */}
                     {tab === "menu" && (
                         <div className="max-w-3xl mx-auto px-4 pt-4 pb-10">
-                            {/* Header + botÃ³n agregar */}
+                            {/* Header + botón agregar */}
                             <div className="flex items-center justify-between mb-4">
                                 <div>
-                                    <h2 className="font-black text-gray-900 text-lg">MenÃº</h2>
+                                    <h2 className="font-black text-gray-900 text-lg">Menú</h2>
                                     <p className="text-xs text-gray-700">{menuGest.length} productos</p>
                                 </div>
                                 <button
@@ -3698,21 +3697,21 @@ export default function CajaPage() {
                                             <select className="rounded-xl border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-black"
                                                 value={menuGestSelectCat}
                                                 onChange={e => { setMenuGestSelectCat(e.target.value); setMenuGestForm(f => ({ ...f, categoria: e.target.value === "__nueva__" ? "" : e.target.value })); }}>
-                                                <option value="">CategorÃ­a *</option>
+                                                <option value="">Categoría *</option>
                                                 {Array.from(new Set(menuGest.map(i => i.categoria))).sort().map(c => (
                                                     <option key={c} value={c}>{c}</option>
                                                 ))}
-                                                <option value="__nueva__">+ Nueva categorÃ­a...</option>
+                                                <option value="__nueva__">+ Nueva categoría...</option>
                                             </select>
                                         </div>
                                         {menuGestSelectCat === "__nueva__" && (
                                             <input className="w-full rounded-xl border border-red-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
-                                                placeholder="Nombre de la nueva categorÃ­a (ej: PASTAS)"
+                                                placeholder="Nombre de la nueva categoría (ej: PASTAS)"
                                                 value={menuGestForm.categoria}
                                                 onChange={e => setMenuGestForm(f => ({ ...f, categoria: e.target.value.toUpperCase() }))} />
                                         )}
                                         <textarea className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-black"
-                                            rows={2} placeholder="DescripciÃ³n (opcional)" value={menuGestForm.descripcion}
+                                            rows={2} placeholder="Descripción (opcional)" value={menuGestForm.descripcion}
                                             onChange={e => setMenuGestForm(f => ({ ...f, descripcion: e.target.value }))} />
                                         <div className="flex gap-2 justify-end">
                                             <button onClick={() => { setMenuGestShowForm(false); setMenuGestEditId(null); }}
@@ -3728,7 +3727,7 @@ export default function CajaPage() {
                                 )}
                             </AnimatePresence>
 
-                            {/* BÃºsqueda */}
+                            {/* Búsqueda */}
                             <div className="flex gap-2 mb-4">
                                 <input className="flex-1 rounded-xl border border-black px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
                                     placeholder="Buscar producto..." value={menuGestSearch}
@@ -3738,7 +3737,7 @@ export default function CajaPage() {
                             {menuGestLoading ? (
                                 <div className="flex justify-center py-12"><Loader2 size={32} className="animate-spin text-gray-700" /></div>
                             ) : menuGestSearch.trim() ? (
-                                /* Resultados de bÃºsqueda */
+                                /* Resultados de búsqueda */
                                 <div className="space-y-2">
                                     {menuGest.filter(i => i.nombre.toLowerCase().includes(menuGestSearch.toLowerCase())).map(item => (
                                         <MenuGestCard key={item._id} item={item} onToggle={toggleMenuGestActivo} onEdit={abrirEditarMenuGest} onDelete={eliminarMenuGestItem} />
@@ -3748,7 +3747,7 @@ export default function CajaPage() {
                                     )}
                                 </div>
                             ) : !menuGestCatActiva ? (
-                                /* Grid de categorÃ­as */
+                                /* Grid de categorías */
                                 <div className="grid grid-cols-2 gap-3">
                                     {(() => {
                                         const allCats = Array.from(new Set(menuGest.map(i => {
@@ -3757,8 +3756,8 @@ export default function CajaPage() {
                                             return i.categoria;
                                         })));
                                         const sorted = [
-                                            ...(allCats.includes("MENÃš DEL DÃA") ? ["MENÃš DEL DÃA"] : []),
-                                            ...allCats.filter(c => c !== "MENÃš DEL DÃA").sort((a, b) => {
+                                            ...(allCats.includes("MENÚ DEL DÍA") ? ["MENÚ DEL DÍA"] : []),
+                                            ...allCats.filter(c => c !== "MENÚ DEL DÍA").sort((a, b) => {
                                                 const ai = MENU_ORDER.indexOf(a), bi = MENU_ORDER.indexOf(b);
                                                 return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
                                             }),
@@ -3766,7 +3765,7 @@ export default function CajaPage() {
                                         return sorted.map(cat => {
                                             const dynImg = categoryConfigMap[cat]?.imageUrl;
                                             const img = dynImg || categoryImages[cat];
-                                            const isSpecial = cat === "MENÃš DEL DÃA";
+                                            const isSpecial = cat === "MENÚ DEL DÍA";
                                             const count = cat === "BEBIDAS" ? menuGest.filter(i => BEBIDAS_CATS.includes(i.categoria)).length
                                                 : cat === "PICADAS Y FRITURAS" ? menuGest.filter(i => PICAR_CATS.includes(i.categoria)).length
                                                     : menuGest.filter(i => i.categoria === cat).length;
@@ -3796,12 +3795,12 @@ export default function CajaPage() {
                                     })()}
                                 </div>
                             ) : menuGestCatActiva === "BEBIDAS" ? (
-                                /* SubcategorÃ­as de bebidas */
+                                /* Subcategorías de bebidas */
                                 <>
                                     <div className="flex items-center gap-2 mb-3">
                                         <button onClick={() => setMenuGestCatActiva(null)}
                                             className="flex items-center gap-1.5 text-sm font-bold text-gray-700 hover:text-black transition">
-                                            <X size={15} /> CategorÃ­as
+                                            <X size={15} /> Categorías
                                         </button>
                                         <span className="text-sm font-black text-gray-900">BEBIDAS</span>
                                     </div>
@@ -3825,12 +3824,12 @@ export default function CajaPage() {
                                     </div>
                                 </>
                             ) : (
-                                /* Lista de productos de la categorÃ­a seleccionada */
+                                /* Lista de productos de la categoría seleccionada */
                                 <>
                                     <div className="flex items-center gap-2 mb-3">
                                         <button onClick={() => setMenuGestCatActiva(BEBIDAS_CATS.includes(menuGestCatActiva!) ? "BEBIDAS" : null)}
                                             className="flex items-center gap-1.5 text-sm font-bold text-gray-700 hover:text-black transition">
-                                            <X size={15} /> {BEBIDAS_CATS.includes(menuGestCatActiva!) ? "Bebidas" : "CategorÃ­as"}
+                                            <X size={15} /> {BEBIDAS_CATS.includes(menuGestCatActiva!) ? "Bebidas" : "Categorías"}
                                         </button>
                                         <span className="text-sm font-black text-gray-900">{menuGestCatActiva}</span>
                                     </div>
@@ -3853,7 +3852,7 @@ export default function CajaPage() {
                 </>
             )}
 
-            {/* Input oculto para subir imagen de MENÃš DEL DÃA */}
+            {/* Input oculto para subir imagen de MENÚ DEL DÍA */}
             <input ref={menuGestImgRef} type="file" accept="image/*" className="hidden" onChange={uploadMenuDelDiaImg} />
 
             {/* Modal cerrar caja */}
@@ -3868,7 +3867,7 @@ export default function CajaPage() {
                                 </div>
                                 <div className="px-5 py-4 space-y-3 overflow-y-auto flex-1 min-h-0">
 
-                                    {/* Efectivo €” bloque detallado */}
+                                    {/* Efectivo — bloque detallado */}
                                     <div className="bg-gray-50 rounded-2xl p-4 space-y-2.5">
                                         <p className="text-[10px] font-black text-gray-700 uppercase tracking-wider flex items-center gap-1.5"><Banknote size={11} />Efectivo</p>
                                         <div className="flex justify-between text-sm">
@@ -3889,8 +3888,8 @@ export default function CajaPage() {
                                         </div>
                                     </div>
 
-                                    {/* Desglose por mÃ©todo */}
-                                    <p className="text-[10px] font-black text-gray-700 uppercase tracking-wider">Recaudado por mÃ©todo</p>
+                                    {/* Desglose por método */}
+                                    <p className="text-[10px] font-black text-gray-700 uppercase tracking-wider">Recaudado por método</p>
                                     {METODOS.map(met => {
                                         const r = cierreResumen[met];
                                         const ingreso = r?.ingreso || 0;
@@ -3908,7 +3907,7 @@ export default function CajaPage() {
                                                     <span className="font-black text-gray-900">{formatMoney(neto)}</span>
                                                 </div>
                                                 {egreso > 0 && (
-                                                    <p className="text-xs text-gray-500">Ingresos {formatMoney(ingreso)} · Egresos ˆ’{formatMoney(egreso)}</p>
+                                                    <p className="text-xs text-gray-500">Ingresos {formatMoney(ingreso)} · Egresos −{formatMoney(egreso)}</p>
                                                 )}
                                                 {excedente > 0 && (
                                                     <p className="text-xs text-amber-600 font-semibold">Incluye {formatMoney(excedente)} de excedente (propina)</p>
@@ -3921,7 +3920,7 @@ export default function CajaPage() {
                                     {cierreDeliveryCount > 0 && (
                                         <div className="flex items-center justify-between bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
                                             <span className="text-sm font-semibold text-blue-700 flex items-center gap-2">
-                                                ðŸ›µ Delivery entregado
+                                                🛵 Delivery entregado
                                             </span>
                                             <span className="font-black text-blue-800">{cierreDeliveryCount} pedido{cierreDeliveryCount !== 1 ? "s" : ""}</span>
                                         </div>
@@ -3950,7 +3949,7 @@ export default function CajaPage() {
                                 </div>
                                 <div className="px-5 py-4 space-y-3">
                                     <p className="text-sm text-gray-600">
-                                        Abierta desde las <strong>{sesion ? new Date(sesion.fechaApertura).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : "€”"}</strong>
+                                        Abierta desde las <strong>{sesion ? new Date(sesion.fechaApertura).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : "—"}</strong>
                                         {sesion && ` · Inicial: ${formatMoney(sesion.montoInicial)}`}
                                     </p>
                                     <div>
@@ -3978,7 +3977,7 @@ export default function CajaPage() {
                 </div>
             )}
 
-            {/* ”€”€ Modal autoservicio ”€”€ */}
+            {/* ── Modal autoservicio ── */}
             {autoservModal && createPortal(
                 <div className="fixed inset-0 z-[200] bg-black/60 flex items-end justify-center p-4"
                     onClick={() => setAutoservModal(false)}>
@@ -4068,7 +4067,7 @@ export default function CajaPage() {
                             </div>
                         </div>
 
-                        {/* SelecciÃ³n actual */}
+                        {/* Selección actual */}
                         {autoservMesas.length > 0 && (
                             <div className="mx-5 mb-3 bg-purple-50 border border-purple-200 rounded-xl px-3 py-2 flex items-center gap-2 shrink-0">
                                 <div className="flex-1">
@@ -4152,7 +4151,7 @@ export default function CajaPage() {
                             )}
                         </div>
 
-                        {/* Agregar usuarios + botÃ³n activar */}
+                        {/* Agregar usuarios + botón activar */}
                         {autoservMesas.length > 0 && (
                             <div className="px-5 py-4 border-t border-gray-100 space-y-3 shrink-0">
                                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Usuarios para Mesa{autoservMesas.length > 1 ? "s" : ""} {autoservMesas.join(", ")}</p>
@@ -4213,7 +4212,7 @@ export default function CajaPage() {
             )}
 
             {/* Modal gastos */}
-            {/* ”€”€ Modal nuevo delivery ”€”€ */}
+            {/* ── Modal nuevo delivery ── */}
             {deliveryModal && createPortal(
                 <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden">
@@ -4221,7 +4220,7 @@ export default function CajaPage() {
                         <div className="bg-blue-600 px-5 py-4 flex items-center gap-3">
                             <div className="flex-1">
                                 <p className="font-black text-white text-lg leading-tight">Nuevo delivery</p>
-                                <p className="text-blue-200 text-xs mt-0.5">CompletÃ¡ los datos del cliente</p>
+                                <p className="text-blue-200 text-xs mt-0.5">Completá los datos del cliente</p>
                             </div>
                             <button onClick={() => setDeliveryModal(false)} className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition">
                                 <X size={16} />
@@ -4233,7 +4232,7 @@ export default function CajaPage() {
                                 <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Nombre</label>
                                 <input
                                     type="text"
-                                    placeholder="Juan PÃ©rez"
+                                    placeholder="Juan Pérez"
                                     value={deliveryForm.nombre}
                                     onChange={e => setDeliveryForm(f => ({ ...f, nombre: e.target.value }))}
                                     style={{ fontSize: "16px" }}
@@ -4241,7 +4240,7 @@ export default function CajaPage() {
                                 />
                             </div>
                             <div>
-                                <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">TelÃ©fono</label>
+                                <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Teléfono</label>
                                 <input
                                     type="tel"
                                     placeholder="3492 123456"
@@ -4252,10 +4251,10 @@ export default function CajaPage() {
                                 />
                             </div>
                             <div>
-                                <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">DirecciÃ³n</label>
+                                <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Dirección</label>
                                 <input
                                     type="text"
-                                    placeholder="Av. San MartÃ­n 456"
+                                    placeholder="Av. San Martín 456"
                                     value={deliveryForm.direccion}
                                     onChange={e => setDeliveryForm(f => ({ ...f, direccion: e.target.value }))}
                                     style={{ fontSize: "16px" }}
@@ -4270,13 +4269,13 @@ export default function CajaPage() {
                                     style={{ fontSize: "16px" }}
                                     className="w-full border-2 border-gray-100 focus:border-blue-400 rounded-xl px-4 py-3 focus:outline-none transition font-semibold text-gray-900 bg-white"
                                 >
-                                    <option value="">Seleccionar€¦</option>
+                                    <option value="">Seleccionar…</option>
                                     <option value="20:30">20:30</option>
                                     <option value="21:00">21:00</option>
                                     <option value="21:30">21:30</option>
                                     <option value="22:00">22:00</option>
                                     <option value="22:30">22:30</option>
-                                    <option value="Apenas estÃ© listo">Apenas estÃ© listo</option>
+                                    <option value="Apenas esté listo">Apenas esté listo</option>
                                 </select>
                             </div>
                         </div>
@@ -4295,7 +4294,7 @@ export default function CajaPage() {
                                 }}
                                 disabled={!deliveryForm.nombre.trim() || !deliveryForm.telefono.trim() || !deliveryForm.direccion.trim()}
                                 className="flex-1 bg-blue-600 disabled:opacity-40 text-white font-black py-3 rounded-xl transition hover:bg-blue-700 flex items-center justify-center gap-1.5">
-                                Elegir productos †’
+                                Elegir productos →
                             </button>
                         </div>
                     </div>
@@ -4331,7 +4330,7 @@ export default function CajaPage() {
                                 </div>
                             </div>
                             <div>
-                                <label className="text-[10px] font-black text-gray-700 uppercase tracking-wider block mb-1.5">MÃ©todo</label>
+                                <label className="text-[10px] font-black text-gray-700 uppercase tracking-wider block mb-1.5">Método</label>
                                 <div className="flex gap-2">
                                     {METODOS.map(met => {
                                         const Icon = METODO_ICON[met];
@@ -4383,13 +4382,13 @@ export default function CajaPage() {
                                 <div className="bg-gray-50 rounded-xl p-3 space-y-1">
                                     {ped.items.map((i, idx) => (
                                         <div key={idx} className="flex justify-between text-sm">
-                                            <span className="text-gray-700">{i.cantidad}Ã— {i.menuItemId?.nombre}</span>
+                                            <span className="text-gray-700">{i.cantidad}× {i.menuItemId?.nombre}</span>
                                             <span className="font-semibold text-gray-900">{formatMoney((i.menuItemId?.precio || 0) * i.cantidad)}</span>
                                         </div>
                                     ))}
                                     {ped.tipoEntrega === "envio" && (ped.costoEnvio || costoDelivery) > 0 && (
                                         <div className="flex justify-between text-sm">
-                                            <span className="text-gray-700">EnvÃ­o a domicilio</span>
+                                            <span className="text-gray-700">Envío a domicilio</span>
                                             <span className="font-semibold text-gray-900">{formatMoney(ped.costoEnvio || costoDelivery)}</span>
                                         </div>
                                     )}
@@ -4398,14 +4397,14 @@ export default function CajaPage() {
                                     </div>
                                 </div>
 
-                                {/* Pagos €” secciÃ³n principal */}
+                                {/* Pagos — sección principal */}
                                 <div className="space-y-2">
                                     <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Forma de pago</p>
                                     {cobrarForm.pagos.map((pago, idx) => {
                                         const multiPago = cobrarForm.pagos.length > 1;
                                         return (
                                             <div key={idx} className="rounded-xl border border-gray-200 overflow-hidden">
-                                                {/* Selector mÃ©todo */}
+                                                {/* Selector método */}
                                                 <div className="grid grid-cols-3 divide-x divide-gray-100">
                                                     {METODOS.map(met => {
                                                         const Icon = METODO_ICON[met];
@@ -4447,12 +4446,12 @@ export default function CajaPage() {
                                                 setCobrarForm(p => ({ ...p, pagos: [...p.pagos, { metodo: next, monto: restante > 0 ? String(restante) : "" }] }));
                                             }}
                                             className="w-full py-2 border border-dashed border-gray-300 rounded-xl text-xs font-semibold text-gray-500 hover:border-gray-400 hover:text-gray-700 transition">
-                                            + Agregar mÃ©todo de pago
+                                            + Agregar método de pago
                                         </button>
                                     )}
                                 </div>
 
-                                {/* Descuento €” secciÃ³n secundaria */}
+                                {/* Descuento — sección secundaria */}
                                 <div className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-2.5">
                                     <span className="text-xs font-bold text-gray-500 shrink-0">Descuento $</span>
                                     <input type="number" min="0" max={ped.total}
@@ -4623,7 +4622,7 @@ export default function CajaPage() {
                                     </div>
                                 )}
                             </div>
-                            {/* Footer carrito €” solo en modo agregar */}
+                            {/* Footer carrito — solo en modo agregar */}
                             {editItemModal.modo === "agregar" && editItemCart.length > 0 && (
                                 <div className="border-t border-gray-100 px-4 pt-3 pb-4 shrink-0 space-y-2">
                                     <div className="space-y-1.5 max-h-32 overflow-y-auto">
@@ -4635,7 +4634,7 @@ export default function CajaPage() {
                                                         const ex = prev.find(x => x.menuItemId === i.menuItemId);
                                                         if (!ex || ex.cantidad === 1) return prev.filter(x => x.menuItemId !== i.menuItemId);
                                                         return prev.map(x => x.menuItemId === i.menuItemId ? { ...x, cantidad: x.cantidad - 1 } : x);
-                                                    })} className="w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-xs font-bold transition">ˆ’</button>
+                                                    })} className="w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-xs font-bold transition">−</button>
                                                     <span className="text-xs font-black w-4 text-center">{i.cantidad}</span>
                                                     <button onClick={() => setEditItemCart(prev => prev.map(x => x.menuItemId === i.menuItemId ? { ...x, cantidad: x.cantidad + 1 } : x))}
                                                         className="w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-xs font-bold transition">+</button>
@@ -4646,7 +4645,7 @@ export default function CajaPage() {
                                     <button onClick={confirmarAgregadosAlPedido}
                                         className="w-full bg-black hover:bg-gray-800 text-white font-black py-2.5 rounded-xl text-sm transition flex items-center justify-center gap-2">
                                         <Plus size={14} />
-                                        Agregar {editItemCart.reduce((a, i) => a + i.cantidad, 0)} Ã­tem{editItemCart.reduce((a, i) => a + i.cantidad, 0) !== 1 ? "s" : ""} a la comanda
+                                        Agregar {editItemCart.reduce((a, i) => a + i.cantidad, 0)} ítem{editItemCart.reduce((a, i) => a + i.cantidad, 0) !== 1 ? "s" : ""} a la comanda
                                     </button>
                                 </div>
                             )}
@@ -4669,7 +4668,7 @@ export default function CajaPage() {
                                     <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Nombre del evento</label>
                                     <input autoFocus value={nuevoEventoNombre}
                                         onChange={e => setNuevoEventoNombre(e.target.value)}
-                                        placeholder="Ej: CumpleaÃ±os" style={{ fontSize: "16px" }}
+                                        placeholder="Ej: Cumpleaños" style={{ fontSize: "16px" }}
                                         className="w-full px-4 py-3 border border-black rounded-xl text-base font-semibold focus:outline-none focus:ring-2 focus:ring-black" />
                                 </div>
                                 <div>
@@ -4683,7 +4682,7 @@ export default function CajaPage() {
                             <div className="flex items-center justify-between px-1 py-2 rounded-xl border border-gray-100 bg-gray-50">
                                 <div>
                                     <p className="text-sm font-semibold text-gray-800">Solo bebidas</p>
-                                    <p className="text-xs text-gray-400 mt-0.5">Las ventas solo mostrarÃ¡n bebidas</p>
+                                    <p className="text-xs text-gray-400 mt-0.5">Las ventas solo mostrarán bebidas</p>
                                 </div>
                                 <button type="button" onClick={() => setNuevoEventoSoloBebidas(v => !v)}
                                     className={`relative w-12 h-6 rounded-full transition-colors shrink-0 ${nuevoEventoSoloBebidas ? "bg-black" : "bg-gray-300"}`}>
@@ -4733,7 +4732,7 @@ export default function CajaPage() {
                             <button onClick={() => setEditMesasModal(false)} className="p-1 text-gray-700"><X size={18} /></button>
                         </div>
                         <div className="px-5 py-4 overflow-y-auto flex-1 min-h-0">
-                            <p className="text-xs text-gray-700 mb-3">TocÃ¡ las mesas para seleccionarlas. AparecerÃ¡n en azul en el plano principal.</p>
+                            <p className="text-xs text-gray-700 mb-3">Tocá las mesas para seleccionarlas. Aparecerán en azul en el plano principal.</p>
                             {renderPlanoSelector(editMesasList, (nombre) =>
                                 setEditMesasList(prev => prev.includes(nombre) ? prev.filter(x => x !== nombre) : [...prev, nombre]),
                                 editMesasEventoId
@@ -4783,7 +4782,7 @@ export default function CajaPage() {
                                         className="w-full px-4 py-3 border border-black rounded-xl text-base font-semibold focus:outline-none focus:ring-2 focus:ring-black text-center" />
                                 </div>
                                 <div>
-                                    <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">MÃ©todo de pago</label>
+                                    <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Método de pago</label>
                                     <div className="grid grid-cols-3 gap-2">
                                         {(["efectivo", "transferencia", "tarjeta"] as const).map(m => (
                                             <button key={m} onClick={() => setTarjetasMetodo(m)}
@@ -4795,7 +4794,7 @@ export default function CajaPage() {
                                 </div>
                                 {precio > 0 && cant > 0 && (
                                     <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
-                                        <span className="text-sm text-gray-500">{cant} Ã— {formatMoney(precio)}</span>
+                                        <span className="text-sm text-gray-500">{cant} × {formatMoney(precio)}</span>
                                         <span className="font-black text-gray-900 text-lg">{formatMoney(cant * precio)}</span>
                                     </div>
                                 )}
@@ -4907,7 +4906,7 @@ export default function CajaPage() {
                                     className="p-1 -mr-1 text-gray-400 hover:text-gray-700 transition shrink-0"><X size={18} /></button>
                             </div>
 
-                            {/* BÃºsqueda */}
+                            {/* Búsqueda */}
                             <div className="px-4 pt-3 pb-2 shrink-0">
                                 <input value={ventaSearch} onChange={e => setVentaSearch(e.target.value)}
                                     placeholder={soloBebidas ? "Buscar bebida..." : "Buscar producto..."}
@@ -4915,7 +4914,7 @@ export default function CajaPage() {
                                     className="w-full px-4 py-2.5 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-black bg-gray-50" />
                             </div>
 
-                            {/* CategorÃ­as / Items */}
+                            {/* Categorías / Items */}
                             <div className="overflow-y-auto px-3 pb-2 flex-1 min-h-0" style={{ maxHeight: "35vh" }}>
                                 {ventaSearchActive ? (
                                     <div className="space-y-1">
@@ -4956,7 +4955,7 @@ export default function CajaPage() {
                                         {ventaCart.map(it => (
                                             <div key={it.menuItemId} className="flex items-center gap-2">
                                                 <button onClick={() => setVentaCart(prev => prev.map(x => x.menuItemId === it.menuItemId ? { ...x, cantidad: Math.max(1, x.cantidad - 1) } : x))}
-                                                    className="w-7 h-7 rounded-lg bg-white border border-gray-200 text-gray-600 font-bold flex items-center justify-center shrink-0 text-base leading-none">ˆ’</button>
+                                                    className="w-7 h-7 rounded-lg bg-white border border-gray-200 text-gray-600 font-bold flex items-center justify-center shrink-0 text-base leading-none">−</button>
                                                 <span className="text-sm font-bold w-5 text-center shrink-0">{it.cantidad}</span>
                                                 <button onClick={() => setVentaCart(prev => prev.map(x => x.menuItemId === it.menuItemId ? { ...x, cantidad: x.cantidad + 1 } : x))}
                                                     className="w-7 h-7 rounded-lg bg-white border border-gray-200 text-gray-600 font-bold flex items-center justify-center shrink-0 text-base leading-none">+</button>
@@ -5007,7 +5006,7 @@ export default function CajaPage() {
                                                 <CheckCircle size={10} className="text-emerald-600 shrink-0" />
                                                 <span>{c.nombre}</span>
                                                 <button onClick={() => setVentaComensales(prev => prev.filter(s => s._id !== c._id))}
-                                                    className="ml-0.5 text-emerald-400 hover:text-red-500 font-bold leading-none">Ã—</button>
+                                                    className="ml-0.5 text-emerald-400 hover:text-red-500 font-bold leading-none">×</button>
                                             </div>
                                         ))}
                                     </div>
@@ -5018,7 +5017,7 @@ export default function CajaPage() {
                             <div className="px-4 py-3 border-t border-gray-100 shrink-0 space-y-2">
                                 <p className="text-[10px] font-black text-gray-400 uppercase">Formas de pago</p>
 
-                                {/* LÃ­neas de pago existentes */}
+                                {/* Líneas de pago existentes */}
                                 {ventaPagos.map(p => {
                                     const PIcon = METODO_ICON[p.metodoPago] || Banknote;
                                     return (
@@ -5036,7 +5035,7 @@ export default function CajaPage() {
                                     );
                                 })}
 
-                                {/* Botones para agregar mÃ©todo */}
+                                {/* Botones para agregar método */}
                                 <div className="flex gap-2">
                                     {METODOS.map(met => {
                                         const Icon = METODO_ICON[met];
@@ -5113,7 +5112,7 @@ export default function CajaPage() {
                     </div>
                     <div className="px-5 pb-8 pt-4 space-y-3 shrink-0 bg-black/90">
                         {ventaQrError && <p className="text-red-400 text-sm text-center font-semibold">{ventaQrError}</p>}
-                        <p className="text-white/60 text-xs text-center">O ingresÃ¡ el token manualmente</p>
+                        <p className="text-white/60 text-xs text-center">O ingresá el token manualmente</p>
                         <div className="flex gap-2">
                             <input type="text" placeholder="Token del QR..."
                                 value={ventaQrToken} onChange={e => setVentaQrToken(e.target.value)}
@@ -5159,7 +5158,7 @@ export default function CajaPage() {
                                 {mesaDetalle.pedido.items.map((it, idx) => (
                                     <li key={it._id || idx} className="flex justify-between items-center px-3 py-2 bg-gray-50">
                                         <span className="text-sm text-gray-800">{it.menuItemId?.nombre}</span>
-                                        <span className="text-red-600 font-semibold text-sm">Ã—{it.cantidad}</span>
+                                        <span className="text-red-600 font-semibold text-sm">×{it.cantidad}</span>
                                     </li>
                                 ))}
                             </ul>
@@ -5212,7 +5211,7 @@ export default function CajaPage() {
                                 <div className="bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3">
                                     <p className="text-[10px] font-black text-amber-600 uppercase tracking-wider mb-2">Tarjetas de entrada</p>
                                     <div className="flex items-center justify-between">
-                                        <span className="text-sm text-gray-600">{cierreEventoData.entradasCantidad} tarjetas Ã— {formatMoney(cierreEventoData.entradasPrecio)}</span>
+                                        <span className="text-sm text-gray-600">{cierreEventoData.entradasCantidad} tarjetas × {formatMoney(cierreEventoData.entradasPrecio)}</span>
                                         <span className="font-black text-gray-900 text-base">{formatMoney(cierreEventoData.entradasTotal)}</span>
                                     </div>
                                 </div>
@@ -5258,9 +5257,9 @@ export default function CajaPage() {
                                 </div>
                             )}
 
-                            {/* Total por mÃ©todo */}
+                            {/* Total por método */}
                             <div className="bg-black rounded-2xl px-4 py-4 text-white">
-                                <p className="text-[10px] font-black text-white/60 uppercase tracking-wider mb-3">Total por mÃ©todo de pago</p>
+                                <p className="text-[10px] font-black text-white/60 uppercase tracking-wider mb-3">Total por método de pago</p>
                                 {[
                                     { label: "Efectivo", Icon: Banknote, val: cierreEventoData.totalEfectivo },
                                     { label: "Transferencia", Icon: Send, val: cierreEventoData.totalTransferencia },
@@ -5346,7 +5345,7 @@ export default function CajaPage() {
                 </div>
             )}
 
-            {/* ”€”€ Modal cobro parcial ”€”€ */}
+            {/* ── Modal cobro parcial ── */}
             {cpModal && (() => {
                 const cpTotal = cpItems.reduce((s, i) => s + i.precio * i.selected, 0);
                 const titulo = cpModal.mesa ? mesaLabel(cpModal.mesa) : cpModal.nombreComanda || "Pedido";
@@ -5375,7 +5374,7 @@ export default function CajaPage() {
                                         </div>
                                         <div className="flex items-center gap-2 shrink-0">
                                             <button onClick={() => setCpCantidad(it.itemId, -1)} disabled={it.selected === 0}
-                                                className="w-7 h-7 rounded-full border-2 border-gray-300 flex items-center justify-center text-gray-700 font-black disabled:opacity-30 hover:border-black transition">ˆ’</button>
+                                                className="w-7 h-7 rounded-full border-2 border-gray-300 flex items-center justify-center text-gray-700 font-black disabled:opacity-30 hover:border-black transition">−</button>
                                             <span className={`w-6 text-center font-black text-sm ${it.selected > 0 ? "text-black" : "text-gray-300"}`}>{it.selected}</span>
                                             <button onClick={() => setCpCantidad(it.itemId, +1)} disabled={it.selected === it.max}
                                                 className="w-7 h-7 rounded-full border-2 border-gray-300 flex items-center justify-center text-gray-700 font-black disabled:opacity-30 hover:border-black transition">+</button>
@@ -5387,9 +5386,9 @@ export default function CajaPage() {
                                 ))}
                             </div>
 
-                            {/* MÃ©todo de pago €” diseÃ±o grande */}
+                            {/* Método de pago — diseño grande */}
                             <div className="border-t border-gray-100 shrink-0">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 px-4 pt-3 mb-2">MÃ©todo de pago</p>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 px-4 pt-3 mb-2">Método de pago</p>
                                 <div className="grid grid-cols-3 border-b border-gray-100">
                                     {(["efectivo", "tarjeta", "transferencia"] as const).map(m => {
                                         const Icon = METODO_ICON[m];
@@ -5412,7 +5411,7 @@ export default function CajaPage() {
                                     <button onClick={ejecutarCobroParcial} disabled={cpSaving || cpTotal === 0}
                                         className="w-full bg-black text-white font-black py-3 rounded-xl text-base transition disabled:opacity-40 flex items-center justify-center gap-2">
                                         {cpSaving ? <Loader2 size={18} className="animate-spin" /> : null}
-                                        {cpSaving ? "Procesando€¦" : `Cobrar ${formatMoney(cpTotal)}`}
+                                        {cpSaving ? "Procesando…" : `Cobrar ${formatMoney(cpTotal)}`}
                                     </button>
                                 </div>
                             </div>
@@ -5423,7 +5422,7 @@ export default function CajaPage() {
             })()}
 
 
-            {/* ”€”€ Modal comensales (caja) ”€”€ */}
+            {/* ── Modal comensales (caja) ── */}
             {comensalesModalCaja && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
                     onClick={() => setComensalesModalCaja(null)}>
@@ -5441,7 +5440,7 @@ export default function CajaPage() {
                                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Cantidad de personas</p>
                                 <div className="flex items-center gap-4 justify-center">
                                     <button onClick={() => setComensalesCountCaja(n => Math.max(0, n - 1))}
-                                        className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-black text-xl transition active:scale-95">ˆ’</button>
+                                        className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-black text-xl transition active:scale-95">−</button>
                                     <span className="text-4xl font-black text-gray-900 w-12 text-center">{comensalesCountCaja}</span>
                                     <button onClick={() => setComensalesCountCaja(n => n + 1)}
                                         className="w-10 h-10 rounded-full bg-gray-900 hover:bg-gray-700 text-white font-black text-xl transition active:scale-95">+</button>
@@ -5468,7 +5467,7 @@ export default function CajaPage() {
                                 <div className="relative">
                                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                                     <input value={busquedaClienteCaja} onChange={e => setBusquedaClienteCaja(e.target.value)}
-                                        placeholder="Nombre, apellido o telÃ©fono..."
+                                        placeholder="Nombre, apellido o teléfono..."
                                         className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
                                     {buscandoClienteCaja && <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 animate-spin" />}
                                 </div>
@@ -5498,15 +5497,15 @@ export default function CajaPage() {
                 </div>
             )}
 
-            {/* ”€”€ Modal transferir mesa ”€”€ */}
-            {/* Modal editar direcciÃ³n */}
+            {/* ── Modal transferir mesa ── */}
+            {/* Modal editar dirección */}
             {editDireccionModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
                     onClick={() => !savingDireccion && setEditDireccionModal(null)}>
                     <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden"
                         onClick={e => e.stopPropagation()}>
                         <div className="bg-black px-4 py-3 flex items-center justify-between">
-                            <p className="font-black text-white text-sm">Editar direcciÃ³n</p>
+                            <p className="font-black text-white text-sm">Editar dirección</p>
                             <button onClick={() => setEditDireccionModal(null)} className="p-1 text-white/60 hover:text-white"><X size={16} /></button>
                         </div>
                         <div className="p-4 space-y-3">
@@ -5515,7 +5514,7 @@ export default function CajaPage() {
                                 value={editDireccionModal.direccion}
                                 onChange={e => setEditDireccionModal(m => m ? { ...m, direccion: e.target.value } : m)}
                                 onKeyDown={e => e.key === "Enter" && guardarDireccion()}
-                                placeholder="DirecciÃ³n de entrega"
+                                placeholder="Dirección de entrega"
                                 className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-black transition"
                             />
                             <div className="flex gap-2">
@@ -5544,18 +5543,18 @@ export default function CajaPage() {
                                 <Truck size={18} className="text-white" />
                                 <div>
                                     <h3 className="font-black text-white text-base leading-tight">Cambiar a domicilio</h3>
-                                    <p className="text-blue-200 text-xs">El pedido pasarÃ¡ a ser un envÃ­o</p>
+                                    <p className="text-blue-200 text-xs">El pedido pasará a ser un envío</p>
                                 </div>
                             </div>
                             <button onClick={() => setCambiarEntregaModal(null)} className="p-1 text-white/60 hover:text-white"><X size={16} /></button>
                         </div>
                         <div className="px-5 py-4 space-y-3">
                             <div>
-                                <label className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-1 block">DirecciÃ³n *</label>
+                                <label className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-1 block">Dirección *</label>
                                 <AddressAutocomplete value={ceDir} onChange={setCeDir} />
                             </div>
                             <div>
-                                <label className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-1 block">TelÃ©fono de contacto</label>
+                                <label className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-1 block">Teléfono de contacto</label>
                                 <input
                                     value={ceTel}
                                     onChange={e => setCeTel(e.target.value)}
@@ -5565,7 +5564,7 @@ export default function CajaPage() {
                                 />
                             </div>
                             <div>
-                                <label className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-1 block">Costo de envÃ­o</label>
+                                <label className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-1 block">Costo de envío</label>
                                 <input
                                     type="number"
                                     value={ceCosto}
@@ -5603,7 +5602,7 @@ export default function CajaPage() {
                                 <p className="font-black text-white text-sm">Transferir mesa</p>
                                 <p className="text-xs text-white/60">
                                     Actual: <span className="text-white font-bold">{cambiarMesaModal.mesa ? mesaLabel(cambiarMesaModal.mesa) : "Sin mesa"}</span>
-                                    {" · "}TocÃ¡ una mesa disponible
+                                    {" · "}Tocá una mesa disponible
                                 </p>
                             </div>
                             <button onClick={() => setCambiarMesaModal(null)} className="text-white/60 hover:text-white transition">
@@ -5684,4 +5683,3 @@ export default function CajaPage() {
         </div>
     );
 }
-
