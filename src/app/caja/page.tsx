@@ -3442,19 +3442,20 @@ export default function CajaPage() {
                                                         {!colapsadoV && (
                                                             <div className="space-y-1.5">
                                                                 {slice.map(v => {
-                                                                    const Icon = METODO_ICON[v.metodoPago] || Banknote;
+                                                                    const pagosV: { metodoPago: string; monto: number }[] = v.pagos?.filter(pg => pg.monto > 0) ?? [];
+                                                                    const metodoLabel = pagosV.length > 1
+                                                                        ? pagosV.map(pg => METODO_LABEL[pg.metodoPago] || pg.metodoPago).join(" + ")
+                                                                        : METODO_LABEL[v.metodoPago] || v.metodoPago;
+                                                                    const IconV = METODO_ICON[v.metodoPago] || Banknote;
                                                                     const isExp = expanded.has(v._id);
-                                                                    const pagosV: { metodoPago: string; monto: number }[] = (v as any).pagos ?? [];
                                                                     return (
                                                                         <div key={v._id} className="rounded-xl border border-gray-200 overflow-hidden">
                                                                             {/* Fila header — siempre visible */}
                                                                             <div className="flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-gray-50 transition"
                                                                                 onClick={() => toggleV(v._id)}>
-                                                                                <Icon size={13} className="text-gray-400 shrink-0" />
+                                                                                <IconV size={13} className="text-gray-400 shrink-0" />
                                                                                 <span className="text-xs font-bold text-gray-700 flex-1 truncate">
-                                                                                    {pagosV.length > 1
-                                                                                        ? pagosV.map(pg => METODO_LABEL[pg.metodoPago] || pg.metodoPago).join(" + ")
-                                                                                        : METODO_LABEL[v.metodoPago]}
+                                                                                    {metodoLabel}
                                                                                     <span className="text-gray-400 font-normal ml-1">
                                                                                         · {new Date(v.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
                                                                                     </span>
