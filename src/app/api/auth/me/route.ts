@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
     if (!u) return NextResponse.json({ user: null });
 
     const isOwner = u._id.toString() === OWNER_USER_ID;
-    const effectiveRole = isOwner ? "superadmin" : u.role;
+    const effectiveRole = isOwner ? "cliente" : u.role;
 
     // Armamos el user serializable
     const safeUser = {
@@ -52,10 +52,10 @@ export async function GET(req: NextRequest) {
 
     const isProd = process.env.NODE_ENV === "production";
 
-    // El owner siempre recibe un JWT con role superadmin actualizado
+    // El owner siempre recibe un JWT con role cliente actualizado (fuerza renovación inmediata)
     if (isOwner) {
       const fresh = jwt.sign(
-        { sub: u._id.toString(), role: "superadmin" },
+        { sub: u._id.toString(), role: "cliente" },
         NEXTAUTH_SECRET,
         { expiresIn: "365d" }
       );
@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
         maxAge: 60 * 60 * 24 * 365,
       });
     } else {
-      // 🔁 Sliding session: si faltan < 30 días, renovamos por 1 año
+      // Sliding session: si faltan < 30 días, renovamos por 1 año
       const now = Math.floor(Date.now() / 1000);
       const exp = typeof (payload as any).exp === "number" ? (payload as any).exp : 0;
       const timeLeft = exp - now;

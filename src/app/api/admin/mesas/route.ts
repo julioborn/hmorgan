@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { Mesa } from "@/models/Mesa";
 import jwt from "jsonwebtoken";
-import { OWNER_USER_ID } from "@/lib/owner";
 
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET!;
 
@@ -17,7 +16,7 @@ function getPayload(req: NextRequest) {
 }
 
 function isAdmin(payload: any) {
-    return payload.role === "admin" || payload.role === "superadmin" || payload.sub === OWNER_USER_ID;
+    return payload.role === "admin" || payload.role === "superadmin";
 }
 
 // GET — autenticado puede listar mesas; admin puede ver todas con ?all=true

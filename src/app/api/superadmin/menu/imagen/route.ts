@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { put } from "@vercel/blob";
-import { OWNER_USER_ID } from "@/lib/owner";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +11,7 @@ async function authorize(req: NextRequest) {
     if (!token) return false;
     try {
         const p = jwt.verify(token, SECRET) as any;
-        return ["admin", "superadmin", "cajero"].includes(p.role) || p.sub === OWNER_USER_ID;
+        return ["admin", "superadmin", "cajero"].includes(p.role);
     } catch { return false; }
 }
 

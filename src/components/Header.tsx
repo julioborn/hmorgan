@@ -32,7 +32,6 @@ import {
   Truck,
 } from "lucide-react";
 import NotifBell from "@/components/NotifBell";
-import { OWNER_USER_ID } from "@/lib/owner";
 
 export default function Header() {
   const { user, loading, logout } = useAuth();
@@ -105,7 +104,6 @@ export default function Header() {
   ];
 
   const links =
-    user?.id === OWNER_USER_ID   ? linksCliente :
     user?.role === "superadmin"  ? linksSuper :
     user?.role === "admin"       ? linksAdmin :
     user?.role === "cajero"      ? linksCajero :
@@ -150,7 +148,7 @@ export default function Header() {
 
         {/* DERECHA — campanita */}
         <div className="flex-1 flex justify-end items-center gap-1 pr-1">
-          {user && (user.role === "admin" || user.role === "cliente" || user.id === OWNER_USER_ID) && (
+          {user && (user.role === "admin" || user.role === "cliente") && (
             <NotifBell />
           )}
         </div>
@@ -207,21 +205,6 @@ export default function Header() {
                     );
                   })}
 
-                  {user?.id === OWNER_USER_ID && (
-                    <>
-                      <div className="mt-3 border-t border-white/10 pt-3">
-                        <Link
-                          href="/admin"
-                          onClick={() => setOpen(false)}
-                          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-lg transition
-                            ${pathname.startsWith("/admin") ? "bg-red-600 text-white" : "text-white hover:bg-red-600/20"}`}
-                        >
-                          <Settings size={20} />
-                          Administración
-                        </Link>
-                      </div>
-                    </>
-                  )}
                 </nav>
 
                 {/* Cerrar sesión */}

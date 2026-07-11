@@ -3,7 +3,6 @@ import { connectMongoDB } from "@/lib/mongodb";
 import { CajaSession } from "@/models/CajaSession";
 import { CajaMovement } from "@/models/CajaMovement";
 import jwt from "jsonwebtoken";
-import { OWNER_USER_ID } from "@/lib/owner";
 
 const SECRET = process.env.NEXTAUTH_SECRET!;
 
@@ -14,7 +13,7 @@ export async function GET(req: NextRequest) {
     if (!token) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     try {
         const p = jwt.verify(token, SECRET) as any;
-        if (!["superadmin", "admin", "cajero"].includes(p.role) && p.sub !== OWNER_USER_ID)
+        if (!["superadmin", "admin", "cajero"].includes(p.role))
             return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     } catch { return NextResponse.json({ error: "No autorizado" }, { status: 401 }); }
 

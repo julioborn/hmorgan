@@ -3,7 +3,6 @@ import { connectMongoDB } from "@/lib/mongodb";
 import { Pedido } from "@/models/Pedido";
 import Mensaje from "@/models/Mensaje";
 import jwt from "jsonwebtoken";
-import { OWNER_USER_ID } from "@/lib/owner";
 
 const TRES_DIAS_MS = 3 * 24 * 60 * 60 * 1000;
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET!;
@@ -13,7 +12,7 @@ export async function POST(req: NextRequest) {
     if (!token) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
     const payload = jwt.verify(token, NEXTAUTH_SECRET) as any;
-    if (payload.role !== "admin" && payload.sub !== OWNER_USER_ID) return NextResponse.json({ error: "Solo admin" }, { status: 403 });
+    if (payload.role !== "admin") return NextResponse.json({ error: "Solo admin" }, { status: 403 });
 
     await connectMongoDB();
 

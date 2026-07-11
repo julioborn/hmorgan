@@ -10,7 +10,6 @@ import { getPointsRatio } from "@/lib/getPointsRatio";
 import { sendPushAndCollectInvalid } from "@/lib/push-server";
 import { enviarNotificacionFCM, isFCMTokenInvalid } from "@/lib/firebase-admin";
 import jwt from "jsonwebtoken";
-import { OWNER_USER_ID } from "@/lib/owner";
 
 const SECRET = process.env.NEXTAUTH_SECRET!;
 
@@ -22,7 +21,7 @@ export async function POST(req: NextRequest) {
     try { payload = jwt.verify(token, SECRET) as any; } catch {
         return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
-    if (!["superadmin", "admin", "cajero"].includes(payload.role) && payload.sub !== OWNER_USER_ID) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    if (!["superadmin", "admin", "cajero"].includes(payload.role)) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
     try {
     await connectMongoDB();

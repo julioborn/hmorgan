@@ -8,7 +8,6 @@ import "@/models/Pedido";
 import "@/models/Evento";
 import "@/models/User";
 import jwt from "jsonwebtoken";
-import { OWNER_USER_ID } from "@/lib/owner";
 
 const SECRET = process.env.NEXTAUTH_SECRET!;
 
@@ -17,7 +16,7 @@ function authStaff(req: NextRequest) {
     if (!token) return null;
     try {
         const p = jwt.verify(token, SECRET) as any;
-        if (!["superadmin", "admin", "cajero"].includes(p.role) && p.sub !== OWNER_USER_ID) return null;
+        if (!["superadmin", "admin", "cajero"].includes(p.role)) return null;
         return p;
     } catch { return null; }
 }
@@ -107,7 +106,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     try { payload = jwt.verify(token, SECRET) as any; } catch {
         return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
-    if (!["superadmin", "admin"].includes(payload.role) && payload.sub !== OWNER_USER_ID)
+    if (!["superadmin", "admin"].includes(payload.role))
         return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
     await connectMongoDB();

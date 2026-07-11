@@ -2,7 +2,6 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
-import { OWNER_USER_ID } from "@/lib/owner";
 import { AdminHome } from "@/components/AdminHomePanel";
 import Loader from "@/components/Loader";
 
@@ -11,7 +10,7 @@ export default function AdminPanelPage() {
     const router = useRouter();
 
     useEffect(() => {
-        if (!loading && user?.role !== "admin" && user?.id !== OWNER_USER_ID) {
+        if (!loading && user?.role !== "admin") {
             router.replace("/");
         }
     }, [user, loading, router]);
@@ -24,7 +23,7 @@ export default function AdminPanelPage() {
         );
     }
 
-    if (!user || (user.role !== "admin" && user.id !== OWNER_USER_ID)) return null;
+    if (!user || user.role !== "admin") return null;
 
     return <AdminHome />;
 }

@@ -4,7 +4,6 @@ import { Pedido } from "@/models/Pedido";
 import { User } from "@/models/User";
 import { Canje } from "@/models/Canje";
 import jwt from "jsonwebtoken";
-import { OWNER_USER_ID } from "@/lib/owner";
 
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET!;
 
@@ -25,7 +24,7 @@ export async function GET(req: NextRequest) {
         if (!token) return NextResponse.json({ message: "No autorizado" }, { status: 401 });
 
         const payload = jwt.verify(token, NEXTAUTH_SECRET) as any;
-        if (payload.role !== "admin" && payload.sub !== OWNER_USER_ID) return NextResponse.json({ message: "Acceso denegado" }, { status: 403 });
+        if (payload.role !== "admin") return NextResponse.json({ message: "Acceso denegado" }, { status: 403 });
 
         await connectMongoDB();
 

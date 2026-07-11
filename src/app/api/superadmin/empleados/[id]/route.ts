@@ -3,7 +3,6 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { connectMongoDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
-import { OWNER_USER_ID } from "@/lib/owner";
 
 const SECRET = process.env.NEXTAUTH_SECRET!;
 
@@ -12,7 +11,7 @@ async function authorize(req: NextRequest) {
     if (!token) return null;
     try {
         const decoded = jwt.verify(token, SECRET) as any;
-        if (!["superadmin", "admin"].includes(decoded.role) && decoded.sub !== OWNER_USER_ID) return null;
+        if (!["superadmin", "admin"].includes(decoded.role)) return null;
         return decoded;
     } catch { return null; }
 }
