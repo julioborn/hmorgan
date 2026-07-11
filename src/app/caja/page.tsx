@@ -317,6 +317,10 @@ export default function CajaPage() {
     const [tarjetasSaving, setTarjetasSaving] = useState(false);
     const [editTarjetaId, setEditTarjetaId] = useState<string | null>(null);
     const [editTarjetaMetodo, setEditTarjetaMetodo] = useState<"efectivo" | "transferencia" | "tarjeta">("efectivo");
+    const [seccionesColapsadas, setSeccionesColapsadas] = useState<Set<string>>(new Set());
+    const toggleSeccion = (key: string) => setSeccionesColapsadas(prev => {
+        const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s;
+    });
     const [cierreEventoData, setCierreEventoData] = useState<CierreResumen | null>(null);
     const [cierreEventoSaving, setCierreEventoSaving] = useState(false);
     const [ventaModal, setVentaModal] = useState(false);
@@ -3229,7 +3233,6 @@ export default function CajaPage() {
                                             {totalTarjetas > 0 && (() => {
                                                 const tarjetasArr = (ev as any).tarjetas ?? [];
                                                 const METODO_NOMBRE: Record<string, string> = { efectivo: "Efectivo", transferencia: "Transferencia", tarjeta: "Tarjeta" };
-                                                // Agrupar totales por método
                                                 const grupos: Record<string, { total: number; registros: any[] }> = {};
                                                 for (const t of tarjetasArr) {
                                                     const m = t.metodoPago || "efectivo";
@@ -3237,12 +3240,18 @@ export default function CajaPage() {
                                                     grupos[m].total += t.cantidad;
                                                     grupos[m].registros.push(t);
                                                 }
+                                                const colKey = `${ev._id}:entradas`;
+                                                const colapsado = seccionesColapsadas.has(colKey);
                                                 return (
                                                     <div>
-                                                        <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">
-                                                            Entradas · {totalTarjetas} total
-                                                        </p>
-                                                        <div className="space-y-1.5">
+                                                        <button onClick={() => toggleSeccion(colKey)}
+                                                            className="flex items-center gap-2 w-full mb-2 group">
+                                                            <p className="text-xs font-black text-gray-400 uppercase tracking-wider flex-1 text-left">
+                                                                Entradas · {totalTarjetas} total
+                                                            </p>
+                                                            <ChevronDown size={13} className={`text-gray-400 transition-transform ${colapsado ? "-rotate-90" : ""}`} />
+                                                        </button>
+                                                        {!colapsado && <div className="space-y-1.5">
                                                             {Object.entries(grupos).map(([metodo, g]) => {
                                                                 const Icon = METODO_ICON[metodo] || Banknote;
                                                                 return (
@@ -3333,7 +3342,7 @@ export default function CajaPage() {
                                                                     </div>
                                                                 );
                                                             })}
-                                                        </div>
+                                                        </div>}
                                                     </div>
                                                 );
                                             })()}
@@ -3365,25 +3374,39 @@ export default function CajaPage() {
                                             )}
 
                                             {/* ── Comandas ── */}
-                                            {pedidosEv.length > 0 && (
-                                                <div>
-                                                    <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">Comandas vinculadas</p>
-                                                    <div className="space-y-1.5">
-                                                        {pedidosEv.map(p => (
-                                                            <div key={p._id} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-200">
-                                                                <div>
-                                                                    <span className="font-bold text-gray-900 text-sm">{p.mesa ? mesaLabel(p.mesa) : p.nombreComanda || "Comanda"}</span>
-                                                                    {p.userId && <span className="text-xs text-gray-400 ml-2">· {p.userId.nombre}</span>}
-                                                                </div>
-                                                                <span className="font-black text-gray-900 text-base">{formatMoney(p.total)}</span>
+                                            {pedidosEv.length > 0 && (() => {
+                                                const colKey = `${ev._id}:comandas`;
+                                                const colapsado = seccionesColapsadas.has(colKey);
+                                                return (
+                                                    <div>
+                                                        <button onClick={() => toggleSeccion(colKey)}
+                                                            className="flex items-center gap-2 w-full mb-2 group">
+                                                            <p className="text-xs font-black text-gray-400 uppercase tracking-wider flex-1 text-left">
+                                                                Comandas vinculadas · {pedidosEv.length}
+                                                            </p>
+                                                            <ChevronDown size={13} className={`text-gray-400 transition-transform ${colapsado ? "-rotate-90" : ""}`} />
+                                                        </button>
+                                                        {!colapsado && (
+                                                            <div className="space-y-1.5">
+                                                                {pedidosEv.map(p => (
+                                                                    <div key={p._id} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-200">
+                                                                        <div>
+                                                                            <span className="font-bold text-gray-900 text-sm">{p.mesa ? mesaLabel(p.mesa) : p.nombreComanda || "Comanda"}</span>
+                                                                            {p.userId && <span className="text-xs text-gray-400 ml-2">· {p.userId.nombre}</span>}
+                                                                        </div>
+                                                                        <span className="font-black text-gray-900 text-base">{formatMoney(p.total)}</span>
+                                                                    </div>
+                                                                ))}
                                                             </div>
-                                                        ))}
+                                                        )}
                                                     </div>
-                                                </div>
-                                            )}
+                                                );
+                                            })()}
 
                                             {/* ── Ventas directas ── */}
                                             {ev.ventas.length > 0 && (() => {
+                                                const colKeyV = `${ev._id}:ventas`;
+                                                const colapsadoV = seccionesColapsadas.has(colKeyV);
                                                 const ventasRev = [...ev.ventas].reverse();
                                                 const pagina = ventasPagina[ev._id] ?? 0;
                                                 const totalPags = Math.ceil(ventasRev.length / VENTAS_PAGE);
@@ -3397,10 +3420,14 @@ export default function CajaPage() {
                                                 return (
                                                     <div>
                                                         <div className="flex items-center justify-between mb-2">
-                                                            <p className="text-xs font-black text-gray-500 uppercase tracking-wider">
-                                                                Ventas directas · {ev.ventas.length}
-                                                            </p>
-                                                            {totalPags > 1 && (
+                                                            <button onClick={() => toggleSeccion(colKeyV)}
+                                                                className="flex items-center gap-2 flex-1 group">
+                                                                <p className="text-xs font-black text-gray-500 uppercase tracking-wider">
+                                                                    Ventas directas · {ev.ventas.length}
+                                                                </p>
+                                                                <ChevronDown size={13} className={`text-gray-400 transition-transform ${colapsadoV ? "-rotate-90" : ""}`} />
+                                                            </button>
+                                                            {!colapsadoV && totalPags > 1 && (
                                                                 <div className="flex items-center gap-1">
                                                                     <button disabled={pagina === 0}
                                                                         onClick={() => setVentasPagina(p => ({ ...p, [ev._id]: pagina - 1 }))}
@@ -3412,49 +3439,70 @@ export default function CajaPage() {
                                                                 </div>
                                                             )}
                                                         </div>
-                                                        <div className="space-y-1.5">
-                                                            {slice.map(v => {
-                                                                const Icon = METODO_ICON[v.metodoPago] || Banknote;
-                                                                const isExp = expanded.has(v._id);
-                                                                return (
-                                                                    <div key={v._id} className="rounded-xl border border-gray-200 overflow-hidden">
-                                                                        {/* Fila header — siempre visible */}
-                                                                        <div className="flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-gray-50 transition"
-                                                                            onClick={() => toggleV(v._id)}>
-                                                                            <Icon size={13} className="text-gray-400 shrink-0" />
-                                                                            <span className="text-xs font-bold text-gray-700 flex-1 truncate">
-                                                                                {METODO_LABEL[v.metodoPago]}
-                                                                                <span className="text-gray-400 font-normal ml-1">
-                                                                                    · {new Date(v.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                                                        {!colapsadoV && (
+                                                            <div className="space-y-1.5">
+                                                                {slice.map(v => {
+                                                                    const Icon = METODO_ICON[v.metodoPago] || Banknote;
+                                                                    const isExp = expanded.has(v._id);
+                                                                    const pagosV: { metodoPago: string; monto: number }[] = (v as any).pagos ?? [];
+                                                                    return (
+                                                                        <div key={v._id} className="rounded-xl border border-gray-200 overflow-hidden">
+                                                                            {/* Fila header — siempre visible */}
+                                                                            <div className="flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-gray-50 transition"
+                                                                                onClick={() => toggleV(v._id)}>
+                                                                                <Icon size={13} className="text-gray-400 shrink-0" />
+                                                                                <span className="text-xs font-bold text-gray-700 flex-1 truncate">
+                                                                                    {pagosV.length > 1
+                                                                                        ? pagosV.map(pg => METODO_LABEL[pg.metodoPago] || pg.metodoPago).join(" + ")
+                                                                                        : METODO_LABEL[v.metodoPago]}
+                                                                                    <span className="text-gray-400 font-normal ml-1">
+                                                                                        · {new Date(v.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                                                                                    </span>
                                                                                 </span>
-                                                                            </span>
-                                                                            <span className="font-black text-gray-900 text-sm shrink-0">{formatMoney(v.total)}</span>
-                                                                            <button onClick={e => { e.stopPropagation(); reimprimirVentaEvento(ev, v); }}
-                                                                                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-black transition shrink-0">
-                                                                                <Printer size={13} />
-                                                                            </button>
-                                                                            <button onClick={e => { e.stopPropagation(); eliminarVenta(ev._id, v._id); }}
-                                                                                className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition shrink-0">
-                                                                                <Trash2 size={13} />
-                                                                            </button>
-                                                                            <ChevronDown size={13} className={`text-gray-400 shrink-0 transition-transform ${isExp ? "rotate-180" : ""}`} />
-                                                                        </div>
-                                                                        {/* Detalle de ítems — colapsable */}
-                                                                        {isExp && (
-                                                                            <div className="border-t border-gray-100 px-3 py-2 bg-gray-50 space-y-1">
-                                                                                {v.items.map((it, i) => (
-                                                                                    <div key={i} className="flex justify-between text-xs text-gray-600">
-                                                                                        <span>{it.cantidad}× {it.nombre}</span>
-                                                                                        <span className="font-semibold">{formatMoney(it.precio * it.cantidad)}</span>
-                                                                                    </div>
-                                                                                ))}
-                                                                                {v.nota && <p className="text-[10px] text-amber-600 italic pt-1">{v.nota}</p>}
+                                                                                <span className="font-black text-gray-900 text-sm shrink-0">{formatMoney(v.total)}</span>
+                                                                                <button onClick={e => { e.stopPropagation(); reimprimirVentaEvento(ev, v); }}
+                                                                                    className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-black transition shrink-0">
+                                                                                    <Printer size={13} />
+                                                                                </button>
+                                                                                <button onClick={e => { e.stopPropagation(); eliminarVenta(ev._id, v._id); }}
+                                                                                    className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition shrink-0">
+                                                                                    <Trash2 size={13} />
+                                                                                </button>
+                                                                                <ChevronDown size={13} className={`text-gray-400 shrink-0 transition-transform ${isExp ? "rotate-180" : ""}`} />
                                                                             </div>
-                                                                        )}
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
+                                                                            {/* Detalle de ítems y pagos — colapsable */}
+                                                                            {isExp && (
+                                                                                <div className="border-t border-gray-100 px-3 py-2 bg-gray-50 space-y-1">
+                                                                                    {v.items.map((it, i) => (
+                                                                                        <div key={i} className="flex justify-between text-xs text-gray-600">
+                                                                                            <span>{it.cantidad}× {it.nombre}</span>
+                                                                                            <span className="font-semibold">{formatMoney(it.precio * it.cantidad)}</span>
+                                                                                        </div>
+                                                                                    ))}
+                                                                                    {v.nota && <p className="text-[10px] text-amber-600 italic pt-1">{v.nota}</p>}
+                                                                                    {pagosV.length > 1 && (
+                                                                                        <div className="pt-1.5 mt-1 border-t border-gray-200 space-y-0.5">
+                                                                                            {pagosV.map((pg, i) => {
+                                                                                                const PIcon = METODO_ICON[pg.metodoPago] || Banknote;
+                                                                                                return (
+                                                                                                    <div key={i} className="flex items-center justify-between text-xs text-gray-500">
+                                                                                                        <span className="flex items-center gap-1">
+                                                                                                            <PIcon size={10} />
+                                                                                                            {METODO_LABEL[pg.metodoPago] || pg.metodoPago}
+                                                                                                        </span>
+                                                                                                        <span className="font-semibold">{formatMoney(pg.monto)}</span>
+                                                                                                    </div>
+                                                                                                );
+                                                                                            })}
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 );
                                             })()}
