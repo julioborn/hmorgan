@@ -6,6 +6,7 @@ import { Mesa } from "@/models/Mesa";
 import jwt from "jsonwebtoken";
 import { sendPushAndCollectInvalid } from "@/lib/push-server";
 import { enviarNotificacionFCM, isFCMTokenInvalid } from "@/lib/firebase-admin";
+import { OWNER_USER_ID } from "@/lib/owner";
 
 const SECRET = process.env.NEXTAUTH_SECRET!;
 const STAFF = ["cajero", "empleado", "admin", "superadmin"];
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest) {
     if (!p) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     await connectMongoDB();
 
-    if (STAFF.includes(p.role)) {
+    if (STAFF.includes(p.role) && p.sub !== OWNER_USER_ID) {
         const sesiones = await AutoservicioSesion.find({ estado: "activa" })
             .populate("usuariosIds", "nombre apellido username")
             .populate("creadoPor", "nombre apellido")
