@@ -225,6 +225,7 @@ export default function CajaPage() {
     const [filtroFuente, setFiltroFuente] = useState<"todos" | "bar" | "delivery" | "eventos" | "timbre">("todos");
     const hoyStr = new Date().toISOString().slice(0, 10);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
+    const [cooldownIds, setCooldownIds] = useState<Set<string>>(new Set());
     const [openForm, setOpenForm] = useState({ montoInicial: "", notas: "" });
     const [openSaving, setOpenSaving] = useState(false);
     const [cobrarModal, setCobrarModal] = useState<{ open: boolean; pedido: Pedido | null }>({ open: false, pedido: null });
@@ -1223,6 +1224,9 @@ export default function CajaPage() {
     }
 
     async function avanzarEstado(p: Pedido, estado: string) {
+        if (cooldownIds.has(p._id)) return;
+        setCooldownIds(prev => new Set([...prev, p._id]));
+        setTimeout(() => setCooldownIds(prev => { const s = new Set(prev); s.delete(p._id); return s; }), 4000);
         setUpdatingId(p._id);
         try {
             const res = await fetch("/api/pedidos", {
@@ -1233,8 +1237,6 @@ export default function CajaPage() {
                 if (estado === "entregado") {
                     // Al finalizar, ir directo a Cobrar
                     setTab("caja");
-                } else {
-                    setVista(VISTA_MAP[estado] || "pendientes");
                 }
                 await loadData();
             }
@@ -2490,7 +2492,7 @@ export default function CajaPage() {
                                         const estadoIdx = getEstadoIdx(p.estado);
                                         const color = ESTADOS[estadoIdx]?.color || "gray";
                                         const fechaHora = p.createdAt ? format(new Date(p.createdAt), "dd/MM HH:mm", { locale: es }) : "";
-                                        const isUpdating = updatingId === p._id;
+                                        const isUpdating = updatingId === p._id || cooldownIds.has(p._id);
 
                                         const estadosMozo = ESTADOS.filter(e => e.key !== "entregado" && e.key !== "cerrado");
                                         const estadosCliente = ESTADOS.filter(e => e.key !== "cerrado");
