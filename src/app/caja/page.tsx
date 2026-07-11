@@ -12,7 +12,7 @@ import {
     Wallet, X, Printer, CreditCard, Banknote, Send,
     Loader2, CheckCircle, AlertCircle, Clock, Flame,
     Package, Truck, UtensilsCrossed, CalendarDays,
-    MessageCircle, Plus, Pencil, Trash2, MapPin, Users, User, Star, Gift, XCircle, ArrowDownLeft, ArrowLeftRight, Ticket, ChevronDown, Camera, Search, Tablet, LayoutGrid, List, UserPlus,
+    MessageCircle, Plus, Pencil, Trash2, MapPin, Users, User, Star, Gift, XCircle, ArrowDownLeft, ArrowLeftRight, Ticket, ChevronDown, ChevronLeft, Camera, Search, Tablet, LayoutGrid, List, UserPlus,
 } from "lucide-react";
 import { useCategoryConfigs } from "@/hooks/useCategoryConfigs";
 import ReservasManager from "@/components/ReservasManager";
@@ -133,8 +133,8 @@ type CajaSession = { _id: string; estado: "abierta" | "cerrada"; montoInicial: n
 type Egreso = { _id: string; concepto: string; monto: number; metodoPago: string; createdAt: string };
 type MesaPlano = { _id: string; nombre: string; activa: boolean; x: number; y: number; forma: string; ancho?: number; alto?: number; rotacion?: number; tipo?: string };
 type SalonElPlano = { _id: string; tipo: string; label: string; x: number; y: number; ancho: number; alto: number; color: string };
-type VentaEvento = { _id: string; items: { nombre: string; precio: number; categoria: string; cantidad: number }[]; total: number; metodoPago: string; createdAt: string; nota?: string };
-type Evento = { _id: string; nombre: string; estado: "activo" | "cerrado"; ventas: VentaEvento[]; mesas: string[]; createdAt: string };
+type VentaEvento = { _id: string; items: { nombre: string; precio: number; categoria: string; cantidad: number }[]; total: number; metodoPago: string; pagos?: { metodoPago: string; monto: number }[]; createdAt: string; nota?: string };
+type Evento = { _id: string; nombre: string; estado: "activo" | "cerrado"; soloBebidas?: boolean; ventas: VentaEvento[]; mesas: string[]; createdAt: string };
 type CartItem = { menuItemId: string; nombre: string; precio: number; categoria: string; cantidad: number };
 type Comensal = { _id: string; nombre: string; apellido: string; username: string };
 type CanjePendiente = {
@@ -296,6 +296,7 @@ export default function CajaPage() {
     const [nuevoEventoNombre, setNuevoEventoNombre] = useState("");
     const [nuevoEventoPrecio, setNuevoEventoPrecio] = useState("");
     const [nuevoEventoMesas, setNuevoEventoMesas] = useState<string[]>([]);
+    const [nuevoEventoSoloBebidas, setNuevoEventoSoloBebidas] = useState(false);
     const [crearEventoSaving, setCrearEventoSaving] = useState(false);
     const [editPrecioEventoId, setEditPrecioEventoId] = useState<string | null>(null);
     const [editPrecioValue, setEditPrecioValue] = useState("");
@@ -317,7 +318,7 @@ export default function CajaPage() {
     const [cierreEventoSaving, setCierreEventoSaving] = useState(false);
     const [ventaModal, setVentaModal] = useState(false);
     const [ventaCart, setVentaCart] = useState<CartItem[]>([]);
-    const [ventaMetodo, setVentaMetodo] = useState<typeof METODOS[number]>("efectivo");
+    const [ventaPagos, setVentaPagos] = useState<{ id: string; metodoPago: typeof METODOS[number]; monto: number }[]>([]);
     const [ventaSearch, setVentaSearch] = useState("");
     const [ventaSaving, setVentaSaving] = useState(false);
     const [ventaComensalesSearch, setVentaComensalesSearch] = useState("");
@@ -1656,12 +1657,17 @@ export default function CajaPage() {
                     nombre: nuevoEventoNombre.trim(),
                     mesas: nuevoEventoMesas,
                     precioTarjeta: Number(nuevoEventoPrecio) || 0,
+                    soloBebidas: nuevoEventoSoloBebidas,
                 }),
             });
             if (res.ok) {
                 const data = await res.json();
                 setEventosActivos(prev => [data, ...prev]);
                 setCrearEventoModal(false);
+                setNuevoEventoSoloBebidas(false);
+                setNuevoEventoNombre("");
+                setNuevoEventoPrecio("");
+                setNuevoEventoMesas([]);
             }
         } finally { setCrearEventoSaving(false); }
     }
@@ -1878,14 +1884,17 @@ export default function CajaPage() {
         </body></html>`;
     }
 
-    async function printVentaEvento(evento: Evento, cart: CartItem[], metodoPago: string) {
+    async function printVentaEvento(evento: Evento, cart: CartItem[], pagos: { metodoPago: string; monto: number }[]) {
         const bebidas = cart.filter(it => BEBIDAS_CATS.includes(it.categoria));
         const comida = cart.filter(it => !BEBIDAS_CATS.includes(it.categoria));
         if (bebidas.length === 0 && comida.length === 0) return;
 
         const hora = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
         const total = cart.reduce((acc, it) => acc + it.precio * it.cantidad, 0);
-        const cliente = `${METODO_LABEL[metodoPago]} · ${formatMoney(total)}`;
+        const pagoLabel = pagos.length === 1
+            ? `${METODO_LABEL[pagos[0].metodoPago]} · ${formatMoney(total)}`
+            : pagos.map(p => `${METODO_LABEL[p.metodoPago]} ${formatMoney(p.monto)}`).join(" + ");
+        const cliente = pagoLabel;
         const titulo = evento.nombre.toUpperCase();
 
         try {
@@ -1925,7 +1934,7 @@ export default function CajaPage() {
         }
         setVentaEventoId(eventoId);
         setVentaCart([]);
-        setVentaMetodo("efectivo");
+        setVentaPagos([]);
         setVentaSearch("");
         setVentaMenuCat(null);
         setVentaComensales([]);
@@ -1951,32 +1960,34 @@ export default function CajaPage() {
         const cart: CartItem[] = v.items.map(it => ({
             menuItemId: "", nombre: it.nombre, precio: it.precio, categoria: it.categoria, cantidad: it.cantidad,
         }));
-        printVentaEvento(ev, cart, v.metodoPago);
+        const pagos = v.pagos?.length ? v.pagos : [{ metodoPago: v.metodoPago, monto: v.total }];
+        printVentaEvento(ev, cart, pagos);
     }
 
     async function registrarVenta() {
         const eventoActivo = eventosActivos.find(e => e._id === ventaEventoId);
-        if (!eventoActivo || ventaCart.length === 0) return;
+        if (!eventoActivo || ventaCart.length === 0 || ventaPagos.length === 0) return;
         setVentaSaving(true);
         try {
             const items = ventaCart.map(it => ({
                 menuItemId: it.menuItemId, nombre: it.nombre,
                 precio: it.precio, categoria: it.categoria, cantidad: it.cantidad,
             }));
+            const pagosPayload = ventaPagos.map(p => ({ metodoPago: p.metodoPago, monto: p.monto }));
             const res = await fetch(`/api/eventos/${eventoActivo._id}`, {
                 method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
                 body: JSON.stringify({
-                    accion: "agregarVenta", items, metodoPago: ventaMetodo,
+                    accion: "agregarVenta", items, pagos: pagosPayload,
                     comensalesIds: ventaComensales.length > 0 ? ventaComensales.map(c => c._id) : undefined,
                 }),
             });
             if (res.ok) {
                 const data = await res.json();
                 setEventosActivos(prev => prev.map(e => e._id === data.evento._id ? data.evento : e));
-                await printVentaEvento(data.evento, ventaCart, ventaMetodo);
+                await printVentaEvento(data.evento, ventaCart, pagosPayload);
                 setVentaModal(false);
                 setVentaCart([]);
-                setVentaMetodo("efectivo");
+                setVentaPagos([]);
                 setVentaSearch("");
                 setVentaMenuCat(null);
             }
@@ -4492,6 +4503,16 @@ export default function CajaPage() {
                                         className="w-full px-4 py-3 border border-black rounded-xl text-base font-semibold focus:outline-none focus:ring-2 focus:ring-black" />
                                 </div>
                             </div>
+                            <div className="flex items-center justify-between px-1 py-2 rounded-xl border border-gray-100 bg-gray-50">
+                                <div>
+                                    <p className="text-sm font-semibold text-gray-800">Solo bebidas</p>
+                                    <p className="text-xs text-gray-400 mt-0.5">Las ventas solo mostrarán bebidas</p>
+                                </div>
+                                <button type="button" onClick={() => setNuevoEventoSoloBebidas(v => !v)}
+                                    className={`relative w-12 h-6 rounded-full transition-colors shrink-0 ${nuevoEventoSoloBebidas ? "bg-black" : "bg-gray-300"}`}>
+                                    <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${nuevoEventoSoloBebidas ? "translate-x-7" : "translate-x-1"}`} />
+                                </button>
+                            </div>
                             <div>
                                 <div className="flex items-center justify-between mb-2">
                                     <label className="text-xs font-semibold text-gray-500 uppercase">Mesas del evento</label>
@@ -4615,222 +4636,284 @@ export default function CajaPage() {
             })()}
 
             {/* Modal registrar venta en evento */}
-            {ventaModal && eventosActivos.find(e => e._id === ventaEventoId) && (
-                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl flex flex-col" style={{ maxHeight: "92vh" }}>
-                        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
-                            <div className="flex-1 min-w-0">
-                                <h2 className="font-black text-gray-900">Registrar venta</h2>
-                                <p className="text-xs text-gray-700 truncate">{eventosActivos.find(e => e._id === ventaEventoId)?.nombre}</p>
-                            </div>
-                            <button onClick={() => { setVentaModal(false); setVentaMenuCat(null); setVentaSearch(""); }} className="p-1 text-gray-700"><X size={18} /></button>
-                        </div>
+            {ventaModal && (() => {
+                const eventoActual = eventosActivos.find(e => e._id === ventaEventoId);
+                if (!eventoActual) return null;
+                const soloBebidas = eventoActual.soloBebidas ?? false;
 
-                        {/* Selector de producto con categorías */}
-                        {(() => {
-                            const allCatsV = Array.from(new Set(menuItemsAll.map(m => {
-                                if (BEBIDAS_CATS.includes(m.categoria)) return "BEBIDAS";
-                                if (PICAR_CATS.includes(m.categoria)) return "PICADAS Y FRITURAS";
-                                return m.categoria;
-                            }))).sort((a, b) => {
-                                const ai = MENU_ORDER.indexOf(a), bi = MENU_ORDER.indexOf(b);
-                                return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
-                            });
-                            const subCatsV = BEBIDAS_CATS.filter(bc => menuItemsAll.some(m => m.categoria === bc));
-                            const itemsForCatV = ventaMenuCat && ventaMenuCat !== "BEBIDAS"
-                                ? menuItemsAll.filter(m => ventaMenuCat === "PICADAS Y FRITURAS" ? PICAR_CATS.includes(m.categoria) : m.categoria === ventaMenuCat)
-                                : [];
-                            const ventaSearchActive = ventaSearch.trim().length > 0;
-                            const ventaSearchResults = menuItemsAll.filter(m => m.nombre.toLowerCase().includes(ventaSearch.toLowerCase()));
-                            const addToVentaCart = (m: MenuItemLite) => setVentaCart(prev => {
-                                const ex = prev.find(it => it.menuItemId === m._id);
-                                if (ex) return prev.map(it => it.menuItemId === m._id ? { ...it, cantidad: it.cantidad + 1 } : it);
-                                return [...prev, { menuItemId: m._id, nombre: m.nombre, precio: m.precio, categoria: m.categoria, cantidad: 1 }];
-                            });
+                const subCatsV = BEBIDAS_CATS.filter(bc => menuItemsAll.some(m => m.categoria === bc));
+                const allCatsV = Array.from(new Set(menuItemsAll.map(m => {
+                    if (BEBIDAS_CATS.includes(m.categoria)) return "BEBIDAS";
+                    if (PICAR_CATS.includes(m.categoria)) return "PICADAS Y FRITURAS";
+                    return m.categoria;
+                }))).sort((a, b) => {
+                    const ai = MENU_ORDER.indexOf(a), bi = MENU_ORDER.indexOf(b);
+                    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+                });
+
+                const ventaSearchActive = ventaSearch.trim().length > 0;
+                const ventaSearchResults = (soloBebidas
+                    ? menuItemsAll.filter(m => BEBIDAS_CATS.includes(m.categoria))
+                    : menuItemsAll
+                ).filter(m => m.nombre.toLowerCase().includes(ventaSearch.toLowerCase()));
+
+                const isBebidasSubcat = !!ventaMenuCat && BEBIDAS_CATS.includes(ventaMenuCat);
+                // In soloBebidas mode: null = BEBIDAS subcats level; subcat = items level
+                // In normal mode: null = all cats; "BEBIDAS" = subcats; subcat/other = items
+                const canGoBack = soloBebidas ? isBebidasSubcat : !!ventaMenuCat;
+                const goBack = () => {
+                    if (!ventaMenuCat) return;
+                    if (isBebidasSubcat) setVentaMenuCat(soloBebidas ? null : "BEBIDAS");
+                    else setVentaMenuCat(null);
+                };
+
+                const titleLabel = ventaMenuCat ? ventaMenuCat : (soloBebidas ? "Bebidas" : eventoActual.nombre);
+
+                const itemsForCatV = ventaMenuCat && ventaMenuCat !== "BEBIDAS"
+                    ? menuItemsAll.filter(m =>
+                        BEBIDAS_CATS.includes(ventaMenuCat) ? m.categoria === ventaMenuCat
+                        : ventaMenuCat === "PICADAS Y FRITURAS" ? PICAR_CATS.includes(m.categoria)
+                        : m.categoria === ventaMenuCat)
+                    : [];
+
+                const addToVentaCart = (m: MenuItemLite) => setVentaCart(prev => {
+                    const ex = prev.find(it => it.menuItemId === m._id);
+                    if (ex) return prev.map(it => it.menuItemId === m._id ? { ...it, cantidad: it.cantidad + 1 } : it);
+                    return [...prev, { menuItemId: m._id, nombre: m.nombre, precio: m.precio, categoria: m.categoria, cantidad: 1 }];
+                });
+
+                const totalCart = ventaCart.reduce((acc, it) => acc + it.precio * it.cantidad, 0);
+                const totalPagado = ventaPagos.reduce((acc, p) => acc + p.monto, 0);
+                const falta = totalCart - totalPagado;
+                const vuelto = totalPagado - totalCart;
+
+                const CatGrid = ({ cats, onSelect }: { cats: string[]; onSelect: (c: string) => void }) => (
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                        {cats.map(cat => {
+                            const img = categoryImages[cat];
+                            const count = BEBIDAS_CATS.includes(cat) && cat !== "BEBIDAS"
+                                ? menuItemsAll.filter(m => m.categoria === cat).length
+                                : cat === "BEBIDAS" ? menuItemsAll.filter(m => BEBIDAS_CATS.includes(m.categoria)).length
+                                : cat === "PICADAS Y FRITURAS" ? menuItemsAll.filter(m => PICAR_CATS.includes(m.categoria)).length
+                                : menuItemsAll.filter(m => m.categoria === cat).length;
                             return (
-                                <>
-                                    {/* Header de navegación + búsqueda */}
-                                    <div className="px-4 pt-3 pb-2 shrink-0 space-y-2">
-                                        {ventaMenuCat && !ventaSearchActive && (
-                                            <div className="flex items-center gap-2">
-                                                <button onClick={() => setVentaMenuCat(BEBIDAS_CATS.includes(ventaMenuCat) ? "BEBIDAS" : null)}
-                                                    className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition font-semibold">
-                                                    <X size={13} /> {BEBIDAS_CATS.includes(ventaMenuCat) ? "Bebidas" : "Categorías"}
-                                                </button>
-                                                <span className="text-xs font-black text-gray-800">{ventaMenuCat}</span>
-                                            </div>
-                                        )}
-                                        <input value={ventaSearch} onChange={e => setVentaSearch(e.target.value)}
-                                            placeholder="Buscar producto..." style={{ fontSize: "16px" }}
-                                            className="w-full px-4 py-2.5 border border-black rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-black" />
+                                <button key={cat} onClick={() => onSelect(cat)}
+                                    className="relative h-24 rounded-2xl overflow-hidden shadow-sm active:scale-[0.97] transition-transform">
+                                    {img ? <MenuImg src={img} alt={cat} className="absolute inset-0 w-full h-full object-cover" /> : <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-600" />}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                                    <div className="absolute bottom-2 left-0 right-0 px-2 text-center">
+                                        <p className="text-white font-black text-xs tracking-tight leading-tight">{cat}</p>
+                                        <p className="text-white/60 text-[10px]">{count} prod.</p>
                                     </div>
-                                    {/* Contenido: grid de categorías o lista de items */}
-                                    <div className="overflow-y-auto px-3 pb-2" style={{ maxHeight: "38vh" }}>
-                                        {ventaSearchActive ? (
-                                            <div className="space-y-1">
-                                                {ventaSearchResults.map(m => (
-                                                    <button key={m._id} onClick={() => addToVentaCart(m)}
-                                                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-gray-50 active:bg-gray-100 border border-gray-100 text-left transition">
-                                                        <span className="text-sm text-gray-800">{m.nombre}</span>
-                                                        <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full shrink-0 ml-2">{formatMoney(m.precio)}</span>
-                                                    </button>
-                                                ))}
-                                                {ventaSearchResults.length === 0 && <p className="text-center text-gray-700 py-6 text-sm">Sin resultados</p>}
-                                            </div>
-                                        ) : !ventaMenuCat ? (
-                                            <div className="grid grid-cols-2 gap-2 pt-1">
-                                                {allCatsV.map(cat => {
-                                                    const img = categoryImages[cat];
-                                                    const count = cat === "BEBIDAS" ? menuItemsAll.filter(m => BEBIDAS_CATS.includes(m.categoria)).length
-                                                        : cat === "PICADAS Y FRITURAS" ? menuItemsAll.filter(m => PICAR_CATS.includes(m.categoria)).length
-                                                            : menuItemsAll.filter(m => m.categoria === cat).length;
-                                                    return (
-                                                        <button key={cat} onClick={() => setVentaMenuCat(cat)}
-                                                            className="relative h-24 rounded-2xl overflow-hidden shadow-sm active:scale-[0.97] transition-transform">
-                                                            {img ? <MenuImg src={img} alt={cat} className="absolute inset-0 w-full h-full object-cover" /> : <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-600" />}
-                                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/10" />
-                                                            <div className="absolute bottom-2 left-0 right-0 px-2 text-center">
-                                                                <p className="text-white font-black text-xs tracking-tight leading-tight">{cat}</p>
-                                                                <p className="text-white/60 text-[10px]">{count} prod.</p>
-                                                            </div>
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        ) : ventaMenuCat === "BEBIDAS" ? (
-                                            <div className="grid grid-cols-2 gap-2 pt-1">
-                                                {subCatsV.map(cat => {
-                                                    const img = categoryImages[cat];
-                                                    const count = menuItemsAll.filter(m => m.categoria === cat).length;
-                                                    return (
-                                                        <button key={cat} onClick={() => setVentaMenuCat(cat)}
-                                                            className="relative h-24 rounded-2xl overflow-hidden shadow-sm active:scale-[0.97] transition-transform">
-                                                            {img ? <MenuImg src={img} alt={cat} className="absolute inset-0 w-full h-full object-cover" /> : <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-600" />}
-                                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/10" />
-                                                            <div className="absolute bottom-2 left-0 right-0 px-2 text-center">
-                                                                <p className="text-white font-black text-xs tracking-tight leading-tight">{cat}</p>
-                                                                <p className="text-white/60 text-[10px]">{count} prod.</p>
-                                                            </div>
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-1 pt-1">
-                                                {itemsForCatV.map(m => (
-                                                    <button key={m._id} onClick={() => addToVentaCart(m)}
-                                                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-gray-50 active:bg-gray-100 border border-gray-100 text-left transition">
-                                                        <span className="text-sm text-gray-800">{m.nombre}</span>
-                                                        <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full shrink-0 ml-2">{formatMoney(m.precio)}</span>
-                                                    </button>
-                                                ))}
-                                                {itemsForCatV.length === 0 && <p className="text-center text-gray-700 py-6 text-sm">Sin productos</p>}
-                                            </div>
-                                        )}
-                                    </div>
-                                </>
-                            );
-                        })()}
-
-                        {/* Carrito */}
-                        {ventaCart.length > 0 && (
-                            <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 shrink-0">
-                                <p className="text-[10px] font-black text-gray-700 uppercase mb-2">Carrito</p>
-                                <div className="space-y-2">
-                                    {ventaCart.map(it => (
-                                        <div key={it.menuItemId} className="flex items-center gap-2">
-                                            <button onClick={() => setVentaCart(prev => prev.map(x => x.menuItemId === it.menuItemId ? { ...x, cantidad: Math.max(1, x.cantidad - 1) } : x))}
-                                                className="w-7 h-7 rounded-lg bg-white border border-gray-200 text-gray-700 font-bold flex items-center justify-center shrink-0">−</button>
-                                            <span className="text-sm font-bold w-5 text-center shrink-0">{it.cantidad}</span>
-                                            <button onClick={() => setVentaCart(prev => prev.map(x => x.menuItemId === it.menuItemId ? { ...x, cantidad: x.cantidad + 1 } : x))}
-                                                className="w-7 h-7 rounded-lg bg-white border border-gray-200 text-gray-700 font-bold flex items-center justify-center shrink-0">+</button>
-                                            <span className="text-sm text-gray-700 flex-1 min-w-0 truncate">{it.nombre}</span>
-                                            <span className="text-xs text-gray-700 shrink-0">{formatMoney(it.precio * it.cantidad)}</span>
-                                            <button onClick={() => setVentaCart(prev => prev.filter(x => x.menuItemId !== it.menuItemId))}
-                                                className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 shrink-0 transition">
-                                                <Trash2 size={12} />
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Comensales registrados (suman puntos al guardar) */}
-                        <div className="px-4 py-3 border-t border-gray-100 shrink-0">
-                            <p className="text-[10px] font-black text-gray-700 uppercase mb-2">
-                                Comensales <span className="font-normal normal-case text-gray-600">(suman puntos)</span>
-                            </p>
-                            <div className="flex gap-2 relative">
-                                <div className="relative flex-1">
-                                    <input
-                                        type="text"
-                                        placeholder="Buscar usuario..."
-                                        value={ventaComensalesSearch}
-                                        onChange={e => setVentaComensalesSearch(e.target.value)}
-                                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                                    />
-                                    {ventaComensalesResults.filter(c => !ventaComensales.some(s => s._id === c._id)).length > 0 && ventaComensalesSearch.length >= 2 && (
-                                        <div className="absolute top-full left-0 right-0 z-30 bg-white border border-black rounded-xl shadow-lg mt-1 overflow-hidden">
-                                            {ventaComensalesResults.filter(c => !ventaComensales.some(s => s._id === c._id)).map(c => (
-                                                <button key={c._id} onMouseDown={e => e.preventDefault()} onClick={() => {
-                                                    setVentaComensales(prev => [...prev, c]);
-                                                    setVentaComensalesSearch("");
-                                                    setVentaComensalesResults([]);
-                                                }} className="w-full text-left px-3 py-2.5 hover:bg-gray-50 text-xs transition border-b border-gray-50 last:border-0">
-                                                    <span className="font-semibold text-gray-900">{c.nombre} {c.apellido}</span>
-                                                    <span className="text-gray-700 ml-1">@{c.username}</span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                                <button onClick={() => setVentaQrOpen(true)} title="Escanear QR"
-                                    className="w-9 h-9 rounded-xl bg-black text-white flex items-center justify-center shrink-0 hover:bg-gray-700 transition">
-                                    <Plus size={16} />
                                 </button>
+                            );
+                        })}
+                    </div>
+                );
+
+                return (
+                    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+                        <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl flex flex-col" style={{ maxHeight: "92vh" }}>
+
+                            {/* Header */}
+                            <div className="flex items-center gap-2 px-4 py-3.5 border-b border-gray-100 shrink-0">
+                                {canGoBack && !ventaSearchActive ? (
+                                    <button onClick={goBack} className="p-1 -ml-1 text-gray-400 hover:text-gray-700 transition shrink-0">
+                                        <ChevronLeft size={22} />
+                                    </button>
+                                ) : <div className="w-7 shrink-0" />}
+                                <div className="flex-1 min-w-0 text-center">
+                                    <p className="font-black text-gray-900 text-sm truncate">{titleLabel}</p>
+                                    {!ventaMenuCat && <p className="text-[10px] text-gray-400 mt-0.5">{eventoActual.nombre}</p>}
+                                </div>
+                                <button onClick={() => { setVentaModal(false); setVentaMenuCat(null); setVentaSearch(""); }}
+                                    className="p-1 -mr-1 text-gray-400 hover:text-gray-700 transition shrink-0"><X size={18} /></button>
                             </div>
-                            {ventaComensales.length > 0 && (
-                                <div className="flex flex-wrap gap-1.5 mt-2">
-                                    {ventaComensales.map(c => (
-                                        <div key={c._id} className="flex items-center gap-1 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-full px-2.5 py-1 text-[11px] font-semibold">
-                                            <CheckCircle size={10} className="text-emerald-600 shrink-0" />
-                                            <span>{c.nombre}</span>
-                                            <button onClick={() => setVentaComensales(prev => prev.filter(s => s._id !== c._id))}
-                                                className="ml-0.5 text-emerald-500 hover:text-red-500 font-bold leading-none">×</button>
-                                        </div>
-                                    ))}
+
+                            {/* Búsqueda */}
+                            <div className="px-4 pt-3 pb-2 shrink-0">
+                                <input value={ventaSearch} onChange={e => setVentaSearch(e.target.value)}
+                                    placeholder={soloBebidas ? "Buscar bebida..." : "Buscar producto..."}
+                                    style={{ fontSize: "16px" }}
+                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-black bg-gray-50" />
+                            </div>
+
+                            {/* Categorías / Items */}
+                            <div className="overflow-y-auto px-3 pb-2 flex-1 min-h-0" style={{ maxHeight: "35vh" }}>
+                                {ventaSearchActive ? (
+                                    <div className="space-y-1">
+                                        {ventaSearchResults.map(m => (
+                                            <button key={m._id} onClick={() => addToVentaCart(m)}
+                                                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-gray-50 active:bg-gray-100 border border-gray-100 text-left transition">
+                                                <span className="text-sm text-gray-800">{m.nombre}</span>
+                                                <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full shrink-0 ml-2">{formatMoney(m.precio)}</span>
+                                            </button>
+                                        ))}
+                                        {ventaSearchResults.length === 0 && <p className="text-center text-gray-400 py-6 text-sm">Sin resultados</p>}
+                                    </div>
+                                ) : !ventaMenuCat ? (
+                                    soloBebidas
+                                        ? <CatGrid cats={subCatsV} onSelect={setVentaMenuCat} />
+                                        : <CatGrid cats={allCatsV} onSelect={setVentaMenuCat} />
+                                ) : ventaMenuCat === "BEBIDAS" ? (
+                                    <CatGrid cats={subCatsV} onSelect={setVentaMenuCat} />
+                                ) : (
+                                    <div className="space-y-1 pt-1">
+                                        {itemsForCatV.map(m => (
+                                            <button key={m._id} onClick={() => addToVentaCart(m)}
+                                                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-gray-50 active:bg-gray-100 border border-gray-100 text-left transition">
+                                                <span className="text-sm text-gray-800">{m.nombre}</span>
+                                                <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full shrink-0 ml-2">{formatMoney(m.precio)}</span>
+                                            </button>
+                                        ))}
+                                        {itemsForCatV.length === 0 && <p className="text-center text-gray-400 py-6 text-sm">Sin productos</p>}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Carrito */}
+                            {ventaCart.length > 0 && (
+                                <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 shrink-0">
+                                    <p className="text-[10px] font-black text-gray-500 uppercase mb-2">Carrito</p>
+                                    <div className="space-y-1.5">
+                                        {ventaCart.map(it => (
+                                            <div key={it.menuItemId} className="flex items-center gap-2">
+                                                <button onClick={() => setVentaCart(prev => prev.map(x => x.menuItemId === it.menuItemId ? { ...x, cantidad: Math.max(1, x.cantidad - 1) } : x))}
+                                                    className="w-7 h-7 rounded-lg bg-white border border-gray-200 text-gray-600 font-bold flex items-center justify-center shrink-0 text-base leading-none">−</button>
+                                                <span className="text-sm font-bold w-5 text-center shrink-0">{it.cantidad}</span>
+                                                <button onClick={() => setVentaCart(prev => prev.map(x => x.menuItemId === it.menuItemId ? { ...x, cantidad: x.cantidad + 1 } : x))}
+                                                    className="w-7 h-7 rounded-lg bg-white border border-gray-200 text-gray-600 font-bold flex items-center justify-center shrink-0 text-base leading-none">+</button>
+                                                <span className="text-sm text-gray-700 flex-1 min-w-0 truncate">{it.nombre}</span>
+                                                <span className="text-xs font-semibold text-gray-600 shrink-0">{formatMoney(it.precio * it.cantidad)}</span>
+                                                <button onClick={() => setVentaCart(prev => prev.filter(x => x.menuItemId !== it.menuItemId))}
+                                                    className="p-1 rounded-lg text-gray-300 hover:text-red-400 shrink-0 transition">
+                                                    <Trash2 size={13} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
-                        </div>
 
-                        {/* Método de pago + confirmar */}
-                        <div className="px-5 py-4 border-t border-gray-100 shrink-0 space-y-3">
-                            <div className="flex gap-2">
-                                {METODOS.map(met => {
-                                    const Icon = METODO_ICON[met];
+                            {/* Comensales */}
+                            <div className="px-4 py-2.5 border-t border-gray-100 shrink-0">
+                                <p className="text-[10px] font-black text-gray-400 uppercase mb-1.5">Comensales <span className="font-normal normal-case">(suman puntos)</span></p>
+                                <div className="flex gap-2 relative">
+                                    <div className="relative flex-1">
+                                        <input type="text" placeholder="Buscar usuario..."
+                                            value={ventaComensalesSearch} onChange={e => setVentaComensalesSearch(e.target.value)}
+                                            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-black" />
+                                        {ventaComensalesResults.filter(c => !ventaComensales.some(s => s._id === c._id)).length > 0 && ventaComensalesSearch.length >= 2 && (
+                                            <div className="absolute top-full left-0 right-0 z-30 bg-white border border-black rounded-xl shadow-lg mt-1 overflow-hidden">
+                                                {ventaComensalesResults.filter(c => !ventaComensales.some(s => s._id === c._id)).map(c => (
+                                                    <button key={c._id} onMouseDown={e => e.preventDefault()} onClick={() => {
+                                                        setVentaComensales(prev => [...prev, c]);
+                                                        setVentaComensalesSearch("");
+                                                        setVentaComensalesResults([]);
+                                                    }} className="w-full text-left px-3 py-2.5 hover:bg-gray-50 text-xs transition border-b border-gray-50 last:border-0">
+                                                        <span className="font-semibold text-gray-900">{c.nombre} {c.apellido}</span>
+                                                        <span className="text-gray-500 ml-1">@{c.username}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <button onClick={() => setVentaQrOpen(true)} title="Escanear QR"
+                                        className="w-9 h-9 rounded-xl bg-black text-white flex items-center justify-center shrink-0 hover:bg-gray-700 transition">
+                                        <Plus size={16} />
+                                    </button>
+                                </div>
+                                {ventaComensales.length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5 mt-2">
+                                        {ventaComensales.map(c => (
+                                            <div key={c._id} className="flex items-center gap-1 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-full px-2.5 py-1 text-[11px] font-semibold">
+                                                <CheckCircle size={10} className="text-emerald-600 shrink-0" />
+                                                <span>{c.nombre}</span>
+                                                <button onClick={() => setVentaComensales(prev => prev.filter(s => s._id !== c._id))}
+                                                    className="ml-0.5 text-emerald-400 hover:text-red-500 font-bold leading-none">×</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Pagos */}
+                            <div className="px-4 py-3 border-t border-gray-100 shrink-0 space-y-2">
+                                <p className="text-[10px] font-black text-gray-400 uppercase">Formas de pago</p>
+
+                                {/* Líneas de pago existentes */}
+                                {ventaPagos.map(p => {
+                                    const PIcon = METODO_ICON[p.metodoPago] || Banknote;
                                     return (
-                                        <button key={met} onClick={() => setVentaMetodo(met)}
-                                            className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 border transition ${ventaMetodo === met ? "bg-black text-white border-black" : "bg-white text-gray-500 border-gray-200"}`}>
-                                            <Icon size={12} /> {METODO_LABEL[met]}
-                                        </button>
+                                        <div key={p.id} className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2">
+                                            <PIcon size={13} className="text-gray-400 shrink-0" />
+                                            <span className="text-xs font-semibold text-gray-700 flex-1">{METODO_LABEL[p.metodoPago]}</span>
+                                            <span className="text-[10px] text-gray-400 mr-1">$</span>
+                                            <input type="number" inputMode="numeric"
+                                                value={p.monto === 0 ? "" : p.monto}
+                                                onChange={e => setVentaPagos(prev => prev.map(x => x.id === p.id ? { ...x, monto: Number(e.target.value) || 0 } : x))}
+                                                className="w-24 text-right text-sm font-black bg-white border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-black" />
+                                            <button onClick={() => setVentaPagos(prev => prev.filter(x => x.id !== p.id))}
+                                                className="p-1 text-gray-300 hover:text-red-400 transition shrink-0"><X size={14} /></button>
+                                        </div>
                                     );
                                 })}
-                            </div>
-                            {ventaCart.length > 0 && (
-                                <div className="flex justify-between items-center font-black text-gray-900 px-1">
-                                    <span>TOTAL</span>
-                                    <span className="text-lg">{formatMoney(ventaCart.reduce((acc, it) => acc + it.precio * it.cantidad, 0))}</span>
+
+                                {/* Botones para agregar método */}
+                                <div className="flex gap-2">
+                                    {METODOS.map(met => {
+                                        const Icon = METODO_ICON[met];
+                                        return (
+                                            <button key={met} onClick={() => {
+                                                const remaining = Math.max(0, totalCart - totalPagado);
+                                                setVentaPagos(prev => [...prev, { id: `${met}-${Date.now()}`, metodoPago: met, monto: remaining }]);
+                                            }}
+                                                className="flex-1 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1 border border-gray-200 bg-white text-gray-500 hover:border-gray-400 hover:text-gray-800 transition">
+                                                <Icon size={12} /> {METODO_LABEL[met]}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
-                            )}
-                            <button onClick={registrarVenta} disabled={ventaCart.length === 0 || ventaSaving}
-                                className="w-full py-3.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-black rounded-2xl transition flex items-center justify-center gap-2 shadow-lg shadow-red-600/20">
-                                <Printer size={16} /> {ventaSaving ? "Registrando..." : "Confirmar y cobrar"}
-                            </button>
+
+                                {/* Resumen de pagos */}
+                                {ventaCart.length > 0 && (
+                                    <div className="space-y-1 pt-1">
+                                        <div className="flex justify-between text-xs text-gray-500">
+                                            <span>Total</span>
+                                            <span className="font-black text-gray-900">{formatMoney(totalCart)}</span>
+                                        </div>
+                                        {ventaPagos.length > 0 && (
+                                            <>
+                                                <div className="flex justify-between text-xs text-gray-500">
+                                                    <span>Pagado</span>
+                                                    <span className="font-bold text-emerald-600">{formatMoney(totalPagado)}</span>
+                                                </div>
+                                                {falta > 0 && (
+                                                    <div className="flex justify-between text-xs">
+                                                        <span className="text-orange-500 font-semibold">Falta</span>
+                                                        <span className="font-black text-orange-600">{formatMoney(falta)}</span>
+                                                    </div>
+                                                )}
+                                                {vuelto > 0 && (
+                                                    <div className="flex justify-between text-xs">
+                                                        <span className="text-blue-500 font-semibold">Vuelto</span>
+                                                        <span className="font-black text-blue-600">{formatMoney(vuelto)}</span>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+
+                                <button onClick={registrarVenta} disabled={ventaCart.length === 0 || ventaPagos.length === 0 || ventaSaving}
+                                    className="w-full py-3.5 bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white font-black rounded-2xl transition flex items-center justify-center gap-2 shadow-lg shadow-red-600/20">
+                                    <Printer size={16} /> {ventaSaving ? "Registrando..." : "Confirmar y cobrar"}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                );
+            })()}
 
             {/* QR Scan modal para evento */}
             {ventaQrOpen && (

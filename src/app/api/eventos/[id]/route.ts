@@ -129,16 +129,21 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     if (body.accion === "agregarVenta") {
-        const { items, metodoPago, nota, comensalesIds } = body;
-        if (!items?.length || !metodoPago) {
+        const { items, metodoPago, pagos, nota, comensalesIds } = body;
+        const hasPagos = Array.isArray(pagos) && pagos.length > 0;
+        if (!items?.length || (!metodoPago && !hasPagos)) {
             return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
         }
         if (evento.estado === "cerrado") {
             return NextResponse.json({ error: "El evento está cerrado" }, { status: 400 });
         }
         const total = items.reduce((acc: number, i: any) => acc + i.precio * i.cantidad, 0);
+        const primaryMetodo = hasPagos
+            ? (pagos as any[]).reduce((a: any, b: any) => b.monto > a.monto ? b : a).metodoPago
+            : metodoPago;
         evento.ventas.push({
-            items, total, metodoPago,
+            items, total, metodoPago: primaryMetodo,
+            pagos: hasPagos ? pagos : undefined,
             nota: nota || undefined,
             comensalesIds: Array.isArray(comensalesIds) && comensalesIds.length > 0 ? comensalesIds : [],
         });
@@ -146,11 +151,21 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
         const sesion = await CajaSession.findOne({ estado: "abierta" });
         if (sesion) {
-            await CajaMovement.create({
-                sesionId: sesion._id, tipo: "ingreso",
-                concepto: `Venta directa evento: ${evento.nombre}`,
-                monto: total, metodoPago, userId: payload.sub,
-            });
+            if (hasPagos) {
+                for (const pago of pagos as any[]) {
+                    await CajaMovement.create({
+                        sesionId: sesion._id, tipo: "ingreso",
+                        concepto: `Venta directa evento: ${evento.nombre}`,
+                        monto: pago.monto, metodoPago: pago.metodoPago, userId: payload.sub,
+                    });
+                }
+            } else {
+                await CajaMovement.create({
+                    sesionId: sesion._id, tipo: "ingreso",
+                    concepto: `Venta directa evento: ${evento.nombre}`,
+                    monto: total, metodoPago: primaryMetodo, userId: payload.sub,
+                });
+            }
         }
 
         // Acreditar puntos a cada comensal registrado

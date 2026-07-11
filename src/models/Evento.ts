@@ -12,7 +12,8 @@ const VentaSchema = new Schema(
             },
         ],
         total:         { type: Number, required: true },
-        metodoPago:    { type: String, enum: ["efectivo", "transferencia", "tarjeta"], required: true },
+        metodoPago:    { type: String, enum: ["efectivo", "transferencia", "tarjeta"] },
+        pagos:         [{ metodoPago: { type: String }, monto: { type: Number } }],
         nota:          { type: String },
         comensalesIds: [{ type: Schema.Types.ObjectId, ref: "User" }],
     },
@@ -57,6 +58,7 @@ const EventoSchema = new Schema(
     {
         nombre:         { type: String, required: true },
         estado:         { type: String, enum: ["activo", "cerrado"], default: "activo" },
+        soloBebidas:    { type: Boolean, default: false },
         ventas:         [VentaSchema],
         mesas:          [{ type: String }],
         precioTarjeta:  { type: Number, default: 0 },
