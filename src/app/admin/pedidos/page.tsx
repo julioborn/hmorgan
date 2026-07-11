@@ -150,11 +150,13 @@ export default function AdminPedidosPage() {
     }
 
     async function encolarComanda(impresora: string, titulo: string, p: Pedido, cliente: string, hora: string, items: object[]) {
-        const mesaLabel = p.mesa
-            ? `Mesa ${p.mesa}`
-            : p.tipoEntrega === "envio"
-                ? (p.numeroDia ? `Delivery #${p.numeroDia}` : "Envio a domicilio")
-                : "-";
+        const mesaLabel = p.eventoId
+            ? `EVENTO`
+            : p.mesa
+                ? `Mesa ${p.mesa}`
+                : p.tipoEntrega === "envio"
+                    ? (p.numeroDia ? `Delivery #${p.numeroDia}` : "Envio a domicilio")
+                    : "-";
         const direccion = p.tipoEntrega === "envio" ? (p.direccion || "") : "";
         await fetch("/api/print-jobs", {
             method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },

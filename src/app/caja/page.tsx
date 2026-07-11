@@ -1451,7 +1451,12 @@ export default function CajaPage() {
 
     function datosComanda(p: Pedido) {
         const esEmpleado = p.fuente === "empleado";
-        const base = p.mesa ? mesaLabel(p.mesa) : p.tipoEntrega === "envio" ? "Envío a domicilio" : "Retira en barra";
+        const eventoNombre = p.eventoId ? (eventosActivos.find(e => e._id === p.eventoId)?.nombre ?? "Evento") : null;
+        const base = eventoNombre
+            ? `EVENTO: ${eventoNombre}`
+            : p.mesa ? mesaLabel(p.mesa)
+            : p.tipoEntrega === "envio" ? "Envío a domicilio"
+            : "Retira en barra";
         const mesa = !esEmpleado && p.numeroDia ? `Pedido #${p.numeroDia} · ${base}` : base;
         const comensalesArr = (p.comensalesIds ?? []).map(c => `${c.nombre} ${c.apellido}`.trim());
         const comensalesStr = comensalesArr.length > 2
@@ -1497,6 +1502,7 @@ export default function CajaPage() {
         </style></head><body>
         <div class="centro"><div class="badge">⬛ ${titulo} ⬛</div></div>
         <div class="sep"></div>
+        ${p.eventoId ? `<div style="text-align:center;background:#000;color:#fff;font-weight:900;font-size:20px;padding:6px 8px;border-radius:4px;margin-bottom:6px;letter-spacing:1px">★ EVENTO ★</div>` : ""}
         <div class="meta-grande">${mesa}</div>
         <div class="meta-grande">Cliente: ${cliente}</div>
         ${direccion ? `<div class="meta-grande">Dir: ${direccion}</div>` : ""}
