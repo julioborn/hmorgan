@@ -257,6 +257,7 @@ export default function CajaPage() {
     const [cierreMontoCierre, setCierreMontoCierre] = useState(0);
     const [cierreEfectivoSistema, setCierreEfectivoSistema] = useState(0);
     const [cierreDiferencia, setCierreDiferencia] = useState(0);
+    const [cierreDeliveryCount, setCierreDeliveryCount] = useState(0);
     const [deliveryModal, setDeliveryModal] = useState(false);
     const [deliveryForm, setDeliveryForm] = useState({ nombre: "", telefono: "", direccion: "", horario: "" });
     const [costoDelivery, setCostoDelivery] = useState<number>(0);
@@ -1165,6 +1166,7 @@ export default function CajaPage() {
                 setCierreMontoCierre(data.montoCierre ?? 0);
                 setCierreEfectivoSistema(data.efectivoSistema ?? 0);
                 setCierreDiferencia(data.diferencia ?? 0);
+                setCierreDeliveryCount(data.deliveryCount ?? 0);
                 setCloseStep("resumen");
                 await loadData();
             } else {
@@ -3912,6 +3914,16 @@ export default function CajaPage() {
                                             </div>
                                         );
                                     })}
+
+                                    {/* Delivery */}
+                                    {cierreDeliveryCount > 0 && (
+                                        <div className="flex items-center justify-between bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+                                            <span className="text-sm font-semibold text-blue-700 flex items-center gap-2">
+                                                🛵 Delivery entregado
+                                            </span>
+                                            <span className="font-black text-blue-800">{cierreDeliveryCount} pedido{cierreDeliveryCount !== 1 ? "s" : ""}</span>
+                                        </div>
+                                    )}
 
                                     {/* Total general */}
                                     <div className="flex items-center justify-between bg-black rounded-2xl px-4 py-3.5">

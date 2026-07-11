@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
 
         const reviewsQuery = Review.find(filter)
             .populate("userId", "nombre apellido telefono")
+            .populate("mozoId", "nombre apellido username")
             .sort({ createdAt: -1 })
             .skip((page - 1) * limit)
             .limit(limit)

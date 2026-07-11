@@ -3,6 +3,7 @@ import { connectMongoDB } from "@/lib/mongodb";
 import { CajaSession } from "@/models/CajaSession";
 import { CajaMovement } from "@/models/CajaMovement";
 import { Evento } from "@/models/Evento";
+import { Pedido } from "@/models/Pedido";
 import jwt from "jsonwebtoken";
 
 const SECRET = process.env.NEXTAUTH_SECRET!;
@@ -38,6 +39,16 @@ export async function POST(req: NextRequest) {
     const efectivoSistema = montoInicial + efectivoIngreso - efectivoEgreso;
     const diferencia      = montoCierreNum - efectivoSistema;
 
+    // Contar pedidos delivery entregados durante esta sesión
+    const pedidoIdsDelivery = await CajaMovement.distinct("pedidoId", {
+        sesionId: sesion._id,
+        tipo: "ingreso",
+        pedidoId: { $exists: true, $ne: null },
+    });
+    const deliveryCount = pedidoIdsDelivery.length > 0
+        ? await Pedido.countDocuments({ _id: { $in: pedidoIdsDelivery }, fuente: "cliente", tipoEntrega: "envio" })
+        : 0;
+
     sesion.estado = "cerrada";
     sesion.montoCierre = montoCierreNum;
     sesion.cerradaPor = payload.sub;
@@ -48,7 +59,7 @@ export async function POST(req: NextRequest) {
     // Cerrar cualquier evento activo al cerrar la caja
     await Evento.updateMany({ estado: "activo" }, { $set: { estado: "cerrado" } });
 
-    return NextResponse.json({ ok: true, resumen, sesion, montoInicial, montoCierre: montoCierreNum, efectivoSistema, diferencia });
+    return NextResponse.json({ ok: true, resumen, sesion, montoInicial, montoCierre: montoCierreNum, efectivoSistema, diferencia, deliveryCount });
     } catch (e) {
         console.error("[POST /api/superadmin/caja/cerrar]", e);
         return NextResponse.json({ error: "Error interno" }, { status: 500 });

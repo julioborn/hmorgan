@@ -7,12 +7,11 @@ import { useEffect, useState } from "react";
 interface Review {
     _id: string;
     rating: number;
+    ratingMozo?: number;
     comment?: string;
     createdAt: string;
-    userId: {
-        nombre: string;
-        apellido: string;
-    };
+    userId: { nombre: string; apellido: string };
+    mozoId?: { nombre: string; apellido: string; username: string };
 }
 
 export default function ReviewsAdminPage() {
