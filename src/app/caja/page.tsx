@@ -2439,42 +2439,42 @@ export default function CajaPage() {
 
                             {/* Vista timbre */}
                             {filtroFuente === "timbre" && (
-                                <div className="max-w-lg space-y-3">
-                                    {llamadas.length === 0 ? (
-                                        <div className="text-center py-16 text-gray-400">
-                                            <p className="text-4xl mb-3">🔔</p>
-                                            <p className="font-semibold">Sin llamadas pendientes</p>
-                                        </div>
-                                    ) : llamadas.map(l => {
-                                        const esCuenta = l.tipo === "cuenta";
-                                        const hora = l.createdAt ? new Date(l.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : "";
-                                        return (
-                                            <div key={l._id} className={`flex items-center gap-4 p-4 rounded-2xl border-2 ${esCuenta ? "border-emerald-200 bg-emerald-50" : "border-red-200 bg-red-50"}`}>
-                                                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${esCuenta ? "bg-emerald-500" : "bg-red-600"} text-white shadow-sm`}>
-                                                    {esCuenta
-                                                        ? <Wallet size={18} />
-                                                        : <MessageCircle size={18} />}
+                                llamadas.length === 0 ? (
+                                    <div className="text-center py-16 text-gray-400">
+                                        <p className="text-4xl mb-3">🔔</p>
+                                        <p className="font-semibold">Sin llamadas pendientes</p>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-wrap gap-3">
+                                        {llamadas.map(l => {
+                                            const esCuenta = l.tipo === "cuenta";
+                                            const hora = l.createdAt ? new Date(l.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : "";
+                                            return (
+                                                <div key={l._id} className={`flex items-center gap-3 p-3 rounded-2xl border-2 w-56 shrink-0 ${esCuenta ? "border-emerald-200 bg-emerald-50" : "border-red-200 bg-red-50"}`}>
+                                                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${esCuenta ? "bg-emerald-500" : "bg-red-600"} text-white`}>
+                                                        {esCuenta ? <Wallet size={15} /> : <MessageCircle size={15} />}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-black text-gray-900 text-xs truncate">{l.clienteNombre}</p>
+                                                        {l.mesa && <p className="text-[10px] text-gray-500">Mesa {l.mesa}</p>}
+                                                        <p className={`text-[10px] font-bold ${esCuenta ? "text-emerald-600" : "text-red-600"}`}>
+                                                            {esCuenta ? "Pide la cuenta" : "Llama al mozo"} · {hora}
+                                                        </p>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => {
+                                                            fetch(`/api/llamar-mozo/${l._id}`, { method: "PATCH", credentials: "include" }).catch(() => {});
+                                                            setLlamadas(prev => prev.filter(x => x._id !== l._id));
+                                                        }}
+                                                        title="Marcar como atendido"
+                                                        className={`p-1.5 rounded-lg shrink-0 transition ${esCuenta ? "bg-emerald-200 hover:bg-emerald-300 text-emerald-700" : "bg-red-200 hover:bg-red-300 text-red-700"}`}>
+                                                        <CheckCircle size={15} />
+                                                    </button>
                                                 </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="font-black text-gray-900 text-sm truncate">{l.clienteNombre}</p>
-                                                    {l.mesa && <p className="text-xs text-gray-500">Mesa {l.mesa}</p>}
-                                                    <p className={`text-xs font-bold mt-0.5 ${esCuenta ? "text-emerald-600" : "text-red-600"}`}>
-                                                        {esCuenta ? "Pide la cuenta" : "Llama al mozo"} · {hora}
-                                                    </p>
-                                                </div>
-                                                <button
-                                                    onClick={() => {
-                                                        fetch(`/api/llamar-mozo/${l._id}`, { method: "PATCH", credentials: "include" }).catch(() => {});
-                                                        setLlamadas(prev => prev.filter(x => x._id !== l._id));
-                                                    }}
-                                                    title="Marcar como atendido"
-                                                    className={`p-2.5 rounded-xl shrink-0 transition ${esCuenta ? "bg-emerald-200 hover:bg-emerald-300 text-emerald-700" : "bg-red-200 hover:bg-red-300 text-red-700"}`}>
-                                                    <CheckCircle size={18} />
-                                                </button>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )
                             )}
 
                             <div className={filtroFuente === "timbre" ? "hidden" : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 items-start"}>
