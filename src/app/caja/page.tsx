@@ -266,6 +266,7 @@ export default function CajaPage() {
     const [gastoSaving, setGastoSaving] = useState(false);
     const [gastoEditId, setGastoEditId] = useState<string | null>(null);
     const [egresos, setEgresos] = useState<Egreso[]>([]);
+    const [cobrosParcialesMovs, setCobrosParcialesMovs] = useState<any[]>([]);
     const [menuItemsAll, setMenuItemsAll] = useState<MenuItemLite[]>([]);
     const [editItemModal, setEditItemModal] = useState<
         { pedido: Pedido; modo: "agregar" } | { pedido: Pedido; modo: "reemplazar"; itemId: string; nombreActual: string } | null
@@ -614,6 +615,7 @@ export default function CajaPage() {
             const [cajaData, pedData] = await Promise.all([cajaRes.json(), pedRes.json()]);
             setSesion(cajaData.sesion || null);
             setEgresos((cajaData.movimientos || []).filter((m: any) => m.tipo === "egreso"));
+            setCobrosParcialesMovs((cajaData.movimientos || []).filter((m: any) => m.tipo === "ingreso" && m.pedidoId && m.concepto?.startsWith("Parcial")));
             if (Array.isArray(pedData)) {
                 const sesionApertura = cajaData.sesion?.fechaApertura
                     ? new Date(cajaData.sesion.fechaApertura)
@@ -3406,6 +3408,71 @@ export default function CajaPage() {
                                                                         <span className="font-black text-gray-900 text-base">{formatMoney(p.total)}</span>
                                                                     </div>
                                                                 ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
+
+                                            {/* ── Cobros parciales de comandas ── */}
+                                            {(() => {
+                                                const cobrosEv = cobrosParcialesMovs.filter(m => {
+                                                    const eid = m.pedidoId?.eventoId;
+                                                    const eidStr = typeof eid === "string" ? eid : eid?._id?.toString();
+                                                    return eidStr === ev._id;
+                                                });
+                                                if (cobrosEv.length === 0) return null;
+                                                const colKeyC = `${ev._id}:cobros`;
+                                                const colapsadoC = seccionesColapsadas.has(colKeyC);
+                                                return (
+                                                    <div>
+                                                        <button onClick={() => toggleSeccion(colKeyC)} className="flex items-center gap-2 w-full mb-2 group">
+                                                            <p className="text-xs font-black text-gray-400 uppercase tracking-wider flex-1 text-left">
+                                                                Cobros parciales · {cobrosEv.length}
+                                                            </p>
+                                                            <ChevronDown size={13} className={`text-gray-400 transition-transform ${colapsadoC ? "-rotate-90" : ""}`} />
+                                                        </button>
+                                                        {!colapsadoC && (
+                                                            <div className="space-y-1.5">
+                                                                {cobrosEv.map(m => {
+                                                                    const PIcon = METODO_ICON[m.metodoPago] || Banknote;
+                                                                    const loc = m.pedidoId?.mesa ? `Mesa ${m.pedidoId.mesa}` : (m.pedidoId?.nombreComanda || "Comanda");
+                                                                    const time = new Date(m.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+                                                                    const cKey = `c:${ev._id}`;
+                                                                    const isExpC = (ventasExpandidas[cKey] ?? new Set<string>()).has(m._id);
+                                                                    const toggleC = () => setVentasExpandidas(prev => {
+                                                                        const s = new Set(prev[cKey] ?? []);
+                                                                        s.has(m._id) ? s.delete(m._id) : s.add(m._id);
+                                                                        return { ...prev, [cKey]: s };
+                                                                    });
+                                                                    return (
+                                                                        <div key={m._id} className="rounded-xl border border-gray-200 overflow-hidden">
+                                                                            <div className="flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-gray-50 transition" onClick={toggleC}>
+                                                                                <PIcon size={13} className="text-gray-400 shrink-0" />
+                                                                                <span className="text-xs font-bold text-gray-700 flex-1 truncate">
+                                                                                    {loc}
+                                                                                    <span className="text-gray-400 font-normal ml-1">· {time}</span>
+                                                                                </span>
+                                                                                <span className="font-black text-gray-900 text-sm shrink-0">{formatMoney(m.monto)}</span>
+                                                                                <ChevronDown size={13} className={`text-gray-400 shrink-0 transition-transform ${isExpC ? "rotate-180" : ""}`} />
+                                                                            </div>
+                                                                            {isExpC && (
+                                                                                <div className="border-t border-gray-100 px-3 py-2 bg-gray-50 space-y-1">
+                                                                                    {(m.items || []).map((it: any, i: number) => (
+                                                                                        <div key={i} className="flex justify-between text-xs text-gray-600">
+                                                                                            <span>{it.cantidad}× {it.nombre}</span>
+                                                                                            <span className="font-semibold">{formatMoney(it.precio * it.cantidad)}</span>
+                                                                                        </div>
+                                                                                    ))}
+                                                                                    <div className="pt-1.5 mt-1 border-t border-gray-200 flex items-center justify-between text-xs text-gray-500">
+                                                                                        <span className="flex items-center gap-1"><PIcon size={10} />{METODO_LABEL[m.metodoPago] || m.metodoPago}</span>
+                                                                                        <span className="font-semibold">{formatMoney(m.monto)}</span>
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    );
+                                                                })}
                                                             </div>
                                                         )}
                                                     </div>
