@@ -339,7 +339,7 @@ export default function CajaPage() {
     const ventaVideoRef = useRef<HTMLVideoElement>(null);
     const ventaStreamRef = useRef<MediaStream | null>(null);
 
-    // â”€â”€ GestiÃ³n de menÃº (tab MenÃº) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ”€”€ GestiÃ³n de menÃº (tab MenÃº) ”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€
     const [menuGest, setMenuGest] = useState<MenuItemLite[]>([]);
     const [menuGestLoading, setMenuGestLoading] = useState(false);
     const [menuGestCat, setMenuGestCat] = useState<string>("todas");
@@ -353,7 +353,7 @@ export default function CajaPage() {
     const [menuGestImgUploading, setMenuGestImgUploading] = useState(false);
     const menuGestImgRef = useRef<HTMLInputElement>(null);
 
-    // â”€â”€ Autoservicio modal (caja) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ”€”€ Autoservicio modal (caja) ”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€
     const [autoservActivasCount, setAutoservActivasCount] = useState(0);
     const [autoservModal, setAutoservModal] = useState(false);
     const [autoservVista, setAutoservVista] = useState<"lista" | "plano">("lista");
@@ -532,7 +532,7 @@ export default function CajaPage() {
     }
 
     async function eliminarMenuGestItem(id: string) {
-        const r = await swalBase.fire({ title: "Â¿Eliminar producto?", text: "Esta acciÃ³n no se puede deshacer.", icon: "warning", showCancelButton: true, confirmButtonText: "SÃ­, eliminar", cancelButtonText: "Cancelar" });
+        const r = await swalBase.fire({ title: "¿Eliminar producto?", text: "Esta acciÃ³n no se puede deshacer.", icon: "warning", showCancelButton: true, confirmButtonText: "SÃ­, eliminar", cancelButtonText: "Cancelar" });
         if (!r.isConfirmed) return;
         await fetch(`/api/menu/${id}`, { method: "DELETE", credentials: "include" });
         await loadMenuGest();
@@ -805,7 +805,7 @@ export default function CajaPage() {
             const token = parsed.qrToken as string;
             if (!token) { setVentaQrError("QR invÃ¡lido"); return; }
             await lookupVentaQrToken(token);
-        } catch { setVentaQrError("QR invÃ¡lido â€” no es un cÃ³digo de H. Morgan"); }
+        } catch { setVentaQrError("QR invÃ¡lido €” no es un cÃ³digo de H. Morgan"); }
     }
 
     async function lookupVentaQrToken(token: string) {
@@ -893,7 +893,7 @@ export default function CajaPage() {
     }
 
     async function rechazarPedido(id: string) {
-        const r = await swalBase.fire({ title: "Â¿Rechazar pedido?", icon: "warning", showCancelButton: true, confirmButtonText: "SÃ­, rechazar", cancelButtonText: "Cancelar" });
+        const r = await swalBase.fire({ title: "¿Rechazar pedido?", icon: "warning", showCancelButton: true, confirmButtonText: "SÃ­, rechazar", cancelButtonText: "Cancelar" });
         if (!r.isConfirmed) return;
         await fetch(`/api/pedidos?id=${id}`, { method: "DELETE", credentials: "include" });
         loadData();
@@ -901,7 +901,7 @@ export default function CajaPage() {
 
     async function eliminarItemPedido(pedidoId: string, itemId: string, nombre: string) {
         const r = await swalBase.fire({
-            title: "Â¿Eliminar producto?",
+            title: "¿Eliminar producto?",
             text: `Se quitarÃ¡ "${nombre}" de la comanda.`,
             icon: "warning", showCancelButton: true,
             confirmButtonText: "SÃ­, eliminar", cancelButtonText: "Cancelar",
@@ -980,8 +980,8 @@ export default function CajaPage() {
     async function ejecutarCambioMesa(pedido: Pedido, nuevaMesa: string) {
         const mesaActual = pedido.mesa ? mesaLabel(pedido.mesa) : "Sin mesa";
         const { isConfirmed } = await swalBase.fire({
-            title: "Â¿Transferir mesa?",
-            html: `<p class="text-gray-600 text-sm">De <strong>${mesaActual}</strong> â†’ <strong>Mesa ${nuevaMesa}</strong></p>`,
+            title: "¿Transferir mesa?",
+            html: `<p class="text-gray-600 text-sm">De <strong>${mesaActual}</strong> †’ <strong>Mesa ${nuevaMesa}</strong></p>`,
             icon: "question",
             showCancelButton: true,
             confirmButtonText: "SÃ­, transferir",
@@ -1001,7 +1001,7 @@ export default function CajaPage() {
     async function eliminarPedidoCaja(p: Pedido) {
         const titulo = p.mesa ? mesaLabel(p.mesa) : p.nombreComanda || (p.userId ? `${p.userId.nombre}` : "Pedido");
         const r1 = await swalBase.fire({
-            title: "Â¿Eliminar pedido?",
+            title: "¿Eliminar pedido?",
             text: `Se eliminarÃ¡ permanentemente el pedido de ${titulo}.`,
             icon: "warning", showCancelButton: true,
             confirmButtonText: "Continuar", cancelButtonText: "Cancelar",
@@ -1009,7 +1009,7 @@ export default function CajaPage() {
         if (!r1.isConfirmed) return;
         const r2 = await swalBase.fire({
             title: "ConfirmaciÃ³n final",
-            text: "Esta acciÃ³n no se puede deshacer. Â¿Confirmar eliminaciÃ³n?",
+            text: "Esta acciÃ³n no se puede deshacer. ¿Confirmar eliminaciÃ³n?",
             icon: "error", showCancelButton: true,
             confirmButtonText: "SÃ­, eliminar", cancelButtonText: "No, volver",
         });
@@ -1079,7 +1079,7 @@ export default function CajaPage() {
     async function reemplazarItemPedido(nuevoMenuItemId: string, nuevoNombre: string) {
         if (!editItemModal || editItemModal.modo !== "reemplazar") return;
         const r = await swalBase.fire({
-            title: "Â¿Cambiar producto?",
+            title: "¿Cambiar producto?",
             text: `"${editItemModal.nombreActual}" se reemplazarÃ¡ por "${nuevoNombre}".`,
             icon: "question", showCancelButton: true,
             confirmButtonText: "SÃ­, cambiar", cancelButtonText: "Cancelar",
@@ -1115,7 +1115,7 @@ export default function CajaPage() {
         const totalUnidades = editItemCart.reduce((a, i) => a + i.cantidad, 0);
 
         const r = await swalBase.fire({
-            title: `Â¿Agregar ${totalUnidades} Ã­tem${totalUnidades !== 1 ? "s" : ""}?`,
+            title: `¿Agregar ${totalUnidades} Ã­tem${totalUnidades !== 1 ? "s" : ""}?`,
             text: yaAceptado
                 ? "Se imprimirÃ¡n directo en cocina/barra."
                 : "Se agregan a la comanda.",
@@ -1146,7 +1146,7 @@ export default function CajaPage() {
 
     async function cerrarCaja() {
         const confirm = await swalBase.fire({
-            title: "Â¿Confirmar cierre de caja?",
+            title: "¿Confirmar cierre de caja?",
             text: "Esta acciÃ³n no se puede deshacer. La caja quedarÃ¡ cerrada.",
             icon: "warning", showCancelButton: true,
             confirmButtonText: "SÃ­, cerrar caja", cancelButtonText: "Cancelar",
@@ -1223,7 +1223,7 @@ export default function CajaPage() {
     }
 
     async function eliminarEgreso(id: string, concepto: string) {
-        const ok = await swalBase.fire({ title: `Â¿Eliminar egreso?`, text: `"${concepto}" serÃ¡ eliminado.`, icon: "warning", showCancelButton: true, confirmButtonText: "SÃ­, eliminar", cancelButtonText: "Cancelar" });
+        const ok = await swalBase.fire({ title: `¿Eliminar egreso?`, text: `"${concepto}" serÃ¡ eliminado.`, icon: "warning", showCancelButton: true, confirmButtonText: "SÃ­, eliminar", cancelButtonText: "Cancelar" });
         if (!ok.isConfirmed) return;
         await fetch(`/api/superadmin/caja/movimiento/${id}`, { method: "DELETE", credentials: "include" });
         loadData();
@@ -1360,7 +1360,7 @@ export default function CajaPage() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    mesa: pedido.mesa || "â€”",
+                    mesa: pedido.mesa || "€”",
                     fecha,
                     hora,
                     items: printItems,
@@ -1372,7 +1372,7 @@ export default function CajaPage() {
                 }),
             });
             if (res.ok) return;
-        } catch { /* servidor no disponible â†’ fallback */ }
+        } catch { /* servidor no disponible †’ fallback */ }
 
         // Fallback: ventana del navegador
         const rows = printItems.map(i =>
@@ -1421,7 +1421,7 @@ export default function CajaPage() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    mesa: pedido.mesa || "â€”",
+                    mesa: pedido.mesa || "€”",
                     fecha, hora,
                     items: printItems,
                     total,
@@ -1433,7 +1433,7 @@ export default function CajaPage() {
                 }),
             });
             if (res.ok) return;
-        } catch { /* servidor no disponible â†’ fallback */ }
+        } catch { /* servidor no disponible †’ fallback */ }
 
         // Fallback: ventana del navegador
         const rows = printItems.map(i =>
@@ -1449,7 +1449,7 @@ export default function CajaPage() {
             .total{font-size:14px;font-weight:bold}
         </style></head><body>
         <h2>CUENTA</h2>
-        <div class="sub">Mesa ${pedido.mesa || "â€”"} Â· ${fecha} ${hora}</div>
+        <div class="sub">Mesa ${pedido.mesa || "€”"} · ${fecha} ${hora}</div>
         <hr/><table>${rows}</table><hr/>
         <table>
             <tr><td class="total">TOTAL</td><td class="total" style="text-align:right">${formatMoney(total)}</td></tr>
@@ -1468,7 +1468,7 @@ export default function CajaPage() {
             : p.mesa ? mesaLabel(p.mesa)
             : p.tipoEntrega === "envio" ? "EnvÃ­o a domicilio"
             : "Retira en barra";
-        const mesa = !esEmpleado && p.numeroDia ? `Pedido #${p.numeroDia} Â· ${base}` : base;
+        const mesa = !esEmpleado && p.numeroDia ? `Pedido #${p.numeroDia} · ${base}` : base;
         const comensalesArr = (p.comensalesIds ?? []).map(c => `${c.nombre} ${c.apellido}`.trim());
         const comensalesStr = comensalesArr.length > 2
             ? comensalesArr.slice(0, 2).join(", ") + "..."
@@ -1511,9 +1511,9 @@ export default function CajaPage() {
             table { width:100%; border-collapse:collapse; }
             .nota { font-size:14px; margin-top:6px; padding:6px; border:2px solid #000; border-radius:4px; }
         </style></head><body>
-        <div class="centro"><div class="badge">â¬› ${titulo} â¬›</div></div>
+        <div class="centro"><div class="badge">¬› ${titulo} ¬›</div></div>
         <div class="sep"></div>
-        ${p.eventoId ? `<div style="text-align:center;background:#000;color:#fff;font-weight:900;font-size:20px;padding:6px 8px;border-radius:4px;margin-bottom:6px;letter-spacing:1px">â˜… EVENTO â˜…</div>` : ""}
+        ${p.eventoId ? `<div style="text-align:center;background:#000;color:#fff;font-weight:900;font-size:20px;padding:6px 8px;border-radius:4px;margin-bottom:6px;letter-spacing:1px">˜… EVENTO ˜…</div>` : ""}
         <div class="meta-grande">${mesa}</div>
         <div class="meta-grande">Cliente: ${cliente}</div>
         ${direccion ? `<div class="meta-grande">Dir: ${direccion}</div>` : ""}
@@ -1540,7 +1540,7 @@ export default function CajaPage() {
         const { mesa, cliente, mozo, direccion } = datosComanda(p);
         const nota = p.notaEmpleado || p.notaCliente || "";
 
-        // Se imprime todo de nuevo (comanda completa) â†’ todos los Ã­tems quedan "impresos"
+        // Se imprime todo de nuevo (comanda completa) †’ todos los Ã­tems quedan "impresos"
         // para que el chequeo de agregados no los vuelva a imprimir sueltos despuÃ©s.
         const itemIds = p.items.map(it => it._id).filter((id): id is string => !!id);
         await marcarItemsImpresos(p._id, itemIds);
@@ -1586,7 +1586,7 @@ export default function CajaPage() {
                 await Promise.all(promesas);
                 return; // impresiÃ³n exitosa
             }
-        } catch { /* servidor no disponible â†’ fallback */ }
+        } catch { /* servidor no disponible †’ fallback */ }
 
         // Fallback: ventana del navegador
         if (comida.length > 0) abrirEImprimir(comandaHtml(p, "COCINA", comida));
@@ -1635,7 +1635,7 @@ export default function CajaPage() {
                 await Promise.all(promesas);
                 return; // impresiÃ³n exitosa
             }
-        } catch { /* servidor no disponible â†’ fallback */ }
+        } catch { /* servidor no disponible †’ fallback */ }
 
         // Fallback: ventana del navegador
         if (comida.length > 0) abrirEImprimir(comandaHtml(p, "COCINA", comida));
@@ -1716,7 +1716,7 @@ export default function CajaPage() {
 
     async function eliminarReward(id: string) {
         const r = await swalBase.fire({
-            title: "Â¿Eliminar canje?", text: "Esta acciÃ³n no se puede deshacer.",
+            title: "¿Eliminar canje?", text: "Esta acciÃ³n no se puede deshacer.",
             icon: "warning", showCancelButton: true,
             confirmButtonText: "Eliminar", cancelButtonText: "Cancelar",
         });
@@ -1883,7 +1883,7 @@ export default function CajaPage() {
             .meta-grande { font-size:18px; font-weight:700; margin:4px 0; }
             table { width:100%; border-collapse:collapse; }
         </style></head><body>
-        <div class="centro"><div class="badge">â¬› ${titulo} â¬›</div></div>
+        <div class="centro"><div class="badge">¬› ${titulo} ¬›</div></div>
         <div class="sep"></div>
         <div class="meta-grande">Evento: ${titulo}</div>
         <div class="meta-grande">Pago: ${cliente}</div>
@@ -1902,7 +1902,7 @@ export default function CajaPage() {
         const hora = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
         const total = cart.reduce((acc, it) => acc + it.precio * it.cantidad, 0);
         const pagoLabel = pagos.length === 1
-            ? `${METODO_LABEL[pagos[0].metodoPago]} Â· ${formatMoney(total)}`
+            ? `${METODO_LABEL[pagos[0].metodoPago]} · ${formatMoney(total)}`
             : pagos.map(p => `${METODO_LABEL[p.metodoPago]} ${formatMoney(p.monto)}`).join(" + ");
         const cliente = pagoLabel;
         const titulo = evento.nombre.toUpperCase();
@@ -1954,7 +1954,7 @@ export default function CajaPage() {
     }
 
     async function eliminarVenta(eventoId: string, ventaId: string) {
-        const r = await swalBase.fire({ title: "Â¿Eliminar venta?", text: "Esta acciÃ³n no se puede deshacer.", icon: "warning", showCancelButton: true, confirmButtonText: "SÃ­, eliminar", cancelButtonText: "Cancelar" });
+        const r = await swalBase.fire({ title: "¿Eliminar venta?", text: "Esta acciÃ³n no se puede deshacer.", icon: "warning", showCancelButton: true, confirmButtonText: "SÃ­, eliminar", cancelButtonText: "Cancelar" });
         if (!r.isConfirmed) return;
         const res = await fetch(`/api/eventos/${eventoId}`, {
             method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
@@ -2132,7 +2132,7 @@ export default function CajaPage() {
             <div className={`bg-white border rounded-xl px-3 py-2.5 flex items-center gap-2 shadow-sm transition ${!barOn && !appOn ? "opacity-40 border-gray-200" : "border-gray-300"}`}>
                 <div className="flex-1 min-w-0">
                     <p className="font-bold text-gray-900 text-sm truncate">{item.nombre}</p>
-                    <p className="text-xs text-gray-500">{item.categoria} Â· ${new Intl.NumberFormat("es-AR").format(item.precio)}</p>
+                    <p className="text-xs text-gray-500">{item.categoria} · ${new Intl.NumberFormat("es-AR").format(item.precio)}</p>
                     {item.descripcion && <p className="text-xs text-gray-400 truncate mt-0.5">{item.descripcion}</p>}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -2173,7 +2173,7 @@ export default function CajaPage() {
                                     <>
                                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
                                         <span className="text-xs text-emerald-400 font-semibold">
-                                            Abierta Â· desde {new Date(sesion.fechaApertura).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                                            Abierta · desde {new Date(sesion.fechaApertura).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
                                         </span>
                                     </>
                                 ) : (
@@ -2222,7 +2222,7 @@ export default function CajaPage() {
                         {llamadas.map(l => {
                             const esCuenta = l.tipo === "cuenta";
                             const hora = l.createdAt ? new Date(l.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : "";
-                            const label = [esCuenta ? "Cuenta" : "Mozo", l.clienteNombre, l.mesa ? `Mesa ${l.mesa}` : null, !esCuenta && l.mozoNombre ? l.mozoNombre : null, hora].filter(Boolean).join(" Â· ");
+                            const label = [esCuenta ? "Cuenta" : "Mozo", l.clienteNombre, l.mesa ? `Mesa ${l.mesa}` : null, !esCuenta && l.mozoNombre ? l.mozoNombre : null, hora].filter(Boolean).join(" · ");
                             return (
                                 <div key={l._id} className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 border ${esCuenta ? "bg-emerald-500/20 border-emerald-400/30" : "bg-red-500/20 border-red-400/30"}`}>
                                     <span className="text-xs shrink-0">{esCuenta ? "ðŸŸ¢" : "ðŸ”´"}</span>
@@ -2368,7 +2368,7 @@ export default function CajaPage() {
                         </button>
                     </div>
 
-                    {/* â”€â”€ TAB PEDIDOS â”€â”€ */}
+                    {/* ”€”€ TAB PEDIDOS ”€”€ */}
                     {tab === "pedidos" && (
                         <div className="max-w-screen-2xl mx-auto px-4 pt-4">
                             {/* Nueva comanda (cajero actuando como mozo) */}
@@ -2473,7 +2473,7 @@ export default function CajaPage() {
                                                         <p className="font-black text-gray-900 text-xs truncate">{l.clienteNombre}</p>
                                                         {l.mesa && <p className="text-[10px] text-gray-500">Mesa {l.mesa}</p>}
                                                         <p className={`text-[10px] font-bold ${esCuenta ? "text-emerald-600" : "text-red-600"}`}>
-                                                            {esCuenta ? "Pide la cuenta" : "Llama al mozo"} Â· {hora}
+                                                            {esCuenta ? "Pide la cuenta" : "Llama al mozo"} · {hora}
                                                         </p>
                                                     </div>
                                                     <button
@@ -2519,11 +2519,11 @@ export default function CajaPage() {
                                             : (p.mesa ? mesaLabel(p.mesa) : p.nombreComanda || (eventoNombre ?? (esCajaDelivery ? "Delivery" : esCaja ? "Caja" : "Sin mesa")));
 
                                         const subtitulo = esApp
-                                            ? `${p.numeroDia ? `#${p.numeroDia} Â· ` : ""}${p.tipoEntrega === "envio" ? "EnvÃ­o a domicilio" : "Retiro en local"}`
+                                            ? `${p.numeroDia ? `#${p.numeroDia} · ` : ""}${p.tipoEntrega === "envio" ? "EnvÃ­o a domicilio" : "Retiro en local"}`
                                             : esAutoservicio
                                                 ? [p.userId?.nombre, p.userId?.apellido].filter(Boolean).join(" ") || "Autoservicio"
                                                 : esCajaDelivery
-                                                    ? `Delivery${p.deliveryNumero ? ` #${p.deliveryNumero}` : ""}${p.direccion ? ` Â· ${p.direccion}` : ""}`
+                                                    ? `Delivery${p.deliveryNumero ? ` #${p.deliveryNumero}` : ""}${p.direccion ? ` · ${p.direccion}` : ""}`
                                                     : esMozo
                                                         ? `Mozo: ${[p.userId?.nombre, p.userId?.apellido].filter(Boolean).join(" ")}`
                                                         : "Caja";
@@ -2548,7 +2548,7 @@ export default function CajaPage() {
                                                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                                                 className={`rounded-2xl border-2 shadow-sm overflow-hidden flex flex-col h-[600px] bg-white ${esAlerta ? "blink-alerta" : esDemorada ? "border-red-500" : "border-black"}`}>
 
-                                                {/* â”€â”€ Cabecera â”€â”€ */}
+                                                {/* ”€”€ Cabecera ”€”€ */}
                                                 <div className={`shrink-0 px-4 py-3 ${esDemorada ? "bg-red-700" : "bg-black"}`}>
                                                     <div className="flex items-start justify-between gap-3">
                                                         <div className="flex-1 min-w-0">
@@ -2557,7 +2557,7 @@ export default function CajaPage() {
                                                             {esDemorada && (
                                                                 <div className="mt-1.5 flex items-center gap-1 bg-white/20 rounded-lg px-2 py-0.5 w-fit">
                                                                     <Clock size={11} className="text-white/90 shrink-0" />
-                                                                    <span className="text-[11px] font-black text-white uppercase tracking-wide">Demorada Â· {minutosEsperaCaja} min</span>
+                                                                    <span className="text-[11px] font-black text-white uppercase tracking-wide">Demorada · {minutosEsperaCaja} min</span>
                                                                 </div>
                                                             )}
                                                         </div>
@@ -2611,7 +2611,7 @@ export default function CajaPage() {
                                                     </div>
                                                 </div>
 
-                                                {/* â”€â”€ Cuerpo â”€â”€ */}
+                                                {/* ”€”€ Cuerpo ”€”€ */}
                                                 <div className="p-3 flex flex-col flex-1 min-h-0 bg-white">
 
                                                     {/* Info extra delivery manual */}
@@ -2697,7 +2697,7 @@ export default function CajaPage() {
                                                                         )}
                                                                     </div>
                                                                     {it.nota && !isEditingThis && (
-                                                                        <p className="text-[11px] text-amber-700 italic mt-0.5 ml-5 truncate">âœ {it.nota}</p>
+                                                                        <p className="text-[11px] text-amber-700 italic mt-0.5 ml-5 truncate">œ {it.nota}</p>
                                                                     )}
                                                                     {isEditingThis && (
                                                                         <div className="mt-1.5 ml-5 flex gap-1.5">
@@ -2707,11 +2707,11 @@ export default function CajaPage() {
                                                                                 value={editingNota.valor}
                                                                                 onChange={e => setEditingNota(s => s ? { ...s, valor: e.target.value } : null)}
                                                                                 onKeyDown={e => { if (e.key === "Enter") guardarNota(p._id, it._id!, editingNota.valor); if (e.key === "Escape") setEditingNota(null); }}
-                                                                                placeholder="Nota del Ã­temâ€¦"
+                                                                                placeholder="Nota del Ã­tem€¦"
                                                                                 className="flex-1 text-xs border border-amber-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-amber-400 bg-amber-50"
                                                                             />
                                                                             <button onClick={() => guardarNota(p._id, it._id!, editingNota.valor)} className="px-2 py-1 bg-amber-500 text-white rounded-lg text-[10px] font-black">OK</button>
-                                                                            <button onClick={() => setEditingNota(null)} className="px-2 py-1 bg-gray-200 text-gray-600 rounded-lg text-[10px] font-bold">âœ•</button>
+                                                                            <button onClick={() => setEditingNota(null)} className="px-2 py-1 bg-gray-200 text-gray-600 rounded-lg text-[10px] font-bold">œ•</button>
                                                                         </div>
                                                                     )}
                                                                 </li>
@@ -2797,12 +2797,12 @@ export default function CajaPage() {
                                                                     );
                                                                 })}
                                                             </div>
-                                                            {/* BotÃ³n pasar a listo â€” solo cuando estÃ¡ preparando */}
+                                                            {/* BotÃ³n pasar a listo €” solo cuando estÃ¡ preparando */}
                                                             {p.estado === "preparando" && (
                                                                 <button
                                                                     disabled={isUpdating}
                                                                     onClick={async () => {
-                                                                        const ok = await swalBase.fire({ title: "Â¿Pasar a listo?", text: "El mozo o el cliente serÃ¡n notificados.", icon: "question", showCancelButton: true, confirmButtonText: "SÃ­, listo", cancelButtonText: "Cancelar" });
+                                                                        const ok = await swalBase.fire({ title: "¿Pasar a listo?", text: "El mozo o el cliente serÃ¡n notificados.", icon: "question", showCancelButton: true, confirmButtonText: "SÃ­, listo", cancelButtonText: "Cancelar" });
                                                                         if (ok.isConfirmed) await avanzarEstado(p, "listo");
                                                                     }}
                                                                     className="w-full flex items-center justify-center gap-2 bg-black hover:bg-gray-800 disabled:opacity-50 text-white font-black py-2.5 rounded-xl transition text-sm"
@@ -2863,11 +2863,11 @@ export default function CajaPage() {
                         </div>
                     )}
 
-                    {/* â”€â”€ TAB COBRAR â”€â”€ */}
+                    {/* ”€”€ TAB COBRAR ”€”€ */}
                     {tab === "caja" && (
                         <div className="max-w-screen-2xl mx-auto px-4 pt-4">
 
-                            {/* â”€â”€ Egresos â”€â”€ */}
+                            {/* ”€”€ Egresos ”€”€ */}
                             <div className="mb-5">
                                 <div className="flex items-center justify-between mb-2">
                                     <h2 className="font-black text-gray-900 text-base tracking-tight flex items-center gap-1.5">
@@ -2888,9 +2888,9 @@ export default function CajaPage() {
                                             <div key={e._id} className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2.5 shadow-sm">
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-sm font-bold text-gray-900 truncate">{e.concepto}</p>
-                                                    <p className="text-xs text-gray-400">{METODO_LABEL[e.metodoPago as typeof METODOS[number]] || e.metodoPago} Â· {new Date(e.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</p>
+                                                    <p className="text-xs text-gray-400">{METODO_LABEL[e.metodoPago as typeof METODOS[number]] || e.metodoPago} · {new Date(e.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</p>
                                                 </div>
-                                                <span className="text-sm font-black text-red-600 shrink-0">âˆ’{formatMoney(e.monto)}</span>
+                                                <span className="text-sm font-black text-red-600 shrink-0">ˆ’{formatMoney(e.monto)}</span>
                                                 <button onClick={() => { setGastoEditId(e._id); setGastoForm({ concepto: e.concepto, monto: String(e.monto), metodo: (e.metodoPago as typeof METODOS[number]) || "efectivo" }); setGastoModal(true); }}
                                                     className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 transition shrink-0">
                                                     <Pencil size={12} />
@@ -2931,7 +2931,7 @@ export default function CajaPage() {
                                         : (p.mesa ? mesaLabel(p.mesa) : p.nombreComanda || (!esMozo ? "Caja" : "Sin mesa"));
 
                                     const subtitulo = esApp
-                                        ? `${p.numeroDia ? `#${p.numeroDia} Â· ` : ""}${p.tipoEntrega === "envio" ? "EnvÃ­o" : "Local"}`
+                                        ? `${p.numeroDia ? `#${p.numeroDia} · ` : ""}${p.tipoEntrega === "envio" ? "EnvÃ­o" : "Local"}`
                                         : esMozo
                                             ? `Mozo: ${[p.userId?.nombre, p.userId?.apellido].filter(Boolean).join(" ")}`
                                             : "Caja";
@@ -2942,7 +2942,7 @@ export default function CajaPage() {
 
                                     return (
                                         <div key={p._id} className={`rounded-2xl border-2 shadow-sm overflow-hidden flex flex-col h-[500px] ${cardBorder} bg-white`}>
-                                            {/* â”€â”€ Cabecera coloreada â”€â”€ */}
+                                            {/* ”€”€ Cabecera coloreada ”€”€ */}
                                             <div className={`shrink-0 px-4 py-3 ${accentBg}`}>
                                                 <div className="flex items-start justify-between gap-3">
                                                     <div className="flex-1 min-w-0">
@@ -2950,7 +2950,7 @@ export default function CajaPage() {
                                                         <p className="text-xs text-white/65 font-medium mt-0.5">{subtitulo}</p>
                                                         <p className="text-xs text-white/45 mt-0.5">
                                                             {format(new Date(p.createdAt), "HH:mm", { locale: es })}
-                                                            {p.tipoEntrega === "envio" ? " Â· EnvÃ­o" : ""}
+                                                            {p.tipoEntrega === "envio" ? " · EnvÃ­o" : ""}
                                                             {p.comensales ? <span className="inline-flex items-center gap-0.5 ml-1">{p.comensales}<User size={10} /></span> : ""}
                                                         </p>
                                                         {esApp && p.horarioPreferido && (
@@ -2968,7 +2968,7 @@ export default function CajaPage() {
                                                 </div>
                                             </div>
 
-                                            {/* â”€â”€ Items â”€â”€ */}
+                                            {/* ”€”€ Items ”€”€ */}
                                             <div className="px-4 py-3 flex-1 min-h-0 overflow-y-auto space-y-1">
                                                 {p.items.map((item, idx) => {
                                                     const isEditingThis = editingNota?.pedidoId === p._id && editingNota?.itemId === item._id;
@@ -2996,7 +2996,7 @@ export default function CajaPage() {
                                                                 )}
                                                             </div>
                                                             {item.nota && !isEditingThis && (
-                                                                <p className="text-[11px] text-amber-700 italic mt-0.5 ml-5 truncate">âœ {item.nota}</p>
+                                                                <p className="text-[11px] text-amber-700 italic mt-0.5 ml-5 truncate">œ {item.nota}</p>
                                                             )}
                                                             {isEditingThis && (
                                                                 <div className="mt-1.5 ml-5 flex gap-1.5">
@@ -3006,11 +3006,11 @@ export default function CajaPage() {
                                                                         value={editingNota.valor}
                                                                         onChange={e => setEditingNota(s => s ? { ...s, valor: e.target.value } : null)}
                                                                         onKeyDown={e => { if (e.key === "Enter") guardarNota(p._id, item._id!, editingNota.valor); if (e.key === "Escape") setEditingNota(null); }}
-                                                                        placeholder="Nota del Ã­temâ€¦"
+                                                                        placeholder="Nota del Ã­tem€¦"
                                                                         className="flex-1 text-xs border border-amber-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-amber-400 bg-amber-50"
                                                                     />
                                                                     <button onClick={() => guardarNota(p._id, item._id!, editingNota.valor)} className="px-2 py-1 bg-amber-500 text-white rounded-lg text-[10px] font-black">OK</button>
-                                                                    <button onClick={() => setEditingNota(null)} className="px-2 py-1 bg-gray-200 text-gray-600 rounded-lg text-[10px] font-bold">âœ•</button>
+                                                                    <button onClick={() => setEditingNota(null)} className="px-2 py-1 bg-gray-200 text-gray-600 rounded-lg text-[10px] font-bold">œ•</button>
                                                                 </div>
                                                             )}
                                                         </div>
@@ -3033,7 +3033,7 @@ export default function CajaPage() {
                                                 </button>
                                             </div>
 
-                                            {/* â”€â”€ Botones cobrar â”€â”€ */}
+                                            {/* ”€”€ Botones cobrar ”€”€ */}
                                             <div className="px-3 pb-3 flex flex-col gap-2">
                                                 {confirmarCuentaId === p._id ? (
                                                     <div className="w-full flex gap-2">
@@ -3073,7 +3073,7 @@ export default function CajaPage() {
                         </div>
                     )}
 
-                    {/* â”€â”€ TAB MESAS â”€â”€ */}
+                    {/* ”€”€ TAB MESAS ”€”€ */}
                     {tab === "mesas" && (
                         <div className="max-w-4xl mx-auto px-4 pt-4">
                             <div className="flex items-center gap-4 mb-4 text-xs text-gray-500 flex-wrap">
@@ -3137,14 +3137,14 @@ export default function CajaPage() {
                         </div>
                     )}
 
-                    {/* â”€â”€ TAB RESERVAS â”€â”€ */}
+                    {/* ”€”€ TAB RESERVAS ”€”€ */}
                     {tab === "reservas" && (
                         <div className="max-w-2xl mx-auto px-4 pt-4">
                             <ReservasManager onPendingCountChange={setReservasPendientes} />
                         </div>
                     )}
 
-                    {/* â”€â”€ TAB EVENTOS â”€â”€ */}
+                    {/* ”€”€ TAB EVENTOS ”€”€ */}
                     {tab === "eventos" && (
                         <div className="max-w-2xl mx-auto px-4 pt-4 pb-10 space-y-4">
 
@@ -3171,7 +3171,7 @@ export default function CajaPage() {
                                 return (
                                     <div key={ev._id} className="bg-white rounded-2xl border-2 border-black shadow-sm overflow-hidden">
 
-                                        {/* â”€â”€ Header â”€â”€ */}
+                                        {/* ”€”€ Header ”€”€ */}
                                         <div className="bg-black px-5 py-4">
                                             <div className="flex items-start justify-between gap-3">
                                                 <div className="flex-1 min-w-0">
@@ -3219,7 +3219,7 @@ export default function CajaPage() {
 
                                         <div className="p-4 space-y-4">
 
-                                            {/* â”€â”€ Stats â”€â”€ */}
+                                            {/* ”€”€ Stats ”€”€ */}
                                             <div className="grid grid-cols-3 gap-3">
                                                 <div className="bg-gray-50 rounded-xl p-3 text-center border border-gray-200">
                                                     <p className="text-lg font-black text-gray-900">{totalTarjetas}</p>
@@ -3238,7 +3238,7 @@ export default function CajaPage() {
                                                 </div>
                                             </div>
 
-                                            {/* â”€â”€ Desglose entradas por mÃ©todo â”€â”€ */}
+                                            {/* ”€”€ Desglose entradas por mÃ©todo ”€”€ */}
                                             {totalTarjetas > 0 && (() => {
                                                 const tarjetasArr = (ev as any).tarjetas ?? [];
                                                 const METODO_NOMBRE: Record<string, string> = { efectivo: "Efectivo", transferencia: "Transferencia", tarjeta: "Tarjeta" };
@@ -3256,7 +3256,7 @@ export default function CajaPage() {
                                                         <button onClick={() => toggleSeccion(colKey)}
                                                             className="flex items-center gap-2 w-full mb-2 group">
                                                             <p className="text-xs font-black text-gray-400 uppercase tracking-wider flex-1 text-left">
-                                                                Entradas Â· {totalTarjetas} total
+                                                                Entradas · {totalTarjetas} total
                                                             </p>
                                                             <ChevronDown size={13} className={`text-gray-400 transition-transform ${colapsado ? "-rotate-90" : ""}`} />
                                                         </button>
@@ -3356,7 +3356,7 @@ export default function CajaPage() {
                                                 );
                                             })()}
 
-                                            {/* â”€â”€ Botones de acciÃ³n â”€â”€ */}
+                                            {/* ”€”€ Botones de acciÃ³n ”€”€ */}
                                             <div className="grid grid-cols-3 gap-2">
                                                 <button onClick={() => abrirVentaModal(ev._id)}
                                                     className="flex flex-col items-center gap-1 bg-black hover:bg-gray-800 text-white font-bold py-3 rounded-xl transition text-xs">
@@ -3372,7 +3372,7 @@ export default function CajaPage() {
                                                 </button>
                                             </div>
 
-                                            {/* â”€â”€ Mesas â”€â”€ */}
+                                            {/* ”€”€ Mesas ”€”€ */}
                                             {(ev.mesas ?? []).length > 0 && (
                                                 <div>
                                                     <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">Mesas asignadas</p>
@@ -3382,7 +3382,7 @@ export default function CajaPage() {
                                                 </div>
                                             )}
 
-                                            {/* â”€â”€ Comandas â”€â”€ */}
+                                            {/* ”€”€ Comandas ”€”€ */}
                                             {pedidosEv.length > 0 && (() => {
                                                 const colKey = `${ev._id}:comandas`;
                                                 const colapsado = seccionesColapsadas.has(colKey);
@@ -3391,7 +3391,7 @@ export default function CajaPage() {
                                                         <button onClick={() => toggleSeccion(colKey)}
                                                             className="flex items-center gap-2 w-full mb-2 group">
                                                             <p className="text-xs font-black text-gray-400 uppercase tracking-wider flex-1 text-left">
-                                                                Comandas vinculadas Â· {pedidosEv.length}
+                                                                Comandas vinculadas · {pedidosEv.length}
                                                             </p>
                                                             <ChevronDown size={13} className={`text-gray-400 transition-transform ${colapsado ? "-rotate-90" : ""}`} />
                                                         </button>
@@ -3401,7 +3401,7 @@ export default function CajaPage() {
                                                                     <div key={p._id} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-200">
                                                                         <div>
                                                                             <span className="font-bold text-gray-900 text-sm">{p.mesa ? mesaLabel(p.mesa) : p.nombreComanda || "Comanda"}</span>
-                                                                            {p.userId && <span className="text-xs text-gray-400 ml-2">Â· {p.userId.nombre}</span>}
+                                                                            {p.userId && <span className="text-xs text-gray-400 ml-2">· {p.userId.nombre}</span>}
                                                                         </div>
                                                                         <span className="font-black text-gray-900 text-base">{formatMoney(p.total)}</span>
                                                                     </div>
@@ -3412,7 +3412,7 @@ export default function CajaPage() {
                                                 );
                                             })()}
 
-                                            {/* â”€â”€ Ventas directas â”€â”€ */}
+                                            {/* ”€”€ Ventas directas ”€”€ */}
                                             {ev.ventas.length > 0 && (() => {
                                                 const colKeyV = `${ev._id}:ventas`;
                                                 const colapsadoV = seccionesColapsadas.has(colKeyV);
@@ -3432,7 +3432,7 @@ export default function CajaPage() {
                                                             <button onClick={() => toggleSeccion(colKeyV)}
                                                                 className="flex items-center gap-2 flex-1 group">
                                                                 <p className="text-xs font-black text-gray-500 uppercase tracking-wider">
-                                                                    Ventas directas Â· {ev.ventas.length}
+                                                                    Ventas directas · {ev.ventas.length}
                                                                 </p>
                                                                 <ChevronDown size={13} className={`text-gray-400 transition-transform ${colapsadoV ? "-rotate-90" : ""}`} />
                                                             </button>
@@ -3440,11 +3440,11 @@ export default function CajaPage() {
                                                                 <div className="flex items-center gap-1">
                                                                     <button disabled={pagina === 0}
                                                                         onClick={() => setVentasPagina(p => ({ ...p, [ev._id]: pagina - 1 }))}
-                                                                        className="w-6 h-6 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 disabled:opacity-30 hover:border-gray-400 transition text-xs font-bold">â€¹</button>
+                                                                        className="w-6 h-6 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 disabled:opacity-30 hover:border-gray-400 transition text-xs font-bold">€¹</button>
                                                                     <span className="text-[10px] text-gray-400 font-bold">{pagina + 1}/{totalPags}</span>
                                                                     <button disabled={pagina >= totalPags - 1}
                                                                         onClick={() => setVentasPagina(p => ({ ...p, [ev._id]: pagina + 1 }))}
-                                                                        className="w-6 h-6 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 disabled:opacity-30 hover:border-gray-400 transition text-xs font-bold">â€º</button>
+                                                                        className="w-6 h-6 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 disabled:opacity-30 hover:border-gray-400 transition text-xs font-bold">€º</button>
                                                                 </div>
                                                             )}
                                                         </div>
@@ -3459,14 +3459,14 @@ export default function CajaPage() {
                                                                     const isExp = expanded.has(v._id);
                                                                     return (
                                                                         <div key={v._id} className="rounded-xl border border-gray-200 overflow-hidden">
-                                                                            {/* Fila header â€” siempre visible */}
+                                                                            {/* Fila header €” siempre visible */}
                                                                             <div className="flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-gray-50 transition"
                                                                                 onClick={() => toggleV(v._id)}>
                                                                                 <IconV size={13} className="text-gray-400 shrink-0" />
                                                                                 <span className="text-xs font-bold text-gray-700 flex-1 truncate">
                                                                                     {metodoLabel}
                                                                                     <span className="text-gray-400 font-normal ml-1">
-                                                                                        Â· {new Date(v.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                                                                                        · {new Date(v.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
                                                                                     </span>
                                                                                 </span>
                                                                                 <span className="font-black text-gray-900 text-sm shrink-0">{formatMoney(v.total)}</span>
@@ -3480,7 +3480,7 @@ export default function CajaPage() {
                                                                                 </button>
                                                                                 <ChevronDown size={13} className={`text-gray-400 shrink-0 transition-transform ${isExp ? "rotate-180" : ""}`} />
                                                                             </div>
-                                                                            {/* Detalle de Ã­tems y pagos â€” colapsable */}
+                                                                            {/* Detalle de Ã­tems y pagos €” colapsable */}
                                                                             {isExp && (
                                                                                 <div className="border-t border-gray-100 px-3 py-2 bg-gray-50 space-y-1">
                                                                                     {v.items.map((it, i) => (
@@ -3523,11 +3523,11 @@ export default function CajaPage() {
 
                         </div>
                     )}
-                    {/* â”€â”€ TAB CANJES â”€â”€ */}
+                    {/* ”€”€ TAB CANJES ”€”€ */}
                     {tab === "canjes" && (
                         <div className="max-w-2xl mx-auto px-4 pt-4 pb-10 space-y-6">
 
-                            {/* â”€â”€ Solicitudes pendientes â”€â”€ */}
+                            {/* ”€”€ Solicitudes pendientes ”€”€ */}
                             <section>
                                 <p className="text-xs font-black text-gray-700 uppercase tracking-widest mb-3">Solicitudes pendientes</p>
                                 {canjesPendientes.length === 0 ? (
@@ -3574,7 +3574,7 @@ export default function CajaPage() {
                                 )}
                             </section>
 
-                            {/* â”€â”€ GestiÃ³n de canjes disponibles â”€â”€ */}
+                            {/* ”€”€ GestiÃ³n de canjes disponibles ”€”€ */}
                             <section>
                                 <div className="flex items-center justify-between mb-3">
                                     <p className="text-xs font-black text-gray-700 uppercase tracking-widest">Canjes disponibles</p>
@@ -3611,7 +3611,7 @@ export default function CajaPage() {
                                         <select value={rewardForm.tema} onChange={e => setRewardForm(p => ({ ...p, tema: e.target.value }))}
                                             className="w-full px-3 py-2.5 border border-black rounded-xl text-sm focus:outline-none focus:border-gray-400 bg-white">
                                             <option value="">Tarjeta estÃ¡ndar</option>
-                                            <option value="argentina">ðŸ‡¦ðŸ‡· Especial Argentina â€” Mundial 2026</option>
+                                            <option value="argentina">ðŸ‡¦ðŸ‡· Especial Argentina €” Mundial 2026</option>
                                         </select>
                                         <div className="flex gap-2 pt-1">
                                             <button onClick={() => { setRewardFormOpen(false); setRewardEditId(null); }}
@@ -3664,7 +3664,7 @@ export default function CajaPage() {
                         </div>
                     )}
 
-                    {/* â”€â”€ TAB MENÃš â”€â”€ */}
+                    {/* ”€”€ TAB MENÃš ”€”€ */}
                     {tab === "menu" && (
                         <div className="max-w-3xl mx-auto px-4 pt-4 pb-10">
                             {/* Header + botÃ³n agregar */}
@@ -3866,7 +3866,7 @@ export default function CajaPage() {
                                 </div>
                                 <div className="px-5 py-4 space-y-3 overflow-y-auto flex-1 min-h-0">
 
-                                    {/* Efectivo â€” bloque detallado */}
+                                    {/* Efectivo €” bloque detallado */}
                                     <div className="bg-gray-50 rounded-2xl p-4 space-y-2.5">
                                         <p className="text-[10px] font-black text-gray-700 uppercase tracking-wider flex items-center gap-1.5"><Banknote size={11} />Efectivo</p>
                                         <div className="flex justify-between text-sm">
@@ -3906,7 +3906,7 @@ export default function CajaPage() {
                                                     <span className="font-black text-gray-900">{formatMoney(neto)}</span>
                                                 </div>
                                                 {egreso > 0 && (
-                                                    <p className="text-xs text-gray-500">Ingresos {formatMoney(ingreso)} Â· Egresos âˆ’{formatMoney(egreso)}</p>
+                                                    <p className="text-xs text-gray-500">Ingresos {formatMoney(ingreso)} · Egresos ˆ’{formatMoney(egreso)}</p>
                                                 )}
                                                 {excedente > 0 && (
                                                     <p className="text-xs text-amber-600 font-semibold">Incluye {formatMoney(excedente)} de excedente (propina)</p>
@@ -3948,8 +3948,8 @@ export default function CajaPage() {
                                 </div>
                                 <div className="px-5 py-4 space-y-3">
                                     <p className="text-sm text-gray-600">
-                                        Abierta desde las <strong>{sesion ? new Date(sesion.fechaApertura).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : "â€”"}</strong>
-                                        {sesion && ` Â· Inicial: ${formatMoney(sesion.montoInicial)}`}
+                                        Abierta desde las <strong>{sesion ? new Date(sesion.fechaApertura).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : "€”"}</strong>
+                                        {sesion && ` · Inicial: ${formatMoney(sesion.montoInicial)}`}
                                     </p>
                                     <div>
                                         <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Monto en caja al cierre</label>
@@ -3976,7 +3976,7 @@ export default function CajaPage() {
                 </div>
             )}
 
-            {/* â”€â”€ Modal autoservicio â”€â”€ */}
+            {/* ”€”€ Modal autoservicio ”€”€ */}
             {autoservModal && createPortal(
                 <div className="fixed inset-0 z-[200] bg-black/60 flex items-end justify-center p-4"
                     onClick={() => setAutoservModal(false)}>
@@ -4211,7 +4211,7 @@ export default function CajaPage() {
             )}
 
             {/* Modal gastos */}
-            {/* â”€â”€ Modal nuevo delivery â”€â”€ */}
+            {/* ”€”€ Modal nuevo delivery ”€”€ */}
             {deliveryModal && createPortal(
                 <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden">
@@ -4268,7 +4268,7 @@ export default function CajaPage() {
                                     style={{ fontSize: "16px" }}
                                     className="w-full border-2 border-gray-100 focus:border-blue-400 rounded-xl px-4 py-3 focus:outline-none transition font-semibold text-gray-900 bg-white"
                                 >
-                                    <option value="">Seleccionarâ€¦</option>
+                                    <option value="">Seleccionar€¦</option>
                                     <option value="20:30">20:30</option>
                                     <option value="21:00">21:00</option>
                                     <option value="21:30">21:30</option>
@@ -4293,7 +4293,7 @@ export default function CajaPage() {
                                 }}
                                 disabled={!deliveryForm.nombre.trim() || !deliveryForm.telefono.trim() || !deliveryForm.direccion.trim()}
                                 className="flex-1 bg-blue-600 disabled:opacity-40 text-white font-black py-3 rounded-xl transition hover:bg-blue-700 flex items-center justify-center gap-1.5">
-                                Elegir productos â†’
+                                Elegir productos †’
                             </button>
                         </div>
                     </div>
@@ -4396,7 +4396,7 @@ export default function CajaPage() {
                                     </div>
                                 </div>
 
-                                {/* Pagos â€” secciÃ³n principal */}
+                                {/* Pagos €” secciÃ³n principal */}
                                 <div className="space-y-2">
                                     <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Forma de pago</p>
                                     {cobrarForm.pagos.map((pago, idx) => {
@@ -4450,7 +4450,7 @@ export default function CajaPage() {
                                     )}
                                 </div>
 
-                                {/* Descuento â€” secciÃ³n secundaria */}
+                                {/* Descuento €” secciÃ³n secundaria */}
                                 <div className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-2.5">
                                     <span className="text-xs font-bold text-gray-500 shrink-0">Descuento $</span>
                                     <input type="number" min="0" max={ped.total}
@@ -4621,7 +4621,7 @@ export default function CajaPage() {
                                     </div>
                                 )}
                             </div>
-                            {/* Footer carrito â€” solo en modo agregar */}
+                            {/* Footer carrito €” solo en modo agregar */}
                             {editItemModal.modo === "agregar" && editItemCart.length > 0 && (
                                 <div className="border-t border-gray-100 px-4 pt-3 pb-4 shrink-0 space-y-2">
                                     <div className="space-y-1.5 max-h-32 overflow-y-auto">
@@ -4633,7 +4633,7 @@ export default function CajaPage() {
                                                         const ex = prev.find(x => x.menuItemId === i.menuItemId);
                                                         if (!ex || ex.cantidad === 1) return prev.filter(x => x.menuItemId !== i.menuItemId);
                                                         return prev.map(x => x.menuItemId === i.menuItemId ? { ...x, cantidad: x.cantidad - 1 } : x);
-                                                    })} className="w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-xs font-bold transition">âˆ’</button>
+                                                    })} className="w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-xs font-bold transition">ˆ’</button>
                                                     <span className="text-xs font-black w-4 text-center">{i.cantidad}</span>
                                                     <button onClick={() => setEditItemCart(prev => prev.map(x => x.menuItemId === i.menuItemId ? { ...x, cantidad: x.cantidad + 1 } : x))}
                                                         className="w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-xs font-bold transition">+</button>
@@ -4767,7 +4767,7 @@ export default function CajaPage() {
                             <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
                                 <div className="flex-1">
                                     <h2 className="font-black text-gray-900">Registrar tarjetas</h2>
-                                    <p className="text-xs text-gray-700">{ev.nombre} Â· {formatMoney(precio)} c/u</p>
+                                    <p className="text-xs text-gray-700">{ev.nombre} · {formatMoney(precio)} c/u</p>
                                 </div>
                                 <button onClick={() => setTarjetasModal(false)} className="p-1 text-gray-700"><X size={18} /></button>
                             </div>
@@ -4954,7 +4954,7 @@ export default function CajaPage() {
                                         {ventaCart.map(it => (
                                             <div key={it.menuItemId} className="flex items-center gap-2">
                                                 <button onClick={() => setVentaCart(prev => prev.map(x => x.menuItemId === it.menuItemId ? { ...x, cantidad: Math.max(1, x.cantidad - 1) } : x))}
-                                                    className="w-7 h-7 rounded-lg bg-white border border-gray-200 text-gray-600 font-bold flex items-center justify-center shrink-0 text-base leading-none">âˆ’</button>
+                                                    className="w-7 h-7 rounded-lg bg-white border border-gray-200 text-gray-600 font-bold flex items-center justify-center shrink-0 text-base leading-none">ˆ’</button>
                                                 <span className="text-sm font-bold w-5 text-center shrink-0">{it.cantidad}</span>
                                                 <button onClick={() => setVentaCart(prev => prev.map(x => x.menuItemId === it.menuItemId ? { ...x, cantidad: x.cantidad + 1 } : x))}
                                                     className="w-7 h-7 rounded-lg bg-white border border-gray-200 text-gray-600 font-bold flex items-center justify-center shrink-0 text-base leading-none">+</button>
@@ -5344,7 +5344,7 @@ export default function CajaPage() {
                 </div>
             )}
 
-            {/* â”€â”€ Modal cobro parcial â”€â”€ */}
+            {/* ”€”€ Modal cobro parcial ”€”€ */}
             {cpModal && (() => {
                 const cpTotal = cpItems.reduce((s, i) => s + i.precio * i.selected, 0);
                 const titulo = cpModal.mesa ? mesaLabel(cpModal.mesa) : cpModal.nombreComanda || "Pedido";
@@ -5369,11 +5369,11 @@ export default function CajaPage() {
                                     <div key={it.itemId} className="flex items-center gap-3">
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-semibold text-gray-800 truncate">{it.nombre}</p>
-                                            <p className="text-xs text-gray-400">{formatMoney(it.precio)} c/u Â· hasta {it.max}</p>
+                                            <p className="text-xs text-gray-400">{formatMoney(it.precio)} c/u · hasta {it.max}</p>
                                         </div>
                                         <div className="flex items-center gap-2 shrink-0">
                                             <button onClick={() => setCpCantidad(it.itemId, -1)} disabled={it.selected === 0}
-                                                className="w-7 h-7 rounded-full border-2 border-gray-300 flex items-center justify-center text-gray-700 font-black disabled:opacity-30 hover:border-black transition">âˆ’</button>
+                                                className="w-7 h-7 rounded-full border-2 border-gray-300 flex items-center justify-center text-gray-700 font-black disabled:opacity-30 hover:border-black transition">ˆ’</button>
                                             <span className={`w-6 text-center font-black text-sm ${it.selected > 0 ? "text-black" : "text-gray-300"}`}>{it.selected}</span>
                                             <button onClick={() => setCpCantidad(it.itemId, +1)} disabled={it.selected === it.max}
                                                 className="w-7 h-7 rounded-full border-2 border-gray-300 flex items-center justify-center text-gray-700 font-black disabled:opacity-30 hover:border-black transition">+</button>
@@ -5385,7 +5385,7 @@ export default function CajaPage() {
                                 ))}
                             </div>
 
-                            {/* MÃ©todo de pago â€” diseÃ±o grande */}
+                            {/* MÃ©todo de pago €” diseÃ±o grande */}
                             <div className="border-t border-gray-100 shrink-0">
                                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 px-4 pt-3 mb-2">MÃ©todo de pago</p>
                                 <div className="grid grid-cols-3 border-b border-gray-100">
@@ -5410,7 +5410,7 @@ export default function CajaPage() {
                                     <button onClick={ejecutarCobroParcial} disabled={cpSaving || cpTotal === 0}
                                         className="w-full bg-black text-white font-black py-3 rounded-xl text-base transition disabled:opacity-40 flex items-center justify-center gap-2">
                                         {cpSaving ? <Loader2 size={18} className="animate-spin" /> : null}
-                                        {cpSaving ? "Procesandoâ€¦" : `Cobrar ${formatMoney(cpTotal)}`}
+                                        {cpSaving ? "Procesando€¦" : `Cobrar ${formatMoney(cpTotal)}`}
                                     </button>
                                 </div>
                             </div>
@@ -5421,7 +5421,7 @@ export default function CajaPage() {
             })()}
 
 
-            {/* â”€â”€ Modal comensales (caja) â”€â”€ */}
+            {/* ”€”€ Modal comensales (caja) ”€”€ */}
             {comensalesModalCaja && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
                     onClick={() => setComensalesModalCaja(null)}>
@@ -5439,7 +5439,7 @@ export default function CajaPage() {
                                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Cantidad de personas</p>
                                 <div className="flex items-center gap-4 justify-center">
                                     <button onClick={() => setComensalesCountCaja(n => Math.max(0, n - 1))}
-                                        className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-black text-xl transition active:scale-95">âˆ’</button>
+                                        className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-black text-xl transition active:scale-95">ˆ’</button>
                                     <span className="text-4xl font-black text-gray-900 w-12 text-center">{comensalesCountCaja}</span>
                                     <button onClick={() => setComensalesCountCaja(n => n + 1)}
                                         className="w-10 h-10 rounded-full bg-gray-900 hover:bg-gray-700 text-white font-black text-xl transition active:scale-95">+</button>
@@ -5496,7 +5496,7 @@ export default function CajaPage() {
                 </div>
             )}
 
-            {/* â”€â”€ Modal transferir mesa â”€â”€ */}
+            {/* ”€”€ Modal transferir mesa ”€”€ */}
             {/* Modal editar direcciÃ³n */}
             {editDireccionModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
@@ -5601,7 +5601,7 @@ export default function CajaPage() {
                                 <p className="font-black text-white text-sm">Transferir mesa</p>
                                 <p className="text-xs text-white/60">
                                     Actual: <span className="text-white font-bold">{cambiarMesaModal.mesa ? mesaLabel(cambiarMesaModal.mesa) : "Sin mesa"}</span>
-                                    {" Â· "}TocÃ¡ una mesa disponible
+                                    {" · "}TocÃ¡ una mesa disponible
                                 </p>
                             </div>
                             <button onClick={() => setCambiarMesaModal(null)} className="text-white/60 hover:text-white transition">
