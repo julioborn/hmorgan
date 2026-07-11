@@ -3451,7 +3451,9 @@ export default function CajaPage() {
                                                         {!colapsadoV && (
                                                             <div className="space-y-1.5">
                                                                 {slice.map(v => {
-                                                                    const pagosV = ((v as any).pagos as { metodoPago: string; monto: number }[] | undefined)?.filter(pg => pg.monto > 0) ?? [];
+                                                                    const pagosV = (((v as any).pagos as { metodoPago: string; monto: number }[] | undefined)?.filter(pg => pg.monto > 0) ?? []).length > 0
+                                                                        ? (((v as any).pagos as { metodoPago: string; monto: number }[]).filter(pg => pg.monto > 0))
+                                                                        : (v.metodoPago ? [{ metodoPago: v.metodoPago, monto: v.total }] : []);
                                                                     const metodoLabel = pagosV.length > 1
                                                                         ? pagosV.map(pg => METODO_LABEL[pg.metodoPago] || pg.metodoPago).join(" + ")
                                                                         : METODO_LABEL[v.metodoPago] || v.metodoPago;
