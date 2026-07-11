@@ -78,6 +78,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         return NextResponse.json({ ok: true, evento });
     }
 
+    if (body.accion === "editarMetodoTarjeta") {
+        const { tarjetaId, metodoPago } = body;
+        if (!tarjetaId || !metodoPago) return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
+        const tarjetas = evento.tarjetas as any[];
+        const t = tarjetas.find((t: any) => t._id.toString() === tarjetaId);
+        if (!t) return NextResponse.json({ error: "Tarjeta no encontrada" }, { status: 404 });
+        t.metodoPago = metodoPago;
+        await evento.save();
+        await CajaMovement.updateMany({ tarjetaId }, { $set: { metodoPago } });
+        return NextResponse.json({ ok: true, evento });
+    }
+
     if (body.accion === "eliminarTarjeta") {
         const { tarjetaId } = body;
         if (!tarjetaId) return NextResponse.json({ error: "tarjetaId requerido" }, { status: 400 });

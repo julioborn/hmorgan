@@ -314,6 +314,8 @@ export default function CajaPage() {
     const [tarjetasEventoId, setTarjetasEventoId] = useState<string | null>(null);
     const [tarjetasCantidad, setTarjetasCantidad] = useState("1");
     const [tarjetasSaving, setTarjetasSaving] = useState(false);
+    const [editTarjetaId, setEditTarjetaId] = useState<string | null>(null);
+    const [editTarjetaMetodo, setEditTarjetaMetodo] = useState<"efectivo" | "transferencia" | "tarjeta">("efectivo");
     const [cierreEventoData, setCierreEventoData] = useState<CierreResumen | null>(null);
     const [cierreEventoSaving, setCierreEventoSaving] = useState(false);
     const [ventaModal, setVentaModal] = useState(false);
@@ -3196,31 +3198,74 @@ export default function CajaPage() {
                                                                                 )}
                                                                             </div>
                                                                         </div>
-                                                                        {/* Sub-filas por registro con botón eliminar */}
+                                                                        {/* Sub-filas por registro */}
                                                                         {g.registros.map((t: any) => (
-                                                                            <div key={t._id} className="flex items-center justify-between px-3 py-1.5 border-t border-gray-100 bg-white">
-                                                                                <span className="text-xs text-gray-400">{t.cantidad} entrada{t.cantidad !== 1 ? "s" : ""}</span>
-                                                                                <div className="flex items-center gap-2">
-                                                                                    {precioTarjeta > 0 && (
-                                                                                        <span className="text-xs text-gray-400">{formatMoney(t.cantidad * precioTarjeta)}</span>
-                                                                                    )}
-                                                                                    <button
-                                                                                        onClick={async () => {
-                                                                                            const res = await fetch(`/api/eventos/${ev._id}`, {
-                                                                                                method: "PATCH", credentials: "include",
-                                                                                                headers: { "Content-Type": "application/json" },
-                                                                                                body: JSON.stringify({ accion: "eliminarTarjeta", tarjetaId: t._id }),
-                                                                                            });
-                                                                                            if (res.ok) {
-                                                                                                const { evento: updated } = await res.json();
-                                                                                                setEventosActivos(prev => prev.map(e => e._id === ev._id ? updated : e));
-                                                                                            }
-                                                                                        }}
-                                                                                        className="p-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition"
-                                                                                        title="Eliminar este registro">
-                                                                                        <Trash2 size={11} />
-                                                                                    </button>
+                                                                            <div key={t._id} className="border-t border-gray-100 bg-white">
+                                                                                <div className="flex items-center justify-between px-3 py-1.5">
+                                                                                    <span className="text-xs text-gray-400">{t.cantidad} entrada{t.cantidad !== 1 ? "s" : ""}</span>
+                                                                                    <div className="flex items-center gap-1.5">
+                                                                                        {precioTarjeta > 0 && (
+                                                                                            <span className="text-xs text-gray-400">{formatMoney(t.cantidad * precioTarjeta)}</span>
+                                                                                        )}
+                                                                                        <button
+                                                                                            onClick={() => { setEditTarjetaId(t._id); setEditTarjetaMetodo(t.metodoPago || "efectivo"); }}
+                                                                                            className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition"
+                                                                                            title="Cambiar método de pago">
+                                                                                            <Pencil size={11} />
+                                                                                        </button>
+                                                                                        <button
+                                                                                            onClick={async () => {
+                                                                                                const res = await fetch(`/api/eventos/${ev._id}`, {
+                                                                                                    method: "PATCH", credentials: "include",
+                                                                                                    headers: { "Content-Type": "application/json" },
+                                                                                                    body: JSON.stringify({ accion: "eliminarTarjeta", tarjetaId: t._id }),
+                                                                                                });
+                                                                                                if (res.ok) {
+                                                                                                    const { evento: updated } = await res.json();
+                                                                                                    setEventosActivos(prev => prev.map(e => e._id === ev._id ? updated : e));
+                                                                                                }
+                                                                                            }}
+                                                                                            className="p-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition"
+                                                                                            title="Eliminar">
+                                                                                            <Trash2 size={11} />
+                                                                                        </button>
+                                                                                    </div>
                                                                                 </div>
+                                                                                {editTarjetaId === t._id && (
+                                                                                    <div className="px-3 pb-2 space-y-1.5">
+                                                                                        <div className="flex gap-1.5">
+                                                                                            {(["efectivo", "transferencia", "tarjeta"] as const).map(m => {
+                                                                                                const Icon = METODO_ICON[m];
+                                                                                                return (
+                                                                                                    <button key={m} onClick={() => setEditTarjetaMetodo(m)}
+                                                                                                        className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 border transition ${editTarjetaMetodo === m ? "bg-black text-white border-black" : "bg-white text-gray-500 border-gray-200"}`}>
+                                                                                                        <Icon size={11} /> {METODO_LABEL[m]}
+                                                                                                    </button>
+                                                                                                );
+                                                                                            })}
+                                                                                        </div>
+                                                                                        <div className="flex gap-1.5">
+                                                                                            <button onClick={() => setEditTarjetaId(null)}
+                                                                                                className="flex-1 py-1.5 rounded-lg text-[11px] font-semibold border border-gray-200 text-gray-500">
+                                                                                                Cancelar
+                                                                                            </button>
+                                                                                            <button onClick={async () => {
+                                                                                                const res = await fetch(`/api/eventos/${ev._id}`, {
+                                                                                                    method: "PATCH", credentials: "include",
+                                                                                                    headers: { "Content-Type": "application/json" },
+                                                                                                    body: JSON.stringify({ accion: "editarMetodoTarjeta", tarjetaId: t._id, metodoPago: editTarjetaMetodo }),
+                                                                                                });
+                                                                                                if (res.ok) {
+                                                                                                    const { evento: updated } = await res.json();
+                                                                                                    setEventosActivos(prev => prev.map(e => e._id === ev._id ? updated : e));
+                                                                                                    setEditTarjetaId(null);
+                                                                                                }
+                                                                                            }} className="flex-1 py-1.5 rounded-lg text-[11px] font-black bg-black text-white">
+                                                                                                Guardar
+                                                                                            </button>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                )}
                                                                             </div>
                                                                         ))}
                                                                     </div>
