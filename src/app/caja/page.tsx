@@ -4687,7 +4687,7 @@ export default function CajaPage() {
                 const falta = totalCart - totalPagado;
                 const vuelto = totalPagado - totalCart;
 
-                const CatGrid = ({ cats, onSelect }: { cats: string[]; onSelect: (c: string) => void }) => (
+                const renderCatGrid = (cats: string[], onSelect: (c: string) => void) => (
                     <div className="grid grid-cols-2 gap-2 pt-1">
                         {cats.map(cat => {
                             const img = categoryImages[cat];
@@ -4753,10 +4753,10 @@ export default function CajaPage() {
                                     </div>
                                 ) : !ventaMenuCat ? (
                                     soloBebidas
-                                        ? <CatGrid cats={subCatsV} onSelect={setVentaMenuCat} />
-                                        : <CatGrid cats={allCatsV} onSelect={setVentaMenuCat} />
+                                        ? renderCatGrid(subCatsV, setVentaMenuCat)
+                                        : renderCatGrid(allCatsV, setVentaMenuCat)
                                 ) : ventaMenuCat === "BEBIDAS" ? (
-                                    <CatGrid cats={subCatsV} onSelect={setVentaMenuCat} />
+                                    renderCatGrid(subCatsV, setVentaMenuCat)
                                 ) : (
                                     <div className="space-y-1 pt-1">
                                         {itemsForCatV.map(m => (
