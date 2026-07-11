@@ -2087,11 +2087,18 @@ export default function CajaPage() {
     const entregadosPendientesCobro = pedidosFiltrados.filter(p => p.estado === "entregado");
 
     let lista = vista === "pendientes" ? pendientes : vista === "preparando" ? preparando : vista === "listos" ? listos : vista === "llamadas" ? [] : finalizados;
-    // Mozo primero
+    // Mozo primero; en listos ordenar por mesa numérico
     lista = [...lista].sort((a, b) => {
         const aEmp = a.fuente === "empleado" || a.userId?.role === "empleado";
         const bEmp = b.fuente === "empleado" || b.userId?.role === "empleado";
-        return aEmp && !bEmp ? -1 : !aEmp && bEmp ? 1 : 0;
+        const empDiff = aEmp && !bEmp ? -1 : !aEmp && bEmp ? 1 : 0;
+        if (empDiff !== 0) return empDiff;
+        if (vista === "listos") {
+            const aN = parseInt(a.mesa ?? "9999", 10);
+            const bN = parseInt(b.mesa ?? "9999", 10);
+            return (isNaN(aN) ? 9999 : aN) - (isNaN(bN) ? 9999 : bN);
+        }
+        return 0;
     });
 
     const getEstadoIdx = (e: string) => ESTADOS.findIndex(x => x.key === e);
