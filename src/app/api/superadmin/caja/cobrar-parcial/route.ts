@@ -25,7 +25,9 @@ export async function POST(req: NextRequest) {
     if (!pedidoId || !items?.length || !metodoPago)
         return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
 
-    const pedido = await Pedido.findById(pedidoId).populate("items.menuItemId", "nombre precio categoria");
+    const pedido = await Pedido.findById(pedidoId)
+        .populate("items.menuItemId", "nombre precio categoria")
+        .populate("userId", "nombre apellido");
     if (!pedido) return NextResponse.json({ error: "Pedido no encontrado" }, { status: 404 });
     if (pedido.estado === "cerrado") return NextResponse.json({ error: "Ya cerrado" }, { status: 400 });
 
@@ -63,13 +65,19 @@ export async function POST(req: NextRequest) {
     // Register movement in open caja session
     const sesion = await CajaSession.findOne({ estado: "abierta" });
     if (sesion) {
+        const pUser2 = (pedido as any).userId;
+        const nombreP = pUser2?.nombre ? `${pUser2.nombre} ${pUser2.apellido || ""}`.trim() : null;
+        const esMozoP = (pedido as any).fuente === "empleado";
         const loc = (pedido as any).mesa
             ? `Mesa ${(pedido as any).mesa}`
             : (pedido as any).nombreComanda || "Sin mesa";
+        const conceptoParcial = esMozoP
+            ? `Parcial · ${loc}${nombreP ? ` · Mozo: ${nombreP}` : ""}`
+            : `Parcial · App${nombreP ? ` · ${nombreP}` : ""}`;
         await CajaMovement.create({
             sesionId: sesion._id,
             tipo: "ingreso",
-            concepto: `Cobro parcial · ${loc}`,
+            concepto: conceptoParcial,
             monto: Number(montoPagado) || 0,
             metodoPago,
             pedidoId: pedido._id,

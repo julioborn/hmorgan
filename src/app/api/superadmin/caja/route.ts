@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
         if (!sesionAbierta) return NextResponse.json({ sesion: null, movimientos: [] });
 
         const movimientos = await CajaMovement.find({ sesionId: sesionAbierta._id })
+            .populate("userId", "nombre apellido")
             .sort({ createdAt: -1 })
             .lean();
 

@@ -31,12 +31,38 @@ export async function POST(req: NextRequest) {
     if (!pedidoId || !metodoPago) return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
 
     const pedido = await Pedido.findById(pedidoId)
-        .populate("items.menuItemId", "nombre precio categoria");
+        .populate("items.menuItemId", "nombre precio categoria")
+        .populate("userId", "nombre apellido");
     if (!pedido) return NextResponse.json({ error: "Pedido no encontrado" }, { status: 404 });
     if (pedido.estado === "cerrado") return NextResponse.json({ error: "Ya cerrado" }, { status: 400 });
 
     const descuentoNum = Math.max(0, Number(descuento) || 0);
     const totalConDescuento = Math.max(0, (pedido.total || 0) - descuentoNum);
+
+    // Armar concepto descriptivo según tipo de pedido
+    const pUser = (pedido as any).userId;
+    const nombrePersona = pUser?.nombre ? `${pUser.nombre} ${pUser.apellido || ""}`.trim() : null;
+    const esEvento   = !!(pedido as any).eventoId;
+    const esDelivery = (pedido as any).fuente === "cliente" && (pedido as any).tipoEntrega === "envio";
+    const esApp      = (pedido as any).fuente === "cliente";
+    const esMozo     = (pedido as any).fuente === "empleado";
+
+    let concepto: string;
+    if (esEvento) {
+        const loc = (pedido as any).mesa ? `Mesa ${(pedido as any).mesa}` : ((pedido as any).nombreComanda || "");
+        concepto = `Evento${loc ? ` · ${loc}` : ""}${nombrePersona ? ` · ${nombrePersona}` : ""}`;
+    } else if (esDelivery) {
+        const num = (pedido as any).numeroDia ? ` #${(pedido as any).numeroDia}` : "";
+        concepto = `Delivery${num}${nombrePersona ? ` · ${nombrePersona}` : ""}`;
+    } else if (esApp) {
+        concepto = `App${nombrePersona ? ` · ${nombrePersona}` : ""}`;
+    } else if (esMozo) {
+        const loc = (pedido as any).mesa ? `Mesa ${(pedido as any).mesa}` : ((pedido as any).nombreComanda || "Sin mesa");
+        concepto = `${loc}${nombrePersona ? ` · Mozo: ${nombrePersona}` : ""}`;
+    } else {
+        const loc = (pedido as any).mesa ? `Mesa ${(pedido as any).mesa}` : "Sin mesa";
+        concepto = `Caja · ${loc}`;
+    }
 
     // Cerrar el pedido
     pedido.estado = "cerrado";
@@ -70,7 +96,7 @@ export async function POST(req: NextRequest) {
     // Registrar ingreso(s) en caja — un movimiento por método de pago
     const sesion = await CajaSession.findOne({ estado: "abierta" });
     if (sesion) {
-        const concepto = `Cobro Mesa ${pedido.mesa || "—"} (Pedido #${pedido._id.toString().slice(-6)})`;
+        // concepto ya armado arriba
         const pagosArr: { metodo: string; monto: number }[] = Array.isArray(pagos) && pagos.length > 0
             ? pagos
             : [{ metodo: metodoPago, monto: totalConDescuento }];
