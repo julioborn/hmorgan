@@ -222,7 +222,7 @@ export default function CajaPage() {
     const [alertasPedidos, setAlertasPedidos] = useState<Map<string, number>>(new Map());
     const [listosToast, setListosToast] = useState<{ id: string; label: string; ts: number }[]>([]);
     const [vista, setVista] = useState<Vista>("pendientes");
-    const [filtroFuente, setFiltroFuente] = useState<"todos" | "bar" | "delivery" | "eventos">("todos");
+    const [filtroFuente, setFiltroFuente] = useState<"todos" | "bar" | "delivery" | "eventos" | "timbre">("todos");
     const hoyStr = new Date().toISOString().slice(0, 10);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
     const [openForm, setOpenForm] = useState({ montoInicial: "", notas: "" });
@@ -2393,6 +2393,8 @@ export default function CajaPage() {
                                 const cntBar      = activos.filter(p => p.fuente !== "cliente" && p.tipoEntrega !== "envio" && !p.eventoId).length;
                                 const cntDelivery = activos.filter(p => p.fuente === "cliente" || p.tipoEntrega === "envio").length;
                                 const cntEventos  = activos.filter(p => !!p.eventoId).length;
+                                const mozoCount   = llamadas.filter(l => l.tipo !== "cuenta").length;
+                                const cuentaCount = llamadas.filter(l => l.tipo === "cuenta").length;
                                 const btnBase = "relative flex-1 py-2 rounded-xl text-xs font-black transition";
                                 const active  = "bg-black text-white shadow ring-2 ring-black ring-offset-2";
                                 const inactive = "bg-gray-100 text-gray-500 hover:bg-gray-200 border-2 border-transparent";
@@ -2415,40 +2417,28 @@ export default function CajaPage() {
                                                 {cntEventos > 0 && <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 text-[10px] font-black rounded-full bg-amber-600 text-white flex items-center justify-center">{cntEventos}</span>}
                                             </button>
                                         )}
-                                    </div>
-                                );
-                            })()}
-
-                            {/* Sub-tabs estado */}
-                            {(() => {
-                                const mozoCount = llamadas.filter(l => l.tipo !== "cuenta").length;
-                                const cuentaCount = llamadas.filter(l => l.tipo === "cuenta").length;
-                                return (
-                                    <div className="flex gap-2 mb-5">
-                                        {renderTabBtn("pendientes", "Pendientes", pendientes.length)}
-                                        {renderTabBtn("preparando", "Preparando", preparando.length)}
-                                        {renderTabBtn("listos", "Listos", listos.length)}
-                                        {renderTabBtn("finalizados", "Finalizados", entregadosPendientesCobro.length)}
-                                        <button onClick={() => setVista("llamadas")}
-                                            className={`relative flex-1 py-2.5 text-xs font-black transition rounded-xl flex items-center justify-center gap-1.5 ${vista === "llamadas" ? "bg-black text-white shadow-md" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+                                        <button onClick={() => setFiltroFuente("timbre")}
+                                            className={`${btnBase} flex items-center justify-center gap-1 ${filtroFuente === "timbre" ? active : inactive}`}>
                                             Timbre
-                                            {mozoCount > 0 && (
-                                                <span className="min-w-[1.3rem] px-1 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-black text-center leading-tight">
-                                                    {mozoCount}
-                                                </span>
-                                            )}
-                                            {cuentaCount > 0 && (
-                                                <span className="min-w-[1.3rem] px-1 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-black text-center leading-tight">
-                                                    {cuentaCount}
-                                                </span>
-                                            )}
+                                            {mozoCount > 0 && <span className="min-w-[16px] px-0.5 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-black text-center leading-tight">{mozoCount}</span>}
+                                            {cuentaCount > 0 && <span className="min-w-[16px] px-0.5 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-black text-center leading-tight">{cuentaCount}</span>}
                                         </button>
                                     </div>
                                 );
                             })()}
 
-                            {/* Vista llamadas */}
-                            {vista === "llamadas" && (
+                            {/* Sub-tabs estado (ocultos en modo timbre) */}
+                            {filtroFuente !== "timbre" && (
+                                <div className="flex gap-2 mb-5">
+                                    {renderTabBtn("pendientes", "Pendientes", pendientes.length)}
+                                    {renderTabBtn("preparando", "Preparando", preparando.length)}
+                                    {renderTabBtn("listos", "Listos", listos.length)}
+                                    {renderTabBtn("finalizados", "Finalizados", entregadosPendientesCobro.length)}
+                                </div>
+                            )}
+
+                            {/* Vista timbre */}
+                            {filtroFuente === "timbre" && (
                                 <div className="max-w-lg space-y-3">
                                     {llamadas.length === 0 ? (
                                         <div className="text-center py-16 text-gray-400">
@@ -2487,7 +2477,7 @@ export default function CajaPage() {
                                 </div>
                             )}
 
-                            <div className={vista === "llamadas" ? "hidden" : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 items-start"}>
+                            <div className={filtroFuente === "timbre" ? "hidden" : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 items-start"}>
                                 <AnimatePresence>
                                     {lista.length === 0 ? (
                                         <p className="col-span-full text-center text-gray-700 py-12">Sin pedidos en este estado.</p>
