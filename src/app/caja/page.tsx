@@ -4713,7 +4713,7 @@ export default function CajaPage() {
 
                 return (
                     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-                        <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl flex flex-col" style={{ maxHeight: "92vh" }}>
+                        <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl flex flex-col" style={{ maxHeight: "92vh" }}>
 
                             {/* Header */}
                             <div className="flex items-center gap-2 px-4 py-3.5 border-b border-gray-100 shrink-0">
