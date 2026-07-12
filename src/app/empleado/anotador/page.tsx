@@ -501,7 +501,7 @@ export default function AnotadorPage() {
                                                     </div>
                                                 </div>
                                                 {it.nota && !isEditingThis && (
-                                                    <p className="text-[11px] text-amber-700 italic mt-0.5 ml-5 truncate">✏ {it.nota}</p>
+                                                    <p className="text-[11px] text-amber-700 italic mt-0.5 ml-5 break-words">✏ {it.nota}</p>
                                                 )}
                                                 {isEditingThis && (
                                                     <div className="mt-1.5 ml-5 flex gap-1.5">

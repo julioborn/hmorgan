@@ -2680,7 +2680,7 @@ export default function CajaPage() {
                                                                 <li key={it._id || idx} className={`px-3 py-2 transition-colors ${it.listo ? "bg-emerald-50" : ""}`}>
                                                                     <div className="flex items-center gap-2">
                                                                         <span className={`font-black text-sm shrink-0 ${it.listo ? "text-emerald-600" : "text-gray-900"}`}>{it.cantidad}×</span>
-                                                                        <span className={`text-sm font-semibold flex-1 min-w-0 truncate ${it.listo ? "text-emerald-700" : "text-gray-900"}`}>{it.menuItemId?.nombre}</span>
+                                                                        <span className={`text-sm font-semibold flex-1 min-w-0 break-words ${it.listo ? "text-emerald-700" : "text-gray-900"}`}>{it.menuItemId?.nombre}</span>
                                                                         {p.estado !== "cerrado" && p.estado !== "cancelado" && it._id && (
                                                                             <div className="flex items-center gap-1 shrink-0">
                                                                                 <button onClick={() => setEditingNota(isEditingThis ? null : { pedidoId: p._id, itemId: it._id!, valor: it.nota || "" })}
@@ -2699,7 +2699,7 @@ export default function CajaPage() {
                                                                         )}
                                                                     </div>
                                                                     {it.nota && !isEditingThis && (
-                                                                        <p className="text-[11px] text-amber-700 italic mt-0.5 ml-5 truncate">✏ {it.nota}</p>
+                                                                        <p className="text-[11px] text-amber-700 italic mt-0.5 ml-5 break-words">✏ {it.nota}</p>
                                                                     )}
                                                                     {isEditingThis && (
                                                                         <div className="mt-1.5 ml-5 flex gap-1.5">
@@ -2978,7 +2978,7 @@ export default function CajaPage() {
                                                         <div key={item._id || idx} className={`rounded-lg px-2 py-1.5 -mx-2 transition-colors ${item.listo ? "bg-emerald-50" : ""}`}>
                                                             <div className="flex items-center gap-2">
                                                                 <span className={`font-black text-sm shrink-0 ${item.listo ? "text-emerald-600" : "text-gray-900"}`}>{item.cantidad}×</span>
-                                                                <span className={`text-sm font-semibold flex-1 min-w-0 truncate ${item.listo ? "text-emerald-700" : "text-gray-900"}`}>{item.menuItemId?.nombre}</span>
+                                                                <span className={`text-sm font-semibold flex-1 min-w-0 break-words ${item.listo ? "text-emerald-700" : "text-gray-900"}`}>{item.menuItemId?.nombre}</span>
                                                                 <span className="text-xs text-gray-700 shrink-0">{formatMoney((item.menuItemId?.precio || 0) * item.cantidad)}</span>
                                                                 {item._id && (
                                                                     <div className="flex items-center gap-1 shrink-0">
@@ -2998,7 +2998,7 @@ export default function CajaPage() {
                                                                 )}
                                                             </div>
                                                             {item.nota && !isEditingThis && (
-                                                                <p className="text-[11px] text-amber-700 italic mt-0.5 ml-5 truncate">✏ {item.nota}</p>
+                                                                <p className="text-[11px] text-amber-700 italic mt-0.5 ml-5 break-words">✏ {item.nota}</p>
                                                             )}
                                                             {isEditingThis && (
                                                                 <div className="mt-1.5 ml-5 flex gap-1.5">
