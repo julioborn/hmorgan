@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { UserPlus, Trash2, KeyRound, X, Eye, EyeOff, ChevronLeft, Truck, UtensilsCrossed, ChefHat } from "lucide-react";
+import { UserPlus, Trash2, KeyRound, X, Eye, EyeOff, ChevronLeft, Truck, UtensilsCrossed, ChefHat, Pencil } from "lucide-react";
 import Link from "next/link";
 
 type Empleado = {
@@ -13,6 +13,7 @@ type Empleado = {
 
 type Modal =
     | { type: "nuevo" }
+    | { type: "editar"; empleado: Empleado }
     | { type: "resetPass"; empleado: Empleado }
     | { type: "confirmarEliminar"; empleado: Empleado }
     | null;
@@ -98,6 +99,13 @@ export default function EmpleadosPage() {
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
                                 <button
+                                    onClick={() => setModal({ type: "editar", empleado: emp })}
+                                    className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition"
+                                    title="Editar"
+                                >
+                                    <Pencil size={17} />
+                                </button>
+                                <button
                                     onClick={() => setModal({ type: "resetPass", empleado: emp })}
                                     className="p-2 rounded-xl hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition"
                                     title="Cambiar contraseña"
@@ -118,6 +126,13 @@ export default function EmpleadosPage() {
             )}
 
             {/* Modales */}
+            {modal?.type === "editar" && (
+                <EditarEmpleadoModal
+                    empleado={modal.empleado}
+                    onClose={() => setModal(null)}
+                    onGuardado={() => { setModal(null); cargar(); }}
+                />
+            )}
             {modal?.type === "nuevo" && (
                 <NuevoEmpleadoModal
                     onClose={() => setModal(null)}
@@ -240,6 +255,80 @@ function NuevoEmpleadoModal({ onClose, onCreado }: { onClose: () => void; onCrea
                         className="w-full py-3 rounded-xl bg-black text-white font-bold text-sm hover:bg-gray-800 transition disabled:opacity-50">
                         {loading ? "Creando..." : form.role === "delivery" ? "Crear repartidor" : "Crear mozo"}
                     </button>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+/* ── Modal: Editar empleado ── */
+function EditarEmpleadoModal({ empleado, onClose, onGuardado }: { empleado: Empleado; onClose: () => void; onGuardado: () => void }) {
+    const [form, setForm] = useState({ nombre: empleado.nombre, apellido: empleado.apellido, role: empleado.role });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+
+    const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
+        setForm(f => ({ ...f, [k]: e.target.value }));
+
+    const submit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!form.nombre.trim()) { setError("El nombre es requerido"); return; }
+        setError("");
+        setLoading(true);
+        const res = await fetch(`/api/superadmin/empleados/${empleado._id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ nombre: form.nombre, apellido: form.apellido, role: form.role }),
+        });
+        setLoading(false);
+        if (!res.ok) { setError("Error al guardar"); return; }
+        onGuardado();
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-sm space-y-4 shadow-2xl">
+                <div className="flex items-center justify-between">
+                    <h2 className="font-black text-lg">Editar empleado</h2>
+                    <button onClick={onClose} className="p-1.5 rounded-full hover:bg-gray-100 transition"><X size={18} /></button>
+                </div>
+                <form onSubmit={submit} className="space-y-3">
+                    <div>
+                        <label className="text-xs font-semibold text-gray-500 mb-1 block">Rol</label>
+                        <div className="grid grid-cols-3 gap-2">
+                            {([["empleado", "Mozo", UtensilsCrossed], ["delivery", "Repartidor", Truck], ["cocina", "Cocina", ChefHat]] as const).map(([r, label, Icon]) => (
+                                <button key={r} type="button" onClick={() => setForm(f => ({ ...f, role: r }))}
+                                    className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold border transition ${form.role === r ? "bg-black text-white border-black" : "border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
+                                    <Icon size={15} /> {label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="text-xs font-semibold text-gray-500 mb-1 block">Nombre</label>
+                            <input value={form.nombre} onChange={set("nombre")} required
+                                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black/20" />
+                        </div>
+                        <div>
+                            <label className="text-xs font-semibold text-gray-500 mb-1 block">Apellido</label>
+                            <input value={form.apellido} onChange={set("apellido")}
+                                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black/20" />
+                        </div>
+                    </div>
+                    <p className="text-xs text-gray-400">@{empleado.username} · El usuario no se puede cambiar</p>
+                    {error && <p className="text-xs text-red-600 font-medium">{error}</p>}
+                    <div className="flex gap-3">
+                        <button type="button" onClick={onClose}
+                            className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold hover:bg-gray-50 transition">
+                            Cancelar
+                        </button>
+                        <button type="submit" disabled={loading}
+                            className="flex-1 py-2.5 rounded-xl bg-black text-white text-sm font-bold hover:bg-gray-800 transition disabled:opacity-50">
+                            {loading ? "Guardando..." : "Guardar"}
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
