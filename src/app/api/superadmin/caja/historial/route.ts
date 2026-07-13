@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
                     pipeline: [{ $project: { tipoEntrega: 1 } }],
                 },
             },
-            { $unwind: { path: "$pedido", preserveNullAndEmpty: false } },
+            { $unwind: { path: "$pedido", preserveNullAndEmptyArrays: false } },
             { $match: { "pedido.tipoEntrega": "envio" } },
             { $group: { _id: "$sesionId", cantDelivery: { $sum: 1 } } },
         ]),
