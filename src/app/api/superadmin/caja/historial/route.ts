@@ -28,41 +28,54 @@ export async function GET(req: NextRequest) {
 
     const sesionIds = sesiones.map(s => s._id);
 
-    // Single aggregation — no per-movement document loading
-    const agg = await CajaMovement.aggregate([
-        { $match: { sesionId: { $in: sesionIds } } },
-        {
-            $group: {
-                _id: { sesionId: "$sesionId", tipo: "$tipo", metodoPago: "$metodoPago" },
-                total: { $sum: "$monto" },
-                excedente: { $sum: { $ifNull: ["$excedente", 0] } },
-                count: { $sum: 1 },
-                deliveries: {
-                    $sum: {
-                        $cond: [
-                            { $and: [
-                                { $eq: ["$tipo", "ingreso"] },
-                                { $regexMatch: { input: { $ifNull: ["$concepto", ""] }, regex: /^Delivery/ } }
-                            ]},
-                            1, 0
-                        ]
-                    }
+    // Run both aggregations in parallel
+    const [agg, deliveryAgg] = await Promise.all([
+        // Main: totals grouped by sesion + tipo + metodoPago
+        CajaMovement.aggregate([
+            { $match: { sesionId: { $in: sesionIds } } },
+            {
+                $group: {
+                    _id: { sesionId: "$sesionId", tipo: "$tipo", metodoPago: "$metodoPago" },
+                    total: { $sum: "$monto" },
+                    excedente: { $sum: { $ifNull: ["$excedente", 0] } },
+                    count: { $sum: 1 },
                 },
             },
-        },
+        ]),
+        // Delivery count: join Pedido to check tipoEntrega — reliable regardless of concepto format
+        CajaMovement.aggregate([
+            { $match: { sesionId: { $in: sesionIds }, tipo: "ingreso", pedidoId: { $ne: null, $exists: true } } },
+            {
+                $lookup: {
+                    from: "pedidos",
+                    localField: "pedidoId",
+                    foreignField: "_id",
+                    as: "pedido",
+                    pipeline: [{ $project: { tipoEntrega: 1 } }],
+                },
+            },
+            { $unwind: { path: "$pedido", preserveNullAndEmpty: false } },
+            { $match: { "pedido.tipoEntrega": "envio" } },
+            { $group: { _id: "$sesionId", cantDelivery: { $sum: 1 } } },
+        ]),
     ]);
+
+    // Build delivery map: sesionId → count
+    const deliveryBySesion: Record<string, number> = {};
+    for (const row of deliveryAgg) {
+        deliveryBySesion[String(row._id)] = row.cantDelivery;
+    }
 
     const bySession: Record<string, {
         totales: Record<string, { ingreso: number; egreso: number; excedente: number }>;
         totalIngreso: number;
         totalEgreso: number;
         cantMovimientos: number;
-        cantDelivery: number;
     }> = {};
 
     for (const row of agg) {
         const key = String(row._id.sesionId);
-        if (!bySession[key]) bySession[key] = { totales: {}, totalIngreso: 0, totalEgreso: 0, cantMovimientos: 0, cantDelivery: 0 };
+        if (!bySession[key]) bySession[key] = { totales: {}, totalIngreso: 0, totalEgreso: 0, cantMovimientos: 0 };
         const entry = bySession[key];
         const { tipo, metodoPago } = row._id;
         if (!entry.totales[metodoPago]) entry.totales[metodoPago] = { ingreso: 0, egreso: 0, excedente: 0 };
@@ -71,12 +84,11 @@ export async function GET(req: NextRequest) {
         if (tipo === "ingreso") entry.totalIngreso += row.total;
         if (tipo === "egreso") entry.totalEgreso += row.total;
         entry.cantMovimientos += row.count;
-        entry.cantDelivery += row.deliveries ?? 0;
     }
 
     const result = sesiones.map(s => {
         const key = String(s._id);
-        const { totales = {}, totalIngreso = 0, totalEgreso = 0, cantMovimientos = 0, cantDelivery = 0 } = bySession[key] ?? {};
+        const { totales = {}, totalIngreso = 0, totalEgreso = 0, cantMovimientos = 0 } = bySession[key] ?? {};
         return {
             ...s,
             totales,
@@ -84,7 +96,7 @@ export async function GET(req: NextRequest) {
             totalEgreso,
             neto: totalIngreso - totalEgreso,
             cantMovimientos,
-            cantDelivery,
+            cantDelivery: deliveryBySesion[key] ?? 0,
         };
     });
 
