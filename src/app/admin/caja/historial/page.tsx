@@ -5,7 +5,7 @@ import { useState, useCallback } from "react";
 import {
     ChevronLeft, ChevronDown, ChevronUp,
     TrendingUp, TrendingDown, Banknote, CreditCard, Send,
-    Package, AlertCircle, Receipt, Ticket, Pencil, Check, Star, Loader2,
+    Package, AlertCircle, Receipt, Ticket, Pencil, Check, Star, Loader2, Truck,
 } from "lucide-react";
 import Loader from "@/components/Loader";
 import {
@@ -38,6 +38,7 @@ type SesionSummary = {
     totalEgreso: number;
     neto: number;
     cantMovimientos: number;
+    cantDelivery: number;
     totales: Record<string, { ingreso: number; egreso: number; excedente: number }>;
 };
 
@@ -569,6 +570,14 @@ export default function CajaHistorialPage() {
                                             <p className={`text-base font-black ${s.neto >= 0 ? "text-gray-900" : "text-red-600"}`}>{fmt(s.neto)}</p>
                                         </div>
                                     </div>
+                                    {s.cantDelivery > 0 && (
+                                        <div className="px-4 py-2 flex items-center gap-2 border-b border-gray-100 bg-blue-50">
+                                            <Truck size={13} className="text-blue-500 shrink-0" />
+                                            <span className="text-xs font-bold text-blue-700">
+                                                {s.cantDelivery} envío{s.cantDelivery !== 1 ? "s" : ""} entregado{s.cantDelivery !== 1 ? "s" : ""}
+                                            </span>
+                                        </div>
+                                    )}
 
                                     {/* Expanded detail */}
                                     {open && detail && (

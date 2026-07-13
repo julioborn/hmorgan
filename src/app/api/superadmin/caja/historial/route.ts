@@ -37,6 +37,17 @@ export async function GET(req: NextRequest) {
                 total: { $sum: "$monto" },
                 excedente: { $sum: { $ifNull: ["$excedente", 0] } },
                 count: { $sum: 1 },
+                deliveries: {
+                    $sum: {
+                        $cond: [
+                            { $and: [
+                                { $eq: ["$tipo", "ingreso"] },
+                                { $regexMatch: { input: { $ifNull: ["$concepto", ""] }, regex: /^Delivery/ } }
+                            ]},
+                            1, 0
+                        ]
+                    }
+                },
             },
         },
     ]);
@@ -46,11 +57,12 @@ export async function GET(req: NextRequest) {
         totalIngreso: number;
         totalEgreso: number;
         cantMovimientos: number;
+        cantDelivery: number;
     }> = {};
 
     for (const row of agg) {
         const key = String(row._id.sesionId);
-        if (!bySession[key]) bySession[key] = { totales: {}, totalIngreso: 0, totalEgreso: 0, cantMovimientos: 0 };
+        if (!bySession[key]) bySession[key] = { totales: {}, totalIngreso: 0, totalEgreso: 0, cantMovimientos: 0, cantDelivery: 0 };
         const entry = bySession[key];
         const { tipo, metodoPago } = row._id;
         if (!entry.totales[metodoPago]) entry.totales[metodoPago] = { ingreso: 0, egreso: 0, excedente: 0 };
@@ -59,11 +71,12 @@ export async function GET(req: NextRequest) {
         if (tipo === "ingreso") entry.totalIngreso += row.total;
         if (tipo === "egreso") entry.totalEgreso += row.total;
         entry.cantMovimientos += row.count;
+        entry.cantDelivery += row.deliveries ?? 0;
     }
 
     const result = sesiones.map(s => {
         const key = String(s._id);
-        const { totales = {}, totalIngreso = 0, totalEgreso = 0, cantMovimientos = 0 } = bySession[key] ?? {};
+        const { totales = {}, totalIngreso = 0, totalEgreso = 0, cantMovimientos = 0, cantDelivery = 0 } = bySession[key] ?? {};
         return {
             ...s,
             totales,
@@ -71,6 +84,7 @@ export async function GET(req: NextRequest) {
             totalEgreso,
             neto: totalIngreso - totalEgreso,
             cantMovimientos,
+            cantDelivery,
         };
     });
 
