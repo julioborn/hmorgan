@@ -3,8 +3,9 @@ import { connectMongoDB } from "@/lib/mongodb";
 import { CajaSession } from "@/models/CajaSession";
 import { CajaMovement } from "@/models/CajaMovement";
 // These imports register the models needed for the nested populate chain:
-// CajaMovement.pedidoId → Pedido → eventoId (Evento), userId/clienteId (User)
+// CajaMovement.pedidoId → Pedido → items.menuItemId (MenuItem), eventoId (Evento), userId/clienteId (User)
 import "@/models/Pedido";
+import "@/models/MenuItem";
 import "@/models/Evento";
 import "@/models/User";
 import jwt from "jsonwebtoken";
