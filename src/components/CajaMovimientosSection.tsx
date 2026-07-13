@@ -452,7 +452,7 @@ export function MovCard({ g, onOpenGroup }: { g: MovGroup; onOpenGroup: (g: MovG
                 }
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                        <p className="font-bold text-gray-800 text-sm truncate leading-tight">{g.concepto}</p>
+                        <p className="font-bold text-gray-800 text-sm leading-tight break-words">{g.concepto}</p>
                         {g.isEvento && (
                             <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 shrink-0 flex items-center gap-0.5">
                                 <Star size={7} />EVENTO
@@ -465,7 +465,7 @@ export function MovCard({ g, onOpenGroup }: { g: MovGroup; onOpenGroup: (g: MovG
                         )}
                     </div>
                     {g.eventoNombre && (
-                        <p className="text-[10px] text-amber-600 font-bold leading-tight mt-0.5 truncate">{g.eventoNombre}</p>
+                        <p className="text-[10px] text-amber-600 font-bold leading-tight mt-0.5 break-words">{g.eventoNombre}</p>
                     )}
                     <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         <span className="flex items-center gap-1 text-[10px] text-gray-400">
