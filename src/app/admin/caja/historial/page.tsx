@@ -1,7 +1,7 @@
 "use client";
 import useSWR from "swr";
 import Link from "next/link";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
     ChevronLeft, ChevronDown, ChevronUp,
     TrendingUp, TrendingDown, Banknote, CreditCard, Send,
@@ -442,6 +442,75 @@ function DetalleEvento({ ev }: { ev: EventoCerrado }) {
     );
 }
 
+// ── Evento dentro de sesión ────────────────────────────────────────────────────
+
+function EventoEnSesion({ ev }: { ev: EventoCerrado }) {
+    const [open, setOpen] = useState(false);
+    const cd = ev.cierreData;
+    const horaCierre = cd?.fecha ? formatHora(cd.fecha) : formatHora(ev.updatedAt);
+
+    return (
+        <div className="rounded-xl border border-amber-200 overflow-hidden">
+            {/* Header del evento */}
+            <div className="bg-black px-3 py-2.5 flex items-center justify-between gap-2">
+                <div className="min-w-0 flex items-center gap-2">
+                    <Star size={11} className="text-amber-400 shrink-0" />
+                    <div className="min-w-0">
+                        <p className="font-black text-white text-sm leading-tight break-words">{ev.nombre}</p>
+                        <p className="text-[10px] text-amber-400/70 mt-0.5">Cerrado · {horaCierre}</p>
+                    </div>
+                </div>
+                {cd && <span className="font-black text-white text-base shrink-0">{fmt(cd.totalGeneral)}</span>}
+            </div>
+
+            {/* Resumen métodos */}
+            {cd && (
+                <div className="px-3 py-2.5 flex flex-wrap gap-x-5 gap-y-1.5 bg-amber-50 border-b border-amber-100">
+                    {cd.totalEfectivo > 0 && (
+                        <div>
+                            <p className="text-[9px] text-gray-400 uppercase font-bold">Efectivo</p>
+                            <p className="text-xs font-black text-emerald-700">{fmt(cd.totalEfectivo)}</p>
+                        </div>
+                    )}
+                    {cd.totalTransferencia > 0 && (
+                        <div>
+                            <p className="text-[9px] text-gray-400 uppercase font-bold">Transf.</p>
+                            <p className="text-xs font-black text-violet-700">{fmt(cd.totalTransferencia)}</p>
+                        </div>
+                    )}
+                    {cd.totalTarjeta > 0 && (
+                        <div>
+                            <p className="text-[9px] text-gray-400 uppercase font-bold">Tarjeta</p>
+                            <p className="text-xs font-black text-blue-700">{fmt(cd.totalTarjeta)}</p>
+                        </div>
+                    )}
+                    {cd.entradasCantidad > 0 && (
+                        <div>
+                            <p className="text-[9px] text-gray-400 uppercase font-bold">Entradas</p>
+                            <p className="text-xs font-black text-amber-700">{cd.entradasCantidad} × {fmt(cd.entradasPrecio)}</p>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {open && <DetalleEvento ev={ev} />}
+
+            <button
+                onClick={() => setOpen(v => !v)}
+                className="w-full px-3 py-2 flex items-center justify-between hover:bg-gray-50 transition bg-white"
+            >
+                <p className="text-[10px] text-gray-400">
+                    {cd?.entradasCantidad ? `${cd.entradasCantidad} entradas` : "Sin entradas"}
+                    {(ev.ventas?.length ?? 0) > 0 && ` · ${ev.ventas!.length} venta${ev.ventas!.length !== 1 ? "s" : ""}`}
+                </p>
+                <span className="flex items-center gap-1 text-[10px] font-bold text-gray-500">
+                    {open ? <><ChevronUp size={11} />Ocultar</> : <><ChevronDown size={11} />Ver detalle</>}
+                </span>
+            </button>
+        </div>
+    );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function CajaHistorialPage() {
@@ -449,15 +518,36 @@ export default function CajaHistorialPage() {
 
     const { data: sesiones, isLoading: loadingSesiones, error: errSesiones, mutate: reloadSesiones } =
         useSWR<SesionSummary[]>("/api/superadmin/caja/historial", fetcher, SWR_OPTS);
-    const { data: eventosData, isLoading: loadingEventos, error: errEventos } =
+    const { data: eventosData } =
         useSWR<EventoCerrado[]>("/api/eventos?cerrado=true", fetcher, SWR_OPTS);
 
     const [expandidas,     setExpandidas]     = useState<Set<string>>(new Set());
-    const [expandidosEv,   setExpandidosEv]   = useState<Set<string>>(new Set());
     const [detalles,       setDetalles]       = useState<Record<string, SesionDetail>>({});
     const [loadingDetalle, setLoadingDetalle] = useState<Set<string>>(new Set());
 
     const eventosCerrados = Array.isArray(eventosData) ? eventosData : [];
+
+    // Match each event to the session whose open/close range contains the event's close date
+    const { eventosBySesion, eventosHuerfanos } = useMemo(() => {
+        const map: Record<string, EventoCerrado[]> = {};
+        const huerfanos: EventoCerrado[] = [];
+        for (const ev of eventosCerrados) {
+            const evDate = new Date(ev.cierreData?.fecha ?? ev.updatedAt);
+            let matched = false;
+            for (const s of (sesiones ?? [])) {
+                const apertura = new Date(s.fechaApertura);
+                const cierre   = s.fechaCierre ? new Date(s.fechaCierre) : new Date();
+                if (evDate >= apertura && evDate <= cierre) {
+                    if (!map[s._id]) map[s._id] = [];
+                    map[s._id].push(ev);
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched) huerfanos.push(ev);
+        }
+        return { eventosBySesion: map, eventosHuerfanos: huerfanos };
+    }, [eventosCerrados, sesiones]);
 
     const fetchDetalle = useCallback(async (id: string) => {
         setLoadingDetalle(prev => { const n = new Set(prev); n.add(id); return n; });
@@ -488,13 +578,7 @@ export default function CajaHistorialPage() {
     function toggle(id: string) {
         const wasOpen = expandidas.has(id);
         setExpandidas(prev => { const n = new Set(prev); wasOpen ? n.delete(id) : n.add(id); return n; });
-        if (!wasOpen && !detalles[id] && !loadingDetalle.has(id)) {
-            fetchDetalle(id);
-        }
-    }
-
-    function toggleEv(id: string) {
-        setExpandidosEv(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+        if (!wasOpen && !detalles[id] && !loadingDetalle.has(id)) fetchDetalle(id);
     }
 
     function handleRefreshSesion(id: string) {
@@ -518,191 +602,137 @@ export default function CajaHistorialPage() {
             )}
 
             {sesiones && sesiones.length > 0 && (
-                <div className="mb-10">
-                    <div className="flex items-center gap-3 mb-4">
-                        <Receipt size={16} className="text-gray-500 shrink-0" />
-                        <h2 className="text-lg font-extrabold text-black whitespace-nowrap">Sesiones de Caja</h2>
-                        <div className="flex-1 h-px bg-gray-200" />
-                    </div>
-                    <div className="space-y-4">
-                        {sesiones.map(s => {
-                            const open   = expandidas.has(s._id);
-                            const detail = detalles[s._id];
-                            const loading = loadingDetalle.has(s._id);
+                <div className="space-y-4 mb-10">
+                    {sesiones.map(s => {
+                        const open    = expandidas.has(s._id);
+                        const detail  = detalles[s._id];
+                        const loading = loadingDetalle.has(s._id);
+                        const eventos = eventosBySesion[s._id] ?? [];
 
-                            return (
-                                <div key={s._id} className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+                        // Combined total: caja neto + event totals
+                        const totalEventos = eventos.reduce((sum, ev) => sum + (ev.cierreData?.totalGeneral ?? 0), 0);
+                        const totalCombinado = s.neto + totalEventos;
 
-                                    {/* Header */}
-                                    <div className={`px-4 py-3 border-b ${s.estado === "abierta" ? "bg-emerald-50 border-emerald-100" : "bg-gray-900 border-gray-800"}`}>
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <p className={`font-black text-base leading-tight ${s.estado === "abierta" ? "text-emerald-800" : "text-white"}`}>
-                                                    {formatFecha(s.fechaApertura)}
-                                                </p>
-                                                <p className={`text-xs mt-0.5 ${s.estado === "abierta" ? "text-emerald-600" : "text-white/50"}`}>
-                                                    {formatHora(s.fechaApertura)}
-                                                    {s.fechaCierre && ` → ${formatHora(s.fechaCierre)}`}
-                                                </p>
-                                                <p className={`text-[10px] mt-0.5 ${s.estado === "abierta" ? "text-emerald-500" : "text-white/40"}`}>
-                                                    Abrió: {nombreU(s.abiertaPor) ?? "—"}
-                                                    {s.cerradaPor && ` · Cerró: ${nombreU(s.cerradaPor) ?? "—"}`}
-                                                </p>
-                                            </div>
-                                            <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${s.estado === "abierta" ? "bg-emerald-200 text-emerald-800" : "bg-white/10 text-white/70"}`}>
-                                                {s.estado === "abierta" ? "Abierta" : "Cerrada"}
-                                            </span>
-                                        </div>
-                                    </div>
+                        return (
+                            <div key={s._id} className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
 
-                                    {/* Stats */}
-                                    <div className="px-4 py-3 grid grid-cols-3 gap-2 border-b border-gray-100">
-                                        <div className="text-center">
-                                            <p className="text-[10px] text-gray-400 uppercase font-bold">Ingresos</p>
-                                            <p className="text-base font-black text-emerald-600">{fmt(s.totalIngreso)}</p>
+                                {/* Header */}
+                                <div className={`px-4 py-3 border-b ${s.estado === "abierta" ? "bg-emerald-50 border-emerald-100" : "bg-gray-900 border-gray-800"}`}>
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className={`font-black text-base leading-tight ${s.estado === "abierta" ? "text-emerald-800" : "text-white"}`}>
+                                                {formatFecha(s.fechaApertura)}
+                                            </p>
+                                            <p className={`text-xs mt-0.5 ${s.estado === "abierta" ? "text-emerald-600" : "text-white/50"}`}>
+                                                {formatHora(s.fechaApertura)}
+                                                {s.fechaCierre && ` → ${formatHora(s.fechaCierre)}`}
+                                            </p>
+                                            <p className={`text-[10px] mt-0.5 ${s.estado === "abierta" ? "text-emerald-500" : "text-white/40"}`}>
+                                                Abrió: {nombreU(s.abiertaPor) ?? "—"}
+                                                {s.cerradaPor && ` · Cerró: ${nombreU(s.cerradaPor) ?? "—"}`}
+                                            </p>
                                         </div>
-                                        <div className="text-center">
-                                            <p className="text-[10px] text-gray-400 uppercase font-bold">Egresos</p>
-                                            <p className="text-base font-black text-red-500">{fmt(s.totalEgreso)}</p>
-                                        </div>
-                                        <div className="text-center">
-                                            <p className="text-[10px] text-gray-400 uppercase font-bold">Neto</p>
-                                            <p className={`text-base font-black ${s.neto >= 0 ? "text-gray-900" : "text-red-600"}`}>{fmt(s.neto)}</p>
-                                        </div>
-                                    </div>
-                                    {s.cantDelivery > 0 && (
-                                        <div className="px-4 py-2 flex items-center gap-2 border-b border-gray-100 bg-blue-50">
-                                            <Truck size={13} className="text-blue-500 shrink-0" />
-                                            <span className="text-xs font-bold text-blue-700">
-                                                {s.cantDelivery} envío{s.cantDelivery !== 1 ? "s" : ""} entregado{s.cantDelivery !== 1 ? "s" : ""}
-                                            </span>
-                                        </div>
-                                    )}
-
-                                    {/* Expanded detail */}
-                                    {open && detail && (
-                                        <DetalleSesion s={detail} onRefresh={() => handleRefreshSesion(s._id)} />
-                                    )}
-                                    {open && loading && (
-                                        <div className="flex justify-center py-8">
-                                            <Loader2 size={24} className="animate-spin text-gray-400" />
-                                        </div>
-                                    )}
-                                    {open && !detail && !loading && (
-                                        <div className="py-6 text-center">
-                                            <p className="text-xs text-gray-400 mb-2">No se pudo cargar el detalle</p>
-                                            <button
-                                                onClick={() => fetchDetalle(s._id)}
-                                                className="text-xs font-bold text-blue-600 underline"
-                                            >
-                                                Reintentar
-                                            </button>
-                                        </div>
-                                    )}
-
-                                    <button
-                                        onClick={() => toggle(s._id)}
-                                        className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-gray-50 transition"
-                                    >
-                                        <p className="text-[11px] text-gray-400">
-                                            {s.cantMovimientos} movimiento{s.cantMovimientos !== 1 ? "s" : ""}
-                                            {s.montoInicial > 0 && ` · Apertura: ${fmt(s.montoInicial)}`}
-                                            {detail && Object.keys(detail.productos).length > 0 && ` · ${Object.keys(detail.productos).length} productos`}
-                                        </p>
-                                        <span className="flex items-center gap-1 text-[11px] font-bold text-gray-500">
-                                            {open ? <><ChevronUp size={13} />Ocultar</> : <><ChevronDown size={13} />Ver detalle</>}
+                                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${s.estado === "abierta" ? "bg-emerald-200 text-emerald-800" : "bg-white/10 text-white/70"}`}>
+                                            {s.estado === "abierta" ? "Abierta" : "Cerrada"}
                                         </span>
-                                    </button>
+                                    </div>
                                 </div>
-                            );
-                        })}
-                    </div>
+
+                                {/* Stats */}
+                                <div className="px-4 py-3 grid grid-cols-3 gap-2 border-b border-gray-100">
+                                    <div className="text-center">
+                                        <p className="text-[10px] text-gray-400 uppercase font-bold">Ingresos caja</p>
+                                        <p className="text-base font-black text-emerald-600">{fmt(s.totalIngreso)}</p>
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-[10px] text-gray-400 uppercase font-bold">Egresos</p>
+                                        <p className="text-base font-black text-red-500">{fmt(s.totalEgreso)}</p>
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-[10px] text-gray-400 uppercase font-bold">
+                                            {eventos.length > 0 ? "Total combinado" : "Neto"}
+                                        </p>
+                                        <p className={`text-base font-black ${totalCombinado >= 0 ? "text-gray-900" : "text-red-600"}`}>
+                                            {fmt(totalCombinado)}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Eventos del día — siempre visibles en el resumen */}
+                                {eventos.length > 0 && (
+                                    <div className="px-4 py-3 space-y-2 border-b border-gray-100 bg-amber-50/40">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-amber-600 flex items-center gap-1.5">
+                                            <Star size={10} className="text-amber-500" />
+                                            {eventos.length === 1 ? "Evento de esta sesión" : `${eventos.length} eventos de esta sesión`}
+                                            <span className="ml-auto font-black text-amber-700 text-xs">{fmt(totalEventos)}</span>
+                                        </p>
+                                        {eventos.map(ev => <EventoEnSesion key={ev._id} ev={ev} />)}
+                                    </div>
+                                )}
+
+                                {s.cantDelivery > 0 && (
+                                    <div className="px-4 py-2 flex items-center gap-2 border-b border-gray-100 bg-blue-50">
+                                        <Truck size={13} className="text-blue-500 shrink-0" />
+                                        <span className="text-xs font-bold text-blue-700">
+                                            {s.cantDelivery} envío{s.cantDelivery !== 1 ? "s" : ""} entregado{s.cantDelivery !== 1 ? "s" : ""}
+                                        </span>
+                                    </div>
+                                )}
+
+                                {/* Expanded detail */}
+                                {open && detail && (
+                                    <DetalleSesion s={detail} onRefresh={() => handleRefreshSesion(s._id)} />
+                                )}
+                                {open && loading && (
+                                    <div className="flex justify-center py-8">
+                                        <Loader2 size={24} className="animate-spin text-gray-400" />
+                                    </div>
+                                )}
+                                {open && !detail && !loading && (
+                                    <div className="py-6 text-center">
+                                        <p className="text-xs text-gray-400 mb-2">No se pudo cargar el detalle</p>
+                                        <button onClick={() => fetchDetalle(s._id)} className="text-xs font-bold text-blue-600 underline">
+                                            Reintentar
+                                        </button>
+                                    </div>
+                                )}
+
+                                <button
+                                    onClick={() => toggle(s._id)}
+                                    className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-gray-50 transition"
+                                >
+                                    <p className="text-[11px] text-gray-400">
+                                        {s.cantMovimientos} movimiento{s.cantMovimientos !== 1 ? "s" : ""}
+                                        {s.montoInicial > 0 && ` · Apertura: ${fmt(s.montoInicial)}`}
+                                        {detail && Object.keys(detail.productos).length > 0 && ` · ${Object.keys(detail.productos).length} productos`}
+                                    </p>
+                                    <span className="flex items-center gap-1 text-[11px] font-bold text-gray-500">
+                                        {open ? <><ChevronUp size={13} />Ocultar</> : <><ChevronDown size={13} />Ver detalle</>}
+                                    </span>
+                                </button>
+                            </div>
+                        );
+                    })}
                 </div>
             )}
 
-            {/* ── Eventos ── */}
-            <div className="mb-6">
-                <div className="flex items-center gap-3 mb-4">
-                    <Star size={16} className="text-amber-500 shrink-0" />
-                    <h2 className="text-lg font-extrabold text-black whitespace-nowrap">Historial de Eventos</h2>
-                    <div className="flex-1 h-px bg-amber-200" />
-                </div>
-
-                {(loadingEventos || errEventos) && <div className="flex justify-center py-10"><Loader size={36} /></div>}
-                {!loadingEventos && !errEventos && eventosCerrados.length === 0 && (
-                    <p className="text-center text-gray-400 py-10">Sin eventos cerrados</p>
-                )}
-
-                {eventosCerrados.length > 0 && (
-                    <div className="space-y-4">
-                        {eventosCerrados.map(ev => {
-                            const cd   = ev.cierreData;
-                            const open = expandidosEv.has(ev._id);
-                            const fechaCierre = cd?.fecha ? formatFecha(cd.fecha) : formatFecha(ev.updatedAt);
-                            const horaCierre  = cd?.fecha ? formatHora(cd.fecha)  : formatHora(ev.updatedAt);
-
-                            return (
-                                <div key={ev._id} className="bg-white border border-gray-200 border-t-2 border-t-amber-400 rounded-2xl shadow-sm overflow-hidden">
-                                    <div className="bg-black px-4 py-3 flex items-center justify-between gap-3">
-                                        <div className="min-w-0">
-                                            <p className="text-[10px] font-bold text-amber-400/80 uppercase tracking-wide flex items-center gap-1">
-                                                <Star size={8} className="text-amber-400 shrink-0" />
-                                                Cerrado · {fechaCierre} {horaCierre}
-                                            </p>
-                                            <p className="font-black text-white text-base leading-tight truncate">{ev.nombre}</p>
-                                        </div>
-                                        {cd && <span className="font-black text-white text-lg shrink-0">{fmt(cd.totalGeneral)}</span>}
-                                    </div>
-
-                                    {cd && (
-                                        <div className="px-4 py-3 flex flex-wrap gap-x-6 gap-y-2 border-b border-gray-100">
-                                            {cd.totalEfectivo > 0 && (
-                                                <div>
-                                                    <p className="text-[10px] text-gray-400 uppercase font-bold">Efectivo</p>
-                                                    <p className="text-sm font-black text-emerald-700">{fmt(cd.totalEfectivo)}</p>
-                                                </div>
-                                            )}
-                                            {cd.totalTransferencia > 0 && (
-                                                <div>
-                                                    <p className="text-[10px] text-gray-400 uppercase font-bold">Transf.</p>
-                                                    <p className="text-sm font-black text-violet-700">{fmt(cd.totalTransferencia)}</p>
-                                                </div>
-                                            )}
-                                            {cd.totalTarjeta > 0 && (
-                                                <div>
-                                                    <p className="text-[10px] text-gray-400 uppercase font-bold">Tarjeta</p>
-                                                    <p className="text-sm font-black text-blue-700">{fmt(cd.totalTarjeta)}</p>
-                                                </div>
-                                            )}
-                                            {cd.entradasCantidad > 0 && (
-                                                <div>
-                                                    <p className="text-[10px] text-gray-400 uppercase font-bold">Entradas</p>
-                                                    <p className="text-sm font-black text-amber-700">{cd.entradasCantidad} × {fmt(cd.entradasPrecio)}</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {open && <DetalleEvento ev={ev} />}
-
-                                    <button
-                                        onClick={() => toggleEv(ev._id)}
-                                        className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-gray-50 transition"
-                                    >
-                                        <p className="text-[11px] text-gray-400">
-                                            {cd?.entradasCantidad ? `${cd.entradasCantidad} entradas` : "Sin entradas"}
-                                            {(ev.ventas?.length ?? 0) > 0 && ` · ${ev.ventas!.length} venta${ev.ventas!.length !== 1 ? "s" : ""}`}
-                                        </p>
-                                        <span className="flex items-center gap-1 text-[11px] font-bold text-gray-500">
-                                            {open ? <><ChevronUp size={13} />Ocultar</> : <><ChevronDown size={13} />Ver detalle</>}
-                                        </span>
-                                    </button>
-                                </div>
-                            );
-                        })}
+            {/* ── Eventos sin sesión asociada (edge case) ── */}
+            {eventosHuerfanos.length > 0 && (
+                <div className="mb-6">
+                    <div className="flex items-center gap-3 mb-4">
+                        <Star size={16} className="text-amber-500 shrink-0" />
+                        <h2 className="text-lg font-extrabold text-black whitespace-nowrap">Eventos sin sesión</h2>
+                        <div className="flex-1 h-px bg-amber-200" />
                     </div>
-                )}
-            </div>
+                    <div className="space-y-4">
+                        {eventosHuerfanos.map(ev => (
+                            <div key={ev._id} className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+                                <EventoEnSesion ev={ev} />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
