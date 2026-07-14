@@ -616,8 +616,8 @@ export default function CajaHistorialPage() {
                         return (
                             <div key={s._id} className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
 
-                                {/* Header */}
-                                <div className={`px-4 py-3 border-b ${s.estado === "abierta" ? "bg-emerald-50 border-emerald-100" : "bg-gray-900 border-gray-800"}`}>
+                                {/* Header — clickeable para abrir/cerrar */}
+                                <button onClick={() => toggle(s._id)} className={`w-full text-left px-4 py-3 border-b ${s.estado === "abierta" ? "bg-emerald-50 border-emerald-100" : "bg-gray-900 border-gray-800"}`}>
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <p className={`font-black text-base leading-tight ${s.estado === "abierta" ? "text-emerald-800" : "text-white"}`}>
@@ -632,11 +632,18 @@ export default function CajaHistorialPage() {
                                                 {s.cerradaPor && ` · Cerró: ${nombreU(s.cerradaPor) ?? "—"}`}
                                             </p>
                                         </div>
-                                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${s.estado === "abierta" ? "bg-emerald-200 text-emerald-800" : "bg-white/10 text-white/70"}`}>
-                                            {s.estado === "abierta" ? "Abierta" : "Cerrada"}
-                                        </span>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            {open && (
+                                                <span className="flex items-center gap-0.5 text-[10px] font-bold text-white/50">
+                                                    <ChevronUp size={12} />Ocultar
+                                                </span>
+                                            )}
+                                            <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${s.estado === "abierta" ? "bg-emerald-200 text-emerald-800" : "bg-white/10 text-white/70"}`}>
+                                                {s.estado === "abierta" ? "Abierta" : "Cerrada"}
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
+                                </button>
 
                                 {/* Stats */}
                                 <div className="px-4 py-3 grid grid-cols-3 gap-2 border-b border-gray-100">
