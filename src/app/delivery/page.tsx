@@ -34,7 +34,8 @@ type Pedido = {
 const fmt = (n: number) => new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0 }).format(n);
 
 function mapsUrl(p: Pedido): string {
-    if (p.lat && p.lng) return `https://www.google.com/maps?q=${p.lat},${p.lng}`;
+    // Always use text search with full locality — lat/lng from Nominatim can point to
+    // streets with the same name in other cities (e.g. Buenos Aires).
     return `https://www.google.com/maps/search/${encodeURIComponent(`${p.direccion}, Calchaquí, Santa Fe, Argentina, 3050`)}`;
 }
 

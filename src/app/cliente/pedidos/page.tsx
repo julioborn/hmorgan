@@ -79,7 +79,7 @@ function AddressAutocomplete({
         setSearching(true);
         try {
             const r = await fetch(
-                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ", Calchaquí, Santa Fe, Argentina")}&format=json&limit=5&countrycodes=ar&addressdetails=1`,
+                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ", Calchaquí, Santa Fe, Argentina")}&format=json&limit=5&countrycodes=ar&addressdetails=1&viewbox=-60.38,-29.96,-60.22,-29.84&bounded=1`,
                 { headers: { "Accept-Language": "es" } }
             );
             const data = await r.json();
