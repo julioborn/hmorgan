@@ -220,7 +220,7 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
         setCrearBusqueda(""); setCrearResultados([]); setCrearUsuario(null);
         setCrearNombre(""); setCrearTelefono("");
         setCrearFecha(""); setCrearHora("");
-        setCrearComensales(2); setCrearZona("indiferente"); setCrearNotas("");
+        setCrearComensales(2); setCrearNotas("");
         setCrearError("");
     }
 
