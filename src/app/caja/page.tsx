@@ -2665,8 +2665,13 @@ export default function CajaPage() {
                                                                 </span>
                                                             )}
                                                             {p.metodoPago === "efectivo" && (
-                                                                <span className="text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wide bg-gray-100 text-gray-600">
-                                                                    💵 Efectivo
+                                                                <span className="text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wide bg-emerald-100 text-emerald-700">
+                                                                    💵 Paga efectivo
+                                                                </span>
+                                                            )}
+                                                            {p.metodoPago === "transferencia" && (
+                                                                <span className="text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wide bg-violet-100 text-violet-700">
+                                                                    📲 Paga transferencia
                                                                 </span>
                                                             )}
                                                         </div>

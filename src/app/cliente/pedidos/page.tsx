@@ -293,25 +293,29 @@ function CartDrawer({
                     </div>
                 )}
 
-                {/* Método de pago — activar cuando MERCADOPAGO_ACTIVO = true */}
-                {MERCADOPAGO_ACTIVO && (
-                    <div className="mt-4">
-                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Método de pago</p>
-                        <div className="flex gap-2">
-                            <button onClick={() => setMetodoPago("efectivo")}
-                                className={`flex-1 py-2 rounded-xl font-semibold text-sm border transition ${metodoPago === "efectivo" ? "bg-green-600 text-white border-green-600" : "bg-white text-gray-700 border-gray-300"}`}>
-                                Efectivo
-                            </button>
-                            <button onClick={() => setMetodoPago("mercadopago")}
-                                className={`flex-1 py-2 rounded-xl font-semibold text-sm border transition flex items-center justify-center gap-2 ${metodoPago === "mercadopago" ? "bg-[#009EE3] text-white border-[#009EE3]" : "bg-white text-gray-700 border-gray-300"}`}>
-                                <svg viewBox="0 0 32 32" width="16" height="16" fill="currentColor" className="shrink-0">
-                                    <path d="M16 2l2.47 7.6L26.5 7.06l-5.56 5.56L28 16l-7.06 2.06 2.94 8.4-6.44-4.94L16 30l-1.44-8.48-6.44 4.94 2.94-8.4L4 16l7.06-3.38-5.56-5.56 8.03 2.54z"/>
-                                </svg>
-                                Mercado Pago
-                            </button>
-                        </div>
+                {/* Método de pago preferido */}
+                <div className="mt-4">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">¿Cómo vas a pagar?</p>
+                    <div className="flex gap-2">
+                        <button onClick={() => setMetodoPago("efectivo")}
+                            className={`flex-1 py-2.5 rounded-xl font-semibold text-sm border transition flex items-center justify-center gap-1.5 ${metodoPago === "efectivo" ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-gray-700 border-gray-300"}`}>
+                            💵 Efectivo
+                        </button>
+                        <button onClick={() => setMetodoPago("transferencia")}
+                            className={`flex-1 py-2.5 rounded-xl font-semibold text-sm border transition flex items-center justify-center gap-1.5 ${metodoPago === "transferencia" ? "bg-violet-600 text-white border-violet-600" : "bg-white text-gray-700 border-gray-300"}`}>
+                            📲 Transferencia
+                        </button>
                     </div>
-                )}
+                    {MERCADOPAGO_ACTIVO && (
+                        <button onClick={() => setMetodoPago("mercadopago")}
+                            className={`w-full mt-2 py-2.5 rounded-xl font-semibold text-sm border transition flex items-center justify-center gap-2 ${metodoPago === "mercadopago" ? "bg-[#009EE3] text-white border-[#009EE3]" : "bg-white text-gray-700 border-gray-300"}`}>
+                            <svg viewBox="0 0 32 32" width="16" height="16" fill="currentColor" className="shrink-0">
+                                <path d="M16 2l2.47 7.6L26.5 7.06l-5.56 5.56L28 16l-7.06 2.06 2.94 8.4-6.44-4.94L16 30l-1.44-8.48-6.44 4.94 2.94-8.4L4 16l7.06-3.38-5.56-5.56 8.03 2.54z"/>
+                            </svg>
+                            Mercado Pago
+                        </button>
+                    )}
+                </div>
 
                 <div className="flex gap-3 mt-4">
                     <button
@@ -512,7 +516,7 @@ export default function PedidosClientePage() {
                     lat: tipoEntrega === "envio" && mapLat ? mapLat : undefined,
                     lng: tipoEntrega === "envio" && mapLng ? mapLng : undefined,
                     horarioPreferido: horarioPreferido.trim() || undefined,
-                    metodoPago: MERCADOPAGO_ACTIVO && metodoPago === "mercadopago" ? "mercadopago" : undefined,
+                    metodoPago: MERCADOPAGO_ACTIVO && metodoPago === "mercadopago" ? "mercadopago" : (metodoPago || undefined),
                 }),
             });
 

@@ -331,6 +331,11 @@ function PedidoCard({ p, avisandoId, updatingId, onAvisar, onEntregado }: {
                 {(p.notaCliente || p.notaEmpleado) && (
                     <p className="text-xs text-amber-600 italic">📝 {p.notaCliente || p.notaEmpleado}</p>
                 )}
+                {p.metodoPago && p.metodoPago !== "mercadopago" && (
+                    <p className={`text-[11px] font-black px-2 py-1 rounded-lg w-fit ${p.metodoPago === "transferencia" ? "bg-violet-100 text-violet-700" : "bg-emerald-100 text-emerald-700"}`}>
+                        {p.metodoPago === "transferencia" ? "📲 Paga transferencia" : "💵 Paga efectivo"}
+                    </p>
+                )}
                 <div className="flex justify-between items-center text-sm font-black text-gray-900 pt-2 border-t border-gray-100">
                     <span>TOTAL</span>
                     <span>${fmt(p.total)}</span>
