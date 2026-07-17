@@ -14,14 +14,11 @@ type Reserva = {
     fecha: string;
     hora: string;
     comensales: number;
-    zona: "adentro" | "afuera" | "indiferente";
     mesaId?: { _id: string; nombre: string };
     estado: "pendiente" | "confirmada" | "cancelada";
     notas?: string;
 };
 
-const ZONA_LABEL: Record<string, string> = { adentro: "Adentro", afuera: "Afuera", indiferente: "Sin preferencia" };
-const ZONA_COLOR: Record<string, string> = { adentro: "bg-blue-100 text-blue-700", afuera: "bg-emerald-100 text-emerald-700", indiferente: "bg-gray-100 text-gray-600" };
 const ESTADO_COLOR: Record<string, string> = {
     pendiente: "bg-amber-400 text-black",
     confirmada: "bg-emerald-500 text-white",
@@ -48,7 +45,6 @@ function buildWhatsApp(r: Reserva) {
         `Fecha: ${fecha}`,
         `Hora: ${r.hora}hs`,
         `Comensales: ${r.comensales}`,
-        `Zona: ${ZONA_LABEL[r.zona]}`,
         mesaLine,
         ``,
         `Te esperamos!`,
@@ -191,10 +187,6 @@ export default function EmpleadoReservasPage() {
                                     <div className="bg-gray-50 rounded-xl px-3 py-2">
                                         <p className="text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Comensales</p>
                                         <p className="text-base font-black text-gray-900">{r.comensales} persona{r.comensales !== 1 ? "s" : ""}</p>
-                                    </div>
-                                    <div className="bg-gray-50 rounded-xl px-3 py-2">
-                                        <p className="text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Zona</p>
-                                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${ZONA_COLOR[r.zona]}`}>{ZONA_LABEL[r.zona]}</span>
                                     </div>
                                     {r.mesaId ? (
                                         <div className="bg-gray-50 rounded-xl px-3 py-2 flex items-center gap-2">

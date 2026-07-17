@@ -15,7 +15,6 @@ type Reserva = {
     fecha: string;
     hora: string;
     comensales: number;
-    zona: "adentro" | "afuera" | "indiferente";
     mesaId?: { _id: string; nombre: string };
     estado: "pendiente" | "confirmada" | "cancelada";
     notas?: string;
@@ -25,8 +24,6 @@ type Mesa = { _id: string; nombre: string; forma: string; activa: boolean; tipo?
 type SalonEl = { _id: string; tipo: string; label: string; x: number; y: number; ancho: number; alto: number; color: string };
 type ClienteResult = { _id: string; nombre: string; apellido: string; telefono?: string };
 
-const ZONA_LABEL: Record<string, string> = { adentro: "Adentro", afuera: "Afuera", indiferente: "Sin preferencia" };
-const ZONA_COLOR: Record<string, string> = { adentro: "bg-blue-100 text-blue-700", afuera: "bg-emerald-100 text-emerald-700", indiferente: "bg-gray-100 text-gray-600" };
 const ESTADO_BADGE: Record<string, string> = {
     pendiente:  "bg-amber-400 text-black",
     confirmada: "bg-white text-black",
@@ -52,7 +49,6 @@ function buildWhatsApp(r: Reserva) {
         `Fecha: ${fecha}`,
         `Hora: ${r.hora}hs`,
         `Comensales: ${r.comensales}`,
-        `Zona: ${ZONA_LABEL[r.zona]}`,
         mesaLine,
         ``,
         `Te esperamos!`,
@@ -150,7 +146,6 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
     const [crearFecha, setCrearFecha]     = useState("");
     const [crearHora, setCrearHora]       = useState("");
     const [crearComensales, setCrearComensales] = useState(2);
-    const [crearZona, setCrearZona]       = useState<"adentro"|"afuera"|"indiferente">("indiferente");
     const [crearNotas, setCrearNotas]     = useState("");
     const [crearSaving, setCrearSaving]   = useState(false);
     const [crearError, setCrearError]     = useState("");
@@ -163,7 +158,6 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
     const [editFecha, setEditFecha]         = useState("");
     const [editHora, setEditHora]           = useState("");
     const [editComensales, setEditComensales] = useState(2);
-    const [editZona, setEditZona]           = useState<"adentro"|"afuera"|"indiferente">("indiferente");
     const [editNotas, setEditNotas]         = useState("");
     const [editSaving, setEditSaving]       = useState(false);
     const [editError, setEditError]         = useState("");
@@ -242,7 +236,6 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
                 fecha: crearFecha,
                 hora: crearHora,
                 comensales: crearComensales,
-                zona: crearZona,
                 notas: crearNotas.trim() || undefined,
             };
             if (crearTipo === "usuario" && crearUsuario) {
@@ -302,7 +295,6 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
         setEditFecha(r.fecha.slice(0, 10));
         setEditHora(r.hora);
         setEditComensales(r.comensales);
-        setEditZona(r.zona);
         setEditNotas(r.notas || "");
         setEditError("");
     }
@@ -315,7 +307,6 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
             fecha: editFecha,
             hora: editHora,
             comensales: editComensales,
-            zona: editZona,
             notas: editNotas.trim() || undefined,
         };
         if (!editModal.userId) {
@@ -415,10 +406,6 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
                                     <div className="bg-gray-50 rounded-xl px-3 py-2">
                                         <p className="text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Comensales</p>
                                         <p className="text-sm font-bold text-gray-900">{r.comensales} persona{r.comensales !== 1 ? "s" : ""}</p>
-                                    </div>
-                                    <div className="bg-gray-50 rounded-xl px-3 py-2">
-                                        <p className="text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Preferencia</p>
-                                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${ZONA_COLOR[r.zona]}`}>{ZONA_LABEL[r.zona]}</span>
                                     </div>
                                 </div>
 
@@ -612,20 +599,6 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
                                 </div>
                             </div>
 
-                            {/* Zona */}
-                            <div>
-                                <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">Preferencia de zona</label>
-                                <div className="flex gap-2">
-                                    {(["adentro","afuera","indiferente"] as const).map(z => (
-                                        <button key={z}
-                                            onClick={() => setCrearZona(z)}
-                                            className={`flex-1 py-2 rounded-xl text-xs font-bold border-2 transition ${crearZona === z ? "border-black bg-black text-white" : "border-gray-200 text-gray-600 hover:border-gray-400"}`}>
-                                            {ZONA_LABEL[z]}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
                             {/* Notas */}
                             <div>
                                 <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Observaciones</label>
@@ -709,19 +682,6 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
                                     <span className="text-2xl font-black text-gray-900 min-w-[2rem] text-center">{editComensales}</span>
                                     <button onClick={() => setEditComensales(c => Math.min(20, c + 1))}
                                         className="w-10 h-10 rounded-full border-2 border-gray-200 text-xl font-bold text-gray-700 flex items-center justify-center hover:border-gray-400 transition">+</button>
-                                </div>
-                            </div>
-
-                            {/* Zona */}
-                            <div>
-                                <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">Preferencia de zona</label>
-                                <div className="flex gap-2">
-                                    {(["adentro","afuera","indiferente"] as const).map(z => (
-                                        <button key={z} onClick={() => setEditZona(z)}
-                                            className={`flex-1 py-2 rounded-xl text-xs font-bold border-2 transition ${editZona === z ? "border-black bg-black text-white" : "border-gray-200 text-gray-600 hover:border-gray-400"}`}>
-                                            {ZONA_LABEL[z]}
-                                        </button>
-                                    ))}
                                 </div>
                             </div>
 

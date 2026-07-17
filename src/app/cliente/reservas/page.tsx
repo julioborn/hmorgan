@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAuth } from "@/context/auth-context";
-import { CalendarDays, Clock, Users, CheckCircle, XCircle, Loader2, Plus, Home, Leaf, HelpCircle, X } from "lucide-react";
+import { CalendarDays, Clock, Users, CheckCircle, XCircle, Loader2, Plus, X } from "lucide-react";
 import { hoyArgentina, formatArgDate } from "@/lib/argentina-time";
 
 type Reserva = {
@@ -10,17 +10,10 @@ type Reserva = {
     fecha: string;
     hora: string;
     comensales: number;
-    zona: "adentro" | "afuera" | "indiferente";
     mesaId?: { nombre: string };
     estado: "pendiente" | "confirmada" | "cancelada";
     notas?: string;
 };
-
-const ZONA_OPTIONS = [
-    { value: "adentro",     label: "Adentro",         icon: Home },
-    { value: "afuera",      label: "Afuera",           icon: Leaf },
-    { value: "indiferente", label: "Sin preferencia",  icon: HelpCircle },
-] as const;
 
 const HORAS = ["19:00","19:30","20:00","20:30","21:00","21:30","22:00","22:30","23:00"];
 
@@ -48,7 +41,6 @@ export default function ClienteReservasPage() {
         fecha: hoyArgentina(),
         hora: "19:00",
         comensales: 2,
-        zona: "indiferente" as "adentro" | "afuera" | "indiferente",
         notas: "",
     });
     const [confirmando, setConfirmando] = useState(false);
@@ -116,7 +108,7 @@ export default function ClienteReservasPage() {
             setReservas(p => [nueva, ...p]);
             setShowForm(false);
             setSuccess(true);
-            setForm({ fecha: hoyArgentina(), hora: "19:00", comensales: 2, zona: "indiferente", notas: "" });
+            setForm({ fecha: hoyArgentina(), hora: "19:00", comensales: 2, notas: "" });
             setTimeout(() => setSuccess(false), 4000);
         } finally { setSending(false); }
     }
@@ -230,23 +222,6 @@ export default function ClienteReservasPage() {
                                 </div>
                             </div>
 
-                            {/* Zona */}
-                            <div>
-                                <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Preferencia de lugar</label>
-                                <div className="flex gap-2">
-                                    {ZONA_OPTIONS.map(z => {
-                                        const Icon = z.icon;
-                                        return (
-                                        <button type="button" key={z.value} onClick={() => setForm(p => ({ ...p, zona: z.value }))}
-                                            className={`flex-1 py-2.5 rounded-xl border text-xs font-bold flex flex-col items-center gap-1 transition ${form.zona === z.value ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
-                                            <Icon size={18} />
-                                            <span>{z.label}</span>
-                                        </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
                             {/* Notas */}
                             <div>
                                 <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Observaciones <span className="text-gray-400 normal-case font-normal">(opcional)</span></label>
@@ -289,7 +264,6 @@ export default function ClienteReservasPage() {
                                                 <div className="flex items-center gap-3 mt-1 text-sm text-gray-600">
                                                     <span className="flex items-center gap-1"><Clock size={13} />{r.hora}hs</span>
                                                     <span className="flex items-center gap-1"><Users size={13} />{r.comensales}p</span>
-                                                    <span>{ZONA_OPTIONS.find(z => z.value === r.zona)?.label}</span>
                                                 </div>
                                                 {r.notas && <p className="text-xs text-gray-500 mt-1.5 italic">📝 {r.notas}</p>}
                                             </div>
