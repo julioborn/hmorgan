@@ -333,13 +333,6 @@ export default function ClienteReservasPage() {
                                     <p className="font-bold text-gray-900">{form.comensales} persona{form.comensales !== 1 ? "s" : ""}</p>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-3 bg-gray-50 rounded-2xl px-4 py-3">
-                                {(() => { const z = ZONA_OPTIONS.find(z => z.value === form.zona)!; const Icon = z.icon; return <Icon size={18} className="text-red-500 shrink-0" />; })()}
-                                <div>
-                                    <p className="text-xs text-gray-400 font-semibold uppercase">Lugar</p>
-                                    <p className="font-bold text-gray-900">{ZONA_OPTIONS.find(z => z.value === form.zona)?.label}</p>
-                                </div>
-                            </div>
                             {form.notas && (
                                 <div className="flex items-start gap-3 bg-gray-50 rounded-2xl px-4 py-3">
                                     <span className="text-base shrink-0 mt-0.5">📝</span>
