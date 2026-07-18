@@ -158,7 +158,37 @@ export async function GET(req: NextRequest) {
         const totalPuntos = puntosAgg[0]?.total || 0;
 
         const pedidosEmpleado = pedidos.filter((p: any) => p.fuente === "empleado").length;
-        const pedidosCliente = pedidos.length - pedidosEmpleado;
+        const pedidosCliente = pedidos.filter((p: any) => (p.fuente || "cliente") === "cliente").length;
+        const pedidosAutoservicio = pedidos.filter((p: any) => p.fuente === "autoservicio").length;
+
+        // Tipo de entrega
+        const tipoEntregaSplit: Record<string, number> = { retira: 0, envio: 0 };
+        for (const p of pedidos) {
+            const tipo = (p as any).tipoEntrega || "retira";
+            tipoEntregaSplit[tipo] = (tipoEntregaSplit[tipo] || 0) + 1;
+        }
+
+        // Método de pago (pedidos entregados con metodoPago definido)
+        const metodoPagoSplit: Record<string, number> = {};
+        for (const p of entregados) {
+            const metodo = (p as any).metodoPago;
+            if (metodo) metodoPagoSplit[metodo] = (metodoPagoSplit[metodo] || 0) + 1;
+        }
+
+        // Ingresos por categoría
+        const categoriasMap: Record<string, { total: number; cantidad: number }> = {};
+        for (const pedido of entregados) {
+            for (const item of (pedido as any).items) {
+                const cat = item.menuItemId?.categoria || "Otros";
+                const precio = item.menuItemId?.precio || 0;
+                if (!categoriasMap[cat]) categoriasMap[cat] = { total: 0, cantidad: 0 };
+                categoriasMap[cat].total += precio * item.cantidad;
+                categoriasMap[cat].cantidad += item.cantidad;
+            }
+        }
+        const ingresosPorCategoria = Object.entries(categoriasMap)
+            .map(([categoria, data]) => ({ categoria, ...data }))
+            .sort((a, b) => b.total - a.total);
 
         return NextResponse.json({
             totalIngresos,
@@ -178,6 +208,10 @@ export async function GET(req: NextRequest) {
             puntosCanjeados,
             pedidosEmpleado,
             pedidosCliente,
+            pedidosAutoservicio,
+            tipoEntregaSplit,
+            metodoPagoSplit,
+            ingresosPorCategoria,
         });
     } catch (error) {
         console.error("Error estadísticas:", error);

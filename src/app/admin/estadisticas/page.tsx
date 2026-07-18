@@ -3,11 +3,17 @@ import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 import Loader from "@/components/Loader";
-import { TrendingUp, Package, Users, Coins, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+    TrendingUp, Package, Users, Coins, Clock,
+    ChevronLeft, ChevronRight, Percent, UserPlus,
+    Gift, Truck, UtensilsCrossed, Wallet,
+} from "lucide-react";
 
 type Stats = {
     totalIngresos: number;
     totalPedidos: number;
+    ticketPromedio: number;
+    tasaCancelacion: number;
     conteos: { pendiente: number; preparando: number; listo: number; entregado: number; cancelado: number };
     itemsPopulares: { nombre: string; cantidad: number; categoria: string }[];
     pedidosPorDia: { fecha: string; cantidad: number }[];
@@ -15,9 +21,16 @@ type Stats = {
     horaPico: number | null;
     horasPorHora: { hora: number; cantidad: number }[];
     totalUsuarios: number;
+    nuevosUsuarios: number;
     totalPuntos: number;
+    canjesCount: number;
+    puntosCanjeados: number;
     pedidosEmpleado: number;
     pedidosCliente: number;
+    pedidosAutoservicio: number;
+    tipoEntregaSplit: Record<string, number>;
+    metodoPagoSplit: Record<string, number>;
+    ingresosPorCategoria: { categoria: string; total: number; cantidad: number }[];
 };
 
 function toInputDate(d: Date) {
@@ -188,7 +201,7 @@ function DateRangePicker({
 
     const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
     const firstDayRaw = new Date(viewYear, viewMonth, 1).getDay();
-    const offset = (firstDayRaw + 6) % 7; // Monday-first
+    const offset = (firstDayRaw + 6) % 7;
 
     const cells: (string | null)[] = [
         ...Array(offset).fill(null),
@@ -296,39 +309,67 @@ function StatsContent({ stats }: { stats: Stats }) {
     const maxItems = Math.max(...stats.itemsPopulares.map(i => i.cantidad), 1);
     const maxHora = Math.max(...stats.horasPorHora.map(h => h.cantidad), 1);
     const horasActivas = stats.horasPorHora.some(h => h.cantidad > 0);
+    const maxCategoria = Math.max(...stats.ingresosPorCategoria.map(c => c.total), 1);
+
+    const hayMetodoPago = Object.values(stats.metodoPagoSplit).some(v => v > 0);
+    const hayEntrega = Object.values(stats.tipoEntregaSplit).some(v => v > 0);
+    const hayCategorias = stats.ingresosPorCategoria.length > 0;
 
     return (
         <div className="space-y-6">
-            {/* 4 tarjetas originales */}
-            <div className="grid grid-cols-2 gap-4">
-                <StatCard icon={<TrendingUp className="w-6 h-6 text-green-600" />} label="Ingresos totales" value={`$${stats.totalIngresos.toLocaleString("es-AR")}`} color="bg-green-50 border-green-200" />
-                <StatCard icon={<Package className="w-6 h-6 text-red-600" />} label="Total pedidos" value={stats.totalPedidos} color="bg-red-50 border-red-200" />
-                <StatCard icon={<Users className="w-6 h-6 text-blue-600" />} label="Clientes registrados" value={stats.totalUsuarios} color="bg-blue-50 border-blue-200" />
-                <StatCard icon={<Coins className="w-6 h-6 text-yellow-600" />} label="Puntos distribuidos" value={stats.totalPuntos.toLocaleString("es-AR")} color="bg-yellow-50 border-yellow-200" />
-            </div>
 
-            {/* Estado de pedidos */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                <h2 className="font-bold text-lg text-gray-900 mb-4">Estado de pedidos</h2>
-                <div className="grid grid-cols-3 gap-3 text-center mb-3">
-                    <div className="bg-yellow-50 rounded-xl p-3 border border-yellow-200">
-                        <p className="text-2xl font-extrabold text-yellow-700">{stats.conteos.pendiente}</p>
-                        <p className="text-xs text-yellow-700 font-medium">Pendientes</p>
-                    </div>
-                    <div className="bg-orange-50 rounded-xl p-3 border border-orange-200">
-                        <p className="text-2xl font-extrabold text-orange-700">{stats.conteos.preparando}</p>
-                        <p className="text-xs text-orange-700 font-medium">Preparando</p>
-                    </div>
-                    <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-200">
-                        <p className="text-2xl font-extrabold text-emerald-700">{stats.conteos.entregado}</p>
-                        <p className="text-xs text-emerald-700 font-medium">Entregados</p>
-                    </div>
-                </div>
-                <div className="flex justify-between text-sm text-gray-600 pt-2 border-t border-gray-100">
-                    <span>Clientes: <strong>{stats.pedidosCliente}</strong></span>
-                    <span>Mozos: <strong>{stats.pedidosEmpleado}</strong></span>
-                    <span>Cancelados: <strong>{stats.conteos.cancelado}</strong></span>
-                </div>
+            {/* KPIs principales — 2 columnas */}
+            <div className="grid grid-cols-2 gap-3">
+                <StatCard
+                    icon={<TrendingUp className="w-5 h-5 text-green-600" />}
+                    label="Ingresos totales"
+                    value={`$${stats.totalIngresos.toLocaleString("es-AR")}`}
+                    color="bg-green-50 border-green-200"
+                />
+                <StatCard
+                    icon={<TrendingUp className="w-5 h-5 text-emerald-600" />}
+                    label="Ticket promedio"
+                    value={stats.ticketPromedio > 0 ? `$${stats.ticketPromedio.toLocaleString("es-AR")}` : "—"}
+                    color="bg-emerald-50 border-emerald-200"
+                />
+                <StatCard
+                    icon={<Package className="w-5 h-5 text-red-600" />}
+                    label="Pedidos totales"
+                    value={stats.totalPedidos}
+                    color="bg-red-50 border-red-200"
+                />
+                <StatCard
+                    icon={<Percent className="w-5 h-5 text-orange-600" />}
+                    label="Cancelaciones"
+                    value={`${stats.tasaCancelacion}%`}
+                    sub={`${stats.conteos.cancelado} pedido${stats.conteos.cancelado !== 1 ? "s" : ""}`}
+                    color="bg-orange-50 border-orange-200"
+                />
+                <StatCard
+                    icon={<Users className="w-5 h-5 text-blue-600" />}
+                    label="Clientes totales"
+                    value={stats.totalUsuarios}
+                    color="bg-blue-50 border-blue-200"
+                />
+                <StatCard
+                    icon={<UserPlus className="w-5 h-5 text-indigo-600" />}
+                    label="Nuevos en período"
+                    value={stats.nuevosUsuarios}
+                    color="bg-indigo-50 border-indigo-200"
+                />
+                <StatCard
+                    icon={<Coins className="w-5 h-5 text-yellow-600" />}
+                    label="Puntos emitidos"
+                    value={stats.totalPuntos.toLocaleString("es-AR")}
+                    color="bg-yellow-50 border-yellow-200"
+                />
+                <StatCard
+                    icon={<Gift className="w-5 h-5 text-purple-600" />}
+                    label="Canjes"
+                    value={stats.canjesCount}
+                    sub={stats.puntosCanjeados > 0 ? `${stats.puntosCanjeados.toLocaleString("es-AR")} pts` : undefined}
+                    color="bg-purple-50 border-purple-200"
+                />
             </div>
 
             {/* Pedidos por período */}
@@ -351,6 +392,91 @@ function StatsContent({ stats }: { stats: Stats }) {
                 formatValue={(v) => v > 0 ? `$${v.toLocaleString("es-AR")}` : ""}
             />
 
+            {/* Tipo de entrega */}
+            {hayEntrega && (
+                <SplitCard
+                    title="Tipo de entrega"
+                    icon={<Truck className="w-5 h-5 text-blue-600" />}
+                    segments={[
+                        { label: "Local / retira", value: stats.tipoEntregaSplit.retira || 0, color: "#3b82f6", emoji: "🏠" },
+                        { label: "Delivery", value: stats.tipoEntregaSplit.envio || 0, color: "#f59e0b", emoji: "🛵" },
+                    ]}
+                />
+            )}
+
+            {/* Origen de pedidos */}
+            {stats.totalPedidos > 0 && (
+                <SplitCard
+                    title="Origen de pedidos"
+                    icon={<UtensilsCrossed className="w-5 h-5 text-red-600" />}
+                    segments={[
+                        { label: "App clientes", value: stats.pedidosCliente, color: "#ef4444", emoji: "📱" },
+                        { label: "Mozos", value: stats.pedidosEmpleado, color: "#8b5cf6", emoji: "🧑‍🍳" },
+                        { label: "Autoservicio", value: stats.pedidosAutoservicio, color: "#06b6d4", emoji: "📟" },
+                    ].filter(s => s.value > 0)}
+                />
+            )}
+
+            {/* Método de pago */}
+            {hayMetodoPago && (
+                <SplitCard
+                    title="Método de pago"
+                    icon={<Wallet className="w-5 h-5 text-emerald-600" />}
+                    segments={[
+                        { label: "Efectivo", value: stats.metodoPagoSplit.efectivo || 0, color: "#10b981", emoji: "💵" },
+                        { label: "Transferencia", value: stats.metodoPagoSplit.transferencia || 0, color: "#8b5cf6", emoji: "📲" },
+                        { label: "Mercado Pago", value: stats.metodoPagoSplit.mercadopago || 0, color: "#3b82f6", emoji: "💳" },
+                    ].filter(s => s.value > 0)}
+                />
+            )}
+
+            {/* Estado de pedidos */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <h2 className="font-bold text-lg text-gray-900 mb-4">Estado de pedidos</h2>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="bg-amber-50 rounded-xl p-3 border border-amber-200">
+                        <p className="text-2xl font-extrabold text-amber-700">{stats.conteos.pendiente}</p>
+                        <p className="text-xs text-amber-700 font-medium">Pendientes</p>
+                    </div>
+                    <div className="bg-orange-50 rounded-xl p-3 border border-orange-200">
+                        <p className="text-2xl font-extrabold text-orange-700">{stats.conteos.preparando}</p>
+                        <p className="text-xs text-orange-700 font-medium">Preparando</p>
+                    </div>
+                    <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-200">
+                        <p className="text-2xl font-extrabold text-emerald-700">{stats.conteos.entregado}</p>
+                        <p className="text-xs text-emerald-700 font-medium">Entregados</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Ingresos por categoría */}
+            {hayCategorias && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                    <h2 className="font-bold text-lg text-gray-900 mb-4">Ingresos por categoría</h2>
+                    <div className="space-y-3">
+                        {stats.ingresosPorCategoria.map((cat, i) => {
+                            const pct = Math.round((cat.total / maxCategoria) * 100);
+                            const COLORS = ["#ef4444","#f59e0b","#10b981","#3b82f6","#8b5cf6","#06b6d4","#f43f5e","#84cc16"];
+                            const color = COLORS[i % COLORS.length];
+                            return (
+                                <div key={cat.categoria}>
+                                    <div className="flex justify-between items-center mb-1">
+                                        <span className="text-sm font-semibold text-gray-800 capitalize">{cat.categoria}</span>
+                                        <div className="text-right">
+                                            <span className="text-sm font-bold text-gray-900">${cat.total.toLocaleString("es-AR")}</span>
+                                            <span className="text-xs text-gray-400 ml-1.5">×{cat.cantidad}</span>
+                                        </div>
+                                    </div>
+                                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
             {/* Distribución por hora */}
             {horasActivas && (
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
@@ -361,8 +487,6 @@ function StatsContent({ stats }: { stats: Stats }) {
                             Hora pico: <strong className="text-black ml-1">{stats.horaPico}:00 – {stats.horaPico + 1}:00</strong>
                         </p>
                     )}
-
-                    {/* Barras */}
                     <div className="flex items-end gap-[3px]" style={{ height: "72px" }}>
                         {stats.horasPorHora.map((h) => (
                             <div
@@ -378,8 +502,6 @@ function StatsContent({ stats }: { stats: Stats }) {
                             />
                         ))}
                     </div>
-
-                    {/* Etiquetas de hora separadas */}
                     <div className="flex gap-[3px] mt-1">
                         {stats.horasPorHora.map((h) => (
                             <div key={h.hora} className="flex-1 text-center">
@@ -418,6 +540,52 @@ function StatsContent({ stats }: { stats: Stats }) {
     );
 }
 
+/* ─── Split Card ─────────────────────────────────────────────────── */
+function SplitCard({
+    title, icon, segments,
+}: {
+    title: string;
+    icon: React.ReactNode;
+    segments: { label: string; value: number; color: string; emoji?: string }[];
+}) {
+    const total = segments.reduce((acc, s) => acc + s.value, 0);
+    if (total === 0) return null;
+
+    return (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <div className="flex items-center gap-2 mb-4">
+                {icon}
+                <h2 className="font-bold text-lg text-gray-900">{title}</h2>
+            </div>
+
+            {/* Barra segmentada */}
+            <div className="flex h-3 rounded-full overflow-hidden gap-0.5 mb-4">
+                {segments.map((seg, i) => (
+                    <div
+                        key={i}
+                        style={{ width: `${(seg.value / total) * 100}%`, backgroundColor: seg.color }}
+                        className="rounded-full"
+                    />
+                ))}
+            </div>
+
+            {/* Leyenda */}
+            <div className="flex flex-wrap gap-x-5 gap-y-2">
+                {segments.map((seg, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: seg.color }} />
+                        <span className="text-sm text-gray-600 font-medium">
+                            {seg.emoji} {seg.label}
+                        </span>
+                        <span className="text-sm font-extrabold text-gray-900">{seg.value}</span>
+                        <span className="text-xs text-gray-400">({Math.round((seg.value / total) * 100)}%)</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 /* ─── Bar Chart ─────────────────────────────────────────────────── */
 function BarChart({ title, data, valueKey, maxVal, color, formatValue }: {
     title: string;
@@ -435,8 +603,6 @@ function BarChart({ title, data, valueKey, maxVal, color, formatValue }: {
     return (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <h2 className="font-bold text-lg text-gray-900 mb-1">{title}</h2>
-
-            {/* Valor máximo como referencia */}
             <p className="text-xs text-gray-400 mb-3">
                 Máx: <span className="font-semibold text-gray-600">{formatValue(maxVal)}</span>
             </p>
@@ -464,7 +630,6 @@ function BarChart({ title, data, valueKey, maxVal, color, formatValue }: {
                     })}
                 </div>
 
-                {/* Etiquetas de fecha */}
                 <div
                     className="flex gap-[3px] mt-1"
                     style={{ minWidth: `${data.length * (barMin + 3)}px` }}
@@ -490,17 +655,19 @@ function BarChart({ title, data, valueKey, maxVal, color, formatValue }: {
 }
 
 /* ─── Stat Card ─────────────────────────────────────────────────── */
-function StatCard({ icon, label, value, color }: {
+function StatCard({ icon, label, value, sub, color }: {
     icon: React.ReactNode;
     label: string;
     value: string | number;
+    sub?: string;
     color: string;
 }) {
     return (
         <div className={`${color} rounded-2xl border p-4`}>
             <div className="mb-2">{icon}</div>
-            <p className="text-xs text-gray-600 font-medium">{label}</p>
-            <p className="text-xl font-extrabold text-gray-900 mt-1">{value}</p>
+            <p className="text-xs text-gray-600 font-medium leading-tight">{label}</p>
+            <p className="text-xl font-extrabold text-gray-900 mt-1 leading-tight">{value}</p>
+            {sub && <p className="text-xs text-gray-500 mt-0.5">{sub}</p>}
         </div>
     );
 }
