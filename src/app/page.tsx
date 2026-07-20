@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -133,6 +133,9 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
   const [comandaActiva, setComandaActiva] = useState<{ _id: string; mesa?: string; nombreComanda?: string; total?: number; items?: { cantidad: number }[] } | null>(null);
   const [llamadaEnviada, setLlamadaEnviada] = useState<Set<"mozo" | "cuenta">>(new Set());
   const [llamarConfirm, setLlamarConfirm] = useState<"mozo" | "cuenta" | null>(null);
+  const [pedidoCancelado, setPedidoCancelado] = useState<{ _id: string; tipoEntrega?: string; numeroDia?: number } | null>(null);
+  const prevActiveRef = useRef<Set<string>>(new Set());
+  const firstPollRef  = useRef(false);
 
   async function solicitarCanje(r: Reward) {
     if (puntos < r.puntos) {
@@ -231,6 +234,23 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
             ["pendiente", "aceptado", "preparando", "listo"].includes(p.estado) &&
             p.fuente !== "autoservicio"
         ).length);
+
+        // Detectar pedidos que pasaron de activo → cancelado
+        if (firstPollRef.current) {
+          const dismissed: string[] = JSON.parse(localStorage.getItem("hm_cancelled_seen") || "[]");
+          for (const p of data) {
+            if (p.estado === "cancelado" && prevActiveRef.current.has(p._id) && !dismissed.includes(p._id)) {
+              setPedidoCancelado(p);
+              break;
+            }
+          }
+        }
+        // Actualizar set de IDs activos conocidos
+        prevActiveRef.current = new Set<string>(
+          data.filter((p: any) => ["pendiente", "aceptado", "preparando", "listo"].includes(p.estado))
+              .map((p: any) => p._id)
+        );
+        firstPollRef.current = true;
       } catch { }
     };
     const fetchComandaActiva = async () => {
@@ -250,6 +270,14 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
   function llamar(tipo: "mozo" | "cuenta") {
     if (llamadaEnviada.has(tipo) || !comandaActiva) return;
     setLlamarConfirm(tipo);
+  }
+
+  function dismissCancellation() {
+    if (!pedidoCancelado) return;
+    const dismissed: string[] = JSON.parse(localStorage.getItem("hm_cancelled_seen") || "[]");
+    dismissed.push(pedidoCancelado._id);
+    localStorage.setItem("hm_cancelled_seen", JSON.stringify(dismissed));
+    setPedidoCancelado(null);
   }
 
   function confirmarLlamar() {
@@ -747,6 +775,38 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
                 onClick={() => setLlamarConfirm(null)}
                 className="w-full py-3 rounded-2xl text-sm font-semibold text-gray-500 hover:bg-gray-100 transition">
                 Cancelar
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Modal pedido rechazado */}
+      {pedidoCancelado && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="pt-7 px-6 pb-5 text-center">
+              <div className="mx-auto mb-4 w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-600">
+                  <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+              </div>
+              <h2 className="text-lg font-bold text-gray-900 mb-2">
+                {pedidoCancelado.tipoEntrega === "envio" ? "Tu envío fue rechazado" : "Tu pedido fue rechazado"}
+              </h2>
+              <p className="text-sm text-gray-500 leading-relaxed">
+                El bar no pudo procesar tu pedido en este momento. Disculpá las molestias.
+              </p>
+              {pedidoCancelado.numeroDia && (
+                <p className="text-xs text-gray-400 mt-2">Pedido #{pedidoCancelado.numeroDia}</p>
+              )}
+            </div>
+            <div className="px-5 pb-5">
+              <button
+                onClick={dismissCancellation}
+                className="w-full py-3 rounded-2xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 active:scale-[0.98] transition">
+                Entendido
               </button>
             </div>
           </div>
