@@ -174,6 +174,64 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json(updated);
 }
 
+// PUT — cliente edita su propia reserva (vuelve a pendiente, libera mesa)
+export async function PUT(req: NextRequest) {
+    const payload = getPayload(req);
+    if (!payload || payload.role !== "cliente")
+        return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    await connectMongoDB();
+
+    const { id, fecha, hora, comensales, notas } = await req.json();
+    if (!id || !fecha || !hora || !comensales)
+        return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
+
+    const reserva = await Reserva.findOne({ _id: id, userId: payload.sub });
+    if (!reserva) return NextResponse.json({ error: "Reserva no encontrada" }, { status: 404 });
+    if (reserva.estado === "cancelada")
+        return NextResponse.json({ error: "No podés editar una reserva cancelada" }, { status: 400 });
+
+    const fechaStr = String(fecha).slice(0, 10);
+    const hoyStr = hoyArgentina();
+    if (fechaStr < hoyStr)
+        return NextResponse.json({ error: "No podés reservar en una fecha pasada" }, { status: 400 });
+
+    if (fechaStr === hoyStr) {
+        const [h, m] = String(hora).split(":").map(Number);
+        const { h: hNow, m: mNow } = ahoraArgentina();
+        if ((h || 0) * 60 + (m || 0) < hNow * 60 + mNow)
+            return NextResponse.json({ error: "Ese horario ya pasó, elegí otro" }, { status: 400 });
+    }
+
+    reserva.fecha = new Date(fecha);
+    reserva.hora = hora;
+    reserva.comensales = Number(comensales);
+    reserva.notas = notas?.trim() || undefined;
+    reserva.estado = "pendiente";
+    (reserva as any).mesaId = undefined;
+    await reserva.save();
+
+    // Notificar admins del cambio
+    const admins = await User.find({ role: { $in: ["admin", "superadmin"] } });
+    const pushBody = `${comensales} personas · ${formatFecha(new Date(fecha))} · ${hora}hs`;
+    for (const admin of admins) {
+        if (admin.pushSubscriptions?.length) {
+            await sendPushToSubscriptions(admin.pushSubscriptions, {
+                title: "Reserva modificada",
+                body: pushBody,
+                url: "/admin/reservas",
+                icon: "/icon-192.png",
+            });
+        }
+        const tokens = new Set<string>([...(admin.fcmTokens ?? []), ...(admin.tokenFCM ? [admin.tokenFCM] : [])]);
+        for (const t of tokens) {
+            try { await enviarNotificacionFCM(t, "Reserva modificada", pushBody, "/admin/reservas"); }
+            catch (e) { if (isFCMTokenInvalid(e)) await User.updateOne({ _id: admin._id }, { $pull: { fcmTokens: t } }); }
+        }
+    }
+
+    return NextResponse.json(reserva);
+}
+
 // DELETE — admin cancela
 export async function DELETE(req: NextRequest) {
     const payload = getPayload(req);
