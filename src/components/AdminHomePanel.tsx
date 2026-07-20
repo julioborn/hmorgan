@@ -16,18 +16,18 @@ type CardColor =
   | "orange" | "rose" | "indigo" | "zinc" | "cyan" | "pink" | "yellow";
 
 const colorMap: Record<CardColor, { bg: string; icon: string }> = {
-  red:     { bg: "bg-red-50 dark:bg-red-500/10",           icon: "text-red-500 dark:text-red-400" },
-  amber:   { bg: "bg-amber-50 dark:bg-amber-500/10",       icon: "text-amber-500 dark:text-amber-400" },
-  emerald: { bg: "bg-emerald-50 dark:bg-emerald-500/10",   icon: "text-emerald-600 dark:text-emerald-400" },
-  sky:     { bg: "bg-sky-50 dark:bg-sky-500/10",           icon: "text-sky-500 dark:text-sky-400" },
-  violet:  { bg: "bg-violet-50 dark:bg-violet-500/10",     icon: "text-violet-500 dark:text-violet-400" },
-  orange:  { bg: "bg-orange-50 dark:bg-orange-500/10",     icon: "text-orange-500 dark:text-orange-400" },
-  rose:    { bg: "bg-rose-50 dark:bg-rose-500/10",         icon: "text-rose-500 dark:text-rose-400" },
-  indigo:  { bg: "bg-indigo-50 dark:bg-indigo-500/10",     icon: "text-indigo-500 dark:text-indigo-400" },
-  zinc:    { bg: "bg-gray-100 dark:bg-zinc-700/30",        icon: "text-gray-500 dark:text-zinc-400" },
-  cyan:    { bg: "bg-cyan-50 dark:bg-cyan-500/10",         icon: "text-cyan-500 dark:text-cyan-400" },
-  pink:    { bg: "bg-pink-50 dark:bg-pink-500/10",         icon: "text-pink-500 dark:text-pink-400" },
-  yellow:  { bg: "bg-yellow-50 dark:bg-yellow-500/10",     icon: "text-yellow-500 dark:text-yellow-400" },
+  red: { bg: "bg-red-50 dark:bg-red-500/10", icon: "text-red-500 dark:text-red-400" },
+  amber: { bg: "bg-amber-50 dark:bg-amber-500/10", icon: "text-amber-500 dark:text-amber-400" },
+  emerald: { bg: "bg-emerald-50 dark:bg-emerald-500/10", icon: "text-emerald-600 dark:text-emerald-400" },
+  sky: { bg: "bg-sky-50 dark:bg-sky-500/10", icon: "text-sky-500 dark:text-sky-400" },
+  violet: { bg: "bg-violet-50 dark:bg-violet-500/10", icon: "text-violet-500 dark:text-violet-400" },
+  orange: { bg: "bg-orange-50 dark:bg-orange-500/10", icon: "text-orange-500 dark:text-orange-400" },
+  rose: { bg: "bg-rose-50 dark:bg-rose-500/10", icon: "text-rose-500 dark:text-rose-400" },
+  indigo: { bg: "bg-indigo-50 dark:bg-indigo-500/10", icon: "text-indigo-500 dark:text-indigo-400" },
+  zinc: { bg: "bg-gray-100 dark:bg-zinc-700/30", icon: "text-gray-500 dark:text-zinc-400" },
+  cyan: { bg: "bg-cyan-50 dark:bg-cyan-500/10", icon: "text-cyan-500 dark:text-cyan-400" },
+  pink: { bg: "bg-pink-50 dark:bg-pink-500/10", icon: "text-pink-500 dark:text-pink-400" },
+  yellow: { bg: "bg-yellow-50 dark:bg-yellow-500/10", icon: "text-yellow-500 dark:text-yellow-400" },
 };
 
 export function AdminCard({
@@ -42,8 +42,8 @@ export function AdminCard({
   color?: CardColor;
 }) {
   const badgeStyles: Record<string, string> = {
-    yellow:  "bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30",
-    red:     "bg-red-50 text-red-600 border border-red-200 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/30",
+    yellow: "bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30",
+    red: "bg-red-50 text-red-600 border border-red-200 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/30",
     emerald: "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30",
   };
   const c = colorMap[color] ?? colorMap.zinc;
@@ -81,12 +81,12 @@ export function AdminCard({
 }
 
 export function AdminHome() {
-  const [pedidosActivos, setPedidosActivos]         = useState<any[]>([]);
-  const [clientes, setClientes]                     = useState<number | null>(null);
-  const [statsHoy, setStatsHoy]                     = useState<{ pedidos: number; ingresos: number } | null>(null);
+  const [pedidosActivos, setPedidosActivos] = useState<any[]>([]);
+  const [clientes, setClientes] = useState<number | null>(null);
+  const [statsHoy, setStatsHoy] = useState<{ pedidos: number; ingresos: number } | null>(null);
   const [reservasPendientes, setReservasPendientes] = useState(0);
-  const [cajaAbierta, setCajaAbierta]               = useState<boolean | null>(null);
-  const [stockAlertas, setStockAlertas]             = useState(0);
+  const [cajaAbierta, setCajaAbierta] = useState<boolean | null>(null);
+  const [stockAlertas, setStockAlertas] = useState(0);
   const [hora, setHora] = useState(() => new Date().getHours());
 
   useEffect(() => {
@@ -103,7 +103,7 @@ export function AdminHome() {
         setPedidosActivos(
           data?.filter((p: any) => ["pendiente", "preparando", "listo"].includes(p.estado)) ?? []
         );
-      } catch {}
+      } catch { }
     };
     load();
     const iv = setInterval(load, 5_000);
@@ -120,7 +120,7 @@ export function AdminHome() {
         setReservasPendientes(
           data.filter((r: any) => r.estado === "pendiente" && r.fecha?.slice(0, 10) === hoy).length
         );
-      } catch {}
+      } catch { }
     };
     load();
     const iv = setInterval(load, 10_000);
@@ -131,7 +131,7 @@ export function AdminHome() {
     fetch("/api/caja/status", { credentials: "include" })
       .then(r => r.json())
       .then(d => setCajaAbierta(!!d.abierta))
-      .catch(() => {});
+      .catch(() => { });
 
     fetch("/api/superadmin/stock", { credentials: "include" })
       .then(r => r.json())
@@ -141,7 +141,7 @@ export function AdminHome() {
           items.filter(i => i.activo && i.stockMinimo > 0 && i.stockActual <= i.stockMinimo).length
         );
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -153,7 +153,7 @@ export function AdminHome() {
         setStatsHoy({ pedidos: d.totalPedidos ?? 0, ingresos: d.totalIngresos ?? 0 });
         setClientes(d.totalUsuarios ?? null);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const saludo = hora < 12 ? "Buenos días" : hora < 20 ? "Buenas tardes" : "Buenas noches";
@@ -195,7 +195,7 @@ export function AdminHome() {
               <img
                 src="/icon-192-v2.png"
                 alt="Logo"
-                className="relative h-14 w-14 object-contain drop-shadow-lg dark:drop-shadow-2xl"
+                className="relative h-14 w-14 object-cover rounded-full drop-shadow-lg dark:drop-shadow-2xl"
               />
             </div>
           </div>
@@ -207,11 +207,10 @@ export function AdminHome() {
           {/* Pedidos activos */}
           <Link
             href="/admin/pedidos"
-            className={`rounded-2xl p-4 transition-all active:scale-[0.97] border shadow-sm ${
-              pedidosActivosCount > 0
+            className={`rounded-2xl p-4 transition-all active:scale-[0.97] border shadow-sm ${pedidosActivosCount > 0
                 ? "bg-gradient-to-br from-red-500 to-rose-600 border-transparent shadow-red-200 dark:shadow-red-500/20"
                 : "bg-white dark:bg-zinc-900 border-gray-200 dark:border-zinc-800"
-            }`}
+              }`}
           >
             <div className="flex items-center justify-between mb-2.5">
               <Package className={`h-4 w-4 ${pedidosActivosCount > 0 ? "text-red-100" : "text-gray-400 dark:text-zinc-500"}`} />
@@ -228,11 +227,10 @@ export function AdminHome() {
           {/* Reservas */}
           <Link
             href="/admin/reservas"
-            className={`rounded-2xl p-4 transition-all active:scale-[0.97] border shadow-sm ${
-              reservasPendientes > 0
+            className={`rounded-2xl p-4 transition-all active:scale-[0.97] border shadow-sm ${reservasPendientes > 0
                 ? "bg-gradient-to-br from-amber-400 to-orange-500 border-transparent shadow-amber-200 dark:shadow-amber-500/20"
                 : "bg-white dark:bg-zinc-900 border-gray-200 dark:border-zinc-800"
-            }`}
+              }`}
           >
             <div className="flex items-center justify-between mb-2.5">
               <CalendarDays className={`h-4 w-4 ${reservasPendientes > 0 ? "text-amber-100" : "text-gray-400 dark:text-zinc-500"}`} />
@@ -249,11 +247,10 @@ export function AdminHome() {
           {/* Caja */}
           <Link
             href="/admin/caja"
-            className={`rounded-2xl p-4 transition-all active:scale-[0.97] border shadow-sm ${
-              cajaAbierta === true
+            className={`rounded-2xl p-4 transition-all active:scale-[0.97] border shadow-sm ${cajaAbierta === true
                 ? "bg-gradient-to-br from-emerald-500 to-green-600 border-transparent shadow-emerald-200 dark:shadow-emerald-500/20"
                 : "bg-white dark:bg-zinc-900 border-gray-200 dark:border-zinc-800"
-            }`}
+              }`}
           >
             <div className="flex items-center justify-between mb-2.5">
               <Wallet className={`h-4 w-4 ${cajaAbierta === true ? "text-emerald-100" : "text-gray-400 dark:text-zinc-500"}`} />
@@ -296,7 +293,7 @@ export function AdminHome() {
               Salón
             </p>
             <div className="grid grid-cols-2 gap-2.5">
-              <AdminCard href="/admin/mesas"       title="Mesas"    Icon={LayoutGrid}   color="indigo" />
+              <AdminCard href="/admin/mesas" title="Mesas" Icon={LayoutGrid} color="indigo" />
               <AdminCard href="/empleado/anotador" title="Anotador" Icon={ClipboardList} color="zinc" />
             </div>
           </section>
@@ -323,9 +320,9 @@ export function AdminHome() {
               Clientes & Fidelidad
             </p>
             <div className="grid grid-cols-2 gap-2.5">
-              <AdminCard href="/admin/clientes"   title="Clientes"       Icon={Users}   color="sky" />
-              <AdminCard href="/admin/rewards"    title="Canjes"         Icon={Ticket}  color="violet" />
-              <AdminCard href="/caja/retroactivo" title="Asignar puntos" Icon={Star}    color="yellow" full />
+              <AdminCard href="/admin/clientes" title="Clientes" Icon={Users} color="sky" />
+              <AdminCard href="/admin/rewards" title="Canjes" Icon={Ticket} color="violet" />
+              <AdminCard href="/caja/retroactivo" title="Asignar puntos" Icon={Star} color="yellow" full />
             </div>
           </section>
 
@@ -334,10 +331,10 @@ export function AdminHome() {
               Comunicación & Contenido
             </p>
             <div className="grid grid-cols-2 gap-2.5">
-              <AdminCard href="/admin/notificaciones" title="Notificaciones" Icon={Bell}         color="red" />
-              <AdminCard href="/admin/invitaciones"   title="Invitaciones"   Icon={CalendarDays} color="cyan" />
-              <AdminCard href="/admin/carrousel"      title="Fotos"          Icon={Images}       color="pink" />
-              <AdminCard href="/admin/reviews"        title="Reseñas"        Icon={Star}         color="rose" />
+              <AdminCard href="/admin/notificaciones" title="Notificaciones" Icon={Bell} color="red" />
+              <AdminCard href="/admin/invitaciones" title="Invitaciones" Icon={CalendarDays} color="cyan" />
+              <AdminCard href="/admin/carrousel" title="Fotos" Icon={Images} color="pink" />
+              <AdminCard href="/admin/reviews" title="Reseñas" Icon={Star} color="rose" />
             </div>
           </section>
 
@@ -346,9 +343,9 @@ export function AdminHome() {
               Gestión
             </p>
             <div className="grid grid-cols-2 gap-2.5">
-              <AdminCard href="/admin/empleados"     title="Empleados"    Icon={UserCog}   color="zinc" />
-              <AdminCard href="/admin/estadisticas"  title="Estadísticas" Icon={BarChart2} color="emerald" />
-              <AdminCard href="/admin/configuracion" title="Ajustes"      Icon={Settings}  color="zinc" full />
+              <AdminCard href="/admin/empleados" title="Empleados" Icon={UserCog} color="zinc" />
+              <AdminCard href="/admin/estadisticas" title="Estadísticas" Icon={BarChart2} color="emerald" />
+              <AdminCard href="/admin/configuracion" title="Ajustes" Icon={Settings} color="zinc" full />
             </div>
           </section>
 
