@@ -144,7 +144,7 @@ export function AdminHome() {
   const pedidosActivosCount = pedidosActivos.length;
 
   return (
-    <div className="min-h-screen bg-zinc-950">
+    <div className="min-h-screen ">
       <div className={`${container} pb-14`} style={{ paddingBottom: "max(3.5rem, env(safe-area-inset-bottom))" }}>
 
         {/* ── Welcome banner ── */}
