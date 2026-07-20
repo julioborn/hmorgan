@@ -193,7 +193,7 @@ export function AdminHome() {
             <div className="relative shrink-0">
               <div className="absolute -inset-3 bg-red-500 rounded-full opacity-15 dark:opacity-20 blur-xl" />
               <img
-                src="/morganwhite.png"
+                src="/icon-192-v2.png"
                 alt="Logo"
                 className="relative h-14 w-14 object-contain drop-shadow-lg dark:drop-shadow-2xl"
               />
