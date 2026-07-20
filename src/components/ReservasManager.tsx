@@ -163,33 +163,41 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
     const [editError, setEditError]         = useState("");
 
     const fetchReservas = useCallback(async () => {
-        const r = await fetch("/api/reservas", { credentials: "include" });
-        const d = await r.json();
-        if (Array.isArray(d)) {
-            setReservas(d);
-            const hoy = hoyArgentina();
-            setReservadasHoy(new Set(
-                d.filter((r: any) => r.estado !== "cancelada" && r.mesaId && r.fecha?.slice(0, 10) === hoy)
-                 .map((r: any) => String(r.mesaId?._id || r.mesaId))
-            ));
-        }
+        try {
+            const r = await fetch("/api/reservas", { credentials: "include" });
+            if (!r.ok) return;
+            const d = await r.json();
+            if (Array.isArray(d)) {
+                setReservas(d);
+                const hoy = hoyArgentina();
+                setReservadasHoy(new Set(
+                    d.filter((r: any) => r.estado !== "cancelada" && r.mesaId && r.fecha?.slice(0, 10) === hoy)
+                     .map((r: any) => String(r.mesaId?._id || r.mesaId))
+                ));
+            }
+        } catch { }
     }, []);
 
     useEffect(() => {
         const init = async () => {
-            const [mRes, elRes] = await Promise.all([
-                fetch("/api/admin/mesas?all=true", { credentials: "include" }),
-                fetch("/api/superadmin/salon", { credentials: "include" }),
-            ]);
-            const [mData, elData] = await Promise.all([mRes.json(), elRes.json()]);
-            setMesas(Array.isArray(mData) ? mData.filter((m: Mesa) => m.activa) : []);
-            setElements(Array.isArray(elData) ? elData : []);
+            try {
+                const [mRes, elRes] = await Promise.all([
+                    fetch("/api/admin/mesas?all=true", { credentials: "include" }),
+                    fetch("/api/superadmin/salon", { credentials: "include" }),
+                ]);
+                const [mData, elData] = await Promise.all([
+                    mRes.ok ? mRes.json() : [],
+                    elRes.ok ? elRes.json() : [],
+                ]);
+                setMesas(Array.isArray(mData) ? mData.filter((m: Mesa) => m.activa) : []);
+                setElements(Array.isArray(elData) ? elData : []);
 
-            const pData = await fetch("/api/pedidos?activos=true&fuente=empleado", { credentials: "include" }).then(r => r.json()).catch(() => []);
-            if (Array.isArray(pData)) setOcupadas(new Set(pData.filter((p: any) => p.mesa).map((p: any) => String(p.mesa))));
+                const pData = await fetch("/api/pedidos?activos=true&fuente=empleado", { credentials: "include" }).then(r => r.json()).catch(() => []);
+                if (Array.isArray(pData)) setOcupadas(new Set(pData.filter((p: any) => p.mesa).map((p: any) => String(p.mesa))));
 
-            await fetchReservas();
-            setLoading(false);
+                await fetchReservas();
+            } catch { }
+            finally { setLoading(false); }
         };
         init();
         const iv = setInterval(fetchReservas, 8000);
