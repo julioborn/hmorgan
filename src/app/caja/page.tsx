@@ -1420,11 +1420,18 @@ export default function CajaPage() {
     async function printCuenta(pedido: Pedido) {
         const hora = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
         const fecha = new Date().toLocaleDateString("es-AR");
-        const printItems = pedido.items.map(i => ({
-            cantidad: i.cantidad,
-            nombre: i.menuItemId?.nombre || "Ítem",
-            precio: i.menuItemId?.precio || 0,
-        }));
+        const printItems = (() => {
+            const grouped = new Map<string, { cantidad: number; nombre: string; precio: number }>();
+            for (const i of pedido.items) {
+                const nombre = i.menuItemId?.nombre || "Ítem";
+                const precio = i.menuItemId?.precio || 0;
+                const key = `${nombre}__${precio}`;
+                const existing = grouped.get(key);
+                if (existing) existing.cantidad += i.cantidad;
+                else grouped.set(key, { cantidad: i.cantidad, nombre, precio });
+            }
+            return Array.from(grouped.values());
+        })();
         const total = pedido.total ?? 0;
         const costoEnvioVal = pedido.tipoEntrega === "envio" ? (pedido.costoEnvio || costoDelivery) : 0;
 
