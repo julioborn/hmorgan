@@ -226,6 +226,8 @@ export default function CajaPage() {
     const hoyStr = new Date().toISOString().slice(0, 10);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
     const [cooldownIds, setCooldownIds] = useState<Set<string>>(new Set());
+    const [printingIds, setPrintingIds] = useState<Set<string>>(new Set());
+    const [confirmandoAgregados, setConfirmandoAgregados] = useState(false);
     const [openForm, setOpenForm] = useState({ montoInicial: "", notas: "" });
     const [openSaving, setOpenSaving] = useState(false);
     const [cobrarModal, setCobrarModal] = useState<{ open: boolean; pedido: Pedido | null }>({ open: false, pedido: null });
@@ -1111,39 +1113,45 @@ export default function CajaPage() {
     }
 
     async function confirmarAgregadosAlPedido() {
+        if (confirmandoAgregados) return;
         if (!editItemModal || editItemModal.modo !== "agregar" || editItemCart.length === 0) return;
         const pedido = editItemModal.pedido;
         const yaAceptado = pedido.estado !== "pendiente";
         const totalUnidades = editItemCart.reduce((a, i) => a + i.cantidad, 0);
 
-        const r = await swalBase.fire({
-            title: `¿Agregar ${totalUnidades} ítem${totalUnidades !== 1 ? "s" : ""}?`,
-            text: yaAceptado
-                ? "Se imprimirán directo en cocina/barra."
-                : "Se agregan a la comanda.",
-            icon: "question", showCancelButton: true,
-            confirmButtonText: "Sí, agregar", cancelButtonText: "Cancelar",
-        });
-        if (!r.isConfirmed) return;
+        setConfirmandoAgregados(true);
+        try {
+            const r = await swalBase.fire({
+                title: `¿Agregar ${totalUnidades} ítem${totalUnidades !== 1 ? "s" : ""}?`,
+                text: yaAceptado
+                    ? "Se imprimirán directo en cocina/barra."
+                    : "Se agregan a la comanda.",
+                icon: "question", showCancelButton: true,
+                confirmButtonText: "Sí, agregar", cancelButtonText: "Cancelar",
+            });
+            if (!r.isConfirmed) return;
 
-        const cartSnapshot = [...editItemCart];
-        closeEditItemModal();
+            const cartSnapshot = [...editItemCart];
+            closeEditItemModal();
 
-        const res = await fetch(`/api/pedidos/${pedido._id}`, {
-            method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
-            body: JSON.stringify({ items: cartSnapshot.map(i => ({ menuItemId: i.menuItemId, cantidad: i.cantidad })) }),
-        });
+            await fetch(`/api/pedidos/${pedido._id}`, {
+                method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
+                body: JSON.stringify({ items: cartSnapshot.map(i => ({ menuItemId: i.menuItemId, cantidad: i.cantidad })) }),
+            });
 
-        if (yaAceptado) {
-            try {
-                await printItemsAgregados(pedido, cartSnapshot.map(i => ({
-                    cantidad: i.cantidad,
-                    menuItemId: { nombre: i.nombre, categoria: i.categoria },
-                } as Pedido["items"][number])));
-            } catch { }
+            if (yaAceptado) {
+                try {
+                    await printItemsAgregados(pedido, cartSnapshot.map(i => ({
+                        cantidad: i.cantidad,
+                        menuItemId: { nombre: i.nombre, categoria: i.categoria },
+                    } as Pedido["items"][number])));
+                } catch { }
+            }
+
+            loadData();
+        } finally {
+            setConfirmandoAgregados(false);
         }
-
-        loadData();
     }
 
     async function cerrarCaja() {
@@ -2507,7 +2515,7 @@ export default function CajaPage() {
                                         const estadoIdx = getEstadoIdx(p.estado);
                                         const color = ESTADOS[estadoIdx]?.color || "gray";
                                         const fechaHora = p.createdAt ? format(new Date(p.createdAt), "dd/MM HH:mm", { locale: es }) : "";
-                                        const isUpdating = updatingId === p._id || cooldownIds.has(p._id);
+                                        const isUpdating = updatingId === p._id || cooldownIds.has(p._id) || printingIds.has(p._id);
 
                                         const estadosMozo = ESTADOS.filter(e => e.key !== "entregado" && e.key !== "cerrado");
                                         const estadosCliente = ESTADOS.filter(e => e.key !== "cerrado");
@@ -2765,8 +2773,14 @@ export default function CajaPage() {
                                                         <div className="shrink-0 flex gap-2">
                                                             <button disabled={isUpdating}
                                                                 onClick={async () => {
-                                                                    await printComanda(p);
-                                                                    await avanzarEstado(p, "preparando");
+                                                                    if (isUpdating) return;
+                                                                    setPrintingIds(prev => new Set([...prev, p._id]));
+                                                                    try {
+                                                                        await printComanda(p);
+                                                                        await avanzarEstado(p, "preparando");
+                                                                    } finally {
+                                                                        setPrintingIds(prev => { const s = new Set(prev); s.delete(p._id); return s; });
+                                                                    }
                                                                 }}
                                                                 className={`flex-1 disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1 bg-black`}>
                                                                 {isUpdating ? <Loader2 size={14} className="animate-spin" /> : null}
@@ -4714,9 +4728,9 @@ export default function CajaPage() {
                                             </div>
                                         ))}
                                     </div>
-                                    <button onClick={confirmarAgregadosAlPedido}
-                                        className="w-full bg-black hover:bg-gray-800 text-white font-black py-2.5 rounded-xl text-sm transition flex items-center justify-center gap-2">
-                                        <Plus size={14} />
+                                    <button onClick={confirmarAgregadosAlPedido} disabled={confirmandoAgregados}
+                                        className="w-full bg-black hover:bg-gray-800 disabled:opacity-50 text-white font-black py-2.5 rounded-xl text-sm transition flex items-center justify-center gap-2">
+                                        {confirmandoAgregados ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
                                         Agregar {editItemCart.reduce((a, i) => a + i.cantidad, 0)} ítem{editItemCart.reduce((a, i) => a + i.cantidad, 0) !== 1 ? "s" : ""} a la comanda
                                     </button>
                                 </div>

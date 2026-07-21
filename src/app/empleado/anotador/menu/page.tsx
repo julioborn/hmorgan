@@ -121,6 +121,7 @@ function AnotadorMenuContent() {
     const [cart, setCart]               = useState<CartItem[]>([]);
     const [categoriaActiva, setCategoriaActiva] = useState<string | null>(null);
     const [enviando, setEnviando]       = useState(false);
+    const enviandoRef                   = useRef(false);
     const [error, setError]             = useState("");
     const [lastOrder, setLastOrder]     = useState<{ items: CartItem[]; mesa: string; timestamp: Date } | null>(null);
 
@@ -426,7 +427,8 @@ function AnotadorMenuContent() {
     const totalItems = cart.reduce((a, i) => a + i.cantidad, 0);
 
     async function enviarPedido() {
-        if (cart.length === 0) return;
+        if (enviandoRef.current || cart.length === 0) return;
+        enviandoRef.current = true;
         const esAgregado = !!(comandaId && comanda);
 
         // Advertencia si nueva comanda sin mesa (no aplica a delivery manual)
@@ -495,7 +497,7 @@ function AnotadorMenuContent() {
             const destino = user?.role === "cajero" ? "/caja" : "/empleado/anotador";
             setTimeout(() => router.replace(destino), 1800);
         } catch { setError("Error de conexión"); }
-        finally { setEnviando(false); }
+        finally { setEnviando(false); enviandoRef.current = false; }
     }
 
     function printComanda(order: { items: CartItem[]; mesa: string; timestamp: Date }) {
