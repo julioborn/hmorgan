@@ -389,36 +389,71 @@ export default function CocinaPage() {
                                         )}
                                     </div>
                                     <div className="px-4 py-4 space-y-2 bg-white">
-                                        {comida.map((it, idx) => {
-                                            const itemKey = `${p._id}:${it._id}`;
-                                            const isMarcandoEste = marcandoItem === itemKey;
-                                            return (
-                                                <div key={idx} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors ${it.listo ? "bg-emerald-50" : "bg-gray-50"}`}>
-                                                    <span className={`text-2xl font-black min-w-[2rem] text-center leading-tight ${it.listo ? "text-emerald-400" : "text-black"}`}>
-                                                        {it.cantidad}
-                                                    </span>
+                                        {isMarcando ? (
+                                            // Flash verde al confirmar "Todo listo"
+                                            comida.map((it, idx) => (
+                                                <div key={idx} className="flex items-center gap-3 rounded-xl px-3 py-2.5 bg-emerald-50">
+                                                    <span className="text-2xl font-black min-w-[2rem] text-center leading-tight text-emerald-400">{it.cantidad}</span>
                                                     <div className="flex-1 min-w-0">
-                                                        <p className={`text-lg font-bold leading-tight ${it.listo ? "text-emerald-600" : "text-black"}`}>
-                                                            {it.menuItemId?.nombre || "Ítem"}
-                                                        </p>
-                                                        {it.nota && <p className="text-sm text-amber-600 mt-0.5 italic">✏ {it.nota}</p>}
+                                                        <p className="text-lg font-bold leading-tight text-emerald-600">{it.menuItemId?.nombre || "Ítem"}</p>
                                                     </div>
-                                                    <button
-                                                        onClick={() => !it.listo && setConfirmarItem({ pedidoId: p._id, itemId: it._id, nombre: it.menuItemId?.nombre || "ítem" })}
-                                                        disabled={!!it.listo || isMarcandoEste}
-                                                        className={`shrink-0 w-9 h-9 rounded-full border-2 flex items-center justify-center transition active:scale-95 ${
-                                                            it.listo
-                                                                ? "border-emerald-400 bg-emerald-400 text-white"
-                                                                : isMarcandoEste
-                                                                ? "border-gray-300 bg-gray-100 text-gray-400"
-                                                                : "border-gray-300 bg-white hover:border-emerald-500 hover:bg-emerald-50"
-                                                        }`}
-                                                    >
+                                                    <div className="shrink-0 w-9 h-9 rounded-full border-2 border-emerald-400 bg-emerald-400 text-white flex items-center justify-center">
                                                         <CheckCircle size={18} />
-                                                    </button>
+                                                    </div>
                                                 </div>
-                                            );
-                                        })}
+                                            ))
+                                        ) : (
+                                            <>
+                                                {/* Ítems pendientes (a preparar ahora) */}
+                                                {comida.filter(it => !it.listo).map(it => {
+                                                    const itemKey = `${p._id}:${it._id}`;
+                                                    const isMarcandoEste = marcandoItem === itemKey;
+                                                    return (
+                                                        <div key={it._id} className="flex items-center gap-3 rounded-xl px-3 py-2.5 bg-white border border-gray-200 shadow-sm">
+                                                            <span className="text-2xl font-black min-w-[2rem] text-center leading-tight text-black">{it.cantidad}</span>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-lg font-bold leading-tight text-black">{it.menuItemId?.nombre || "Ítem"}</p>
+                                                                {it.nota && <p className="text-sm text-amber-600 mt-0.5 italic">✏ {it.nota}</p>}
+                                                            </div>
+                                                            <button
+                                                                onClick={() => setConfirmarItem({ pedidoId: p._id, itemId: it._id, nombre: it.menuItemId?.nombre || "ítem" })}
+                                                                disabled={isMarcandoEste}
+                                                                className={`shrink-0 w-9 h-9 rounded-full border-2 flex items-center justify-center transition active:scale-95 ${
+                                                                    isMarcandoEste
+                                                                        ? "border-gray-300 bg-gray-100 text-gray-400"
+                                                                        : "border-gray-300 bg-white hover:border-emerald-500 hover:bg-emerald-50"
+                                                                }`}
+                                                            >
+                                                                <CheckCircle size={18} />
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })}
+
+                                                {/* Separador — solo si hay mezcla */}
+                                                {comida.some(it => !it.listo) && comida.some(it => it.listo) && (
+                                                    <div className="flex items-center gap-2 py-0.5">
+                                                        <div className="flex-1 h-px bg-red-200" />
+                                                        <span className="text-[10px] font-black uppercase tracking-wide text-red-400 px-1">Ya preparado · no repetir</span>
+                                                        <div className="flex-1 h-px bg-red-200" />
+                                                    </div>
+                                                )}
+
+                                                {/* Ítems ya listos (referencia, tachados en rojo) */}
+                                                {comida.filter(it => it.listo).map(it => (
+                                                    <div key={it._id} className="flex items-center gap-3 rounded-xl px-3 py-2 bg-red-50">
+                                                        <span className="text-xl font-black min-w-[2rem] text-center leading-tight text-red-300">{it.cantidad}</span>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-base font-semibold leading-tight text-red-400 line-through">{it.menuItemId?.nombre || "Ítem"}</p>
+                                                            {it.nota && <p className="text-xs text-red-300 mt-0.5 italic line-through">✏ {it.nota}</p>}
+                                                        </div>
+                                                        <span className="shrink-0 text-[10px] font-black text-red-500 uppercase tracking-wide bg-red-100 px-2 py-1 rounded-full whitespace-nowrap">
+                                                            Ya salió
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </>
+                                        )}
                                     </div>
                                     <div className="px-4 pb-4 bg-white">
                                         <button onClick={() => setConfirmarId(p._id)} disabled={isMarcando}
