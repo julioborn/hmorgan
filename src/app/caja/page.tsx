@@ -228,6 +228,8 @@ export default function CajaPage() {
     const [cooldownIds, setCooldownIds] = useState<Set<string>>(new Set());
     const [printingIds, setPrintingIds] = useState<Set<string>>(new Set());
     const [confirmandoAgregados, setConfirmandoAgregados] = useState(false);
+    const [reprintingId, setReprintingId] = useState<string | null>(null);
+    const [printingCuentaId, setPrintingCuentaId] = useState<string | null>(null);
     const [openForm, setOpenForm] = useState({ montoInicial: "", notas: "" });
     const [openSaving, setOpenSaving] = useState(false);
     const [cobrarModal, setCobrarModal] = useState<{ open: boolean; pedido: Pedido | null }>({ open: false, pedido: null });
@@ -2839,9 +2841,16 @@ export default function CajaPage() {
                                                     {p.estado !== "pendiente" && (
                                                         <div className="shrink-0 mt-2 flex flex-col gap-2">
                                                             <div className="flex gap-2">
-                                                                <button onClick={() => printComanda(p)}
-                                                                    className="flex-1 flex items-center justify-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-1.5 rounded-xl text-xs transition">
-                                                                    <Printer size={12} /> Reimprimir
+                                                                <button
+                                                                    onClick={async () => {
+                                                                        if (reprintingId === p._id) return;
+                                                                        setReprintingId(p._id);
+                                                                        try { await printComanda(p); }
+                                                                        finally { setReprintingId(null); }
+                                                                    }}
+                                                                    disabled={reprintingId === p._id}
+                                                                    className="flex-1 flex items-center justify-center gap-1.5 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 text-gray-700 font-semibold py-1.5 rounded-xl text-xs transition">
+                                                                    <Printer size={12} /> {reprintingId === p._id ? "..." : "Reimprimir"}
                                                                 </button>
                                                                 {!esApp && (
                                                                     <button onClick={() => abrirCobroParcial(p)}
@@ -2852,8 +2861,16 @@ export default function CajaPage() {
                                                             </div>
                                                             {confirmarCuentaId === p._id ? (
                                                                 <div className="w-full flex gap-1.5">
-                                                                    <button onClick={() => { setConfirmarCuentaId(null); printCuenta(p); }}
-                                                                        className="flex-1 flex items-center justify-center gap-1 bg-gray-800 text-white font-bold py-2 rounded-xl text-sm transition">
+                                                                    <button
+                                                                        onClick={async () => {
+                                                                            if (printingCuentaId === p._id) return;
+                                                                            setConfirmarCuentaId(null);
+                                                                            setPrintingCuentaId(p._id);
+                                                                            try { await printCuenta(p); }
+                                                                            finally { setPrintingCuentaId(null); }
+                                                                        }}
+                                                                        disabled={printingCuentaId === p._id}
+                                                                        className="flex-1 flex items-center justify-center gap-1 bg-gray-800 text-white font-bold py-2 rounded-xl text-sm transition disabled:opacity-50">
                                                                         <Printer size={13} /> Sí, imprimir
                                                                     </button>
                                                                     <button onClick={() => setConfirmarCuentaId(null)}
@@ -3058,8 +3075,16 @@ export default function CajaPage() {
                                             <div className="px-3 pb-3 flex flex-col gap-2">
                                                 {confirmarCuentaId === p._id ? (
                                                     <div className="w-full flex gap-2">
-                                                        <button onClick={() => { setConfirmarCuentaId(null); printCuenta(p); }}
-                                                            className="flex-1 flex items-center justify-center gap-1.5 bg-gray-800 text-white font-bold py-2.5 rounded-xl text-sm tracking-wide transition">
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (printingCuentaId === p._id) return;
+                                                                setConfirmarCuentaId(null);
+                                                                setPrintingCuentaId(p._id);
+                                                                try { await printCuenta(p); }
+                                                                finally { setPrintingCuentaId(null); }
+                                                            }}
+                                                            disabled={printingCuentaId === p._id}
+                                                            className="flex-1 flex items-center justify-center gap-1.5 bg-gray-800 text-white font-bold py-2.5 rounded-xl text-sm tracking-wide transition disabled:opacity-50">
                                                             <Printer size={14} /> Sí, imprimir
                                                         </button>
                                                         <button onClick={() => setConfirmarCuentaId(null)}
