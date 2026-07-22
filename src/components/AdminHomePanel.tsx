@@ -4,7 +4,7 @@ import Link from "next/link";
 import {
   Package, CalendarDays, Wallet, TrendingUp, Users,
   LayoutGrid, ClipboardList, Ticket, Star, UserCog,
-  Utensils, Images, BarChart2, Settings, Bell, ChevronRight,
+  Utensils, Images, BarChart2, Settings, Bell, ChevronRight, CreditCard,
 } from "lucide-react";
 import { hoyArgentina } from "@/lib/argentina-time";
 
@@ -345,6 +345,7 @@ export function AdminHome() {
             <div className="grid grid-cols-2 gap-2.5">
               <AdminCard href="/admin/empleados" title="Empleados" Icon={UserCog} color="zinc" />
               <AdminCard href="/admin/estadisticas" title="Estadísticas" Icon={BarChart2} color="emerald" />
+              <AdminCard href="/admin/cuotas" title="Cuotas del servicio" Icon={CreditCard} color="indigo" full />
               <AdminCard href="/admin/configuracion" title="Ajustes" Icon={Settings} color="zinc" full />
             </div>
           </section>
