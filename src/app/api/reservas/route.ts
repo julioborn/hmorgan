@@ -41,22 +41,26 @@ async function notificarUsuario(userId: string, title: string, body: string) {
 export async function GET(req: NextRequest) {
     const payload = getPayload(req);
     if (!payload) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    await connectMongoDB();
-
-    const query = isStaff(payload.role) ? {} : { userId: payload.sub };
-    const reservas = await Reserva.find(query)
-        .populate("userId", "nombre apellido telefono email")
-        .populate("mesaId", "nombre forma")
-        .sort({ fecha: 1, hora: 1 })
-        .lean();
-
-    return NextResponse.json(reservas);
+    try {
+        await connectMongoDB();
+        const query = isStaff(payload.role) ? {} : { userId: payload.sub };
+        const reservas = await Reserva.find(query)
+            .populate("userId", "nombre apellido telefono email")
+            .populate("mesaId", "nombre forma")
+            .sort({ fecha: 1, hora: 1 })
+            .lean();
+        return NextResponse.json(reservas);
+    } catch (err) {
+        console.error("GET /api/reservas error:", err);
+        return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
 }
 
 // POST — cliente o staff crea reserva
 export async function POST(req: NextRequest) {
     const payload = getPayload(req);
     if (!payload) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    try {
     await connectMongoDB();
 
     // Verificar que reservas están activas (solo bloquear clientes)
@@ -135,12 +139,17 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json(reserva, { status: 201 });
+    } catch (err) {
+        console.error("POST /api/reservas error:", err);
+        return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
 }
 
 // PATCH — admin actualiza (estado, mesa, etc.)
 export async function PATCH(req: NextRequest) {
     const payload = getPayload(req);
     if (!payload || !isStaff(payload.role)) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    try {
     await connectMongoDB();
 
     const { id, ...updates } = await req.json();
@@ -172,6 +181,10 @@ export async function PATCH(req: NextRequest) {
         .populate("userId", "nombre apellido telefono")
         .populate("mesaId", "nombre forma");
     return NextResponse.json(updated);
+    } catch (err) {
+        console.error("PATCH /api/reservas error:", err);
+        return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
 }
 
 // PUT — cliente edita su propia reserva (vuelve a pendiente, libera mesa)
@@ -179,6 +192,7 @@ export async function PUT(req: NextRequest) {
     const payload = getPayload(req);
     if (!payload || payload.role !== "cliente")
         return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    try {
     await connectMongoDB();
 
     const { id, fecha, hora, comensales, notas } = await req.json();
@@ -230,24 +244,31 @@ export async function PUT(req: NextRequest) {
     }
 
     return NextResponse.json(reserva);
+    } catch (err) {
+        console.error("PUT /api/reservas error:", err);
+        return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
 }
 
 // DELETE — admin cancela
 export async function DELETE(req: NextRequest) {
     const payload = getPayload(req);
     if (!payload || !isStaff(payload.role)) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
-    await connectMongoDB();
-
-    const id = req.nextUrl.searchParams.get("id");
-    if (!id) return NextResponse.json({ error: "Falta id" }, { status: 400 });
-
-    const reserva = await Reserva.findByIdAndDelete(id);
-    if (reserva && reserva.userId) {
-        await notificarUsuario(
-            reserva.userId.toString(),
-            "Reserva cancelada",
-            `Tu reserva del ${formatFecha(reserva.fecha)} fue cancelada.`
-        );
+    try {
+        await connectMongoDB();
+        const id = req.nextUrl.searchParams.get("id");
+        if (!id) return NextResponse.json({ error: "Falta id" }, { status: 400 });
+        const reserva = await Reserva.findByIdAndDelete(id);
+        if (reserva && reserva.userId) {
+            await notificarUsuario(
+                reserva.userId.toString(),
+                "Reserva cancelada",
+                `Tu reserva del ${formatFecha(reserva.fecha)} fue cancelada.`
+            );
+        }
+        return NextResponse.json({ ok: true });
+    } catch (err) {
+        console.error("DELETE /api/reservas error:", err);
+        return NextResponse.json({ error: "Error interno" }, { status: 500 });
     }
-    return NextResponse.json({ ok: true });
 }
