@@ -154,14 +154,17 @@ export default function LoginPage() {
                             <p className="mt-1 text-xs text-red-600">{currentErrors.password}</p>
                         )}
                     </div>
-                    <div className="text-center pt-2">
+                    <div className="text-center pt-2 space-y-1">
                         <p className="text-sm text-gray-600">
                             ¿No tenés cuenta?{" "}
-                            <Link
-                                href="/register"
-                                className="font-semibold text-red-600 hover:text-red-500 underline"
-                            >
+                            <Link href="/register" className="font-semibold text-red-600 hover:text-red-500 underline">
                                 Registrate acá
+                            </Link>
+                        </p>
+                        <p className="text-sm text-gray-600">
+                            ¿Olvidaste tu contraseña?{" "}
+                            <Link href="/forgot-password" className="font-semibold text-red-600 hover:text-red-500 underline">
+                                Recuperala acá
                             </Link>
                         </p>
                     </div>
