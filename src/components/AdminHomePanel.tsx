@@ -4,11 +4,9 @@ import Link from "next/link";
 import {
   Package, CalendarDays, Wallet, TrendingUp, Users,
   LayoutGrid, ClipboardList, Ticket, Star, UserCog,
-  Utensils, Images, BarChart2, Settings, Bell, ChevronRight, CreditCard,
+  Utensils, Images, BarChart2, Settings, Bell, ChevronRight,
 } from "lucide-react";
 import { hoyArgentina } from "@/lib/argentina-time";
-
-const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
 const container =
   "mx-auto w-full max-w-screen-sm md:max-w-2xl lg:max-w-4xl xl:max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8";
@@ -89,7 +87,6 @@ export function AdminHome() {
   const [reservasPendientes, setReservasPendientes] = useState(0);
   const [cajaAbierta, setCajaAbierta] = useState<boolean | null>(null);
   const [stockAlertas, setStockAlertas] = useState(0);
-  const [cuotaMes, setCuotaMes] = useState<{ pagada: boolean; monto?: number; fecha?: string } | null>(null);
   const [hora, setHora] = useState(() => new Date().getHours());
 
   useEffect(() => {
@@ -131,19 +128,6 @@ export function AdminHome() {
   }, []);
 
   useEffect(() => {
-    const ahora = new Date();
-    fetch("/api/admin/cuotas", { credentials: "include" })
-      .then(r => r.json())
-      .then((cuotas: any[]) => {
-        if (!Array.isArray(cuotas)) return;
-        const found = cuotas.find(c => c.mes === ahora.getMonth() + 1 && c.año === ahora.getFullYear());
-        setCuotaMes(found
-          ? { pagada: true, monto: found.monto, fecha: found.fechaPago }
-          : { pagada: false }
-        );
-      })
-      .catch(() => setCuotaMes({ pagada: false }));
-
     fetch("/api/caja/status", { credentials: "include" })
       .then(r => r.json())
       .then(d => setCajaAbierta(!!d.abierta))
@@ -216,47 +200,6 @@ export function AdminHome() {
             </div>
           </div>
         </div>
-
-        {/* ── Cuota del mes ── */}
-        <Link
-          href="/admin/cuotas"
-          className={[
-            "flex items-center gap-4 rounded-2xl px-5 py-4 mb-4 shadow-sm",
-            "border transition-all active:scale-[0.97]",
-            cuotaMes === null
-              ? "bg-white dark:bg-zinc-900 border-gray-200 dark:border-zinc-800"
-              : cuotaMes.pagada
-                ? "bg-gradient-to-r from-emerald-500 to-green-600 border-transparent"
-                : "bg-gradient-to-r from-amber-400 to-orange-500 border-transparent",
-          ].join(" ")}
-        >
-          <div className={`shrink-0 rounded-xl p-2.5 ${cuotaMes?.pagada ? "bg-white/20" : cuotaMes === null ? "bg-gray-100 dark:bg-zinc-800" : "bg-white/20"}`}>
-            <CreditCard className={`h-5 w-5 ${cuotaMes === null ? "text-gray-400 dark:text-zinc-500" : "text-white"}`} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className={`text-[11px] font-bold uppercase tracking-wider ${cuotaMes === null ? "text-gray-400 dark:text-zinc-500" : "text-white/80"}`}>
-              Cuota del servicio
-            </p>
-            <p className={`font-black text-base leading-tight mt-0.5 ${cuotaMes === null ? "text-gray-900 dark:text-zinc-100" : "text-white"}`}>
-              {MESES[(new Date().getMonth())]} {new Date().getFullYear()}
-            </p>
-            {cuotaMes?.pagada && cuotaMes.monto && (
-              <p className="text-white/70 text-[11px] mt-0.5">
-                ${cuotaMes.monto.toLocaleString("es-AR")}
-                {cuotaMes.fecha ? ` · ${new Date(cuotaMes.fecha).toLocaleDateString("es-AR")}` : ""}
-              </p>
-            )}
-          </div>
-          <div className="shrink-0 flex flex-col items-end gap-1">
-            <span className={`text-xs font-black px-3 py-1 rounded-full ${
-              cuotaMes === null ? "bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-500"
-              : cuotaMes.pagada ? "bg-white/20 text-white" : "bg-white/20 text-white"
-            }`}>
-              {cuotaMes === null ? "···" : cuotaMes.pagada ? "PAGADA" : "PENDIENTE"}
-            </span>
-            <ChevronRight className={`h-4 w-4 ${cuotaMes === null ? "text-gray-300 dark:text-zinc-600" : "text-white/60"}`} />
-          </div>
-        </Link>
 
         {/* ── Stats 2×2 ── */}
         <div className="grid grid-cols-2 gap-3 mb-5">
@@ -402,7 +345,6 @@ export function AdminHome() {
             <div className="grid grid-cols-2 gap-2.5">
               <AdminCard href="/admin/empleados" title="Empleados" Icon={UserCog} color="zinc" />
               <AdminCard href="/admin/estadisticas" title="Estadísticas" Icon={BarChart2} color="emerald" />
-              <AdminCard href="/admin/cuotas" title="Cuotas del servicio" Icon={CreditCard} color="indigo" full />
               <AdminCard href="/admin/configuracion" title="Ajustes" Icon={Settings} color="zinc" full />
             </div>
           </section>
