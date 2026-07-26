@@ -1368,9 +1368,12 @@ export default function CajaPage() {
         const displayTotal = itemsOverride ? totalConDescuento : (pedido.total ?? totalConDescuento);
 
         try {
+            const ctrl = new AbortController();
+            const tid = setTimeout(() => ctrl.abort(), 5000);
             const res = await fetch(`${PRINT_SERVER}/imprimir/ticket`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                signal: ctrl.signal,
                 body: JSON.stringify({
                     mesa: pedido.mesa || "—",
                     fecha,
@@ -1383,8 +1386,9 @@ export default function CajaPage() {
                     vuelto,
                 }),
             });
+            clearTimeout(tid);
             if (res.ok) return;
-        } catch { /* servidor no disponible → fallback */ }
+        } catch { /* servidor no disponible o timeout → fallback */ }
 
         // Fallback: ventana del navegador
         const rows = printItems.map(i =>
@@ -1436,9 +1440,12 @@ export default function CajaPage() {
         const costoEnvioVal = pedido.tipoEntrega === "envio" ? (pedido.costoEnvio || costoDelivery) : 0;
 
         try {
+            const ctrl = new AbortController();
+            const tid = setTimeout(() => ctrl.abort(), 5000);
             const res = await fetch(`${PRINT_SERVER}/imprimir/ticket`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                signal: ctrl.signal,
                 body: JSON.stringify({
                     mesa: pedido.mesa || "—",
                     fecha, hora,
@@ -1451,8 +1458,9 @@ export default function CajaPage() {
                     sinPago: true,
                 }),
             });
+            clearTimeout(tid);
             if (res.ok) return;
-        } catch { /* servidor no disponible → fallback */ }
+        } catch { /* servidor no disponible o timeout → fallback */ }
 
         // Fallback: ventana del navegador
         const rows = printItems.map(i =>
@@ -1566,6 +1574,8 @@ export default function CajaPage() {
 
         // Intentar servidor local de impresión
         try {
+            const ctrl = new AbortController();
+            const tid = setTimeout(() => ctrl.abort(), 5000);
             const promesas: Promise<Response>[] = [];
             const costoEnvioEfectivoPrint = p.tipoEntrega === "envio" ? (p.costoEnvio || costoDelivery) : 0;
             const recargoItem = costoEnvioEfectivoPrint > 0
@@ -1575,6 +1585,7 @@ export default function CajaPage() {
                 fetch(`${PRINT_SERVER}/imprimir/comanda`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
+                    signal: ctrl.signal,
                     body: JSON.stringify({
                         impresora: "Cocina",
                         mesa, cliente, mozo, direccion, hora, nota,
@@ -1590,6 +1601,7 @@ export default function CajaPage() {
                 fetch(`${PRINT_SERVER}/imprimir/comanda`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
+                    signal: ctrl.signal,
                     body: JSON.stringify({
                         impresora: "Barra",
                         mesa, cliente, mozo, direccion, hora,
@@ -1603,9 +1615,11 @@ export default function CajaPage() {
             );
             if (promesas.length > 0) {
                 await Promise.all(promesas);
+                clearTimeout(tid);
                 return; // impresión exitosa
             }
-        } catch { /* servidor no disponible → fallback */ }
+            clearTimeout(tid);
+        } catch { /* servidor no disponible o timeout → fallback */ }
 
         // Fallback: ventana del navegador
         if (comida.length > 0) abrirEImprimir(comandaHtml(p, "COCINA", comida));
@@ -1625,11 +1639,14 @@ export default function CajaPage() {
         const nota = p.notaEmpleado || p.notaCliente || "";
 
         try {
+            const ctrl = new AbortController();
+            const tid = setTimeout(() => ctrl.abort(), 5000);
             const promesas: Promise<Response>[] = [];
             if (comida.length > 0) promesas.push(
                 fetch(`${PRINT_SERVER}/imprimir/comanda`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
+                    signal: ctrl.signal,
                     body: JSON.stringify({
                         impresora: "Cocina", titulo: "COCINA",
                         mesa, cliente, mozo, direccion, hora, nota,
@@ -1642,6 +1659,7 @@ export default function CajaPage() {
                 fetch(`${PRINT_SERVER}/imprimir/comanda`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
+                    signal: ctrl.signal,
                     body: JSON.stringify({
                         impresora: "Barra", titulo: "BARRA",
                         mesa, cliente, mozo, direccion, hora,
@@ -1652,6 +1670,7 @@ export default function CajaPage() {
             );
             if (promesas.length > 0) {
                 await Promise.all(promesas);
+                clearTimeout(tid);
                 return; // impresión exitosa
             }
         } catch { /* servidor no disponible → fallback */ }
