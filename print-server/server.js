@@ -1,6 +1,6 @@
 "use strict";
 const express        = require("express");
-const { spawnSync }  = require("child_process");
+const { spawnSync, spawn } = require("child_process");
 const fs             = require("fs");
 const os             = require("os");
 const path           = require("path");
@@ -194,7 +194,7 @@ function buildTicket({ mesa, fecha, hora, items, total, costoEnvio, metodoPago, 
     return Buffer.from(b);
 }
 
-// ─── Función auxiliar de impresión ───────────────────────────────────────────
+// ─── Función auxiliar de impresión (sync — usada solo en cloud polling) ──────
 function imprimirBuffer(buffer, nombreImpresora, etiqueta) {
     const tmpFile = path.join(os.tmpdir(), `escpos_${Date.now()}.bin`);
     try {
@@ -224,10 +224,35 @@ function imprimirBuffer(buffer, nombreImpresora, etiqueta) {
     }
 }
 
-function imprimir(buffer, nombreImpresora, res, etiqueta) {
-    const ok = imprimirBuffer(buffer, nombreImpresora, etiqueta);
-    if (ok) res.json({ ok: true });
-    else res.status(500).json({ error: "Error de impresión" });
+// ─── Versión async — usada por los endpoints HTTP para no bloquear el servidor ─
+function imprimirBufferAsync(buffer, nombreImpresora, etiqueta) {
+    const tmpFile = path.join(os.tmpdir(), `escpos_${Date.now()}_${Math.random().toString(36).slice(2)}.bin`);
+    try {
+        fs.writeFileSync(tmpFile, buffer);
+        const proc = spawn("powershell", [
+            "-NoProfile",
+            "-ExecutionPolicy", "Bypass",
+            "-File", PS1,
+            "-Printer", nombreImpresora,
+            "-DataFile", tmpFile,
+        ]);
+        let stderr = "";
+        if (proc.stderr) proc.stderr.on("data", d => stderr += d);
+        const timer = setTimeout(() => {
+            proc.kill();
+            try { fs.unlinkSync(tmpFile); } catch {}
+            console.error(`[ERR] ${etiqueta}: timeout`);
+        }, 15000);
+        proc.on("close", (code) => {
+            clearTimeout(timer);
+            try { fs.unlinkSync(tmpFile); } catch {}
+            if (code === 0) console.log(`[OK] ${etiqueta} → "${nombreImpresora}"`);
+            else console.error(`[ERR] ${etiqueta}:`, stderr.trim() || "Error desconocido");
+        });
+    } catch (err) {
+        try { fs.unlinkSync(tmpFile); } catch {}
+        console.error(`[ERR] ${etiqueta}:`, err.message);
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -303,7 +328,9 @@ app.post("/imprimir/comanda", (req, res) => {
     const nombreImpresora = impresora === "Cocina" ? IMPRESORA_COCINA : IMPRESORA_BARRA;
     const titulo           = tituloCustom || (impresora === "Cocina" ? "COCINA" : "BARRA");
     try {
-        imprimir(buildComanda({ titulo, mesa, cliente, direccion, mozo, hora, items, nota, horarioPreferido }), nombreImpresora, res, titulo);
+        const buffer = buildComanda({ titulo, mesa, cliente, direccion, mozo, hora, items, nota, horarioPreferido });
+        res.json({ ok: true }); // responde al instante
+        imprimirBufferAsync(buffer, nombreImpresora, titulo); // imprime en background
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -312,7 +339,9 @@ app.post("/imprimir/comanda", (req, res) => {
 app.post("/imprimir/ticket", (req, res) => {
     const { mesa, fecha, hora, items, total, costoEnvio, metodoPago, montoPagado, descuento, pagos, vuelto, sinPago } = req.body;
     try {
-        imprimir(buildTicket({ mesa, fecha, hora, items, total, costoEnvio: costoEnvio || 0, metodoPago, montoPagado, descuento: descuento || 0, pagos, vuelto: vuelto || 0, sinPago: !!sinPago }), IMPRESORA_BARRA, res, sinPago ? "Cuenta" : "Ticket");
+        const buffer = buildTicket({ mesa, fecha, hora, items, total, costoEnvio: costoEnvio || 0, metodoPago, montoPagado, descuento: descuento || 0, pagos, vuelto: vuelto || 0, sinPago: !!sinPago });
+        res.json({ ok: true }); // responde al instante
+        imprimirBufferAsync(buffer, IMPRESORA_BARRA, sinPago ? "Cuenta" : "Ticket"); // imprime en background
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
