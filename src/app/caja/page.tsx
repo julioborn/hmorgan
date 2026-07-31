@@ -92,7 +92,7 @@ type Pedido = {
     comensales?: number;
     fuente: string;
     numeroDia?: number;
-    items: { _id?: string; menuItemId: { _id?: string; nombre: string; precio: number; categoria?: string }; cantidad: number; nota?: string; impreso?: boolean; listo?: boolean }[];
+    items: { _id?: string; menuItemId: { _id?: string; nombre: string; precio: number; categoria?: string }; cantidad: number; nota?: string; opcionesSeleccionadas?: Record<string, string>; impreso?: boolean; listo?: boolean }[];
     total: number;
     costoEnvio?: number;
     estado: string;
@@ -1591,7 +1591,7 @@ export default function CajaPage() {
                         mesa, cliente, mozo, direccion, hora, nota,
                         horarioPreferido: p.horarioPreferido || undefined,
                         items: [
-                            ...comida.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined })),
+                            ...comida.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined, opcionesSeleccionadas: it.opcionesSeleccionadas })),
                             ...recargoItem,
                         ],
                     }),
@@ -1607,7 +1607,7 @@ export default function CajaPage() {
                         mesa, cliente, mozo, direccion, hora,
                         horarioPreferido: p.horarioPreferido || undefined,
                         items: [
-                            ...bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined })),
+                            ...bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined, opcionesSeleccionadas: it.opcionesSeleccionadas })),
                             ...recargoItem,
                         ],
                     }),
@@ -1651,7 +1651,7 @@ export default function CajaPage() {
                         impresora: "Cocina", titulo: "COCINA",
                         mesa, cliente, mozo, direccion, hora, nota,
                         horarioPreferido: p.horarioPreferido || undefined,
-                        items: comida.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined })),
+                        items: comida.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined, opcionesSeleccionadas: it.opcionesSeleccionadas })),
                     }),
                 })
             );
@@ -1664,7 +1664,7 @@ export default function CajaPage() {
                         impresora: "Barra", titulo: "BARRA",
                         mesa, cliente, mozo, direccion, hora,
                         horarioPreferido: p.horarioPreferido || undefined,
-                        items: bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined })),
+                        items: bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined, opcionesSeleccionadas: it.opcionesSeleccionadas })),
                     }),
                 })
             );
@@ -2739,6 +2739,13 @@ export default function CajaPage() {
                                                                             </div>
                                                                         )}
                                                                     </div>
+                                                                    {it.opcionesSeleccionadas && Object.keys(it.opcionesSeleccionadas).length > 0 && !isEditingThis && (
+                                                                        <div className="flex flex-wrap gap-1 mt-0.5 ml-5">
+                                                                            {Object.values(it.opcionesSeleccionadas).map((v, idx) => (
+                                                                                <span key={idx} className="text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">{v}</span>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
                                                                     {it.nota && !isEditingThis && (
                                                                         <p className="text-[11px] text-amber-700 italic mt-0.5 ml-5 break-words">✏ {it.nota}</p>
                                                                     )}
@@ -3059,6 +3066,13 @@ export default function CajaPage() {
                                                                     </div>
                                                                 )}
                                                             </div>
+                                                            {item.opcionesSeleccionadas && Object.keys(item.opcionesSeleccionadas).length > 0 && !isEditingThis && (
+                                                                <div className="flex flex-wrap gap-1 mt-0.5 ml-5">
+                                                                    {Object.values(item.opcionesSeleccionadas).map((v, idx) => (
+                                                                        <span key={idx} className="text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">{v}</span>
+                                                                    ))}
+                                                                </div>
+                                                            )}
                                                             {item.nota && !isEditingThis && (
                                                                 <p className="text-[11px] text-amber-700 italic mt-0.5 ml-5 break-words">✏ {item.nota}</p>
                                                             )}

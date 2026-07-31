@@ -11,6 +11,12 @@ const MenuItemSchema = new Schema(
         activoCliente: { type: Boolean, default: true },
         ruleta: { type: Boolean, default: false },
         order: { type: Number, default: 0 },
+        opciones: [
+            {
+                titulo: { type: String, required: true },
+                choices: [{ type: String }],
+            },
+        ],
     },
     { timestamps: true }
 );

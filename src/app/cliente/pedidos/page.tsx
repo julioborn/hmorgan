@@ -13,6 +13,8 @@ import { useRouter } from "next/navigation";
 import { useCategoryConfigs } from "@/hooks/useCategoryConfigs";
 import MenuImg from "@/components/MenuImg";
 
+type OpcionGrupo = { titulo: string; choices: string[] };
+
 type MenuItem = {
     _id: string;
     nombre: string;
@@ -21,6 +23,15 @@ type MenuItem = {
     categoria: string;
     imagen?: string;
     activo: boolean;
+    opciones?: OpcionGrupo[];
+};
+
+type CartLine = {
+    lineId: string;
+    menuItemId: string;
+    cantidad: number;
+    nota: string;
+    opcionesSeleccionadas: Record<string, string>;
 };
 
 const formatPrice = (value: number) =>
@@ -146,7 +157,7 @@ function AddressAutocomplete({
 
 /* ─── CartDrawer — componente de nivel superior para evitar remount al tipear ─── */
 interface CartDrawerProps {
-    items: Record<string, number>;
+    cartLines: CartLine[];
     menu: MenuItem[];
     tipoEntrega: string;
     setTipoEntrega: (v: string) => void;
@@ -157,8 +168,7 @@ interface CartDrawerProps {
     setUsarOtraDireccion: (v: boolean) => void;
     horarioPreferido: string;
     setHorarioPreferido: (v: string) => void;
-    notasProducto: Record<string, string>;
-    onSetNotaProducto: (id: string, nota: string) => void;
+    onSetNota: (lineId: string, nota: string) => void;
     onSelectCoords: (lat: number, lng: number) => void;
     enviando: boolean;
     total: number;
@@ -167,18 +177,18 @@ interface CartDrawerProps {
     setMetodoPago: (v: string) => void;
     onClose: () => void;
     onVaciar: () => void;
-    onEliminar: (id: string) => void;
+    onEliminarLinea: (lineId: string) => void;
     onEnviar: () => void;
 }
 
 function CartDrawer({
-    items, menu, tipoEntrega, setTipoEntrega,
+    cartLines, menu, tipoEntrega, setTipoEntrega,
     direccionPrincipal, direccionEnvio, setDireccionEnvio,
     usarOtraDireccion, setUsarOtraDireccion,
     horarioPreferido, setHorarioPreferido,
-    notasProducto, onSetNotaProducto, onSelectCoords,
+    onSetNota, onSelectCoords,
     enviando, total, costoEnvio, metodoPago, setMetodoPago,
-    onClose, onVaciar, onEliminar, onEnviar,
+    onClose, onVaciar, onEliminarLinea, onEnviar,
 }: CartDrawerProps) {
     const totalFinal = total + (tipoEntrega === "envio" ? costoEnvio : 0);
     return (
@@ -195,25 +205,35 @@ function CartDrawer({
             >
                 <h3 className="text-2xl font-extrabold mb-4 text-black">Tu pedido</h3>
                 <div className="space-y-3">
-                    {Object.entries(items).map(([id, cant]) => {
-                        const producto = menu.find((m) => m._id === id);
-                        if (!producto || cant === 0) return null;
+                    {cartLines.map((line) => {
+                        const producto = menu.find((m) => m._id === line.menuItemId);
+                        if (!producto) return null;
+                        const opcKeys = Object.keys(line.opcionesSeleccionadas);
                         return (
-                            <div key={id} className="border-b pb-3">
-                                <div className="flex justify-between items-center">
-                                    <div>
+                            <div key={line.lineId} className="border-b pb-3">
+                                <div className="flex justify-between items-start">
+                                    <div className="flex-1 min-w-0">
                                         <p className="font-semibold text-black">{producto.nombre}</p>
-                                        <p className="text-sm text-gray-500">×{cant} — ${formatPrice(producto.precio * cant)}</p>
+                                        {opcKeys.length > 0 && (
+                                            <div className="flex flex-wrap gap-1 mt-0.5">
+                                                {opcKeys.map(titulo => (
+                                                    <span key={titulo} className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-medium">
+                                                        {line.opcionesSeleccionadas[titulo]}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                        <p className="text-sm text-gray-500 mt-0.5">×{line.cantidad} — ${formatPrice(producto.precio * line.cantidad)}</p>
                                     </div>
-                                    <button onClick={() => onEliminar(id)} className="text-red-500 hover:text-red-700 p-1">
+                                    <button onClick={() => onEliminarLinea(line.lineId)} className="text-red-500 hover:text-red-700 p-1 shrink-0">
                                         <X size={18} />
                                     </button>
                                 </div>
                                 <input
                                     type="text"
                                     placeholder="Observación para este producto"
-                                    value={notasProducto[id] || ""}
-                                    onChange={(e) => onSetNotaProducto(id, e.target.value)}
+                                    value={line.nota}
+                                    onChange={(e) => onSetNota(line.lineId, e.target.value)}
                                     style={{ fontSize: "16px" }}
                                     className="mt-1.5 w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-red-400 bg-gray-50"
                                 />
@@ -339,18 +359,22 @@ function CartDrawer({
 
 const MERCADOPAGO_ACTIVO = false;
 
-const CART_DRAFT_KEY = "cliente_cart_draft";
+const CART_DRAFT_KEY = "cliente_cart_draft_v2";
+
+function newLineId() {
+    return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
 
 /* ─── Página principal ─────────────────────────────────────────── */
 export default function PedidosClientePage() {
     const categoryConfigMap = useCategoryConfigs();
     const [menu, setMenu] = useState<MenuItem[]>([]);
     const [activo, setActivo] = useState(false);
-    const [items, setItems] = useState<Record<string, number>>(() => {
+    const [cartLines, setCartLines] = useState<CartLine[]>(() => {
         try {
             const saved = localStorage.getItem(CART_DRAFT_KEY);
-            return saved ? JSON.parse(saved) : {};
-        } catch { return {}; }
+            return saved ? JSON.parse(saved) : [];
+        } catch { return []; }
     });
     const [tipoEntrega, setTipoEntrega] = useState("retira");
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -361,12 +385,12 @@ export default function PedidosClientePage() {
     const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null);
     const [enviando, setEnviando] = useState(false);
     const [horarioPreferido, setHorarioPreferido] = useState("");
-    const [notasProducto, setNotasProducto] = useState<Record<string, string>>({});
     const [mapLat, setMapLat] = useState<number | null>(null);
     const [mapLng, setMapLng] = useState<number | null>(null);
     const [telefono, setTelefono] = useState<string>("");
     const [costoEnvio, setCostoEnvio] = useState<number>(0);
     const [metodoPago, setMetodoPago] = useState<string>("efectivo");
+    const [opcionModal, setOpcionModal] = useState<{ item: MenuItem; seleccion: Record<string, string> } | null>(null);
     const router = useRouter();
 
     // Manejo de regreso desde Mercado Pago
@@ -376,7 +400,7 @@ export default function PedidosClientePage() {
         if (!pago) return;
         window.history.replaceState({}, "", "/cliente/pedidos");
         if (pago === "ok") {
-            setItems({});
+            setCartLines([]);
             try { localStorage.removeItem(CART_DRAFT_KEY); } catch {}
             swalBase.fire({ icon: "success", title: "¡Pago exitoso!", text: "Tu pedido fue pagado con Mercado Pago.", timer: 3000, showConfirmButton: false });
         } else if (pago === "error") {
@@ -392,13 +416,13 @@ export default function PedidosClientePage() {
 
     useEffect(() => {
         try {
-            if (Object.keys(items).length > 0) {
-                localStorage.setItem(CART_DRAFT_KEY, JSON.stringify(items));
+            if (cartLines.length > 0) {
+                localStorage.setItem(CART_DRAFT_KEY, JSON.stringify(cartLines));
             } else {
                 localStorage.removeItem(CART_DRAFT_KEY);
             }
         } catch {}
-    }, [items]);
+    }, [cartLines]);
 
     useEffect(() => {
         (async () => {
@@ -475,10 +499,68 @@ export default function PedidosClientePage() {
         return true;
     }
 
+    // ── Helpers del carrito ──────────────────────────────────────────────────
+    function getCartCount(menuItemId: string) {
+        return cartLines.filter(l => l.menuItemId === menuItemId).reduce((sum, l) => sum + l.cantidad, 0);
+    }
+
+    function addSimple(menuItemId: string) {
+        setCartLines(prev => {
+            const idx = prev.findIndex(l => l.menuItemId === menuItemId && Object.keys(l.opcionesSeleccionadas).length === 0);
+            if (idx >= 0) {
+                const next = [...prev];
+                next[idx] = { ...next[idx], cantidad: next[idx].cantidad + 1 };
+                return next;
+            }
+            return [...prev, { lineId: newLineId(), menuItemId, cantidad: 1, nota: "", opcionesSeleccionadas: {} }];
+        });
+    }
+
+    function removeSimple(menuItemId: string) {
+        setCartLines(prev => {
+            let idx = -1;
+            for (let i = prev.length - 1; i >= 0; i--) { if (prev[i].menuItemId === menuItemId) { idx = i; break; } }
+            if (idx < 0) return prev;
+            const line = prev[idx];
+            if (line.cantidad > 1) {
+                const next = [...prev];
+                next[idx] = { ...next[idx], cantidad: line.cantidad - 1 };
+                return next;
+            }
+            return prev.filter((_, i) => i !== idx);
+        });
+    }
+
+    function addWithOpciones(item: MenuItem, seleccion: Record<string, string>) {
+        setCartLines(prev => [
+            ...prev,
+            { lineId: newLineId(), menuItemId: item._id, cantidad: 1, nota: "", opcionesSeleccionadas: seleccion },
+        ]);
+    }
+
+    function eliminarLinea(lineId: string) {
+        setCartLines(prev => prev.filter(l => l.lineId !== lineId));
+    }
+
+    function setNota(lineId: string, nota: string) {
+        setCartLines(prev => prev.map(l => l.lineId === lineId ? { ...l, nota } : l));
+    }
+
+    function abrirOpcionModal(item: MenuItem) {
+        const seleccion: Record<string, string> = {};
+        (item.opciones || []).forEach(op => { seleccion[op.titulo] = ""; });
+        setOpcionModal({ item, seleccion });
+    }
+
     async function enviarPedido() {
-        const seleccion = Object.entries(items)
-            .filter(([_, cant]) => cant > 0)
-            .map(([id, cant]) => ({ menuItemId: id, cantidad: cant, nota: notasProducto[id]?.trim() || undefined }));
+        const seleccion = cartLines
+            .filter(l => l.cantidad > 0)
+            .map(l => ({
+                menuItemId: l.menuItemId,
+                cantidad: l.cantidad,
+                nota: l.nota.trim() || undefined,
+                opcionesSeleccionadas: Object.keys(l.opcionesSeleccionadas).length > 0 ? l.opcionesSeleccionadas : undefined,
+            }));
 
         if (seleccion.length === 0)
             return swalBase.fire("⚠️", "Seleccioná al menos un ítem", "warning");
@@ -524,7 +606,6 @@ export default function PedidosClientePage() {
                 const data = await res.json();
 
                 if (MERCADOPAGO_ACTIVO && metodoPago === "mercadopago") {
-                    // Crear preference de MP y redirigir al checkout
                     const prefRes = await fetch("/api/pagos/mp/preference", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -541,9 +622,8 @@ export default function PedidosClientePage() {
 
                 setDrawerOpen(false);
                 await swalBase.fire({ icon: "success", title: "Pedido enviado correctamente", timer: 2000, showConfirmButton: false });
-                setItems({});
+                setCartLines([]);
                 setHorarioPreferido("");
-                setNotasProducto({});
                 setMapLat(null);
                 setMapLng(null);
             } else {
@@ -557,16 +637,15 @@ export default function PedidosClientePage() {
     }
 
     const vaciarCarrito = () => {
-        setItems({});
+        setCartLines([]);
         setDrawerOpen(false);
     };
 
-    const eliminarProducto = (id: string) => {
-        setItems((prev) => { const u = { ...prev }; delete u[id]; return u; });
-    };
-
-    const totalItems = Object.values(items).reduce((a, b) => a + b, 0);
-    const total = menu.reduce((acc, item) => acc + item.precio * (items[item._id] || 0), 0);
+    const totalItems = cartLines.reduce((sum, l) => sum + l.cantidad, 0);
+    const total = cartLines.reduce((acc, line) => {
+        const item = menu.find(m => m._id === line.menuItemId);
+        return acc + (item?.precio ?? 0) * line.cantidad;
+    }, 0);
     const totalFinal = total + (tipoEntrega === "envio" ? costoEnvio : 0);
 
     if (cargandoConfig) return <div className="flex justify-center items-center py-12"><Loader size={40} /></div>;
@@ -597,18 +676,17 @@ export default function PedidosClientePage() {
     ];
 
     const cartDrawerProps: CartDrawerProps = {
-        items, menu, tipoEntrega, setTipoEntrega,
+        cartLines, menu, tipoEntrega, setTipoEntrega,
         direccionPrincipal, direccionEnvio, setDireccionEnvio,
         usarOtraDireccion, setUsarOtraDireccion,
         horarioPreferido, setHorarioPreferido,
-        notasProducto,
-        onSetNotaProducto: (id, nota) => setNotasProducto(prev => ({ ...prev, [id]: nota })),
+        onSetNota: setNota,
         onSelectCoords: (lat, lng) => { setMapLat(lat); setMapLng(lng); },
         enviando, total, costoEnvio,
         metodoPago, setMetodoPago,
         onClose: () => setDrawerOpen(false),
         onVaciar: vaciarCarrito,
-        onEliminar: eliminarProducto,
+        onEliminarLinea: eliminarLinea,
         onEnviar: enviarPedido,
     };
 
@@ -771,34 +849,57 @@ export default function PedidosClientePage() {
                 <motion.div key={categoriaSeleccionada} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.22 }}
                     className="px-5 py-5 pb-32">
                     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                        {productos.map((item) => (
-                            <div key={item._id} className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col overflow-hidden">
-                                {item.imagen && (
-                                    <div className="relative h-40 w-full overflow-hidden">
-                                        <img src={item.imagen} alt={item.nombre} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-                                    </div>
-                                )}
-                                <div className="p-4 flex flex-col flex-1 justify-between">
-                                    <div>
-                                        <p className="font-semibold text-base text-black leading-tight mb-1">{item.nombre}</p>
-                                        {item.descripcion && <p className="text-xs text-gray-500 mb-2 leading-snug">{item.descripcion}</p>}
-                                        <span className="inline-block bg-red-50 text-red-600 font-extrabold text-sm px-3 py-1 rounded-full">
-                                            ${formatPrice(item.precio)}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-end mt-4">
-                                        <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                                            <button onClick={() => setItems((p) => ({ ...p, [item._id]: Math.max((p[item._id] || 0) - 1, 0) }))}
-                                                className="w-11 h-11 text-red-500 text-xl font-bold flex items-center justify-center hover:bg-gray-100 transition">−</button>
-                                            <span className="w-10 text-center text-lg font-semibold text-black">{items[item._id] || 0}</span>
-                                            <button onClick={() => setItems((p) => ({ ...p, [item._id]: (p[item._id] || 0) + 1 }))}
-                                                className="w-11 h-11 text-red-500 text-xl font-bold flex items-center justify-center hover:bg-gray-100 transition">+</button>
+                        {productos.map((item) => {
+                            const count = getCartCount(item._id);
+                            const tieneOpciones = (item.opciones || []).length > 0;
+                            return (
+                                <div key={item._id} className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col overflow-hidden">
+                                    {item.imagen && (
+                                        <div className="relative h-40 w-full overflow-hidden">
+                                            <img src={item.imagen} alt={item.nombre} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                                        </div>
+                                    )}
+                                    <div className="p-4 flex flex-col flex-1 justify-between">
+                                        <div>
+                                            <p className="font-semibold text-base text-black leading-tight mb-1">{item.nombre}</p>
+                                            {item.descripcion && <p className="text-xs text-gray-500 mb-2 leading-snug">{item.descripcion}</p>}
+                                            {tieneOpciones && (
+                                                <p className="text-[10px] text-amber-600 font-semibold mb-1">
+                                                    {item.opciones!.map(op => op.titulo).join(" · ")}
+                                                </p>
+                                            )}
+                                            <span className="inline-block bg-red-50 text-red-600 font-extrabold text-sm px-3 py-1 rounded-full">
+                                                ${formatPrice(item.precio)}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-end mt-4">
+                                            {tieneOpciones ? (
+                                                <div className="flex items-center gap-2">
+                                                    {count > 0 && (
+                                                        <span className="text-sm font-bold text-black bg-gray-100 rounded-full px-2.5 py-1">×{count}</span>
+                                                    )}
+                                                    <button
+                                                        onClick={() => abrirOpcionModal(item)}
+                                                        className="h-11 px-5 bg-red-600 text-white text-xl font-bold rounded-xl flex items-center justify-center hover:bg-red-700 transition shadow-sm"
+                                                    >
+                                                        +
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                                                    <button onClick={() => removeSimple(item._id)}
+                                                        className="w-11 h-11 text-red-500 text-xl font-bold flex items-center justify-center hover:bg-gray-100 transition">−</button>
+                                                    <span className="w-10 text-center text-lg font-semibold text-black">{count}</span>
+                                                    <button onClick={() => addSimple(item._id)}
+                                                        className="w-11 h-11 text-red-500 text-xl font-bold flex items-center justify-center hover:bg-gray-100 transition">+</button>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </motion.div>
             </AnimatePresence>
@@ -806,6 +907,68 @@ export default function PedidosClientePage() {
             <Portal>
                 <CartButton />
                 <AnimatePresence>{drawerOpen && <CartDrawer {...cartDrawerProps} />}</AnimatePresence>
+
+                {/* ── Modal selección de opciones ── */}
+                <AnimatePresence>
+                    {opcionModal && (
+                        <motion.div
+                            className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex flex-col justify-end"
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setOpcionModal(null)}
+                        >
+                            <motion.div
+                                initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+                                transition={{ type: "spring", damping: 25 }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="bg-white rounded-t-3xl p-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] max-h-[80dvh] overflow-y-auto"
+                            >
+                                <div className="flex items-center justify-between mb-1">
+                                    <h3 className="text-xl font-extrabold text-black">{opcionModal.item.nombre}</h3>
+                                    <button onClick={() => setOpcionModal(null)} className="p-1 text-gray-400 hover:text-gray-700"><X size={22} /></button>
+                                </div>
+                                <p className="text-sm text-gray-500 mb-5">Elegí tus preferencias para este producto</p>
+
+                                {opcionModal.item.opciones!.map((op) => (
+                                    <div key={op.titulo} className="mb-5">
+                                        <p className="text-sm font-black text-gray-700 uppercase tracking-wide mb-2">{op.titulo}</p>
+                                        <div className="space-y-2">
+                                            {op.choices.map((choice) => (
+                                                <button
+                                                    key={choice}
+                                                    onClick={() => setOpcionModal(prev => prev ? {
+                                                        ...prev,
+                                                        seleccion: { ...prev.seleccion, [op.titulo]: choice },
+                                                    } : null)}
+                                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition text-left ${opcionModal.seleccion[op.titulo] === choice ? "border-red-500 bg-red-50" : "border-gray-200 bg-white hover:border-gray-300"}`}
+                                                >
+                                                    <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${opcionModal.seleccion[op.titulo] === choice ? "border-red-500 bg-red-500" : "border-gray-300"}`}>
+                                                        {opcionModal.seleccion[op.titulo] === choice && <span className="w-2 h-2 rounded-full bg-white" />}
+                                                    </span>
+                                                    <span className={`font-semibold ${opcionModal.seleccion[op.titulo] === choice ? "text-red-700" : "text-gray-800"}`}>{choice}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+
+                                <button
+                                    onClick={() => {
+                                        const todas = (opcionModal.item.opciones || []).every(op => opcionModal.seleccion[op.titulo]);
+                                        if (!todas) {
+                                            swalBase.fire("⚠️", "Tenés que elegir todas las opciones antes de agregar.", "warning");
+                                            return;
+                                        }
+                                        addWithOpciones(opcionModal.item, opcionModal.seleccion);
+                                        setOpcionModal(null);
+                                    }}
+                                    className="w-full bg-red-600 hover:bg-red-700 text-white py-3.5 rounded-xl font-bold text-base transition mt-2"
+                                >
+                                    Agregar al pedido
+                                </button>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </Portal>
         </div>
     );

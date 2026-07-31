@@ -8,6 +8,7 @@ const PedidoSchema = new Schema(
                 menuItemId: { type: Schema.Types.ObjectId, ref: "MenuItem", required: true },
                 cantidad: { type: Number, required: true },
                 nota: { type: String },
+                opcionesSeleccionadas: { type: Map, of: String },
                 // false = se agregó después de aceptada y todavía no se imprimió en BARRA/COCINA
                 impreso: { type: Boolean, default: true },
                 listo: { type: Boolean, default: false },

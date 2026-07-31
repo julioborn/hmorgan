@@ -14,6 +14,11 @@ import { useCategoryConfigs } from "@/hooks/useCategoryConfigs";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
+type OpcionGrupo = {
+    titulo: string;
+    choices: string[];
+};
+
 type MenuItem = {
     _id: string;
     nombre: string;
@@ -25,6 +30,7 @@ type MenuItem = {
     activoCliente?: boolean;
     ruleta?: boolean;
     order?: number;
+    opciones?: OpcionGrupo[];
 };
 
 const formatPrice = (value: number) =>
@@ -582,25 +588,115 @@ export default function AdminMenuPage() {
                             className="flex-1 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
                         >
                             {editando?._id === i._id ? (
-                                <div className="flex-1 flex flex-col md:flex-row gap-3">
-                                    <input
-                                        className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-black flex-1 focus:outline-none focus:ring-2 focus:ring-red-500"
-                                        value={editando.nombre}
-                                        onChange={(e) => setEditando({ ...editando, nombre: e.target.value })}
-                                    />
-                                    <textarea
-                                        className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-black flex-1 resize-y min-h-[60px] focus:outline-none focus:ring-2 focus:ring-red-500"
-                                        value={editando.descripcion || ""}
-                                        onChange={(e) => setEditando({ ...editando, descripcion: e.target.value })}
-                                    />
-                                    <input
-                                        className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-right text-black w-full md:w-24 focus:outline-none focus:ring-2 focus:ring-red-500"
-                                        type="text"
-                                        value={formatNumber(editando.precio)}
-                                        onChange={(e) =>
-                                            setEditando({ ...editando, precio: parseFloat(e.target.value.replace(/\./g, "")) || 0 })
-                                        }
-                                    />
+                                <div className="flex-1 flex flex-col gap-3">
+                                    <div className="flex flex-col md:flex-row gap-3">
+                                        <input
+                                            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-black flex-1 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                            value={editando.nombre}
+                                            onChange={(e) => setEditando({ ...editando, nombre: e.target.value })}
+                                        />
+                                        <textarea
+                                            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-black flex-1 resize-y min-h-[60px] focus:outline-none focus:ring-2 focus:ring-red-500"
+                                            value={editando.descripcion || ""}
+                                            onChange={(e) => setEditando({ ...editando, descripcion: e.target.value })}
+                                        />
+                                        <input
+                                            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-right text-black w-full md:w-24 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                            type="text"
+                                            value={formatNumber(editando.precio)}
+                                            onChange={(e) =>
+                                                setEditando({ ...editando, precio: parseFloat(e.target.value.replace(/\./g, "")) || 0 })
+                                            }
+                                        />
+                                    </div>
+
+                                    {/* ── Editor de opciones ── */}
+                                    <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <p className="text-xs font-black text-gray-500 uppercase tracking-wide">Acompañamientos / Opciones</p>
+                                            <button
+                                                type="button"
+                                                onClick={() => setEditando({
+                                                    ...editando,
+                                                    opciones: [...(editando.opciones || []), { titulo: "", choices: [""] }],
+                                                })}
+                                                className="text-xs font-bold text-red-600 hover:text-red-800 transition"
+                                            >
+                                                + Agregar grupo
+                                            </button>
+                                        </div>
+                                        {(editando.opciones || []).length === 0 && (
+                                            <p className="text-xs text-gray-400 italic">Sin opciones — el cliente no necesita elegir nada.</p>
+                                        )}
+                                        {(editando.opciones || []).map((op, opIdx) => (
+                                            <div key={opIdx} className="mb-3 border border-gray-200 rounded-lg p-2 bg-white">
+                                                <div className="flex items-center gap-2 mb-1.5">
+                                                    <input
+                                                        placeholder="Título del grupo (ej: Elegí tu salsa)"
+                                                        value={op.titulo}
+                                                        onChange={(e) => {
+                                                            const ops = [...(editando.opciones || [])];
+                                                            ops[opIdx] = { ...ops[opIdx], titulo: e.target.value };
+                                                            setEditando({ ...editando, opciones: ops });
+                                                        }}
+                                                        className="flex-1 text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-red-400"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const ops = (editando.opciones || []).filter((_, idx) => idx !== opIdx);
+                                                            setEditando({ ...editando, opciones: ops });
+                                                        }}
+                                                        className="text-red-400 hover:text-red-600 transition text-lg leading-none"
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </div>
+                                                <div className="space-y-1 pl-1">
+                                                    {op.choices.map((ch, chIdx) => (
+                                                        <div key={chIdx} className="flex items-center gap-1.5">
+                                                            <input
+                                                                placeholder={`Opción ${chIdx + 1} (ej: Salsa roja)`}
+                                                                value={ch}
+                                                                onChange={(e) => {
+                                                                    const ops = [...(editando.opciones || [])];
+                                                                    const choices = [...ops[opIdx].choices];
+                                                                    choices[chIdx] = e.target.value;
+                                                                    ops[opIdx] = { ...ops[opIdx], choices };
+                                                                    setEditando({ ...editando, opciones: ops });
+                                                                }}
+                                                                className="flex-1 text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-red-400"
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const ops = [...(editando.opciones || [])];
+                                                                    const choices = ops[opIdx].choices.filter((_, idx) => idx !== chIdx);
+                                                                    ops[opIdx] = { ...ops[opIdx], choices };
+                                                                    setEditando({ ...editando, opciones: ops });
+                                                                }}
+                                                                className="text-gray-400 hover:text-red-500 transition text-base leading-none"
+                                                            >
+                                                                ×
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const ops = [...(editando.opciones || [])];
+                                                            ops[opIdx] = { ...ops[opIdx], choices: [...ops[opIdx].choices, ""] };
+                                                            setEditando({ ...editando, opciones: ops });
+                                                        }}
+                                                        className="text-xs text-gray-500 hover:text-red-600 mt-0.5 transition"
+                                                    >
+                                                        + Agregar opción
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
                                     <div className="flex gap-2 justify-end">
                                         <button onClick={guardarEdicion} className="px-3 py-2 rounded-lg bg-red-600 text-white hover:bg-red-500 transition">
                                             Guardar
@@ -616,6 +712,15 @@ export default function AdminMenuPage() {
                                         <p className="font-bold text-black">{i.nombre}</p>
                                         <p className="text-sm text-gray-600">{i.descripcion}</p>
                                         <p className="text-sm font-semibold text-red-600">${formatPrice(i.precio)}</p>
+                                        {i.opciones && i.opciones.length > 0 && (
+                                            <div className="mt-1 flex flex-wrap gap-1">
+                                                {i.opciones.map((op, idx) => (
+                                                    <span key={idx} className="text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full">
+                                                        {op.titulo}: {op.choices.join(" / ")}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <div className="flex flex-col items-center gap-0.5">

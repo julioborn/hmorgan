@@ -108,6 +108,14 @@ function buildComanda({ titulo, mesa, cliente, direccion, mozo, hora, items, not
     add(ESC, 0x21, 0x10);
     for (const item of items) {
         txt(item.cantidad + "x " + norm(item.nombre)); add(LF);
+        if (item.opcionesSeleccionadas && typeof item.opcionesSeleccionadas === "object") {
+            const vals = Object.values(item.opcionesSeleccionadas).filter(Boolean);
+            if (vals.length > 0) {
+                add(ESC, 0x21, 0x00);
+                txt("   >> " + vals.map(v => norm(v)).join(" / ")); add(LF);
+                add(ESC, 0x21, 0x10);
+            }
+        }
         if (item.nota) {
             add(ESC, 0x21, 0x00);
             txt("   -> " + norm(item.nota)); add(LF);

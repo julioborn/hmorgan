@@ -27,6 +27,7 @@ type Item = {
     menuItemId: { nombre: string; precio: number; categoria?: string };
     cantidad: number;
     nota?: string;
+    opcionesSeleccionadas?: Record<string, string>;
     listo?: boolean;
 };
 
@@ -413,6 +414,15 @@ export default function CocinaPage() {
                                                             <span className="text-2xl font-black min-w-[2rem] text-center leading-tight text-black">{it.cantidad}</span>
                                                             <div className="flex-1 min-w-0">
                                                                 <p className="text-lg font-bold leading-tight text-black">{it.menuItemId?.nombre || "Ítem"}</p>
+                                                                {it.opcionesSeleccionadas && Object.keys(it.opcionesSeleccionadas).length > 0 && (
+                                                                    <div className="flex flex-wrap gap-1 mt-0.5">
+                                                                        {Object.entries(it.opcionesSeleccionadas).map(([titulo, valor]) => (
+                                                                            <span key={titulo} className="text-sm font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                                                                                {valor}
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
                                                                 {it.nota && <p className="text-sm text-amber-600 mt-0.5 italic">✏ {it.nota}</p>}
                                                             </div>
                                                             <button
@@ -445,6 +455,13 @@ export default function CocinaPage() {
                                                         <span className="text-xl font-black min-w-[2rem] text-center leading-tight text-red-300">{it.cantidad}</span>
                                                         <div className="flex-1 min-w-0">
                                                             <p className="text-base font-semibold leading-tight text-red-400 line-through">{it.menuItemId?.nombre || "Ítem"}</p>
+                                                            {it.opcionesSeleccionadas && Object.keys(it.opcionesSeleccionadas).length > 0 && (
+                                                                <div className="flex flex-wrap gap-1 mt-0.5">
+                                                                    {Object.values(it.opcionesSeleccionadas).map((valor, idx) => (
+                                                                        <span key={idx} className="text-xs font-semibold text-red-300 line-through">{valor}</span>
+                                                                    ))}
+                                                                </div>
+                                                            )}
                                                             {it.nota && <p className="text-xs text-red-300 mt-0.5 italic line-through">✏ {it.nota}</p>}
                                                         </div>
                                                         <span className="shrink-0 text-[10px] font-black text-red-500 uppercase tracking-wide bg-red-100 px-2 py-1 rounded-full whitespace-nowrap">
