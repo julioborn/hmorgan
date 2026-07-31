@@ -448,7 +448,7 @@ function ReservaFormFields({
                     <button type="button" onClick={() => setForm((p: any) => ({ ...p, comensales: Math.max(1, p.comensales - 1) }))}
                         className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center font-bold text-gray-700 transition text-lg">−</button>
                     <span className="text-2xl font-black text-gray-900 min-w-[2rem] text-center">{form.comensales}</span>
-                    <button type="button" onClick={() => setForm((p: any) => ({ ...p, comensales: Math.min(20, p.comensales + 1) }))}
+                    <button type="button" onClick={() => setForm((p: any) => ({ ...p, comensales: p.comensales + 1 }))}
                         className="w-10 h-10 rounded-full bg-red-600 hover:bg-red-700 flex items-center justify-center font-bold text-white transition text-lg">+</button>
                     <span className="text-sm text-gray-500">persona{form.comensales !== 1 ? "s" : ""}</span>
                 </div>
