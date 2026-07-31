@@ -26,6 +26,7 @@ export interface IUser extends Document {
   // ✅ ESTO FALTABA (está en el Schema)
   fechaNacimiento?: Date;
   direccion?: string;
+  direcciones?: string[];
 
   passwordHash: string;
   role: "cliente" | "admin" | "empleado" | "superadmin" | "cajero" | "delivery" | "cocina";
@@ -68,6 +69,7 @@ const UserSchema = new Schema<IUser>({
   email: { type: String, lowercase: true, unique: true, sparse: true },
   fechaNacimiento: { type: Date },
   direccion: { type: String },
+  direcciones: { type: [String], default: [] },
 
   passwordHash: { type: String, required: true },
 

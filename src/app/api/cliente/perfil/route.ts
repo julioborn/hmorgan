@@ -33,8 +33,13 @@ export async function GET(req: Request) {
     }
 
     // 👇 Incluimos el campo dirección en la respuesta
+    // Si tiene direccion pero no tiene el array todavía, lo incluimos en el array de respuesta
+    const direcciones: string[] = user.direcciones?.length
+        ? user.direcciones
+        : user.direccion ? [user.direccion] : [];
+
     return NextResponse.json({
-        username: user.username, // ✅ ESTE ERA EL FALTANTE
+        username: user.username,
         nombre: user.nombre,
         apellido: user.apellido,
         dni: user.dni || "",
@@ -42,6 +47,7 @@ export async function GET(req: Request) {
         email: user.email || null,
         fechaNacimiento: user.fechaNacimiento || null,
         direccion: user.direccion || "",
+        direcciones,
     });
 }
 

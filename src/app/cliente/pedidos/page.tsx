@@ -161,11 +161,12 @@ interface CartDrawerProps {
     menu: MenuItem[];
     tipoEntrega: string;
     setTipoEntrega: (v: string) => void;
-    direccionPrincipal: string;
+    direcciones: string[];
     direccionEnvio: string;
     setDireccionEnvio: (v: string) => void;
     usarOtraDireccion: boolean;
     setUsarOtraDireccion: (v: boolean) => void;
+    onEliminarDireccion: (d: string) => void;
     horarioPreferido: string;
     setHorarioPreferido: (v: string) => void;
     onSetNota: (lineId: string, nota: string) => void;
@@ -183,8 +184,8 @@ interface CartDrawerProps {
 
 function CartDrawer({
     cartLines, menu, tipoEntrega, setTipoEntrega,
-    direccionPrincipal, direccionEnvio, setDireccionEnvio,
-    usarOtraDireccion, setUsarOtraDireccion,
+    direcciones, direccionEnvio, setDireccionEnvio,
+    usarOtraDireccion, setUsarOtraDireccion, onEliminarDireccion,
     horarioPreferido, setHorarioPreferido,
     onSetNota, onSelectCoords,
     enviando, total, costoEnvio, metodoPago, setMetodoPago,
@@ -254,17 +255,38 @@ function CartDrawer({
 
                     {tipoEntrega === "envio" && (
                         <div className="space-y-2">
-                            {direccionPrincipal && (
-                                <label className="flex items-center gap-2 text-sm">
-                                    <input type="radio" checked={!usarOtraDireccion} onChange={() => { setUsarOtraDireccion(false); setDireccionEnvio(direccionPrincipal); }} />
-                                    {direccionPrincipal}
-                                </label>
-                            )}
-                            <label className="flex items-center gap-2 text-sm">
-                                <input type="radio" checked={usarOtraDireccion} onChange={() => setUsarOtraDireccion(true)} />
-                                Otra dirección
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Dirección de entrega</p>
+
+                            {direcciones.map((d) => (
+                                <div key={d} className="flex items-center gap-2">
+                                    <label className="flex items-center gap-2 text-sm flex-1 cursor-pointer min-w-0">
+                                        <input
+                                            type="radio"
+                                            checked={!usarOtraDireccion && direccionEnvio === d}
+                                            onChange={() => { setUsarOtraDireccion(false); setDireccionEnvio(d); }}
+                                        />
+                                        <span className="truncate">{d}</span>
+                                    </label>
+                                    <button
+                                        onClick={() => onEliminarDireccion(d)}
+                                        className="shrink-0 text-gray-300 hover:text-red-500 transition p-0.5"
+                                        title="Eliminar dirección"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                </div>
+                            ))}
+
+                            <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                <input
+                                    type="radio"
+                                    checked={usarOtraDireccion}
+                                    onChange={() => { setUsarOtraDireccion(true); setDireccionEnvio(""); }}
+                                />
+                                <span className="text-gray-500">Ingresar otra dirección...</span>
                             </label>
-                            {(usarOtraDireccion || !direccionPrincipal) && (
+
+                            {(usarOtraDireccion || direcciones.length === 0) && (
                                 <AddressAutocomplete
                                     value={direccionEnvio}
                                     onChange={setDireccionEnvio}
@@ -380,6 +402,7 @@ export default function PedidosClientePage() {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [cargandoConfig, setCargandoConfig] = useState(true);
     const [direccionPrincipal, setDireccionPrincipal] = useState<string>("");
+    const [direcciones, setDirecciones] = useState<string[]>([]);
     const [direccionEnvio, setDireccionEnvio] = useState<string>("");
     const [usarOtraDireccion, setUsarOtraDireccion] = useState(false);
     const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null);
@@ -433,6 +456,11 @@ export default function PedidosClientePage() {
                     if (data?.direccion) {
                         setDireccionPrincipal(data.direccion);
                         setDireccionEnvio(data.direccion);
+                    }
+                    if (data?.direcciones?.length) {
+                        setDirecciones(data.direcciones);
+                        // Si hay direcciones guardadas, la última usada ya está pre-seleccionada
+                        setUsarOtraDireccion(false);
                     }
                     if (data?.telefono) setTelefono(data.telefono);
                 }
@@ -546,6 +574,25 @@ export default function PedidosClientePage() {
         setCartLines(prev => prev.map(l => l.lineId === lineId ? { ...l, nota } : l));
     }
 
+    async function eliminarDireccion(texto: string) {
+        setDirecciones(prev => prev.filter(d => d !== texto));
+        if (direccionEnvio === texto) {
+            const resto = direcciones.filter(d => d !== texto);
+            if (resto.length > 0) {
+                setDireccionEnvio(resto[0]);
+                setUsarOtraDireccion(false);
+            } else {
+                setDireccionEnvio("");
+                setUsarOtraDireccion(true);
+            }
+        }
+        await fetch("/api/cliente/direcciones", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ texto }),
+        });
+    }
+
     function abrirOpcionModal(item: MenuItem) {
         const seleccion: Record<string, string> = {};
         (item.opciones || []).forEach(op => { seleccion[op.titulo] = ""; });
@@ -626,6 +673,21 @@ export default function PedidosClientePage() {
                 setHorarioPreferido("");
                 setMapLat(null);
                 setMapLng(null);
+
+                // Guardar dirección usada si es nueva
+                if (tipoEntrega === "envio") {
+                    const addr = (direccionEnvio || direccionPrincipal).trim();
+                    if (addr && !direcciones.includes(addr)) {
+                        setDirecciones(prev => [...prev, addr]);
+                        fetch("/api/cliente/direcciones", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ texto: addr }),
+                        });
+                    }
+                    // Actualizar última usada en estado
+                    if (addr) setDireccionPrincipal(addr);
+                }
             } else {
                 swalBase.fire("❌", "Error al enviar el pedido", "error");
             }
@@ -677,8 +739,9 @@ export default function PedidosClientePage() {
 
     const cartDrawerProps: CartDrawerProps = {
         cartLines, menu, tipoEntrega, setTipoEntrega,
-        direccionPrincipal, direccionEnvio, setDireccionEnvio,
+        direcciones, direccionEnvio, setDireccionEnvio,
         usarOtraDireccion, setUsarOtraDireccion,
+        onEliminarDireccion: eliminarDireccion,
         horarioPreferido, setHorarioPreferido,
         onSetNota: setNota,
         onSelectCoords: (lat, lng) => { setMapLat(lat); setMapLng(lng); },
