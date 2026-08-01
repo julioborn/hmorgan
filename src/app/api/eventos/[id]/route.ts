@@ -5,6 +5,7 @@ import { User } from "@/models/User";
 import { PointTransaction } from "@/models/PointTransaction";
 import { CajaSession } from "@/models/CajaSession";
 import { CajaMovement } from "@/models/CajaMovement";
+import { Pedido } from "@/models/Pedido";
 import { getPointsRatio } from "@/lib/getPointsRatio";
 import jwt from "jsonwebtoken";
 
@@ -205,4 +206,47 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     return NextResponse.json({ error: "Acción inválida" }, { status: 400 });
+}
+
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+    const token = req.cookies.get("session")?.value;
+    if (!token) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    let payload: any;
+    try { payload = jwt.verify(token, SECRET) as any; } catch {
+        return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    if (!["superadmin", "admin"].includes(payload.role))
+        return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+
+    await connectMongoDB();
+    const evento = await Evento.findById(params.id);
+    if (!evento) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
+
+    // 1. Pedidos vinculados al evento
+    const pedidos = await Pedido.find({ eventoId: params.id }, "_id").lean<{ _id: any }[]>();
+    const pedidoIds = pedidos.map(p => p._id);
+
+    // 2. Movimientos de caja de esos pedidos (comandas cobradas / parciales)
+    if (pedidoIds.length > 0) {
+        await CajaMovement.deleteMany({ pedidoId: { $in: pedidoIds } });
+    }
+
+    // 3. Movimientos de entradas (ligados a tarjetaId del evento)
+    const tarjetaIds = (evento.tarjetas as any[]).map((t: any) => t._id);
+    if (tarjetaIds.length > 0) {
+        await CajaMovement.deleteMany({ tarjetaId: { $in: tarjetaIds } });
+    }
+
+    // 4. Movimientos de ventas directas (por concepto)
+    await CajaMovement.deleteMany({
+        concepto: { $regex: `^Venta directa evento: ${evento.nombre.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}` },
+    });
+
+    // 5. Pedidos del evento
+    await Pedido.deleteMany({ eventoId: params.id });
+
+    // 6. El evento
+    await Evento.findByIdAndDelete(params.id);
+
+    return NextResponse.json({ ok: true });
 }

@@ -136,3 +136,25 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     return NextResponse.json({ error: "Acción inválida" }, { status: 400 });
 }
+
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+    const token = req.cookies.get("session")?.value;
+    if (!token) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    let payload: any;
+    try { payload = jwt.verify(token, SECRET) as any; } catch {
+        return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    if (!["superadmin", "admin"].includes(payload.role))
+        return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+
+    await connectMongoDB();
+    const sesion = await CajaSession.findById(params.id);
+    if (!sesion) return NextResponse.json({ error: "Sesión no encontrada" }, { status: 404 });
+    if (sesion.estado === "abierta")
+        return NextResponse.json({ error: "No se puede eliminar una sesión abierta" }, { status: 400 });
+
+    await CajaMovement.deleteMany({ sesionId: sesion._id });
+    await CajaSession.findByIdAndDelete(params.id);
+
+    return NextResponse.json({ ok: true });
+}

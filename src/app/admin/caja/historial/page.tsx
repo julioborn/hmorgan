@@ -5,9 +5,10 @@ import { useState, useCallback, useMemo } from "react";
 import {
     ChevronLeft, ChevronDown, ChevronUp,
     TrendingUp, TrendingDown, Banknote, CreditCard, Send,
-    Package, AlertCircle, Receipt, Ticket, Pencil, Check, Star, Loader2, Truck,
+    Package, AlertCircle, Receipt, Ticket, Pencil, Check, Star, Loader2, Truck, Trash2,
 } from "lucide-react";
 import Loader from "@/components/Loader";
+import { useAuth } from "@/context/auth-context";
 import {
     Movement, MovimientosSection,
     METODO_LABEL, METODO_ICON, METODO_COLOR,
@@ -444,10 +445,20 @@ function DetalleEvento({ ev }: { ev: EventoCerrado }) {
 
 // ── Evento dentro de sesión ────────────────────────────────────────────────────
 
-function EventoEnSesion({ ev }: { ev: EventoCerrado }) {
+function EventoEnSesion({ ev, puedeEliminar, onDeleted }: { ev: EventoCerrado; puedeEliminar?: boolean; onDeleted?: (id: string) => void }) {
     const [open, setOpen] = useState(false);
+    const [confirmDelete, setConfirmDelete] = useState(false);
+    const [deleting, setDeleting] = useState(false);
     const cd = ev.cierreData;
     const horaCierre = cd?.fecha ? formatHora(cd.fecha) : formatHora(ev.updatedAt);
+
+    async function eliminarEvento() {
+        setDeleting(true);
+        const res = await fetch(`/api/eventos/${ev._id}`, { method: "DELETE", credentials: "include" });
+        setDeleting(false);
+        if (res.ok) onDeleted?.(ev._id);
+        else setConfirmDelete(false);
+    }
 
     return (
         <div className="rounded-xl border border-amber-200 overflow-hidden">
@@ -460,8 +471,33 @@ function EventoEnSesion({ ev }: { ev: EventoCerrado }) {
                         <p className="text-[10px] text-amber-400/70 mt-0.5">Cerrado · {horaCierre}</p>
                     </div>
                 </div>
-                {cd && <span className="font-black text-white text-base shrink-0">{fmt(cd.totalGeneral)}</span>}
+                <div className="flex items-center gap-2 shrink-0">
+                    {cd && <span className="font-black text-white text-base">{fmt(cd.totalGeneral)}</span>}
+                    {puedeEliminar && !confirmDelete && (
+                        <button onClick={e => { e.stopPropagation(); setConfirmDelete(true); }}
+                            className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-red-400 transition">
+                            <Trash2 size={13} />
+                        </button>
+                    )}
+                </div>
             </div>
+
+            {/* Doble confirmación para eliminar evento */}
+            {confirmDelete && (
+                <div className="bg-red-50 border-b border-red-100 px-3 py-2.5 space-y-2">
+                    <p className="text-xs font-black text-red-700">¿Eliminar este evento y todos sus datos?</p>
+                    <p className="text-[10px] text-red-500">Se borran pedidos, movimientos de caja y entradas asociadas.</p>
+                    <div className="flex gap-2">
+                        <button onClick={() => setConfirmDelete(false)} className="flex-1 py-1.5 border border-gray-300 rounded-xl text-xs font-bold text-gray-600">
+                            Cancelar
+                        </button>
+                        <button onClick={eliminarEvento} disabled={deleting}
+                            className="flex-1 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1 transition disabled:opacity-50">
+                            <Trash2 size={11} /> {deleting ? "Eliminando…" : "Sí, eliminar"}
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Resumen métodos */}
             {cd && (
@@ -516,14 +552,21 @@ function EventoEnSesion({ ev }: { ev: EventoCerrado }) {
 export default function CajaHistorialPage() {
     const SWR_OPTS = { revalidateOnFocus: false, revalidateOnMount: true, shouldRetryOnError: true, errorRetryCount: 3 };
 
+    const { user } = useAuth();
+    const puedeEliminar = user?.role === "admin" || user?.role === "superadmin";
+
     const { data: sesiones, isLoading: loadingSesiones, error: errSesiones, mutate: reloadSesiones } =
         useSWR<SesionSummary[]>("/api/superadmin/caja/historial", fetcher, SWR_OPTS);
-    const { data: eventosData } =
+    const { data: eventosData, mutate: reloadEventos } =
         useSWR<EventoCerrado[]>("/api/eventos?cerrado=true", fetcher, SWR_OPTS);
 
     const [expandidas,     setExpandidas]     = useState<Set<string>>(new Set());
     const [detalles,       setDetalles]       = useState<Record<string, SesionDetail>>({});
     const [loadingDetalle, setLoadingDetalle] = useState<Set<string>>(new Set());
+
+    // Eliminación de sesiones
+    const [confirmCaja,   setConfirmCaja]   = useState<string | null>(null);
+    const [deletingCaja,  setDeletingCaja]  = useState(false);
 
     const eventosCerrados = Array.isArray(eventosData) ? eventosData : [];
 
@@ -586,6 +629,17 @@ export default function CajaHistorialPage() {
         fetchDetalle(id);
     }
 
+    async function eliminarSesion(id: string) {
+        setDeletingCaja(true);
+        const res = await fetch(`/api/superadmin/caja/sesion/${id}`, { method: "DELETE", credentials: "include" });
+        setDeletingCaja(false);
+        if (res.ok) { setConfirmCaja(null); reloadSesiones(); }
+    }
+
+    function handleEventoDeleted(id: string) {
+        reloadEventos();
+    }
+
     return (
         <div className="max-w-3xl mx-auto py-4 sm:py-6 px-3 sm:px-4">
             <div className="flex items-center gap-2 sm:gap-3 mb-6 sm:mb-8">
@@ -641,9 +695,32 @@ export default function CajaHistorialPage() {
                                             <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${s.estado === "abierta" ? "bg-emerald-200 text-emerald-800" : "bg-white/10 text-white/70"}`}>
                                                 {s.estado === "abierta" ? "Abierta" : "Cerrada"}
                                             </span>
+                                            {puedeEliminar && s.estado === "cerrada" && confirmCaja !== s._id && (
+                                                <button onClick={e => { e.stopPropagation(); setConfirmCaja(s._id); }}
+                                                    className="p-1.5 rounded-lg hover:bg-white/10 text-white/30 hover:text-red-400 transition">
+                                                    <Trash2 size={13} />
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 </button>
+
+                                {/* Doble confirmación para eliminar sesión */}
+                                {confirmCaja === s._id && (
+                                    <div className="bg-red-50 border-b border-red-100 px-4 py-3 space-y-2">
+                                        <p className="text-xs font-black text-red-700">¿Eliminar esta sesión de caja y todos sus movimientos?</p>
+                                        <p className="text-[10px] text-red-500">Esta acción no se puede deshacer.</p>
+                                        <div className="flex gap-2">
+                                            <button onClick={() => setConfirmCaja(null)} className="flex-1 py-2 border border-gray-300 rounded-xl text-xs font-bold text-gray-600">
+                                                Cancelar
+                                            </button>
+                                            <button onClick={() => eliminarSesion(s._id)} disabled={deletingCaja}
+                                                className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition disabled:opacity-50">
+                                                <Trash2 size={12} /> {deletingCaja ? "Eliminando…" : "Sí, eliminar"}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Stats */}
                                 <div className="px-4 py-3 grid grid-cols-3 gap-2 border-b border-gray-100">
@@ -673,7 +750,7 @@ export default function CajaHistorialPage() {
                                             {eventos.length === 1 ? "Evento de esta sesión" : `${eventos.length} eventos de esta sesión`}
                                             <span className="ml-auto font-black text-amber-700 text-xs">{fmt(totalEventos)}</span>
                                         </p>
-                                        {eventos.map(ev => <EventoEnSesion key={ev._id} ev={ev} />)}
+                                        {eventos.map(ev => <EventoEnSesion key={ev._id} ev={ev} puedeEliminar={puedeEliminar} onDeleted={handleEventoDeleted} />)}
                                     </div>
                                 )}
 
@@ -734,7 +811,7 @@ export default function CajaHistorialPage() {
                     <div className="space-y-4">
                         {eventosHuerfanos.map(ev => (
                             <div key={ev._id} className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-                                <EventoEnSesion ev={ev} />
+                                <EventoEnSesion ev={ev} puedeEliminar={puedeEliminar} onDeleted={handleEventoDeleted} />
                             </div>
                         ))}
                     </div>
