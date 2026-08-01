@@ -209,6 +209,30 @@ export async function POST(req: NextRequest) {
             }
         }
 
+        // 📦 Comanda única por mozo por evento: si el empleado ya tiene una comanda abierta
+        // para este evento, acumular los ítems en ella en lugar de crear una nueva.
+        if (esEmpleado && eventoId && items?.length) {
+            const comandaActiva = await Pedido.findOne({
+                userId: user._id,
+                eventoId,
+                fuente: "empleado",
+                estado: { $nin: ["cerrado", "cancelado"] },
+            });
+            if (comandaActiva) {
+                const nuevosItems = (items as any[]).map((i: any) => ({
+                    menuItemId: i.menuItemId,
+                    cantidad: i.cantidad,
+                    nota: i.nota || undefined,
+                    impreso: false,
+                    listo: false,
+                }));
+                (comandaActiva.items as any[]).push(...nuevosItems);
+                comandaActiva.total = (comandaActiva.total || 0) + total;
+                await comandaActiva.save();
+                return NextResponse.json({ ok: true, pedido: comandaActiva }, { status: 200 });
+            }
+        }
+
         // 📦 Crear pedido
         const ahora = new Date();
         const cancelableUntil = new Date(ahora.getTime() + 5 * 60 * 1000); // +5 minutos
