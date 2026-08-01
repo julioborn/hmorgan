@@ -208,11 +208,21 @@ function AnotadorMenuContent() {
         if (!comandaId) return;
         fetch(`/api/pedidos/${comandaId}`, { credentials: "include" })
             .then(r => r.json())
-            .then(d => {
+            .then(async d => {
                 setComanda(d);
                 if (d.mesa) setMesas(d.mesa.split(", ").filter(Boolean));
                 if (d.comensales) setComensales(d.comensales);
                 if (d.nombreComanda) setClienteNombre(d.nombreComanda);
+                // Si la comanda pertenece a un evento, cargar el evento para aplicar filtros (ej. soloBebidas)
+                if (d.eventoId) {
+                    const evId = typeof d.eventoId === "string" ? d.eventoId : d.eventoId._id;
+                    if (evId) {
+                        fetch(`/api/eventos/${evId}`, { credentials: "include" })
+                            .then(r => r.json())
+                            .then(ev => { if (ev._id) setEventoActivo({ _id: ev._id, nombre: ev.nombre, soloBebidas: !!ev.soloBebidas }); })
+                            .catch(() => {});
+                    }
+                }
             })
             .catch(() => {})
             .finally(() => setLoadingComanda(false));
