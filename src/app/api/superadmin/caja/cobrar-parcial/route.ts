@@ -52,8 +52,9 @@ export async function POST(req: NextRequest) {
         return acc + (it.menuItemId?.precio || 0) * it.cantidad;
     }, 0);
 
-    // If no items remain, close the order
-    if ((pedido.items as any[]).length === 0) {
+    // Si no quedan ítems: las comandas de evento se mantienen abiertas y vacías
+    // (el mozo agrega más items sin tener que recrearla); el resto se cierra normalmente.
+    if ((pedido.items as any[]).length === 0 && !(pedido as any).eventoId) {
         pedido.estado = "cerrado";
         pedido.metodoPago = metodoPago;
         pedido.montoPagado = Number(montoPagado) || 0;
