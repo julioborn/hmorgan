@@ -1853,10 +1853,20 @@ export default function CajaPage() {
         const comandasTarjeta = cobradas.filter(p => p.metodoPago === "tarjeta").reduce((a, p) => a + p.total, 0);
         const comandasSinCobrar = sinCobrar.reduce((a, p) => a + p.total, 0);
 
-        // Totales por método (ventas directas + comandas cobradas; entradas aparte)
-        const totalEfectivo = ventasEfectivo + comandasEfectivo;
-        const totalTransferencia = ventasTransferencia + comandasTransferencia;
-        const totalTarjeta = ventasTarjeta + comandasTarjeta;
+        // Cobros parciales de comandas del evento, desglosados por método
+        const parciales = cobrosParcialesMovs.filter(m => {
+            const eid = m.pedidoId?.eventoId;
+            const eidStr = typeof eid === "string" ? eid : eid?._id?.toString();
+            return eidStr === eventoId;
+        });
+        const parcialesEfectivo = parciales.filter(m => m.metodoPago === "efectivo").reduce((a, m) => a + (m.monto || 0), 0);
+        const parcialesTransferencia = parciales.filter(m => m.metodoPago === "transferencia").reduce((a, m) => a + (m.monto || 0), 0);
+        const parcialesTarjeta = parciales.filter(m => m.metodoPago === "tarjeta").reduce((a, m) => a + (m.monto || 0), 0);
+
+        // Totales por método (ventas directas + comandas cobradas + cobros parciales; entradas aparte)
+        const totalEfectivo = ventasEfectivo + comandasEfectivo + parcialesEfectivo;
+        const totalTransferencia = ventasTransferencia + comandasTransferencia + parcialesTransferencia;
+        const totalTarjeta = ventasTarjeta + comandasTarjeta + parcialesTarjeta;
         const totalGeneral = totalEfectivo + totalTransferencia + totalTarjeta + entradasTotal + comandasSinCobrar;
 
         setCierreEventoData({
@@ -3255,7 +3265,13 @@ export default function CajaPage() {
                                 const totalVentas = ev.ventas.reduce((a, v) => a + v.total, 0);
                                 const totalTarjetas = (ev as any).tarjetas?.reduce((a: number, t: any) => a + t.cantidad, 0) ?? 0;
                                 const precioTarjeta = (ev as any).precioTarjeta ?? 0;
-                                const totalEvento = totalVentas + totalPedidos + totalTarjetas * precioTarjeta;
+                                const cobrosParcialesEv = cobrosParcialesMovs.filter(m => {
+                                    const eid = m.pedidoId?.eventoId;
+                                    const eidStr = typeof eid === "string" ? eid : eid?._id?.toString();
+                                    return eidStr === ev._id;
+                                });
+                                const totalCobradoParcial = cobrosParcialesEv.reduce((a, m) => a + (m.monto || 0), 0);
+                                const totalEvento = totalVentas + totalPedidos + totalCobradoParcial + totalTarjetas * precioTarjeta;
                                 return (
                                     <div key={ev._id} className="bg-white rounded-2xl border-2 border-black shadow-sm overflow-hidden">
 
