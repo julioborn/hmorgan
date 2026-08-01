@@ -257,6 +257,7 @@ export default function CajaPage() {
     const [closeError, setCloseError] = useState("");
     const [closeStep, setCloseStep] = useState<"form" | "resumen">("form");
     const [cierreResumen, setCierreResumen] = useState<Record<string, { ingreso: number; egreso: number; excedente?: number }>>({});
+    const [cierreEventosResumen, setCierreEventosResumen] = useState<{ nombre: string; total: number; porMetodo: Record<string, number> }[]>([]);
     const [cierreMontoInicial, setCierreMontoInicial] = useState(0);
     const [cierreMontoCierre, setCierreMontoCierre] = useState(0);
     const [cierreEfectivoSistema, setCierreEfectivoSistema] = useState(0);
@@ -1174,6 +1175,7 @@ export default function CajaPage() {
             if (res.ok) {
                 const data = await res.json().catch(() => ({}));
                 setCierreResumen(data.resumen || {});
+                setCierreEventosResumen(data.eventosResumen || []);
                 setCierreMontoInicial(data.montoInicial ?? 0);
                 setCierreMontoCierre(data.montoCierre ?? 0);
                 setCierreEfectivoSistema(data.efectivoSistema ?? 0);
@@ -4074,6 +4076,36 @@ export default function CajaPage() {
                                                 🛵 Delivery entregado
                                             </span>
                                             <span className="font-black text-blue-800">{cierreDeliveryCount} pedido{cierreDeliveryCount !== 1 ? "s" : ""}</span>
+                                        </div>
+                                    )}
+
+                                    {/* Eventos */}
+                                    {cierreEventosResumen.length > 0 && (
+                                        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-2.5">
+                                            <p className="text-[10px] font-black text-amber-700 uppercase tracking-wider flex items-center gap-1.5">⭐ Recaudado en eventos</p>
+                                            {cierreEventosResumen.map(ev => (
+                                                <div key={ev.nombre} className="space-y-1">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-sm font-black text-amber-900 truncate max-w-[60%]">{ev.nombre}</span>
+                                                        <span className="font-black text-amber-900">{formatMoney(ev.total)}</span>
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {Object.entries(ev.porMetodo).map(([met, monto]) => (
+                                                            <span key={met} className="text-[10px] font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+                                                                {METODO_LABEL[met] || met}: {formatMoney(monto)}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {cierreEventosResumen.length > 1 && (
+                                                <div className="flex justify-between pt-1.5 border-t border-amber-200">
+                                                    <span className="text-xs font-black text-amber-700">Total eventos</span>
+                                                    <span className="text-sm font-black text-amber-900">
+                                                        {formatMoney(cierreEventosResumen.reduce((s, e) => s + e.total, 0))}
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 

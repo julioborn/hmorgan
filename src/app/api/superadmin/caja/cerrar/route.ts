@@ -49,6 +49,21 @@ export async function POST(req: NextRequest) {
         ? await Pedido.countDocuments({ _id: { $in: pedidoIdsDelivery }, fuente: "cliente", tipoEntrega: "envio" })
         : 0;
 
+    // Calcular desglose por evento a partir del campo concepto
+    const movEvento = movimientos.filter((m: any) =>
+        /^(Venta directa evento|Entradas evento):/.test(m.concepto)
+    );
+    const eventosMap: Record<string, { total: number; porMetodo: Record<string, number> }> = {};
+    for (const m of movEvento as any[]) {
+        // Extraer nombre del evento: "Venta directa evento: NOMBRE" o "Entradas evento: NOMBRE (N×)"
+        const match = m.concepto.match(/^(?:Venta directa evento|Entradas evento): (.+?)(?:\s+\(\d+×\))?$/);
+        const nombre = match?.[1] || "Evento";
+        if (!eventosMap[nombre]) eventosMap[nombre] = { total: 0, porMetodo: {} };
+        eventosMap[nombre].total += m.monto;
+        eventosMap[nombre].porMetodo[m.metodoPago] = (eventosMap[nombre].porMetodo[m.metodoPago] || 0) + m.monto;
+    }
+    const eventosResumen = Object.entries(eventosMap).map(([nombre, data]) => ({ nombre, ...data }));
+
     sesion.estado = "cerrada";
     sesion.montoCierre = montoCierreNum;
     sesion.cerradaPor = payload.sub;
@@ -59,7 +74,7 @@ export async function POST(req: NextRequest) {
     // Cerrar cualquier evento activo al cerrar la caja
     await Evento.updateMany({ estado: "activo" }, { $set: { estado: "cerrado" } });
 
-    return NextResponse.json({ ok: true, resumen, sesion, montoInicial, montoCierre: montoCierreNum, efectivoSistema, diferencia, deliveryCount });
+    return NextResponse.json({ ok: true, resumen, eventosResumen, sesion, montoInicial, montoCierre: montoCierreNum, efectivoSistema, diferencia, deliveryCount });
     } catch (e) {
         console.error("[POST /api/superadmin/caja/cerrar]", e);
         return NextResponse.json({ error: "Error interno" }, { status: 500 });
