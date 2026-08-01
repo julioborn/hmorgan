@@ -663,9 +663,7 @@ export default function CajaHistorialPage() {
                         const loading = loadingDetalle.has(s._id);
                         const eventos = eventosBySesion[s._id] ?? [];
 
-                        // Combined total: caja neto + event totals
                         const totalEventos = eventos.reduce((sum, ev) => sum + (ev.cierreData?.totalGeneral ?? 0), 0);
-                        const totalCombinado = s.neto + totalEventos;
 
                         return (
                             <div key={s._id} className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
@@ -733,11 +731,9 @@ export default function CajaHistorialPage() {
                                         <p className="text-base font-black text-red-500">{fmt(s.totalEgreso)}</p>
                                     </div>
                                     <div className="text-center">
-                                        <p className="text-[10px] text-gray-400 uppercase font-bold">
-                                            {eventos.length > 0 ? "Total combinado" : "Neto"}
-                                        </p>
-                                        <p className={`text-base font-black ${totalCombinado >= 0 ? "text-gray-900" : "text-red-600"}`}>
-                                            {fmt(totalCombinado)}
+                                        <p className="text-[10px] text-gray-400 uppercase font-bold">Neto</p>
+                                        <p className={`text-base font-black ${s.neto >= 0 ? "text-gray-900" : "text-red-600"}`}>
+                                            {fmt(s.neto)}
                                         </p>
                                     </div>
                                 </div>
