@@ -3485,15 +3485,19 @@ export default function CajaPage() {
                                                         </button>
                                                         {!colapsado && (
                                                             <div className="space-y-1.5">
-                                                                {pedidosEv.map(p => (
-                                                                    <div key={p._id} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-200">
-                                                                        <div>
-                                                                            <span className="font-bold text-gray-900 text-sm">{p.mesa ? mesaLabel(p.mesa) : p.nombreComanda || "Comanda"}</span>
-                                                                            {p.userId && <span className="text-xs text-gray-400 ml-2">· {p.userId.nombre}</span>}
+                                                                {pedidosEv.map(p => {
+                                                                    const cobrada = p.estado === "cerrado";
+                                                                    return (
+                                                                        <div key={p._id} className={`flex items-center justify-between rounded-xl px-4 py-2.5 border ${cobrada ? "bg-green-50 border-green-200" : "bg-gray-50 border-gray-200"}`}>
+                                                                            <div>
+                                                                                <span className={`font-bold text-sm ${cobrada ? "text-green-800" : "text-gray-900"}`}>{p.mesa ? mesaLabel(p.mesa) : p.nombreComanda || "Comanda"}</span>
+                                                                                {p.userId && <span className="text-xs text-gray-400 ml-2">· {p.userId.nombre}</span>}
+                                                                                {cobrada && <span className="ml-2 text-[10px] font-black text-green-600 uppercase">✓ Cobrada</span>}
+                                                                            </div>
+                                                                            <span className={`font-black text-base ${cobrada ? "text-green-800" : "text-gray-900"}`}>{formatMoney(p.total)}</span>
                                                                         </div>
-                                                                        <span className="font-black text-gray-900 text-base">{formatMoney(p.total)}</span>
-                                                                    </div>
-                                                                ))}
+                                                                    );
+                                                                })}
                                                             </div>
                                                         )}
                                                     </div>

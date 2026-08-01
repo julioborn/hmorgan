@@ -5,7 +5,6 @@ import { CajaSession } from "@/models/CajaSession";
 import { CajaMovement } from "@/models/CajaMovement";
 import { User } from "@/models/User";
 import { PointTransaction } from "@/models/PointTransaction";
-import { Evento } from "@/models/Evento";
 import { getPointsRatio } from "@/lib/getPointsRatio";
 import { sendPushAndCollectInvalid } from "@/lib/push-server";
 import { enviarNotificacionFCM, isFCMTokenInvalid } from "@/lib/firebase-admin";
@@ -68,29 +67,6 @@ export async function POST(req: NextRequest) {
     pedido.metodoPago = metodoPago;
     pedido.montoPagado = Number(montoPagado) || totalConDescuento || 0;
     await pedido.save();
-
-    // Si el pedido pertenece a un evento, registrarlo también en Evento.ventas
-    const eventoId = (pedido as any).eventoId;
-    if (eventoId) {
-        const evento = await Evento.findById(eventoId);
-        if (evento) {
-            const ventaItems = (pedido.items as any[]).map(it => ({
-                menuItemId: it.menuItemId?._id ?? it.menuItemId,
-                nombre:    it.menuItemId?.nombre    ?? "Ítem",
-                precio:    it.menuItemId?.precio    ?? 0,
-                categoria: it.menuItemId?.categoria ?? "",
-                cantidad:  it.cantidad,
-            }));
-            evento.ventas.push({
-                items: ventaItems,
-                total: pedido.total ?? 0,
-                metodoPago,
-                nota: (pedido as any).notaEmpleado || undefined,
-                comensalesIds: (pedido as any).comensalesIds ?? [],
-            });
-            await evento.save();
-        }
-    }
 
     // Registrar ingreso(s) en caja — un movimiento por método de pago
     const sesion = await CajaSession.findOne({ estado: "abierta" });
