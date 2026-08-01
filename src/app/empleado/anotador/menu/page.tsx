@@ -147,7 +147,7 @@ function AnotadorMenuContent() {
     const streamRef = useRef<MediaStream | null>(null);
 
     // Evento activo
-    const [eventoActivo, setEventoActivo] = useState<{_id:string;nombre:string} | null>(null);
+    const [eventoActivo, setEventoActivo] = useState<{_id:string;nombre:string;soloBebidas?:boolean} | null>(null);
 
     // Mesa picker
     const [mesaPickerOpen, setMesaPickerOpen] = useState(false);
@@ -192,9 +192,16 @@ function AnotadorMenuContent() {
         if (!eventoIdParam) { setEventoActivo(null); return; }
         fetch(`/api/eventos/${eventoIdParam}`, { credentials: "include" })
             .then(r => r.json())
-            .then(d => d._id ? setEventoActivo({ _id: d._id, nombre: d.nombre }) : setEventoActivo(null))
+            .then(d => d._id ? setEventoActivo({ _id: d._id, nombre: d.nombre, soloBebidas: !!d.soloBebidas }) : setEventoActivo(null))
             .catch(() => setEventoActivo(null));
     }, [eventoIdParam]);
+
+    // Si el evento es solo bebidas, saltar directo a la categoría BEBIDAS al entrar al menú
+    useEffect(() => {
+        if (eventoActivo?.soloBebidas && step === "menu" && categoriaActiva === null) {
+            setCategoriaActiva("BEBIDAS");
+        }
+    }, [eventoActivo, step, categoriaActiva]);
 
     // Cargar comanda existente si hay id
     useEffect(() => {
@@ -543,7 +550,7 @@ function AnotadorMenuContent() {
     const getImage    = (cat: string) => { const cfg = categoryConfigMap[cat]; return cfg?.imageUrl || categoryImages[cat] || null; };
     const getPosition = (cat: string) => categoryConfigMap[cat]?.imagePosition || "50% 50%";
     const todasCats = Array.from(new Set(menuItems.map(i => i.categoria)));
-    const categoriasNav = [
+    const categoriasNavCompleto = [
         ...(menuItems.some(i => i.categoria === "MENÚ DEL DÍA") ? ["MENÚ DEL DÍA"] : []),
         ...MAIN_ORDER.filter(cat =>
             cat === "BEBIDAS"    ? BEBIDAS_CATS.some(bc => menuItems.some(i => i.categoria === bc)) :
@@ -551,6 +558,10 @@ function AnotadorMenuContent() {
             menuItems.some(i => i.categoria === cat)),
         ...todasCats.filter(cat => !MAIN_ORDER.includes(cat) && !BEBIDAS_CATS.includes(cat) && !PICAR_CATS.includes(cat) && cat !== "MENÚ DEL DÍA"),
     ];
+    // En eventos solo bebidas, mostrar únicamente la categoría BEBIDAS
+    const categoriasNav = eventoActivo?.soloBebidas
+        ? categoriasNavCompleto.filter(cat => cat === "BEBIDAS")
+        : categoriasNavCompleto;
 
     const mesaActual = comanda?.mesa || mesas.join(", ");
 
@@ -729,7 +740,9 @@ function AnotadorMenuContent() {
 
     const stickyTitle  = !categoriaActiva ? (comandaId ? `Agregar a ${mesaActual ? `Mesa ${mesaActual}` : "comanda"}` : "Nueva comanda") : categoriaActiva === "BEBIDAS" ? "Bebidas" : categoriaActiva;
     const stickyIcon   = !categoriaActiva ? UtensilsCrossed : categoriaActiva === "BEBIDAS" ? Beer : CatIcon;
-    const stickyBack   = !categoriaActiva ? () => router.back() : categoriaActiva === "BEBIDAS" ? () => setCategoriaActiva(null) : () => setCategoriaActiva(esBebida ? "BEBIDAS" : null);
+    const stickyBack   = !categoriaActiva ? () => router.back()
+        : categoriaActiva === "BEBIDAS" ? (eventoActivo?.soloBebidas ? () => router.back() : () => setCategoriaActiva(null))
+        : () => setCategoriaActiva(esBebida ? "BEBIDAS" : null);
 
     // ── Single return ─────────────────────────────────────────────
     return (
