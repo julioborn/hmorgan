@@ -6,7 +6,6 @@ import { User } from "@/models/User";
 import Mensaje from "@/models/Mensaje";
 import { PointTransaction } from "@/models/PointTransaction";
 import { Counter } from "@/models/Counter";
-import { CajaMovement } from "@/models/CajaMovement";
 import { AutoservicioSesion } from "@/models/AutoservicioSesion";
 import jwt from "jsonwebtoken";
 import { sendPushToSubscriptions, sendPushAndCollectInvalid } from "@/lib/push-server";
@@ -650,9 +649,6 @@ export async function DELETE(req: NextRequest) {
         const pedido = await Pedido.findByIdAndDelete(id);
         if (!pedido)
             return NextResponse.json({ message: "Pedido no encontrado" }, { status: 404 });
-
-        // Borrar movimientos de caja asociados a este pedido
-        await CajaMovement.deleteMany({ pedidoId: id });
 
         await programarBorradoMensajes(id);
 
