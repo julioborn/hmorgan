@@ -348,6 +348,11 @@ function CartDrawer({
                             📲 Transferencia
                         </button>
                     </div>
+                    {metodoPago === "transferencia" && (
+                        <p className="mt-2 text-center text-sm text-violet-700 font-semibold bg-violet-50 border border-violet-200 rounded-xl py-2">
+                            Alias: <span className="font-black tracking-wide">morgan.bar</span>
+                        </p>
+                    )}
                     {MERCADOPAGO_ACTIVO && (
                         <button onClick={() => setMetodoPago("mercadopago")}
                             className={`w-full mt-2 py-2.5 rounded-xl font-semibold text-sm border transition flex items-center justify-center gap-2 ${metodoPago === "mercadopago" ? "bg-[#009EE3] text-white border-[#009EE3]" : "bg-white text-gray-700 border-gray-300"}`}>
