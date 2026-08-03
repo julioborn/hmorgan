@@ -93,7 +93,7 @@ export default function CanjesClientePage() {
     if (loading) return <div className="py-20 flex justify-center"><Loader size={40} /></div>;
 
     const canjeCumple = canjes.find(c => c.tipo === "cumpleanos");
-    const pendientes  = canjes.filter(c => c.estado === "pendiente");
+    const pendientes  = canjes.filter(c => c.estado === "pendiente" && c.tipo !== "cumpleanos");
     const completados = canjes.filter(c => c.estado === "completado");
     const rechazados  = canjes.filter(c => c.estado === "rechazado");
     const rewardsNormales = rewards.filter(r => r.tema !== "cumpleanos");
@@ -104,30 +104,38 @@ export default function CanjesClientePage() {
 
             {/* Regalo de cumpleaños */}
             {canjeCumple && (
-                <section>
-                    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-pink-500 via-red-500 to-orange-400 p-5 text-white shadow-xl">
-                        <div className="absolute inset-0 pointer-events-none select-none text-3xl opacity-20 flex flex-wrap gap-3 p-3">
-                            {["🎂","🎉","🎈","🎁","🥳","🎊"].map((e, i) => <span key={i}>{e}</span>)}
-                        </div>
-                        <div className="relative z-10">
-                            <p className="text-xs font-black uppercase tracking-widest text-white/70 mb-1">Regalo de cumpleaños 🎂</p>
-                            <p className="text-xl font-black leading-tight">{canjeCumple.rewardId?.titulo || "Cena para 4 · 20% off"}</p>
-                            {canjeCumple.rewardId?.descripcion && (
-                                <p className="text-white/80 text-sm mt-1">{canjeCumple.rewardId.descripcion}</p>
-                            )}
-                            <div className="mt-4">
-                                {canjeCumple.estado === "completado" ? (
-                                    <div className="bg-white/20 text-white text-sm font-bold px-4 py-2.5 rounded-2xl text-center">✅ Ya canjeado</div>
-                                ) : canjeCumple.estado === "rechazado" ? (
-                                    <div className="bg-white/20 text-white text-sm font-bold px-4 py-2.5 rounded-2xl text-center">❌ Rechazado</div>
-                                ) : (
-                                    <button onClick={() => setCumpleVoucherOpen(true)}
-                                        className="w-full bg-white text-pink-600 font-black text-sm px-4 py-2.5 rounded-2xl active:scale-95 transition text-center">
-                                        🎁 Presentar en caja
-                                    </button>
+                <section className="space-y-3">
+                    <p className="text-xs font-black text-white/60 uppercase tracking-widest">🎂 Regalo de cumpleaños</p>
+                    <div className="relative bg-white text-black rounded-2xl shadow-md border-2 border-pink-300 p-5 flex flex-col gap-3 overflow-visible">
+                        <span className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-gray-100 border border-gray-300 rounded-full shadow-sm" />
+                        <span className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-gray-100 border border-gray-300 rounded-full shadow-sm" />
+                        <div className="flex items-start justify-between gap-2">
+                            <div className="flex flex-col gap-1 flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs font-black text-pink-500 bg-pink-50 border border-pink-200 px-2 py-0.5 rounded-full uppercase tracking-wide">Cumpleaños 🎂</span>
+                                </div>
+                                <h2 className="text-base font-extrabold leading-tight mt-1">{canjeCumple.rewardId?.titulo || "Cena para 4 · 20% off"}</h2>
+                                {canjeCumple.rewardId?.descripcion && (
+                                    <p className="text-sm text-gray-500">{canjeCumple.rewardId.descripcion}</p>
                                 )}
+                                <span className="text-sm font-bold text-pink-500">🎁 Regalo · sin puntos</span>
                             </div>
+                            <span className="text-3xl shrink-0">🎂</span>
                         </div>
+                        {canjeCumple.estado === "completado" ? (
+                            <div className="w-full flex items-center justify-center gap-2 bg-emerald-100 text-emerald-700 font-bold py-2.5 rounded-xl text-sm">
+                                <CheckCircle size={14} /> Canjeado
+                            </div>
+                        ) : canjeCumple.estado === "rechazado" ? (
+                            <div className="w-full flex items-center justify-center gap-2 bg-red-50 text-red-500 font-bold py-2.5 rounded-xl text-sm">
+                                <XCircle size={14} /> Rechazado
+                            </div>
+                        ) : (
+                            <button onClick={() => setCumpleVoucherOpen(true)}
+                                className="w-full flex items-center justify-center gap-2 bg-pink-500 hover:bg-pink-600 text-white font-bold py-2.5 rounded-xl text-sm transition active:scale-95">
+                                <Gift size={14} /> Presentar en caja
+                            </button>
+                        )}
                     </div>
                 </section>
             )}
