@@ -26,6 +26,7 @@ export default function CanjesClientePage() {
     const [canjes, setCanjes] = useState<Canje[]>([]);
     const [loading, setLoading] = useState(true);
     const [voucherOpen, setVoucherOpen] = useState<Canje | null>(null);
+    const [cumpleVoucherOpen, setCumpleVoucherOpen] = useState(false);
     const [solicitando, setSolicitando] = useState<string | null>(null);
     const [solicitados, setSolicitados] = useState<Set<string>>(new Set());
 
@@ -92,7 +93,7 @@ export default function CanjesClientePage() {
     if (loading) return <div className="py-20 flex justify-center"><Loader size={40} /></div>;
 
     const canjeCumple = canjes.find(c => c.tipo === "cumpleanos");
-    const pendientes  = canjes.filter(c => c.estado === "pendiente" && c.tipo !== "cumpleanos");
+    const pendientes  = canjes.filter(c => c.estado === "pendiente");
     const completados = canjes.filter(c => c.estado === "completado");
     const rechazados  = canjes.filter(c => c.estado === "rechazado");
     const rewardsNormales = rewards.filter(r => r.tema !== "cumpleanos");
@@ -114,13 +115,16 @@ export default function CanjesClientePage() {
                             {canjeCumple.rewardId?.descripcion && (
                                 <p className="text-white/80 text-sm mt-1">{canjeCumple.rewardId.descripcion}</p>
                             )}
-                            <div className="mt-3 flex items-center gap-2">
+                            <div className="mt-4">
                                 {canjeCumple.estado === "completado" ? (
-                                    <span className="bg-white/20 text-white text-xs font-bold px-3 py-1.5 rounded-full">✅ Canjeado</span>
+                                    <div className="bg-white/20 text-white text-sm font-bold px-4 py-2.5 rounded-2xl text-center">✅ Ya canjeado</div>
                                 ) : canjeCumple.estado === "rechazado" ? (
-                                    <span className="bg-white/20 text-white text-xs font-bold px-3 py-1.5 rounded-full">❌ Rechazado</span>
+                                    <div className="bg-white/20 text-white text-sm font-bold px-4 py-2.5 rounded-2xl text-center">❌ Rechazado</div>
                                 ) : (
-                                    <span className="bg-white text-pink-600 text-xs font-black px-3 py-1.5 rounded-full">🎁 Disponible · Presentalo en caja</span>
+                                    <button onClick={() => setCumpleVoucherOpen(true)}
+                                        className="w-full bg-white text-pink-600 font-black text-sm px-4 py-2.5 rounded-2xl active:scale-95 transition text-center">
+                                        🎁 Presentar en caja
+                                    </button>
                                 )}
                             </div>
                         </div>
@@ -184,6 +188,21 @@ export default function CanjesClientePage() {
                             <p className="text-xs font-bold text-amber-400 uppercase tracking-widest">Esperando confirmación</p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {pendientes.map(c => (
+                                    c.tipo === "cumpleanos" ? (
+                                        <button key={c._id} onClick={() => setCumpleVoucherOpen(true)}
+                                            className="relative overflow-hidden rounded-2xl border border-pink-400/40 bg-gradient-to-br from-pink-500/20 to-orange-400/20 p-5 flex flex-col gap-2 text-left active:scale-[0.98] transition w-full">
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-xl shrink-0">🎂</span>
+                                                <h2 className="text-sm font-bold">{c.rewardId?.titulo}</h2>
+                                            </div>
+                                            {c.rewardId?.descripcion && <p className="text-xs opacity-70">{c.rewardId.descripcion}</p>}
+                                            <div className="flex items-center justify-between mt-1">
+                                                <span className="text-pink-400 font-extrabold text-xs">🎁 Regalo · sin puntos</span>
+                                                <span className="text-xs bg-pink-500/20 text-pink-300 border border-pink-400/30 px-3 py-1 rounded-full font-semibold">PENDIENTE</span>
+                                            </div>
+                                            <p className="text-xs opacity-60 mt-1 font-semibold">Tocá para presentar en caja →</p>
+                                        </button>
+                                    ) : (
                                     <div key={c._id}
                                         className="relative overflow-hidden rounded-2xl border border-amber-400/30 bg-amber-500/10 p-5 flex flex-col gap-2">
                                         <div className="flex items-center gap-3">
@@ -199,6 +218,7 @@ export default function CanjesClientePage() {
                                             {new Date(c.createdAt).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                                         </p>
                                     </div>
+                                    )
                                 ))}
                             </div>
                         </div>
@@ -261,6 +281,41 @@ export default function CanjesClientePage() {
             )}
 
             {/* Voucher modal */}
+            {/* Voucher modal cumpleaños */}
+            {cumpleVoucherOpen && canjeCumple && createPortal(
+                <div className="fixed inset-0 z-[200] bg-black/90 flex flex-col items-center justify-center p-6"
+                    onClick={() => setCumpleVoucherOpen(false)}>
+                    <div className="w-full max-w-sm bg-white text-black rounded-3xl overflow-hidden shadow-2xl"
+                        onClick={e => e.stopPropagation()}>
+                        <div className="bg-gradient-to-br from-pink-500 via-red-500 to-orange-400 text-white px-6 py-6 text-center">
+                            <p className="text-5xl mb-2">🎂</p>
+                            <p className="text-xs font-black uppercase tracking-widest opacity-80">H. Morgan Bar</p>
+                            <p className="text-xs opacity-60 mt-0.5">REGALO DE CUMPLEAÑOS</p>
+                        </div>
+                        <div className="px-6 py-6 text-center space-y-2">
+                            <h2 className="text-2xl font-extrabold leading-tight">{canjeCumple.rewardId?.titulo || "Cena para 4 · 20% off"}</h2>
+                            {canjeCumple.rewardId?.descripcion && (
+                                <p className="text-sm text-gray-600">{canjeCumple.rewardId.descripcion}</p>
+                            )}
+                            <p className="text-pink-600 font-black text-sm mt-3">🎁 Sin costo — regalo de cumpleaños</p>
+                            <p className="text-xs text-gray-400 mt-1">
+                                Generado el {new Date(canjeCumple.createdAt).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" })}
+                            </p>
+                        </div>
+                        <div className="border-t border-dashed border-gray-200 mx-6" />
+                        <div className="px-6 py-4 flex items-center gap-3">
+                            <Gift className="w-5 h-5 text-pink-500 shrink-0" />
+                            <p className="text-xs text-gray-500">Mostrá esta pantalla al staff para que lo acepten en caja.</p>
+                        </div>
+                        <button onClick={() => setCumpleVoucherOpen(false)}
+                            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-4 text-sm transition">
+                            Cerrar
+                        </button>
+                    </div>
+                </div>,
+                document.body
+            )}
+
             {voucherOpen && createPortal(
                 <div className="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center p-6"
                     onClick={() => setVoucherOpen(null)}>
