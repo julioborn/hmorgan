@@ -5,7 +5,9 @@ import { Reward } from "@/models/Reward";
 export async function GET(req: NextRequest) {
     await connectMongoDB();
     const all = req.nextUrl.searchParams.get("all") === "true";
-    const rewards = await Reward.find(all ? {} : { activo: true }).lean();
+    // Excluir siempre el reward de cumpleaños de la lista pública (se entrega automáticamente)
+    const query = all ? { tema: { $ne: "cumpleanos" } } : { activo: true, tema: { $ne: "cumpleanos" } };
+    const rewards = await Reward.find(query).lean();
     return NextResponse.json(rewards);
 }
 

@@ -14,6 +14,7 @@ type User =
         role: "cliente" | "admin" | "empleado" | "superadmin" | "cajero" | "delivery" | "cocina";
         qrToken?: string;
         puntos?: number;
+        fechaNacimiento?: string;
     }
     | null;
 

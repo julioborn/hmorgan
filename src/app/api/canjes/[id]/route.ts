@@ -64,11 +64,13 @@ export async function PATCH(
     const cliente = await User.findById(canje.userId);
     if (!cliente) return NextResponse.json({ message: "Cliente no encontrado" }, { status: 404 });
 
-    if ((cliente.puntos ?? 0) < canje.puntosGastados)
-        return NextResponse.json({ message: "El cliente ya no tiene puntos suficientes" }, { status: 400 });
-
-    cliente.puntos = (cliente.puntos ?? 0) - canje.puntosGastados;
-    await cliente.save();
+    // Canjes de cumpleaños son gratuitos (puntosGastados=0), no descontar
+    if ((canje as any).tipo !== "cumpleanos") {
+        if ((cliente.puntos ?? 0) < canje.puntosGastados)
+            return NextResponse.json({ message: "El cliente ya no tiene puntos suficientes" }, { status: 400 });
+        cliente.puntos = (cliente.puntos ?? 0) - canje.puntosGastados;
+        await cliente.save();
+    }
 
     canje.estado = "completado";
     await canje.save();

@@ -16,6 +16,7 @@ type LeanUser = {
   role: "cliente" | "admin" | "empleado" | "superadmin" | "cajero" | "delivery";
   qrToken: string;
   puntos: number;
+  fechaNacimiento?: Date;
 };
 
 export async function GET(req: NextRequest) {
@@ -27,7 +28,7 @@ export async function GET(req: NextRequest) {
 
     await connectMongoDB();
     const u = await User.findById(payload.sub)
-      .select("_id nombre apellido dni telefono role qrToken puntos")
+      .select("_id nombre apellido dni telefono role qrToken puntos fechaNacimiento")
       .lean<LeanUser>();
 
     if (!u) return NextResponse.json({ user: null });
@@ -45,6 +46,7 @@ export async function GET(req: NextRequest) {
       role: effectiveRole,
       qrToken: u.qrToken,
       puntos: u.puntos ?? 0,
+      fechaNacimiento: u.fechaNacimiento ? u.fechaNacimiento.toISOString() : undefined,
     };
 
     // Base response

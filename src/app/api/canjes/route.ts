@@ -33,8 +33,12 @@ export async function GET(req: NextRequest) {
         return NextResponse.json(canjes);
     }
 
-    const canjes = await Canje.find({ userId: payload.sub })
-        .populate("rewardId", "titulo descripcion puntos")
+    const tipoFilter = req.nextUrl.searchParams.get("tipo");
+    const query: Record<string, any> = { userId: payload.sub };
+    if (tipoFilter) query.tipo = tipoFilter;
+
+    const canjes = await Canje.find(query)
+        .populate("rewardId", "titulo descripcion puntos tema")
         .sort({ createdAt: -1 })
         .lean();
     return NextResponse.json(canjes);

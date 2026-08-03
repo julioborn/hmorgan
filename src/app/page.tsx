@@ -52,7 +52,7 @@ export default function Home() {
   if (user.role === "cocina") { if (typeof window !== "undefined") window.location.replace("/cocina"); return null; }
   if (user.role === "admin" || user.role === "superadmin") return <AdminHome />;
   if (user.role === "empleado") return <EmployeeHome nombre={user.nombre} />;
-  return <ClientHome nombre={user.nombre} puntos={user.puntos ?? 0} userId={user.id} />;
+  return <ClientHome nombre={user.nombre} puntos={user.puntos ?? 0} userId={user.id} fechaNacimiento={user.fechaNacimiento} />;
 }
 
 /* =========================
@@ -112,8 +112,22 @@ function Landing() {
 type MenuDelDiaItem = { _id: string; nombre: string; descripcion?: string; precio: number };
 type Invitacion = { _id: string; titulo: string; descripcion?: string; fecha: string; hora?: string; precio?: number; imagenUrl?: string; colorFondo?: string; tema?: string };
 
-function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: number; userId?: string }) {
+function esCumpleaños(fechaNacimiento?: string): boolean {
+  if (!fechaNacimiento) return false;
+  const fn = new Date(fechaNacimiento);
+  const hoy = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const mesHoy = Number(hoy.find(p => p.type === "month")?.value ?? "0");
+  const diaHoy = Number(hoy.find(p => p.type === "day")?.value ?? "0");
+  return fn.getUTCMonth() + 1 === mesHoy && fn.getUTCDate() === diaHoy;
+}
+
+function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: string; puntos: number; userId?: string; fechaNacimiento?: string }) {
   const isOwner = userId === "68b212ac8a60afb869a18626";
+  const esCumple = esCumpleaños(fechaNacimiento);
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [carouselImages, setCarouselImages] = useState<CarouselImg[]>([]);
   const [loadingRewards, setLoadingRewards] = useState(true);
@@ -134,6 +148,7 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
   const [llamadaEnviada, setLlamadaEnviada] = useState<Set<"mozo" | "cuenta">>(new Set());
   const [llamarConfirm, setLlamarConfirm] = useState<"mozo" | "cuenta" | null>(null);
   const [pedidoCancelado, setPedidoCancelado] = useState<{ _id: string; tipoEntrega?: string; numeroDia?: number } | null>(null);
+  const [canjeCumple, setCanjeCumple] = useState<{ _id: string; estado: string } | null>(null);
   const prevActiveRef = useRef<Set<string>>(new Set());
   const firstPollRef  = useRef(false);
 
@@ -202,11 +217,23 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
       } catch { }
     };
 
+    const fetchCanjeCumple = async () => {
+      if (!esCumple) return;
+      try {
+        const res = await fetch("/api/canjes?tipo=cumpleanos", { credentials: "include", cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        const encontrado = Array.isArray(data) ? data.find((c: any) => c.tipo === "cumpleanos") : null;
+        if (encontrado) setCanjeCumple({ _id: encontrado._id, estado: encontrado.estado });
+      } catch { }
+    };
+
     fetchRewards();
     fetchCarousel();
     fetchMenuDelDia();
     fetchInvitaciones();
-  }, []);
+    fetchCanjeCumple();
+  }, [esCumple]);
 
   useEffect(() => {
     fetch("/api/config/pedidos", { cache: "no-store" })
@@ -306,6 +333,41 @@ function ClientHome({ nombre, puntos, userId }: { nombre?: string; puntos: numbe
       className={`${container} py-8 space-y-8`}
       style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
     >
+
+      {/* Banner de cumpleaños */}
+      {esCumple && (
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-pink-500 via-red-500 to-orange-400 p-5 text-white shadow-xl">
+          <div className="absolute inset-0 pointer-events-none select-none text-4xl opacity-20 flex flex-wrap gap-4 p-4">
+            {["🎂","🎉","🎈","🎁","🥳","🎊","🎂","🎉","🎈"].map((e, i) => (
+              <span key={i}>{e}</span>
+            ))}
+          </div>
+          <div className="relative z-10">
+            <p className="text-2xl font-black tracking-tight">¡Feliz cumpleaños, {nombre}! 🎂</p>
+            <p className="text-white/90 text-sm mt-1 leading-snug">
+              Hoy es tu día especial. Tenés un regalo esperándote.
+            </p>
+            {canjeCumple ? (
+              <div className="mt-4 bg-white/20 backdrop-blur-sm rounded-2xl px-4 py-3 flex items-center justify-between">
+                <div>
+                  <p className="font-black text-sm">🍽 Cena para 4 · 20% off</p>
+                  <p className="text-white/80 text-xs mt-0.5">
+                    {canjeCumple.estado === "completado"
+                      ? "✅ Ya canjeado"
+                      : "Válido cuando quieras · mostralo en caja"}
+                  </p>
+                </div>
+                <Link href="/cliente/canjes"
+                  className="shrink-0 bg-white text-pink-600 font-black text-xs px-3 py-2 rounded-xl">
+                  Ver
+                </Link>
+              </div>
+            ) : (
+              <p className="mt-3 text-white/70 text-xs">Cargando tu regalo...</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Saludo + puntos */}
       <div className="flex items-center justify-between px-1">

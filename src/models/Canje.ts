@@ -7,6 +7,7 @@ export interface ICanje {
     puntosGastados: number;
     fecha: Date;
     estado: "pendiente" | "completado" | "rechazado";
+    tipo?: "cumpleanos";
 }
 
 const canjeSchema = new Schema<ICanje>(
@@ -16,6 +17,7 @@ const canjeSchema = new Schema<ICanje>(
         puntosGastados: { type: Number, required: true },
         fecha: { type: Date, default: Date.now },
         estado: { type: String, enum: ["pendiente", "completado", "rechazado"], default: "pendiente" },
+        tipo: { type: String, enum: ["cumpleanos"], default: undefined },
     },
     { timestamps: true }
 );

@@ -140,9 +140,10 @@ type Comensal = { _id: string; nombre: string; apellido: string; username: strin
 type CanjePendiente = {
     _id: string;
     userId: { _id: string; nombre: string; apellido: string; puntos: number };
-    rewardId: { _id: string; titulo: string; descripcion?: string; puntos: number };
+    rewardId: { _id: string; titulo: string; descripcion?: string; puntos: number; tema?: string };
     puntosGastados: number;
     createdAt: string;
+    tipo?: "cumpleanos";
 };
 type RewardItem = { _id: string; titulo: string; descripcion?: string; puntos: number; activo: boolean; tema?: string };
 type ReservaHoy = { _id: string; mesaId: { _id: string; nombre: string }; hora: string; comensales: number; estado: string; userId?: { nombre: string; apellido: string }; notas?: string };
@@ -3712,10 +3713,14 @@ export default function CajaPage() {
                                 ) : (
                                     <div className="space-y-3">
                                         {canjesPendientes.map(c => (
-                                            <div key={c._id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                                                <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
+                                            <div key={c._id} className={`bg-white rounded-2xl border shadow-sm overflow-hidden ${c.tipo === "cumpleanos" ? "border-pink-300" : "border-gray-200"}`}>
+                                                <div className={`flex items-center justify-between px-4 py-3 border-b ${c.tipo === "cumpleanos" ? "bg-gradient-to-r from-pink-50 to-orange-50 border-pink-100" : "bg-gray-50 border-gray-100"}`}>
                                                     <div>
-                                                        <p className="font-black text-gray-900">{c.userId?.nombre} {c.userId?.apellido}</p>
+                                                        <p className="font-black text-gray-900">
+                                                            {c.tipo === "cumpleanos" && <span className="mr-1">🎂</span>}
+                                                            {c.userId?.nombre} {c.userId?.apellido}
+                                                            {c.tipo === "cumpleanos" && <span className="ml-2 text-xs font-bold text-pink-600 bg-pink-100 px-2 py-0.5 rounded-full">Cumpleaños</span>}
+                                                        </p>
                                                         <p className="text-xs text-gray-700">{c.userId?.puntos ?? 0} pts disponibles</p>
                                                     </div>
                                                     <p className="text-xs text-gray-700">
@@ -3724,11 +3729,13 @@ export default function CajaPage() {
                                                 </div>
                                                 <div className="px-4 py-3">
                                                     <div className="flex items-start gap-3">
-                                                        <Gift size={18} className="text-emerald-600 shrink-0 mt-0.5" />
+                                                        <Gift size={18} className={c.tipo === "cumpleanos" ? "text-pink-500 shrink-0 mt-0.5" : "text-emerald-600 shrink-0 mt-0.5"} />
                                                         <div className="flex-1 min-w-0">
                                                             <p className="font-bold text-gray-900">{c.rewardId?.titulo}</p>
                                                             {c.rewardId?.descripcion && <p className="text-sm text-gray-500 mt-0.5">{c.rewardId.descripcion}</p>}
-                                                            <p className="text-sm font-black text-emerald-600 mt-1">{c.puntosGastados} pts</p>
+                                                            <p className={`text-sm font-black mt-1 ${c.tipo === "cumpleanos" ? "text-pink-600" : "text-emerald-600"}`}>
+                                                                {c.tipo === "cumpleanos" ? "Regalo · sin costo de puntos" : `${c.puntosGastados} pts`}
+                                                            </p>
                                                         </div>
                                                     </div>
                                                 </div>

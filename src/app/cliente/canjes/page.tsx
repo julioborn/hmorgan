@@ -15,6 +15,7 @@ type Canje = {
     puntosGastados: number;
     estado: "pendiente" | "completado" | "rechazado";
     createdAt: string;
+    tipo?: "cumpleanos";
 };
 
 export default function CanjesClientePage() {
@@ -90,21 +91,50 @@ export default function CanjesClientePage() {
 
     if (loading) return <div className="py-20 flex justify-center"><Loader size={40} /></div>;
 
-    const pendientes  = canjes.filter(c => c.estado === "pendiente");
+    const canjeCumple = canjes.find(c => c.tipo === "cumpleanos");
+    const pendientes  = canjes.filter(c => c.estado === "pendiente" && c.tipo !== "cumpleanos");
     const completados = canjes.filter(c => c.estado === "completado");
     const rechazados  = canjes.filter(c => c.estado === "rechazado");
+    const rewardsNormales = rewards.filter(r => r.tema !== "cumpleanos");
 
     return (
         <div className="p-6 space-y-10">
             <h1 className="text-3xl sm:text-4xl font-extrabold text-center text-white">Canjes</h1>
 
+            {/* Regalo de cumpleaños */}
+            {canjeCumple && (
+                <section>
+                    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-pink-500 via-red-500 to-orange-400 p-5 text-white shadow-xl">
+                        <div className="absolute inset-0 pointer-events-none select-none text-3xl opacity-20 flex flex-wrap gap-3 p-3">
+                            {["🎂","🎉","🎈","🎁","🥳","🎊"].map((e, i) => <span key={i}>{e}</span>)}
+                        </div>
+                        <div className="relative z-10">
+                            <p className="text-xs font-black uppercase tracking-widest text-white/70 mb-1">Regalo de cumpleaños 🎂</p>
+                            <p className="text-xl font-black leading-tight">{canjeCumple.rewardId?.titulo || "Cena para 4 · 20% off"}</p>
+                            {canjeCumple.rewardId?.descripcion && (
+                                <p className="text-white/80 text-sm mt-1">{canjeCumple.rewardId.descripcion}</p>
+                            )}
+                            <div className="mt-3 flex items-center gap-2">
+                                {canjeCumple.estado === "completado" ? (
+                                    <span className="bg-white/20 text-white text-xs font-bold px-3 py-1.5 rounded-full">✅ Canjeado</span>
+                                ) : canjeCumple.estado === "rechazado" ? (
+                                    <span className="bg-white/20 text-white text-xs font-bold px-3 py-1.5 rounded-full">❌ Rechazado</span>
+                                ) : (
+                                    <span className="bg-white text-pink-600 text-xs font-black px-3 py-1.5 rounded-full">🎁 Disponible · Presentalo en caja</span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            )}
+
             {/* Canjes disponibles */}
-            {rewards.length > 0 && (
+            {rewardsNormales.length > 0 && (
                 <section className="space-y-3">
                     <p className="text-xs font-black text-white/60 uppercase tracking-widest">Disponibles</p>
                     <p className="text-sm text-white/50 -mt-1">Tus puntos: <span className="font-black text-red-400">{puntos} pts</span></p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {rewards.map(r => {
+                        {rewardsNormales.map(r => {
                             const yaPendiente = solicitados.has(r._id);
                             const puedo = puntos >= r.puntos;
                             return (
@@ -226,7 +256,7 @@ export default function CanjesClientePage() {
                 </section>
             )}
 
-            {rewards.length === 0 && canjes.length === 0 && (
+            {rewardsNormales.length === 0 && canjes.length === 0 && !canjeCumple && (
                 <p className="opacity-70 text-center">No hay canjes disponibles por el momento.</p>
             )}
 
