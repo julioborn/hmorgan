@@ -12,7 +12,7 @@ import {
     Wallet, X, Printer, CreditCard, Banknote, Send,
     Loader2, CheckCircle, AlertCircle, Clock, Flame,
     Package, Truck, UtensilsCrossed, CalendarDays,
-    MessageCircle, Plus, Pencil, Trash2, MapPin, Users, User, Star, Gift, XCircle, ArrowDownLeft, ArrowLeftRight, Ticket, ChevronDown, ChevronLeft, Camera, Search, Tablet, LayoutGrid, List, UserPlus,
+    MessageCircle, Plus, Pencil, Trash2, MapPin, Users, User, Star, Gift, XCircle, ArrowDownLeft, ArrowLeftRight, Ticket, ChevronDown, ChevronLeft, Camera, Search, Tablet, LayoutGrid, List, UserPlus, ImageIcon,
 } from "lucide-react";
 import { useCategoryConfigs } from "@/hooks/useCategoryConfigs";
 import ReservasManager from "@/components/ReservasManager";
@@ -306,6 +306,8 @@ export default function CajaPage() {
     const [nuevoEventoPrecio, setNuevoEventoPrecio] = useState("");
     const [nuevoEventoMesas, setNuevoEventoMesas] = useState<string[]>([]);
     const [nuevoEventoSoloBebidas, setNuevoEventoSoloBebidas] = useState(false);
+    const [nuevoEventoImagen, setNuevoEventoImagen] = useState<string | null>(null);
+    const [nuevoEventoImagenUploading, setNuevoEventoImagenUploading] = useState(false);
     const [crearEventoSaving, setCrearEventoSaving] = useState(false);
     const [editPrecioEventoId, setEditPrecioEventoId] = useState<string | null>(null);
     const [editPrecioValue, setEditPrecioValue] = useState("");
@@ -1698,6 +1700,19 @@ export default function CajaPage() {
         } finally { setEditPrecioSaving(false); }
     }
 
+    async function subirImagenEvento(file: File): Promise<string | null> {
+        setNuevoEventoImagenUploading(true);
+        try {
+            const fd = new FormData();
+            fd.append("file", file);
+            const res = await fetch("/api/eventos/imagen", { method: "POST", credentials: "include", body: fd });
+            if (!res.ok) return null;
+            const data = await res.json();
+            return data.url || null;
+        } catch { return null; }
+        finally { setNuevoEventoImagenUploading(false); }
+    }
+
     async function crearEvento() {
         if (!nuevoEventoNombre.trim()) return;
         setCrearEventoSaving(true);
@@ -1709,6 +1724,7 @@ export default function CajaPage() {
                     mesas: nuevoEventoMesas,
                     precioTarjeta: Number(nuevoEventoPrecio) || 0,
                     soloBebidas: nuevoEventoSoloBebidas,
+                    imagen: nuevoEventoImagen,
                 }),
             });
             if (res.ok) {
@@ -1719,6 +1735,7 @@ export default function CajaPage() {
                 setNuevoEventoNombre("");
                 setNuevoEventoPrecio("");
                 setNuevoEventoMesas([]);
+                setNuevoEventoImagen(null);
             }
         } finally { setCrearEventoSaving(false); }
     }
@@ -3275,6 +3292,14 @@ export default function CajaPage() {
                                 const totalEvento = totalVentas + totalPedidos + totalCobradoParcial + totalTarjetas * precioTarjeta;
                                 return (
                                     <div key={ev._id} className="bg-white rounded-2xl border-2 border-black shadow-sm overflow-hidden">
+
+                                        {/* ── Imagen del evento ── */}
+                                        {(ev as any).imagen && (
+                                            <div className="relative w-full h-40 overflow-hidden">
+                                                <img src={(ev as any).imagen} alt={ev.nombre} className="w-full h-full object-cover" />
+                                                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/60" />
+                                            </div>
+                                        )}
 
                                         {/* ── Header ── */}
                                         <div className="bg-black px-5 py-4">
@@ -4902,6 +4927,47 @@ export default function CajaPage() {
                                     <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${nuevoEventoSoloBebidas ? "translate-x-7" : "translate-x-1"}`} />
                                 </button>
                             </div>
+                            {/* Foto del evento */}
+                            <div>
+                                <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">Foto del evento</label>
+                                <input
+                                    type="file" accept="image/*" id="evento-img-input" className="hidden"
+                                    onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        const url = await subirImagenEvento(file);
+                                        if (url) setNuevoEventoImagen(url);
+                                        e.target.value = "";
+                                    }}
+                                />
+                                {nuevoEventoImagen ? (
+                                    <div className="relative w-full h-36 rounded-xl overflow-hidden border border-gray-200">
+                                        <img src={nuevoEventoImagen} alt="Foto evento" className="w-full h-full object-cover" />
+                                        <button
+                                            type="button"
+                                            onClick={() => setNuevoEventoImagen(null)}
+                                            className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1"
+                                        ><X size={14} /></button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() => document.getElementById("evento-img-input")?.click()}
+                                        disabled={nuevoEventoImagenUploading}
+                                        className="w-full h-24 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center gap-1 text-gray-400 hover:border-gray-400 hover:text-gray-500 transition disabled:opacity-50"
+                                    >
+                                        {nuevoEventoImagenUploading ? (
+                                            <span className="text-sm font-medium">Subiendo...</span>
+                                        ) : (
+                                            <>
+                                                <ImageIcon size={22} />
+                                                <span className="text-xs font-medium">Agregar foto</span>
+                                            </>
+                                        )}
+                                    </button>
+                                )}
+                            </div>
+
                             <div>
                                 <div className="flex items-center justify-between mb-2">
                                     <label className="text-xs font-semibold text-gray-500 uppercase">Mesas del evento</label>
