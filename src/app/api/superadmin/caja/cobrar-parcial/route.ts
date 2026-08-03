@@ -52,7 +52,8 @@ export async function POST(req: NextRequest) {
         return acc + (it.menuItemId?.precio || 0) * it.cantidad;
     }, 0);
 
-    if ((pedido.items as any[]).length === 0) {
+    // Comandas de evento quedan abiertas y vacías (el mozo agrega más ítems sin recrearla)
+    if ((pedido.items as any[]).length === 0 && !(pedido as any).eventoId) {
         pedido.estado = "cerrado";
         pedido.metodoPago = metodoPago;
         pedido.montoPagado = Number(montoPagado) || 0;
