@@ -74,6 +74,12 @@ export async function POST(req: NextRequest) {
     // Cerrar cualquier evento activo al cerrar la caja
     await Evento.updateMany({ estado: "activo" }, { $set: { estado: "cerrado" } });
 
+    // Auto-cerrar comandas de evento vacías (total=0) que quedaron abiertas
+    await Pedido.updateMany(
+        { eventoId: { $exists: true, $ne: null }, estado: { $nin: ["cerrado", "cancelado"] }, total: 0 },
+        { $set: { estado: "cerrado" } }
+    );
+
     return NextResponse.json({ ok: true, resumen, eventosResumen, sesion, montoInicial, montoCierre: montoCierreNum, efectivoSistema, diferencia, deliveryCount });
     } catch (e) {
         console.error("[POST /api/superadmin/caja/cerrar]", e);

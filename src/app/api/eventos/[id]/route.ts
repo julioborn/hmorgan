@@ -109,6 +109,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
             return NextResponse.json({ error: "El evento ya está cerrado" }, { status: 400 });
         }
         evento.estado = "cerrado";
+        // Auto-cerrar comandas de mozos que quedaron vacías al cobrar todo por parciales
+        await Pedido.updateMany(
+            { eventoId: params.id, estado: { $nin: ["cerrado", "cancelado"] }, total: 0 },
+            { $set: { estado: "cerrado" } }
+        );
         if (body.cierreData) {
             const cd = body.cierreData;
             (evento as any).cierreData = {
