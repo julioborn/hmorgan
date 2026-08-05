@@ -604,7 +604,7 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
                                     <button onClick={() => setCrearComensales(c => Math.max(1, c - 1))}
                                         className="w-10 h-10 rounded-full border-2 border-gray-200 text-xl font-bold text-gray-700 flex items-center justify-center hover:border-gray-400 transition">−</button>
                                     <span className="text-2xl font-black text-gray-900 min-w-[2rem] text-center">{crearComensales}</span>
-                                    <button onClick={() => setCrearComensales(c => Math.min(20, c + 1))}
+                                    <button onClick={() => setCrearComensales(c => c + 1)}
                                         className="w-10 h-10 rounded-full border-2 border-gray-200 text-xl font-bold text-gray-700 flex items-center justify-center hover:border-gray-400 transition">+</button>
                                 </div>
                             </div>
@@ -690,7 +690,7 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
                                     <button onClick={() => setEditComensales(c => Math.max(1, c - 1))}
                                         className="w-10 h-10 rounded-full border-2 border-gray-200 text-xl font-bold text-gray-700 flex items-center justify-center hover:border-gray-400 transition">−</button>
                                     <span className="text-2xl font-black text-gray-900 min-w-[2rem] text-center">{editComensales}</span>
-                                    <button onClick={() => setEditComensales(c => Math.min(20, c + 1))}
+                                    <button onClick={() => setEditComensales(c => c + 1)}
                                         className="w-10 h-10 rounded-full border-2 border-gray-200 text-xl font-bold text-gray-700 flex items-center justify-center hover:border-gray-400 transition">+</button>
                                 </div>
                             </div>
