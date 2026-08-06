@@ -82,6 +82,34 @@ export default function CocinaPage() {
     const prevIdsRef = useRef<Set<string>>(new Set());
     const procesandoIdsRef = useRef<Set<string>>(new Set());
     const [nuevosIds, setNuevosIds] = useState<Set<string>>(new Set());
+    const audioCtxRef = useRef<AudioContext | null>(null);
+
+    function playNotificationSound() {
+        try {
+            if (!audioCtxRef.current) {
+                audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+            }
+            const ctx = audioCtxRef.current;
+            if (ctx.state === "suspended") ctx.resume();
+
+            // Dos "dings" ascendentes
+            const times = [0, 0.22];
+            const freqs = [880, 1100];
+            times.forEach((t, i) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = "sine";
+                osc.frequency.value = freqs[i];
+                gain.gain.setValueAtTime(0, ctx.currentTime + t);
+                gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + t + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.35);
+                osc.start(ctx.currentTime + t);
+                osc.stop(ctx.currentTime + t + 0.35);
+            });
+        } catch { }
+    }
 
     const loadPedidos = useCallback(async () => {
         try {
@@ -102,6 +130,7 @@ export default function CocinaPage() {
             }
             prevIdsRef.current = currentIds;
             if (recienLlegados.size > 0) {
+                playNotificationSound();
                 setNuevosIds(prev => new Set([...prev, ...recienLlegados]));
                 setTimeout(() => {
                     setNuevosIds(prev => {
