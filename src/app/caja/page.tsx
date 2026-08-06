@@ -144,6 +144,7 @@ type CanjePendiente = {
     puntosGastados: number;
     createdAt: string;
     tipo?: "cumpleanos";
+    expiraEl?: string;
 };
 type RewardItem = { _id: string; titulo: string; descripcion?: string; puntos: number; activo: boolean; tema?: string };
 type ReservaHoy = { _id: string; mesaId: { _id: string; nombre: string }; hora: string; comensales: number; estado: string; userId?: { nombre: string; apellido: string }; notas?: string };
@@ -3761,6 +3762,16 @@ export default function CajaPage() {
                                                             <p className={`text-sm font-black mt-1 ${c.tipo === "cumpleanos" ? "text-pink-600" : "text-emerald-600"}`}>
                                                                 {c.tipo === "cumpleanos" ? "Regalo · sin costo de puntos" : `${c.puntosGastados} pts`}
                                                             </p>
+                                                            {c.tipo === "cumpleanos" && c.expiraEl && (
+                                                                <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                                                                    <Clock size={11} />
+                                                                    Válido hasta el {(() => {
+                                                                        const d = new Date(c.expiraEl!);
+                                                                        d.setDate(d.getDate() - 1);
+                                                                        return d.toLocaleDateString("es-AR", { day: "numeric", month: "long", timeZone: "America/Argentina/Buenos_Aires" });
+                                                                    })()}
+                                                                </p>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>

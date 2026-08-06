@@ -16,6 +16,7 @@ type Canje = {
     estado: "pendiente" | "completado" | "rechazado";
     createdAt: string;
     tipo?: "cumpleanos";
+    expiraEl?: string;
 };
 
 export default function CanjesClientePage() {
@@ -92,6 +93,14 @@ export default function CanjesClientePage() {
 
     if (loading) return <div className="py-20 flex justify-center"><Loader size={40} /></div>;
 
+    function formatExpira(iso?: string) {
+        if (!iso) return null;
+        const d = new Date(iso);
+        // Mostrar el último día del mes (expiraEl es el día 1 del mes siguiente a medianoche ART)
+        d.setDate(d.getDate() - 1);
+        return d.toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric", timeZone: "America/Argentina/Buenos_Aires" });
+    }
+
     const canjeCumple = canjes.find(c => c.tipo === "cumpleanos");
     const pendientes  = canjes.filter(c => c.estado === "pendiente" && c.tipo !== "cumpleanos");
     const completados = canjes.filter(c => c.estado === "completado");
@@ -119,6 +128,12 @@ export default function CanjesClientePage() {
                                     <p className="text-sm text-gray-500">{canjeCumple.rewardId.descripcion}</p>
                                 )}
                                 <span className="text-sm font-bold text-pink-500">🎁 Regalo · sin puntos</span>
+                                {canjeCumple.expiraEl && (
+                                    <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                                        <Clock size={11} />
+                                        Válido hasta el {formatExpira(canjeCumple.expiraEl)}
+                                    </p>
+                                )}
                             </div>
                             <span className="text-3xl shrink-0">🎂</span>
                         </div>
@@ -309,6 +324,16 @@ export default function CanjesClientePage() {
                             <p className="text-xs text-gray-400 mt-1">
                                 Generado el {new Date(canjeCumple.createdAt).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" })}
                             </p>
+                            {canjeCumple.expiraEl && (
+                                <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 flex items-start gap-2 text-left">
+                                    <Clock size={14} className="text-amber-500 shrink-0 mt-0.5" />
+                                    <p className="text-xs text-amber-700 font-semibold">
+                                        Este regalo es válido solo durante el mes de tu cumpleaños.
+                                        Vence el <span className="font-black">{formatExpira(canjeCumple.expiraEl)}</span>.
+                                        Si no lo usás, se eliminará automáticamente.
+                                    </p>
+                                </div>
+                            )}
                         </div>
                         <div className="border-t border-dashed border-gray-200 mx-6" />
                         <div className="px-6 py-4 flex items-center gap-3">

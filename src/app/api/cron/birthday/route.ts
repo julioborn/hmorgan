@@ -37,6 +37,9 @@ export async function GET(req: NextRequest) {
 
     await connectMongoDB();
 
+    // Limpiar canjes de cumpleaños vencidos y pendientes
+    await Canje.deleteMany({ tipo: "cumpleanos", estado: "pendiente", expiraEl: { $lt: new Date() } });
+
     // Calcular día y mes de hoy en Argentina
     const hoy = new Intl.DateTimeFormat("en-CA", {
         timeZone: "America/Argentina/Buenos_Aires",
@@ -66,6 +69,12 @@ export async function GET(req: NextRequest) {
     const anioActual = new Date().getFullYear();
     const inicioPeriodo = new Date(`${anioActual}-01-01T00:00:00.000Z`);
 
+    // Último momento del mes de cumpleaños en Argentina (00:00 ART del día 1 del siguiente mes = 03:00 UTC)
+    // mes es 1-indexed, Date.UTC(year, mes, 1) = primer día del mes siguiente (0-indexed mes = siguiente)
+    const expiraEl = new Date(Date.UTC(anioActual, mes, 1, 3, 0, 0));
+    const mesNombre = new Intl.DateTimeFormat("es-AR", { month: "long", timeZone: "America/Argentina/Buenos_Aires" })
+        .format(new Date(Date.UTC(anioActual, mes - 1, 15)));
+
     let procesados = 0;
 
     for (const u of usuarios) {
@@ -83,6 +92,7 @@ export async function GET(req: NextRequest) {
                 puntosGastados: 0,
                 estado: "pendiente",
                 tipo: "cumpleanos",
+                expiraEl,
             });
         }
 
@@ -90,7 +100,7 @@ export async function GET(req: NextRequest) {
         const nombre = u.nombre || "Cumpleañero";
         const payload = {
             title: `¡Feliz cumpleaños, ${nombre}! 🎂`,
-            body: "Tenés un regalo especial esperándote: una cena para 4 con 20% off. ¡Abrí la app para verlo!",
+            body: `Tenés un regalo esperándote: una cena para 4 con 20% off. Válido durante todo ${mesNombre}. ¡Abrí la app!`,
             url: "/cliente/canjes",
             icon: "/icon-192.png",
             badge: "/icon-badge-96x96.png",

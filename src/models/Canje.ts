@@ -8,6 +8,7 @@ export interface ICanje {
     fecha: Date;
     estado: "pendiente" | "completado" | "rechazado";
     tipo?: "cumpleanos";
+    expiraEl?: Date;
 }
 
 const canjeSchema = new Schema<ICanje>(
@@ -18,6 +19,7 @@ const canjeSchema = new Schema<ICanje>(
         fecha: { type: Date, default: Date.now },
         estado: { type: String, enum: ["pendiente", "completado", "rechazado"], default: "pendiente" },
         tipo: { type: String, enum: ["cumpleanos"], default: undefined },
+        expiraEl: { type: Date, default: undefined },
     },
     { timestamps: true }
 );
