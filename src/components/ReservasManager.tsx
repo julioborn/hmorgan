@@ -19,6 +19,7 @@ type Reserva = {
     estado: "pendiente" | "confirmada" | "cancelada";
     notas?: string;
     createdAt: string;
+    canjeId?: { _id: string; tipo?: string } | null;
 };
 type Mesa = { _id: string; nombre: string; forma: string; activa: boolean; tipo?: string; zona?: string; capacidad?: number; x: number; y: number; ancho?: number; alto?: number; rotacion?: number };
 type SalonEl = { _id: string; tipo: string; label: string; x: number; y: number; ancho: number; alto: number; color: string };
@@ -374,10 +375,13 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
                                 {/* Header negro */}
                                 <div className="bg-black px-5 py-3 flex items-center justify-between gap-3">
                                     <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2 flex-wrap">
                                             <p className="font-black text-white text-lg leading-tight break-words">
                                                 {nombreMostrado}
                                             </p>
+                                            {r.canjeId?.tipo === "cumpleanos" && (
+                                                <span className="shrink-0 text-[9px] font-black px-2 py-0.5 rounded-full bg-pink-400 text-white uppercase tracking-wide">🎂 Cumpleaños</span>
+                                            )}
                                             {!r.userId && (
                                                 <span className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-white/20 text-white/70 uppercase tracking-wide">Sin app</span>
                                             )}

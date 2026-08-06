@@ -47,6 +47,7 @@ export async function GET(req: NextRequest) {
         const reservas = await Reserva.find(query)
             .populate("userId", "nombre apellido telefono email")
             .populate("mesaId", "nombre forma")
+            .populate("canjeId", "tipo")
             .sort({ fecha: 1, hora: 1 })
             .lean();
         return NextResponse.json(reservas);
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { fecha, hora, comensales, zona, notas } = body;
+    const { fecha, hora, comensales, zona, notas, canjeId } = body;
     if (!fecha || !hora || !comensales) return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
 
     // Validar que la fecha no sea pasada (se permite hoy), usando el huso horario de Argentina
@@ -121,19 +122,32 @@ export async function POST(req: NextRequest) {
         comensales: Number(comensales),
         zona: zona || "indiferente",
         notas: notas || undefined,
+        canjeId: canjeId || undefined,
     });
 
     // Notificar al admin/superadmin solo cuando crea un cliente
     if (payload.role === "cliente") {
+        const esCumple = !!canjeId;
         const admins = await User.find({ role: { $in: ["admin", "superadmin"] } });
         for (const admin of admins) {
             if (admin.pushSubscriptions?.length) {
                 await sendPushToSubscriptions(admin.pushSubscriptions, {
-                    title: "Nueva reserva",
-                    body: `Reserva para ${comensales} personas el ${formatFecha(new Date(fecha))} a las ${hora}hs`,
+                    title: esCumple ? "🎂 Reserva de cumpleaños" : "Nueva reserva",
+                    body: `Reserva para ${comensales} personas el ${formatFecha(new Date(fecha))} a las ${hora}hs${esCumple ? " · Canje cumpleaños" : ""}`,
                     url: "/admin/reservas",
                     icon: "/icon-192.png",
                 });
+            }
+            const tokens = new Set<string>([...(admin.fcmTokens ?? []), ...(admin.tokenFCM ? [admin.tokenFCM] : [])]);
+            for (const t of tokens) {
+                try {
+                    await enviarNotificacionFCM(
+                        t,
+                        esCumple ? "🎂 Reserva de cumpleaños" : "Nueva reserva",
+                        `Reserva para ${comensales} personas el ${formatFecha(new Date(fecha))} a las ${hora}hs${esCumple ? " · Canje cumpleaños" : ""}`,
+                        "/admin/reservas"
+                    );
+                } catch (e) { if (isFCMTokenInvalid(e)) await User.updateOne({ _id: admin._id }, { $pull: { fcmTokens: t } }); }
             }
         }
     }

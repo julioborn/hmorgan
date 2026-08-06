@@ -78,7 +78,10 @@ export async function PATCH(
     // Notificar al cliente de la aceptación
     const reward = canje.rewardId as any;
     const titulo = reward?.titulo ?? "premio";
-    const pushMsg = `¡Tu canje de "${titulo}" fue aceptado! Mostrá la pantalla para recibirlo.`;
+    const esCumple = (canje as any).tipo === "cumpleanos";
+    const pushMsg = esCumple
+        ? `🎂 ¡Tu regalo de cumpleaños fue aceptado! Ahora podés hacer tu reserva desde la sección Canjes.`
+        : `¡Tu canje de "${titulo}" fue aceptado! Mostrá la pantalla para recibirlo.`;
 
     if (Array.isArray(cliente.pushSubscriptions) && cliente.pushSubscriptions.length) {
         const invalid = await sendPushAndCollectInvalid(cliente.pushSubscriptions, {

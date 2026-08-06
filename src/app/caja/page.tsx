@@ -205,6 +205,7 @@ export default function CajaPage() {
     const categoryConfigMap = useCategoryConfigs();
     const [tab, setTab] = useState<"pedidos" | "caja" | "reservas" | "mesas" | "eventos" | "canjes" | "menu">("pedidos");
     const [canjesPendientes, setCanjesPendientes] = useState<CanjePendiente[]>([]);
+    const [canjesHistorial, setCanjesHistorial] = useState<CanjePendiente[]>([]);
     const [canjeProcessing, setCanjeProcessing] = useState<string | null>(null);
     // Gestión de rewards en tab Canjes
     const [rewards, setRewards] = useState<RewardItem[]>([]);
@@ -596,10 +597,12 @@ export default function CajaPage() {
 
     const loadCanjes = useCallback(async () => {
         try {
-            const res = await fetch("/api/canjes", { credentials: "include" });
-            if (!res.ok) return;
-            const data = await res.json();
-            setCanjesPendientes(Array.isArray(data) ? data : []);
+            const [pendRes, histRes] = await Promise.all([
+                fetch("/api/canjes", { credentials: "include" }),
+                fetch("/api/canjes?historial=true", { credentials: "include" }),
+            ]);
+            if (pendRes.ok) { const d = await pendRes.json(); setCanjesPendientes(Array.isArray(d) ? d : []); }
+            if (histRes.ok) { const d = await histRes.json(); setCanjesHistorial(Array.isArray(d) ? d : []); }
         } catch { /* silencioso */ }
     }, []);
 
@@ -3790,6 +3793,37 @@ export default function CajaPage() {
                                     </div>
                                 )}
                             </section>
+
+                            {/* ── Historial de canjes aceptados ── */}
+                            {canjesHistorial.length > 0 && (
+                                <section>
+                                    <p className="text-xs font-black text-gray-500 uppercase tracking-widest mb-3">Historial (últimos 30 días)</p>
+                                    <div className="space-y-2">
+                                        {canjesHistorial.map(c => (
+                                            <div key={c._id} className={`bg-white rounded-xl border shadow-sm px-4 py-3 flex items-center gap-3 ${c.tipo === "cumpleanos" ? "border-pink-200" : "border-gray-200"}`}>
+                                                {c.tipo === "cumpleanos"
+                                                    ? <span className="text-lg shrink-0">🎂</span>
+                                                    : <CheckCircle size={16} className="text-emerald-500 shrink-0" />}
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-bold text-gray-900 text-sm truncate">
+                                                        {c.userId?.nombre} {c.userId?.apellido}
+                                                        {c.tipo === "cumpleanos" && <span className="ml-1 text-xs text-pink-500">Cumpleaños</span>}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 truncate">{c.rewardId?.titulo}</p>
+                                                </div>
+                                                <div className="text-right shrink-0">
+                                                    <p className="text-xs font-black text-emerald-600">
+                                                        {c.tipo === "cumpleanos" ? "Regalo" : `${c.puntosGastados} pts`}
+                                                    </p>
+                                                    <p className="text-[10px] text-gray-400">
+                                                        {new Date(c.createdAt).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" })}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </section>
+                            )}
 
                             {/* ── Gestión de canjes disponibles ── */}
                             <section>

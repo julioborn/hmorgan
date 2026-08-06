@@ -25,9 +25,20 @@ export async function GET(req: NextRequest) {
     const esCaja = ["cajero", "admin", "superadmin"].includes(payload.role);
 
     if (esCaja) {
+        const historial = req.nextUrl.searchParams.get("historial") === "true";
+        if (historial) {
+            const hace30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+            const canjes = await Canje.find({ estado: "completado", createdAt: { $gte: hace30 } })
+                .populate("userId", "nombre apellido puntos")
+                .populate("rewardId", "titulo descripcion puntos tema")
+                .sort({ updatedAt: -1 })
+                .limit(50)
+                .lean();
+            return NextResponse.json(canjes);
+        }
         const canjes = await Canje.find({ estado: "pendiente" })
             .populate("userId", "nombre apellido puntos")
-            .populate("rewardId", "titulo descripcion puntos")
+            .populate("rewardId", "titulo descripcion puntos tema")
             .sort({ createdAt: 1 })
             .lean();
         return NextResponse.json(canjes);

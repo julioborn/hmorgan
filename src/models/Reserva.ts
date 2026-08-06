@@ -11,6 +11,7 @@ const ReservaSchema = new Schema({
     mesaId:     { type: Schema.Types.ObjectId, ref: "Mesa" },
     estado:     { type: String, enum: ["pendiente", "confirmada", "cancelada"], default: "pendiente" },
     notas:      { type: String },
+    canjeId:    { type: Schema.Types.ObjectId, ref: "Canje", default: undefined },
 }, { timestamps: true });
 
 export const Reserva = models.Reserva || model("Reserva", ReservaSchema);

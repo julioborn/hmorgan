@@ -1,10 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Gift, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Gift, Clock, CheckCircle, XCircle, CalendarDays } from "lucide-react";
 import Loader from "@/components/Loader";
 import { useAuth } from "@/context/auth-context";
 import { swalBase } from "@/lib/swalConfig";
+
+const HORAS_RESERVA = ["19:00","19:30","20:00","20:30","21:00","21:30","22:00"];
 
 export const dynamic = "force-dynamic";
 
@@ -31,20 +33,38 @@ export default function CanjesClientePage() {
     const [solicitando, setSolicitando] = useState<string | null>(null);
     const [solicitados, setSolicitados] = useState<Set<string>>(new Set());
 
+    // Reserva desde canje cumpleaños
+    const [reservaModal, setReservaModal] = useState(false);
+    const [reservaFecha, setReservaFecha] = useState("");
+    const [reservaHora, setReservaHora] = useState("");
+    const [reservaComensales, setReservaComensales] = useState(4);
+    const [reservaNotas, setReservaNotas] = useState("");
+    const [reservaSaving, setReservaSaving] = useState(false);
+    const [reservaExistente, setReservaExistente] = useState<{ fecha: string; hora: string; comensales: number; estado: string } | null>(null);
+
     useEffect(() => {
         (async () => {
             try {
-                const [rRes, cRes] = await Promise.all([
+                const [rRes, cRes, rvRes] = await Promise.all([
                     fetch("/api/rewards", { cache: "no-store" }),
                     fetch("/api/canjes", { credentials: "include" }),
+                    fetch("/api/reservas", { credentials: "include" }),
                 ]);
                 if (rRes.ok) setRewards(await rRes.json());
+                let canjesData: Canje[] = [];
                 if (cRes.ok) {
-                    const data: Canje[] = await cRes.json();
-                    setCanjes(data);
-                    // Pre-cargar los que ya están pendientes
-                    const pendientesIds = data.filter(c => c.estado === "pendiente").map(c => c.rewardId?._id).filter(Boolean);
+                    canjesData = await cRes.json();
+                    setCanjes(canjesData);
+                    const pendientesIds = canjesData.filter(c => c.estado === "pendiente").map(c => c.rewardId?._id).filter(Boolean);
                     if (pendientesIds.length) setSolicitados(new Set(pendientesIds));
+                }
+                if (rvRes.ok) {
+                    const reservas: any[] = await rvRes.json();
+                    const cumple = canjesData.find(c => c.tipo === "cumpleanos");
+                    if (cumple) {
+                        const rv = reservas.find((r: any) => r.canjeId?._id === cumple._id || r.canjeId === cumple._id);
+                        if (rv) setReservaExistente({ fecha: rv.fecha, hora: rv.hora, comensales: rv.comensales, estado: rv.estado });
+                    }
                 }
             } catch { /* silent */ }
             finally { setLoading(false); }
@@ -89,6 +109,36 @@ export default function CanjesClientePage() {
         } finally {
             setSolicitando(null);
         }
+    }
+
+    async function crearReservaCumple(canjeId: string) {
+        if (!reservaFecha || !reservaHora) {
+            await swalBase.fire({ title: "Faltan datos", text: "Elegí fecha y horario.", icon: "warning", confirmButtonText: "OK" });
+            return;
+        }
+        setReservaSaving(true);
+        try {
+            const res = await fetch("/api/reservas", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({
+                    fecha: reservaFecha,
+                    hora: reservaHora,
+                    comensales: reservaComensales,
+                    notas: reservaNotas.trim() || "Canje de cumpleaños 🎂",
+                    canjeId,
+                }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                await swalBase.fire({ title: "Error", text: data.error || "No se pudo crear la reserva", icon: "error" });
+                return;
+            }
+            setReservaExistente({ fecha: reservaFecha, hora: reservaHora, comensales: reservaComensales, estado: "pendiente" });
+            setReservaModal(false);
+            await swalBase.fire({ title: "¡Reserva enviada! 🎂", text: "Te avisaremos cuando la confirmen.", icon: "success", confirmButtonText: "OK" });
+        } finally { setReservaSaving(false); }
     }
 
     if (loading) return <div className="py-20 flex justify-center"><Loader size={40} /></div>;
@@ -138,8 +188,27 @@ export default function CanjesClientePage() {
                             <span className="text-3xl shrink-0">🎂</span>
                         </div>
                         {canjeCumple.estado === "completado" ? (
-                            <div className="w-full flex items-center justify-center gap-2 bg-emerald-100 text-emerald-700 font-bold py-2.5 rounded-xl text-sm">
-                                <CheckCircle size={14} /> Canjeado
+                            <div className="flex flex-col gap-2">
+                                <div className="w-full flex items-center justify-center gap-2 bg-emerald-100 text-emerald-700 font-bold py-2.5 rounded-xl text-sm">
+                                    <CheckCircle size={14} /> Canje aceptado
+                                </div>
+                                {reservaExistente ? (
+                                    <div className="w-full bg-pink-50 border border-pink-200 rounded-xl px-4 py-3 flex items-start gap-2">
+                                        <CalendarDays size={15} className="text-pink-500 shrink-0 mt-0.5" />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-black text-pink-700">Reserva registrada</p>
+                                            <p className="text-xs text-gray-600 mt-0.5">
+                                                {new Date(reservaExistente.fecha).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" })} · {reservaExistente.hora}hs · {reservaExistente.comensales} personas
+                                            </p>
+                                            <p className="text-[11px] text-gray-400 mt-0.5 capitalize">{reservaExistente.estado}</p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <button onClick={() => setReservaModal(true)}
+                                        className="w-full flex items-center justify-center gap-2 bg-pink-500 hover:bg-pink-600 text-white font-bold py-2.5 rounded-xl text-sm transition active:scale-95">
+                                        <CalendarDays size={14} /> Hacer mi reserva 🎂
+                                    </button>
+                                )}
                             </div>
                         ) : canjeCumple.estado === "rechazado" ? (
                             <div className="w-full flex items-center justify-center gap-2 bg-red-50 text-red-500 font-bold py-2.5 rounded-xl text-sm">
@@ -301,6 +370,69 @@ export default function CanjesClientePage() {
 
             {rewardsNormales.length === 0 && canjes.length === 0 && !canjeCumple && (
                 <p className="opacity-70 text-center">No hay canjes disponibles por el momento.</p>
+            )}
+
+            {/* Modal hacer reserva de cumpleaños */}
+            {reservaModal && canjeCumple && createPortal(
+                <div className="fixed inset-0 z-[200] bg-black/80 flex items-end sm:items-center justify-center p-0 sm:p-4"
+                    onClick={() => setReservaModal(false)}>
+                    <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md shadow-2xl overflow-hidden flex flex-col"
+                        style={{ maxHeight: "92vh" }} onClick={e => e.stopPropagation()}>
+                        <div className="bg-gradient-to-r from-pink-500 to-orange-400 px-5 py-4 flex items-center gap-3">
+                            <span className="text-2xl">🎂</span>
+                            <div className="flex-1">
+                                <p className="font-black text-white text-base">Reserva de cumpleaños</p>
+                                <p className="text-xs text-white/80">Elegí cuándo querés usar tu regalo</p>
+                            </div>
+                            <button onClick={() => setReservaModal(false)} className="text-white/70 hover:text-white"><XCircle size={20} /></button>
+                        </div>
+                        <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
+                            <div>
+                                <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Fecha</label>
+                                <input type="date"
+                                    min={new Date().toISOString().slice(0, 10)}
+                                    value={reservaFecha}
+                                    onChange={e => setReservaFecha(e.target.value)}
+                                    className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-pink-400 focus:outline-none" />
+                            </div>
+                            <div>
+                                <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">Horario</label>
+                                <div className="grid grid-cols-4 gap-1.5">
+                                    {HORAS_RESERVA.map(h => (
+                                        <button key={h} onClick={() => setReservaHora(h)}
+                                            className={`py-2 rounded-xl text-sm font-bold border-2 transition ${reservaHora === h ? "border-pink-500 bg-pink-500 text-white" : "border-gray-200 text-gray-700 hover:border-pink-300"}`}>
+                                            {h}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">Comensales</label>
+                                <div className="flex items-center gap-4">
+                                    <button onClick={() => setReservaComensales(n => Math.max(1, n - 1))}
+                                        className="w-10 h-10 rounded-full border-2 border-gray-200 text-xl font-bold flex items-center justify-center hover:border-gray-400 transition">−</button>
+                                    <span className="text-2xl font-black text-gray-900 min-w-[2rem] text-center">{reservaComensales}</span>
+                                    <button onClick={() => setReservaComensales(n => n + 1)}
+                                        className="w-10 h-10 rounded-full border-2 border-gray-200 text-xl font-bold flex items-center justify-center hover:border-gray-400 transition">+</button>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Observaciones</label>
+                                <textarea value={reservaNotas} onChange={e => setReservaNotas(e.target.value)}
+                                    placeholder="Opcional (ej: cumpleaños de María)"
+                                    rows={2}
+                                    className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-pink-400 focus:outline-none resize-none" />
+                            </div>
+                        </div>
+                        <div className="px-5 py-4 border-t border-gray-100">
+                            <button onClick={() => crearReservaCumple(canjeCumple._id)} disabled={reservaSaving || !reservaFecha || !reservaHora}
+                                className="w-full flex items-center justify-center gap-2 bg-pink-500 hover:bg-pink-600 disabled:opacity-50 text-white font-black py-3.5 rounded-xl text-sm transition">
+                                {reservaSaving ? "Enviando..." : <><CalendarDays size={15} /> Confirmar reserva</>}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
             )}
 
             {/* Voucher modal */}
