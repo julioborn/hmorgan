@@ -125,6 +125,27 @@ export default function AdminMenuPage() {
         setHasOrderChanges(false);
     }, [categoriaActiva, items]);
 
+    /* ── Imagen por ítem ── */
+    const [uploadingItemImg, setUploadingItemImg] = useState(false);
+    const itemImgRef = useRef<HTMLInputElement>(null);
+
+    async function uploadItemImage(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0];
+        if (!file || !editando) return;
+        setUploadingItemImg(true);
+        try {
+            const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+            const fd = new FormData();
+            fd.append("file", file, `upload.${ext}`);
+            const res = await fetch("/api/superadmin/menu/imagen", { method: "POST", credentials: "include", body: fd });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.url) setEditando(prev => prev ? { ...prev, imagen: data.url } : prev);
+        } finally {
+            setUploadingItemImg(false);
+            if (itemImgRef.current) itemImgRef.current.value = "";
+        }
+    }
+
     /* ── Config de imagen por categoría ── */
     const [configurandoCat, setConfigurandoCat] = useState<string | null>(null);
     const [editingConfig, setEditingConfig] = useState({ imageUrl: "", imagePosition: "50% 50%" });
@@ -697,6 +718,44 @@ export default function AdminMenuPage() {
                                         ))}
                                     </div>
 
+                                    {/* Imagen del ítem */}
+                                    <div className="border border-gray-200 rounded-xl p-3 bg-gray-50 space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-xs font-black text-gray-500 uppercase tracking-wide">Imagen del plato</p>
+                                            <div className="flex items-center gap-3">
+                                                <label className="cursor-pointer">
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        className="hidden"
+                                                        ref={itemImgRef}
+                                                        onChange={uploadItemImage}
+                                                    />
+                                                    <span className="flex items-center gap-1 text-xs font-bold text-red-600 hover:text-red-800 transition">
+                                                        {uploadingItemImg
+                                                            ? <Loader2 size={12} className="animate-spin" />
+                                                            : <Upload size={12} />}
+                                                        {editando.imagen ? "Cambiar" : "Subir foto"}
+                                                    </span>
+                                                </label>
+                                                {editando.imagen && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setEditando({ ...editando, imagen: undefined })}
+                                                        className="text-xs text-gray-400 hover:text-red-500 transition"
+                                                    >
+                                                        Quitar
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                        {editando.imagen ? (
+                                            <img src={editando.imagen} alt="Preview" className="w-full h-32 object-cover rounded-lg" />
+                                        ) : (
+                                            <p className="text-xs text-gray-400 italic">Sin imagen — se usará la imagen de la categoría</p>
+                                        )}
+                                    </div>
+
                                     <div className="flex gap-2 justify-end">
                                         <button onClick={guardarEdicion} className="px-3 py-2 rounded-lg bg-red-600 text-white hover:bg-red-500 transition">
                                             Guardar
@@ -708,6 +767,9 @@ export default function AdminMenuPage() {
                                 </div>
                             ) : (
                                 <>
+                                    {i.imagen && (
+                                        <img src={i.imagen} alt={i.nombre} className="w-14 h-14 object-cover rounded-xl flex-shrink-0 border border-gray-100" />
+                                    )}
                                     <div className="flex-1">
                                         <p className="font-bold text-black">{i.nombre}</p>
                                         <p className="text-sm text-gray-600">{i.descripcion}</p>
