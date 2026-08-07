@@ -109,7 +109,7 @@ function Landing() {
 /* =========================
   HOME CLIENTE
    ========================= */
-type MenuDelDiaItem = { _id: string; nombre: string; descripcion?: string; precio: number };
+type MenuDelDiaItem = { _id: string; nombre: string; descripcion?: string; precio: number; imagen?: string };
 type Invitacion = { _id: string; titulo: string; descripcion?: string; fecha: string; hora?: string; precio?: number; imagenUrl?: string; colorFondo?: string; tema?: string };
 
 function esCumpleaños(fechaNacimiento?: string): boolean {
@@ -623,28 +623,43 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
             </svg>
           </div>
         ) : (
-          <Link href="/cliente/menu" className="block">
-            <div className="relative rounded-2xl overflow-hidden shadow-lg h-56">
-              <img src={categoryConfigMap["MENÚ DEL DÍA"]?.imageUrl || "/menu-del-dia.jpeg"} alt="Menú del Día" className="w-full h-full object-cover" style={{ objectPosition: categoryConfigMap["MENÚ DEL DÍA"]?.imagePosition || "50% 50%" }} />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
-              <span className="absolute top-3 left-3 bg-white/90 text-amber-700 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">Hoy</span>
-              <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-2">
-                <p className="text-white font-black text-base tracking-tight mb-2">MENÚ DEL DÍA</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {menuDelDia.slice(0, 4).map(item => (
-                    <span key={item._id} className="bg-white/20 backdrop-blur-sm text-white text-[11px] font-semibold px-2 py-0.5 rounded-full border border-white/30">
-                      {item.nombre}
-                    </span>
-                  ))}
-                  {menuDelDia.length > 4 && (
-                    <span className="bg-white/20 backdrop-blur-sm text-white text-[11px] font-semibold px-2 py-0.5 rounded-full border border-white/30">
-                      +{menuDelDia.length - 4} más
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </Link>
+          <Swiper
+            modules={[Autoplay, Pagination]}
+            autoplay={{ delay: 3500, disableOnInteraction: false }}
+            speed={700}
+            loop={menuDelDia.length > 1}
+            spaceBetween={12}
+            slidesPerView={menuDelDia.length > 1 ? 1.05 : 1}
+            centeredSlides={menuDelDia.length > 1}
+            pagination={{ clickable: true, dynamicBullets: true }}
+            className="!pb-8"
+          >
+            {menuDelDia.map(item => (
+              <SwiperSlide key={item._id}>
+                <Link href="/cliente/pedidos" className="block">
+                  <div className="relative rounded-2xl overflow-hidden shadow-lg h-56">
+                    <img
+                      src={item.imagen || categoryConfigMap["MENÚ DEL DÍA"]?.imageUrl || "/menu-del-dia.jpeg"}
+                      alt={item.nombre}
+                      className="w-full h-full object-cover"
+                      style={{ objectPosition: categoryConfigMap["MENÚ DEL DÍA"]?.imagePosition || "50% 50%" }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
+                    <span className="absolute top-3 left-3 bg-white/90 text-amber-700 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">Hoy</span>
+                    <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-2">
+                      <p className="text-white font-black text-base tracking-tight">{item.nombre}</p>
+                      {item.descripcion && (
+                        <p className="text-white/80 text-xs mt-0.5 line-clamp-2">{item.descripcion}</p>
+                      )}
+                      {item.precio > 0 && (
+                        <p className="text-amber-300 font-bold text-sm mt-1">${item.precio.toLocaleString("es-AR")}</p>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              </SwiperSlide>
+            ))}
+          </Swiper>
         )
       )}
 
