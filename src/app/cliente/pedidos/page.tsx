@@ -32,6 +32,7 @@ type CartLine = {
     cantidad: number;
     nota: string;
     opcionesSeleccionadas: Record<string, string>;
+    carnes?: number; // solo para HAMBURGUESAS
 };
 
 const formatPrice = (value: number) =>
@@ -170,6 +171,7 @@ interface CartDrawerProps {
     horarioPreferido: string;
     setHorarioPreferido: (v: string) => void;
     onSetNota: (lineId: string, nota: string) => void;
+    onSetCarnes: (lineId: string, carnes: number) => void;
     onSelectCoords: (lat: number, lng: number) => void;
     enviando: boolean;
     total: number;
@@ -187,7 +189,7 @@ function CartDrawer({
     direcciones, direccionEnvio, setDireccionEnvio,
     usarOtraDireccion, setUsarOtraDireccion, onEliminarDireccion,
     horarioPreferido, setHorarioPreferido,
-    onSetNota, onSelectCoords,
+    onSetNota, onSetCarnes, onSelectCoords,
     enviando, total, costoEnvio, metodoPago, setMetodoPago,
     onClose, onVaciar, onEliminarLinea, onEnviar,
 }: CartDrawerProps) {
@@ -230,6 +232,21 @@ function CartDrawer({
                                         <X size={18} />
                                     </button>
                                 </div>
+                                {producto.categoria === "HAMBURGUESAS" && (
+                                    <div className="mt-2 flex items-center gap-3">
+                                        <span className="text-xs font-semibold text-gray-600">🥩 Carnes:</span>
+                                        <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                                            <button
+                                                onClick={() => onSetCarnes(line.lineId, Math.max(1, (line.carnes ?? 1) - 1))}
+                                                className="w-8 h-8 flex items-center justify-center text-red-500 font-bold hover:bg-gray-100 transition text-lg">−</button>
+                                            <span className="w-6 text-center text-sm font-black text-gray-900">{line.carnes ?? 1}</span>
+                                            <button
+                                                onClick={() => onSetCarnes(line.lineId, Math.min(3, (line.carnes ?? 1) + 1))}
+                                                className="w-8 h-8 flex items-center justify-center text-red-500 font-bold hover:bg-gray-100 transition text-lg">+</button>
+                                        </div>
+                                        <span className="text-xs text-gray-400">máx. 3</span>
+                                    </div>
+                                )}
                                 <input
                                     type="text"
                                     placeholder="Observación para este producto"
@@ -392,6 +409,13 @@ function newLineId() {
     return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+function defaultCarnes(item: MenuItem): number {
+    const txt = `${item.nombre} ${item.descripcion ?? ""}`.toLowerCase();
+    if (txt.includes("triple")) return 3;
+    if (txt.includes("doble")) return 2;
+    return 1;
+}
+
 /* ─── Página principal ─────────────────────────────────────────── */
 export default function PedidosClientePage() {
     const categoryConfigMap = useCategoryConfigs();
@@ -538,7 +562,13 @@ export default function PedidosClientePage() {
     }
 
     function addSimple(menuItemId: string) {
+        const item = menu.find(m => m._id === menuItemId);
+        const esHamburguesa = item?.categoria === "HAMBURGUESAS";
         setCartLines(prev => {
+            if (esHamburguesa) {
+                // Hamburguesas: siempre nueva línea, con carnes por defecto
+                return [...prev, { lineId: newLineId(), menuItemId, cantidad: 1, nota: "", opcionesSeleccionadas: {}, carnes: item ? defaultCarnes(item) : 1 }];
+            }
             const idx = prev.findIndex(l => l.menuItemId === menuItemId && Object.keys(l.opcionesSeleccionadas).length === 0);
             if (idx >= 0) {
                 const next = [...prev];
@@ -565,10 +595,15 @@ export default function PedidosClientePage() {
     }
 
     function addWithOpciones(item: MenuItem, seleccion: Record<string, string>) {
+        const carnes = item.categoria === "HAMBURGUESAS" ? defaultCarnes(item) : undefined;
         setCartLines(prev => [
             ...prev,
-            { lineId: newLineId(), menuItemId: item._id, cantidad: 1, nota: "", opcionesSeleccionadas: seleccion },
+            { lineId: newLineId(), menuItemId: item._id, cantidad: 1, nota: "", opcionesSeleccionadas: seleccion, carnes },
         ]);
+    }
+
+    function setCarnes(lineId: string, carnes: number) {
+        setCartLines(prev => prev.map(l => l.lineId === lineId ? { ...l, carnes } : l));
     }
 
     function eliminarLinea(lineId: string) {
@@ -607,12 +642,20 @@ export default function PedidosClientePage() {
     async function enviarPedido() {
         const seleccion = cartLines
             .filter(l => l.cantidad > 0)
-            .map(l => ({
-                menuItemId: l.menuItemId,
-                cantidad: l.cantidad,
-                nota: l.nota.trim() || undefined,
-                opcionesSeleccionadas: Object.keys(l.opcionesSeleccionadas).length > 0 ? l.opcionesSeleccionadas : undefined,
-            }));
+            .map(l => {
+                const item = menu.find(m => m._id === l.menuItemId);
+                let nota = l.nota.trim();
+                if (item?.categoria === "HAMBURGUESAS" && l.carnes !== undefined) {
+                    const carnesTxt = `${l.carnes} ${l.carnes === 1 ? "carne" : "carnes"}`;
+                    nota = nota ? `${carnesTxt} · ${nota}` : carnesTxt;
+                }
+                return {
+                    menuItemId: l.menuItemId,
+                    cantidad: l.cantidad,
+                    nota: nota || undefined,
+                    opcionesSeleccionadas: Object.keys(l.opcionesSeleccionadas).length > 0 ? l.opcionesSeleccionadas : undefined,
+                };
+            });
 
         if (seleccion.length === 0)
             return swalBase.fire("⚠️", "Seleccioná al menos un ítem", "warning");
@@ -749,6 +792,7 @@ export default function PedidosClientePage() {
         onEliminarDireccion: eliminarDireccion,
         horarioPreferido, setHorarioPreferido,
         onSetNota: setNota,
+        onSetCarnes: setCarnes,
         onSelectCoords: (lat, lng) => { setMapLat(lat); setMapLng(lng); },
         enviando, total, costoEnvio,
         metodoPago, setMetodoPago,
