@@ -7,6 +7,8 @@ const MenuItemSchema = new Schema(
         precio: { type: Number, required: true },
         categoria: { type: String, required: true },
         imagen: String,
+        imagenPosicion: { type: String, default: "50% 50%" },
+        imagenZoom: { type: Number, default: 1 },
         activo: { type: Boolean, default: true },
         activoCliente: { type: Boolean, default: true },
         ruleta: { type: Boolean, default: false },

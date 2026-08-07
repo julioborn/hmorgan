@@ -109,7 +109,7 @@ function Landing() {
 /* =========================
   HOME CLIENTE
    ========================= */
-type MenuDelDiaItem = { _id: string; nombre: string; descripcion?: string; precio: number; imagen?: string };
+type MenuDelDiaItem = { _id: string; nombre: string; descripcion?: string; precio: number; imagen?: string; imagenPosicion?: string; imagenZoom?: number };
 type Invitacion = { _id: string; titulo: string; descripcion?: string; fecha: string; hora?: string; precio?: number; imagenUrl?: string; colorFondo?: string; tema?: string };
 
 function esCumpleaños(fechaNacimiento?: string): boolean {
@@ -642,7 +642,13 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
                       src={item.imagen || categoryConfigMap["MENÚ DEL DÍA"]?.imageUrl || "/menu-del-dia.jpeg"}
                       alt={item.nombre}
                       className="w-full h-full object-cover"
-                      style={{ objectPosition: categoryConfigMap["MENÚ DEL DÍA"]?.imagePosition || "50% 50%" }}
+                      style={{
+                        objectPosition: item.imagen
+                          ? (item.imagenPosicion || "50% 50%")
+                          : (categoryConfigMap["MENÚ DEL DÍA"]?.imagePosition || "50% 50%"),
+                        transform: item.imagen && item.imagenZoom ? `scale(${item.imagenZoom})` : undefined,
+                        transformOrigin: "center center",
+                      }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
                     <span className="absolute top-3 left-3 bg-white/90 text-amber-700 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">Hoy</span>

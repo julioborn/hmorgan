@@ -26,6 +26,8 @@ type MenuItem = {
     precio: number;
     categoria: string;
     imagen?: string;
+    imagenPosicion?: string;
+    imagenZoom?: number;
     activo: boolean;
     activoCliente?: boolean;
     ruleta?: boolean;
@@ -128,6 +130,31 @@ export default function AdminMenuPage() {
     /* ── Imagen por ítem ── */
     const [uploadingItemImg, setUploadingItemImg] = useState(false);
     const itemImgRef = useRef<HTMLInputElement>(null);
+    const itemDragRef = useRef<{ x: number; y: number; posX: number; posY: number } | null>(null);
+
+    function parseItemPos(pos?: string): [number, number] {
+        const parts = (pos || "50% 50%").split(" ");
+        return [parseFloat(parts[0]) || 50, parseFloat(parts[1]) || 50];
+    }
+
+    function onItemPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+        e.preventDefault();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        const [posX, posY] = parseItemPos(editando?.imagenPosicion);
+        itemDragRef.current = { x: e.clientX, y: e.clientY, posX, posY };
+    }
+
+    function onItemPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+        if (!itemDragRef.current || !editando) return;
+        const { x, y, posX, posY } = itemDragRef.current;
+        const dx = e.clientX - x;
+        const dy = e.clientY - y;
+        const newX = Math.max(0, Math.min(100, posX - dx * 0.25));
+        const newY = Math.max(0, Math.min(100, posY - dy * 0.25));
+        setEditando(prev => prev ? { ...prev, imagenPosicion: `${newX.toFixed(1)}% ${newY.toFixed(1)}%` } : prev);
+    }
+
+    function onItemPointerUp() { itemDragRef.current = null; }
 
     async function uploadItemImage(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0];
@@ -741,7 +768,7 @@ export default function AdminMenuPage() {
                                                 {editando.imagen && (
                                                     <button
                                                         type="button"
-                                                        onClick={() => setEditando({ ...editando, imagen: undefined })}
+                                                        onClick={() => setEditando({ ...editando, imagen: undefined, imagenPosicion: "50% 50%", imagenZoom: 1 })}
                                                         className="text-xs text-gray-400 hover:text-red-500 transition"
                                                     >
                                                         Quitar
@@ -750,7 +777,38 @@ export default function AdminMenuPage() {
                                             </div>
                                         </div>
                                         {editando.imagen ? (
-                                            <img src={editando.imagen} alt="Preview" className="w-full h-32 object-cover rounded-lg" />
+                                            <div className="space-y-2">
+                                                <div
+                                                    className="relative h-40 rounded-lg overflow-hidden cursor-grab active:cursor-grabbing touch-none select-none"
+                                                    onPointerDown={onItemPointerDown}
+                                                    onPointerMove={onItemPointerMove}
+                                                    onPointerUp={onItemPointerUp}
+                                                    onPointerCancel={onItemPointerUp}
+                                                >
+                                                    <img
+                                                        src={editando.imagen}
+                                                        alt="Preview"
+                                                        className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                                                        style={{
+                                                            objectPosition: editando.imagenPosicion || "50% 50%",
+                                                            transform: `scale(${editando.imagenZoom ?? 1})`,
+                                                            transformOrigin: "center center",
+                                                        }}
+                                                        draggable={false}
+                                                    />
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[11px] text-gray-500 shrink-0 w-8">Zoom</span>
+                                                    <input
+                                                        type="range" min={100} max={250} step={5}
+                                                        value={Math.round((editando.imagenZoom ?? 1) * 100)}
+                                                        onChange={e => setEditando({ ...editando, imagenZoom: Number(e.target.value) / 100 })}
+                                                        className="flex-1 accent-red-600"
+                                                    />
+                                                    <span className="text-[11px] text-gray-500 shrink-0 w-8 text-right">{Math.round((editando.imagenZoom ?? 1) * 100)}%</span>
+                                                </div>
+                                                <p className="text-[10px] text-gray-400">Arrastrá para reencuadrar · deslizá el zoom</p>
+                                            </div>
                                         ) : (
                                             <p className="text-xs text-gray-400 italic">Sin imagen — se usará la imagen de la categoría</p>
                                         )}
