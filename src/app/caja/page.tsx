@@ -2103,7 +2103,7 @@ export default function CajaPage() {
                             e._id !== eventoActualId && (e.mesas ?? []).includes(m.nombre)
                         );
                         const isBanq = m.tipo === "banqueta";
-                        const bloqueada = isBanq || ocupada || reservada || otroEvento || esAutoservicio;
+                        const bloqueada = isBanq || ocupada || otroEvento || esAutoservicio;
                         const isRound = m.forma === "round" || m.forma === "oval";
                         const rot = m.rotacion ?? 0;
                         const w = m.ancho || (m.forma === "oval" ? 11 : m.forma === "round" ? 5.5 : 7);
@@ -2111,9 +2111,9 @@ export default function CajaPage() {
                         const bg = isBanq ? "bg-amber-700 border-amber-800 text-amber-100"
                             : esAutoservicio ? "bg-purple-600 border-purple-700 text-white opacity-80"
                                 : ocupada ? "bg-red-500 border-red-600 text-white opacity-80"
-                                    : reservada ? "bg-yellow-400 border-yellow-500 text-gray-900 opacity-80"
-                                        : otroEvento ? "bg-purple-500 border-purple-600 text-white opacity-80"
-                                            : sel ? "bg-blue-500 border-blue-600 text-white ring-2 ring-blue-300"
+                                    : sel ? "bg-blue-500 border-blue-600 text-white ring-2 ring-blue-300"
+                                        : reservada ? "bg-yellow-400 border-yellow-500 text-gray-900 opacity-90"
+                                            : otroEvento ? "bg-purple-500 border-purple-600 text-white opacity-80"
                                                 : "bg-emerald-500 border-emerald-600 text-white";
                         return (
                             <div key={m._id}
