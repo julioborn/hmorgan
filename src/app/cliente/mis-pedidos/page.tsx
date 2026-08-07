@@ -196,40 +196,48 @@ export default function MisPedidosPage() {
     };
 
     return (
-        <div className="p-6 min-h-screen bg-white">
-            <h1 className="text-4xl font-extrabold text-black mb-8">Mis Pedidos</h1>
-
-            <div className="flex justify-center gap-4 mb-6">
-                <button
-                    onClick={() => { setVista("activos"); setPage(1); }}
-                    className={`px-6 py-2 rounded-full text-sm font-medium border transition-all ${vista === "activos"
-                        ? "bg-red-600 text-white border-red-600"
-                        : "bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:text-red-700"
-                        }`}
-                >
-                    Pendientes
-                </button>
-                <button
-                    onClick={() => { setVista("completados"); setPage(1); }}
-                    className={`px-6 py-2 rounded-full text-sm font-medium border transition-all ${vista === "completados"
-                        ? "bg-red-600 text-white border-red-600"
-                        : "bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:text-red-700"
-                        }`}
-                >
-                    Finalizados
-                </button>
+        <div className="min-h-screen bg-white pb-20">
+            {/* Header */}
+            <div className="bg-white border-b border-gray-100 px-4 pt-4 pb-3">
+                <div className="max-w-xl mx-auto flex items-center justify-between">
+                    <div>
+                        <h1 className="text-2xl font-black text-gray-900">Mis Pedidos</h1>
+                        <p className="text-xs text-gray-400 mt-0.5">Seguí el estado de tus pedidos</p>
+                    </div>
+                    <Link
+                        href="/cliente/pedidos"
+                        className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl font-bold text-sm transition active:scale-[0.97]"
+                    >
+                        <PackagePlus size={16} /> Nuevo
+                    </Link>
+                </div>
             </div>
 
-            <div className="flex justify-center mb-8">
-                <Link
-                    href="/cliente/pedidos"
-                    className="flex items-center gap-2 bg-black text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-gray-800 transition active:scale-[0.97]"
-                >
-                    <PackagePlus size={16} />
-                    Nuevo pedido
-                </Link>
+            <div className="max-w-xl mx-auto px-4 pt-4">
+                {/* Tabs */}
+                <div className="flex gap-3 mb-5">
+                    <button
+                        onClick={() => { setVista("activos"); setPage(1); }}
+                        className={`px-5 py-2 rounded-full text-sm font-medium border transition-all ${vista === "activos"
+                            ? "bg-red-600 text-white border-red-600"
+                            : "bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:text-red-700"
+                            }`}
+                    >
+                        Pendientes
+                    </button>
+                    <button
+                        onClick={() => { setVista("completados"); setPage(1); }}
+                        className={`px-5 py-2 rounded-full text-sm font-medium border transition-all ${vista === "completados"
+                            ? "bg-red-600 text-white border-red-600"
+                            : "bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:text-red-700"
+                            }`}
+                    >
+                        Finalizados
+                    </button>
+                </div>
             </div>
 
+            <div className="px-4">
             {pedidosActuales.length === 0 ? (
                 <p className="text-gray-500 text-center mt-12">
                     {vista === "activos"
@@ -444,6 +452,7 @@ export default function MisPedidosPage() {
                     </div>
                 </div>
             )}
+            </div>
         </div>
     );
 }

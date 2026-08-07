@@ -158,13 +158,23 @@ export default function CanjesClientePage() {
     const rewardsNormales = rewards.filter(r => r.tema !== "cumpleanos");
 
     return (
-        <div className="p-6 space-y-10">
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-center text-white">Canjes</h1>
+        <div className="min-h-screen bg-white pb-20">
+            {/* Header */}
+            <div className="bg-white border-b border-gray-100 px-4 pt-4 pb-3">
+                <div className="max-w-xl mx-auto flex items-center justify-between">
+                    <div>
+                        <h1 className="text-2xl font-black text-gray-900">Canjes</h1>
+                        <p className="text-xs text-gray-400 mt-0.5">Tus puntos: <span className="font-black text-red-600">{puntos} pts</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <div className="max-w-xl mx-auto px-4 pt-4 space-y-8">
 
             {/* Regalo de cumpleaños */}
             {canjeCumple && (
                 <section className="space-y-3">
-                    <p className="text-xs font-black text-white/60 uppercase tracking-widest">🎂 Regalo de cumpleaños</p>
+                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest">🎂 Regalo de cumpleaños</p>
                     <div className="relative bg-white text-black rounded-2xl shadow-md border-2 border-pink-300 p-5 flex flex-col gap-3 overflow-visible">
                         <span className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-gray-100 border border-gray-300 rounded-full shadow-sm" />
                         <span className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-gray-100 border border-gray-300 rounded-full shadow-sm" />
@@ -227,8 +237,7 @@ export default function CanjesClientePage() {
             {/* Canjes disponibles */}
             {rewardsNormales.length > 0 && (
                 <section className="space-y-3">
-                    <p className="text-xs font-black text-white/60 uppercase tracking-widest">Disponibles</p>
-                    <p className="text-sm text-white/50 -mt-1">Tus puntos: <span className="font-black text-red-400">{puntos} pts</span></p>
+                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Disponibles</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {rewardsNormales.map(r => {
                             const yaPendiente = solicitados.has(r._id);
@@ -273,40 +282,40 @@ export default function CanjesClientePage() {
             {/* Historial */}
             {canjes.length > 0 && (
                 <section className="space-y-6">
-                    <p className="text-xs font-black text-white/60 uppercase tracking-widest">Mi historial</p>
+                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Mi historial</p>
 
                     {pendientes.length > 0 && (
                         <div className="space-y-3">
-                            <p className="text-xs font-bold text-amber-400 uppercase tracking-widest">Esperando confirmación</p>
+                            <p className="text-xs font-bold text-amber-600 uppercase tracking-widest">Esperando confirmación</p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {pendientes.map(c => (
                                     c.tipo === "cumpleanos" ? (
                                         <button key={c._id} onClick={() => setCumpleVoucherOpen(true)}
-                                            className="relative overflow-hidden rounded-2xl border border-pink-400/40 bg-gradient-to-br from-pink-500/20 to-orange-400/20 p-5 flex flex-col gap-2 text-left active:scale-[0.98] transition w-full">
+                                            className="relative overflow-hidden rounded-2xl border border-pink-200 bg-pink-50 p-5 flex flex-col gap-2 text-left active:scale-[0.98] transition w-full">
                                             <div className="flex items-center gap-3">
                                                 <span className="text-xl shrink-0">🎂</span>
-                                                <h2 className="text-sm font-bold">{c.rewardId?.titulo}</h2>
+                                                <h2 className="text-sm font-bold text-gray-900">{c.rewardId?.titulo}</h2>
                                             </div>
-                                            {c.rewardId?.descripcion && <p className="text-xs opacity-70">{c.rewardId.descripcion}</p>}
+                                            {c.rewardId?.descripcion && <p className="text-xs text-gray-500">{c.rewardId.descripcion}</p>}
                                             <div className="flex items-center justify-between mt-1">
-                                                <span className="text-pink-400 font-extrabold text-xs">🎁 Regalo · sin puntos</span>
-                                                <span className="text-xs bg-pink-500/20 text-pink-300 border border-pink-400/30 px-3 py-1 rounded-full font-semibold">PENDIENTE</span>
+                                                <span className="text-pink-600 font-extrabold text-xs">🎁 Regalo · sin puntos</span>
+                                                <span className="text-xs bg-pink-100 text-pink-700 border border-pink-200 px-3 py-1 rounded-full font-semibold">PENDIENTE</span>
                                             </div>
-                                            <p className="text-xs opacity-60 mt-1 font-semibold">Tocá para presentar en caja →</p>
+                                            <p className="text-xs text-gray-400 mt-1 font-semibold">Tocá para presentar en caja →</p>
                                         </button>
                                     ) : (
                                     <div key={c._id}
-                                        className="relative overflow-hidden rounded-2xl border border-amber-400/30 bg-amber-500/10 p-5 flex flex-col gap-2">
+                                        className="relative overflow-hidden rounded-2xl border border-amber-200 bg-amber-50 p-5 flex flex-col gap-2">
                                         <div className="flex items-center gap-3">
-                                            <Clock className="w-5 h-5 text-amber-400 shrink-0" />
-                                            <h2 className="text-sm font-bold">{c.rewardId?.titulo}</h2>
+                                            <Clock className="w-5 h-5 text-amber-600 shrink-0" />
+                                            <h2 className="text-sm font-bold text-gray-900">{c.rewardId?.titulo}</h2>
                                         </div>
-                                        {c.rewardId?.descripcion && <p className="text-xs opacity-70">{c.rewardId.descripcion}</p>}
+                                        {c.rewardId?.descripcion && <p className="text-xs text-gray-500">{c.rewardId.descripcion}</p>}
                                         <div className="flex items-center justify-between mt-1">
-                                            <span className="text-amber-400 font-extrabold">{c.puntosGastados} pts</span>
-                                            <span className="text-xs bg-amber-500/20 text-amber-300 border border-amber-400/30 px-3 py-1 rounded-full font-semibold">PENDIENTE</span>
+                                            <span className="text-amber-700 font-extrabold">{c.puntosGastados} pts</span>
+                                            <span className="text-xs bg-amber-100 text-amber-700 border border-amber-200 px-3 py-1 rounded-full font-semibold">PENDIENTE</span>
                                         </div>
-                                        <p className="text-xs opacity-50">
+                                        <p className="text-xs text-gray-400">
                                             {new Date(c.createdAt).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                                         </p>
                                     </div>
@@ -318,21 +327,21 @@ export default function CanjesClientePage() {
 
                     {completados.length > 0 && (
                         <div className="space-y-3">
-                            <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Canjeados</p>
+                            <p className="text-xs font-bold text-emerald-700 uppercase tracking-widest">Canjeados</p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {completados.map(c => (
                                     <button key={c._id} onClick={() => setVoucherOpen(c)}
-                                        className="relative overflow-hidden rounded-2xl border border-emerald-400/30 bg-emerald-600/20 p-5 flex flex-col gap-2 text-left hover:bg-emerald-600/30 transition active:scale-[0.98]">
+                                        className="relative overflow-hidden rounded-2xl border border-emerald-200 bg-emerald-50 p-5 flex flex-col gap-2 text-left hover:bg-emerald-100 transition active:scale-[0.98]">
                                         <div className="flex items-center gap-3">
-                                            <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
-                                            <h2 className="text-sm font-bold">{c.rewardId?.titulo}</h2>
+                                            <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
+                                            <h2 className="text-sm font-bold text-gray-900">{c.rewardId?.titulo}</h2>
                                         </div>
-                                        {c.rewardId?.descripcion && <p className="text-xs opacity-70">{c.rewardId.descripcion}</p>}
+                                        {c.rewardId?.descripcion && <p className="text-xs text-gray-500">{c.rewardId.descripcion}</p>}
                                         <div className="flex items-center justify-between mt-1">
-                                            <span className="text-emerald-400 font-extrabold">{c.puntosGastados} pts</span>
-                                            <span className="text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 px-3 py-1 rounded-full font-semibold">CANJEADO</span>
+                                            <span className="text-emerald-700 font-extrabold">{c.puntosGastados} pts</span>
+                                            <span className="text-xs bg-emerald-100 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-semibold">CANJEADO</span>
                                         </div>
-                                        <p className="text-xs opacity-50">
+                                        <p className="text-xs text-gray-400">
                                             {new Date(c.createdAt).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                                             {" · "}Tocá para ver el voucher
                                         </p>
@@ -344,20 +353,20 @@ export default function CanjesClientePage() {
 
                     {rechazados.length > 0 && (
                         <div className="space-y-3">
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Rechazados</p>
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Rechazados</p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {rechazados.map(c => (
                                     <div key={c._id}
-                                        className="relative overflow-hidden rounded-2xl border border-gray-600/30 bg-gray-800/30 p-5 flex flex-col gap-2 opacity-60">
+                                        className="relative overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 p-5 flex flex-col gap-2 opacity-70">
                                         <div className="flex items-center gap-3">
                                             <XCircle className="w-5 h-5 text-gray-400 shrink-0" />
-                                            <h2 className="text-sm font-bold">{c.rewardId?.titulo}</h2>
+                                            <h2 className="text-sm font-bold text-gray-700">{c.rewardId?.titulo}</h2>
                                         </div>
                                         <div className="flex items-center justify-between mt-1">
-                                            <span className="text-gray-400 font-extrabold">{c.puntosGastados} pts</span>
-                                            <span className="text-xs bg-gray-500/20 text-gray-400 border border-gray-500/30 px-3 py-1 rounded-full font-semibold">RECHAZADO</span>
+                                            <span className="text-gray-500 font-extrabold">{c.puntosGastados} pts</span>
+                                            <span className="text-xs bg-gray-100 text-gray-500 border border-gray-200 px-3 py-1 rounded-full font-semibold">RECHAZADO</span>
                                         </div>
-                                        <p className="text-xs opacity-50">
+                                        <p className="text-xs text-gray-400">
                                             {new Date(c.createdAt).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                                         </p>
                                     </div>
@@ -369,8 +378,10 @@ export default function CanjesClientePage() {
             )}
 
             {rewardsNormales.length === 0 && canjes.length === 0 && !canjeCumple && (
-                <p className="opacity-70 text-center">No hay canjes disponibles por el momento.</p>
+                <p className="text-center text-gray-500">No hay canjes disponibles por el momento.</p>
             )}
+
+            </div>
 
             {/* Modal hacer reserva de cumpleaños */}
             {reservaModal && canjeCumple && createPortal(
@@ -517,3 +528,4 @@ export default function CanjesClientePage() {
         </div>
     );
 }
+

@@ -82,20 +82,26 @@ export default function MiQRPage() {
     const totalPagesC = Math.max(1, Math.ceil(canjes.length / pageSize));
 
     return (
-        <div className="max-w-xl mx-auto p-4 space-y-4 bg-white min-h-screen pb-20">
-            {/* QR card */}
-            <div className="rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-md">
-                <div className="p-5 border-b border-gray-200">
-                    <h1 className="text-3xl font-extrabold text-center text-black">Mi QR</h1>
-                </div>
-                <div className="p-6 grid place-items-center bg-gray-50">
-                    {png ? <img src={png} alt="Mi QR" className="rounded-xl shadow-lg border border-gray-200" /> : <Loader size={48} />}
-                </div>
-                <div className="p-5 bg-white border-t border-gray-200 text-center">
-                    <div className="text-4xl font-extrabold text-black">
-                        {user.puntos ?? 0}
-                        <span className="ml-1 text-red-600 text-2xl font-bold">pts</span>
+        <div className="min-h-screen bg-white pb-20">
+            {/* Header */}
+            <div className="bg-white border-b border-gray-100 px-4 pt-4 pb-3">
+                <div className="max-w-xl mx-auto flex items-center justify-between">
+                    <div>
+                        <h1 className="text-2xl font-black text-gray-900">Mi QR</h1>
+                        <p className="text-xs text-gray-400 mt-0.5">Mostrá este código en caja para sumar puntos</p>
                     </div>
+                    <div className="text-right">
+                        <span className="text-2xl font-black text-gray-900">{user.puntos ?? 0}</span>
+                        <span className="ml-1 text-red-600 text-base font-bold">pts</span>
+                    </div>
+                </div>
+            </div>
+
+            <div className="max-w-xl mx-auto px-4 pt-4 space-y-4">
+            {/* QR card */}
+            <div className="rounded-2xl overflow-hidden border border-gray-200 bg-gray-50 shadow-sm">
+                <div className="p-6 grid place-items-center">
+                    {png ? <img src={png} alt="Mi QR" className="rounded-xl shadow-lg border border-gray-200" /> : <Loader size={48} />}
                 </div>
             </div>
 
@@ -185,6 +191,7 @@ export default function MiQRPage() {
                         </div>
                     )
                 )}
+            </div>
             </div>
         </div>
     );
