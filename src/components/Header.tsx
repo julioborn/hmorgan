@@ -30,6 +30,7 @@ import {
   ClipboardList,
   CalendarDays,
   Truck,
+  CheckSquare,
 } from "lucide-react";
 import NotifBell from "@/components/NotifBell";
 
@@ -72,6 +73,7 @@ export default function Header() {
     { href: "/admin/reviews", label: "Reseñas", icon: Star },
     { href: "/admin/estadisticas", label: "Estadísticas", icon: BarChart2 },
     { href: "/admin/carrousel", label: "Fotos", icon: Images },
+    { href: "/admin/tareas", label: "Tareas del turno", icon: CheckSquare },
     { href: "/admin/notificaciones", label: "Notificaciones", icon: Bell },
     { href: "/admin/configuracion", label: "Ajustes", icon: Settings },
   ];
@@ -86,6 +88,7 @@ export default function Header() {
     { href: "/admin/empleados", label: "Empleados", icon: Users },
     { href: "/admin/clientes", label: "Clientes", icon: Users },
     { href: "/admin/menu", label: "Menú", icon: Utensils },
+    { href: "/admin/tareas", label: "Tareas del turno", icon: CheckSquare },
     { href: "/admin/estadisticas", label: "Estadísticas", icon: BarChart2 },
     { href: "/admin/configuracion", label: "Ajustes", icon: Settings },
   ];
@@ -100,6 +103,7 @@ export default function Header() {
 
   const linksEmpleado = [
     { href: "/empleado/anotador", label: "Anotador de Pedidos", icon: ClipboardList },
+    { href: "/empleado/tareas", label: "Lista de Tareas", icon: CheckSquare },
     { href: "/menu", label: "Menú", icon: Utensils },
   ];
 
