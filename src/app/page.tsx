@@ -1086,6 +1086,19 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
 
 
 
+        <Link
+          href="/menu"
+          className="w-full flex items-center gap-4 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl px-6 py-5 transition shadow-sm active:scale-[0.98] block"
+        >
+          <div className="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+            <Utensils className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="font-extrabold text-lg leading-tight">Menú</p>
+            <p className="text-gray-400 text-sm">Ver la carta del restaurante</p>
+          </div>
+        </Link>
+
         <div className="relative">
           <Link
             href="/empleado/tareas"
@@ -1105,19 +1118,6 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
             </span>
           )}
         </div>
-
-        <Link
-          href="/menu"
-          className="w-full flex items-center gap-4 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl px-6 py-5 transition shadow-sm active:scale-[0.98] block"
-        >
-          <div className="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-            <Utensils className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="font-extrabold text-lg leading-tight">Menú</p>
-            <p className="text-gray-400 text-sm">Ver la carta del restaurante</p>
-          </div>
-        </Link>
       </div>
 
     </div>
