@@ -1066,6 +1066,26 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
 
         <div className="relative">
           <Link
+            href="/empleado/tareas"
+            className="w-full flex items-center gap-4 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl px-6 py-5 transition shadow-sm active:scale-[0.98] block"
+          >
+            <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+              <CheckSquare className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="font-extrabold text-lg leading-tight">Lista de Tareas</p>
+              <p className="text-emerald-200 text-sm">Tareas del turno</p>
+            </div>
+          </Link>
+          {tareasPendientes > 0 && (
+            <span className="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1.5 bg-white text-emerald-700 text-xs font-black rounded-full flex items-center justify-center shadow-md border-2 border-emerald-700 pointer-events-none">
+              {tareasPendientes}
+            </span>
+          )}
+        </div>
+
+        <div className="relative">
+          <Link
             href="/empleado/reservas"
             className="w-full flex items-center gap-4 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl px-6 py-5 transition shadow-sm active:scale-[0.98] block"
           >
@@ -1084,8 +1104,6 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
           )}
         </div>
 
-
-
         <Link
           href="/menu"
           className="w-full flex items-center gap-4 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl px-6 py-5 transition shadow-sm active:scale-[0.98] block"
@@ -1098,26 +1116,6 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
             <p className="text-gray-400 text-sm">Ver la carta del restaurante</p>
           </div>
         </Link>
-
-        <div className="relative">
-          <Link
-            href="/empleado/tareas"
-            className="w-full flex items-center gap-4 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl px-6 py-5 transition shadow-sm active:scale-[0.98] block"
-          >
-            <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-              <CheckSquare className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="font-extrabold text-lg leading-tight">Lista de Tareas</p>
-              <p className="text-emerald-200 text-sm">Tareas del turno</p>
-            </div>
-          </Link>
-          {tareasPendientes > 0 && (
-            <span className="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1.5 bg-white text-emerald-700 text-xs font-black rounded-full flex items-center justify-center shadow-md border-2 border-emerald-700 pointer-events-none">
-              {tareasPendientes}
-            </span>
-          )}
-        </div>
       </div>
 
     </div>
