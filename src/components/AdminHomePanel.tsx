@@ -5,6 +5,7 @@ import {
   Package, CalendarDays, Wallet, TrendingUp, Users,
   LayoutGrid, ClipboardList, Ticket, Star, UserCog,
   Utensils, Images, BarChart2, Settings, Bell, ChevronRight,
+  CheckSquare,
 } from "lucide-react";
 import { hoyArgentina } from "@/lib/argentina-time";
 
@@ -87,6 +88,7 @@ export function AdminHome() {
   const [reservasPendientes, setReservasPendientes] = useState(0);
   const [cajaAbierta, setCajaAbierta] = useState<boolean | null>(null);
   const [stockAlertas, setStockAlertas] = useState(0);
+  const [tareasPendientes, setTareasPendientes] = useState(0);
   const [hora, setHora] = useState(() => new Date().getHours());
 
   useEffect(() => {
@@ -131,6 +133,14 @@ export function AdminHome() {
     fetch("/api/caja/status", { credentials: "include" })
       .then(r => r.json())
       .then(d => setCajaAbierta(!!d.abierta))
+      .catch(() => { });
+
+    fetch("/api/tareas", { credentials: "include" })
+      .then(r => r.json())
+      .then((tareas: any[]) => {
+        if (!Array.isArray(tareas)) return;
+        setTareasPendientes(tareas.filter(t => !t.completada).length);
+      })
       .catch(() => { });
 
     fetch("/api/superadmin/stock", { credentials: "include" })
@@ -295,6 +305,15 @@ export function AdminHome() {
             <div className="grid grid-cols-2 gap-2.5">
               <AdminCard href="/admin/mesas" title="Mesas" Icon={LayoutGrid} color="indigo" />
               <AdminCard href="/empleado/anotador" title="Anotador" Icon={ClipboardList} color="zinc" />
+              <AdminCard
+                href="/admin/tareas"
+                title="Tareas del turno"
+                Icon={CheckSquare}
+                color="emerald"
+                badge={tareasPendientes > 0 ? `${tareasPendientes} pendiente${tareasPendientes > 1 ? "s" : ""}` : undefined}
+                badgeColor="yellow"
+                full
+              />
             </div>
           </section>
 
