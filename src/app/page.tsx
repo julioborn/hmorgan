@@ -9,7 +9,7 @@ import { hoyArgentina } from "@/lib/argentina-time";
 import { swalBase } from "@/lib/swalConfig";
 
 const BarMap = dynamic(() => import("@/components/BarMap"), { ssr: false });
-import { QrCode, Users, Bell, PackagePlus, Package, Utensils, Ticket, History, ScanQrCode, ScanText, Settings, Star, BarChart2, ClipboardList, LayoutGrid, Images, CalendarDays, Wallet, TrendingUp, UserCog, Truck, Gift, X, Clock, Tablet, Receipt } from "lucide-react";
+import { QrCode, Users, Bell, PackagePlus, Package, Utensils, Ticket, History, ScanQrCode, ScanText, Settings, Star, BarChart2, ClipboardList, LayoutGrid, Images, CalendarDays, Wallet, TrendingUp, UserCog, Truck, Gift, X, Clock, Tablet, Receipt, CheckSquare } from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 import Loader from "@/components/Loader";
@@ -959,6 +959,7 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
   const [comandasCount, setComandasCount] = useState(0);
   const [reservasHoyCount, setReservasHoyCount] = useState(0);
   const [autoservActivasCount, setAutoservActivasCount] = useState(0);
+  const [tareasPendientes, setTareasPendientes] = useState(0);
 
   useEffect(() => {
     const tick = setInterval(() => setHora(new Date().getHours()), 60000);
@@ -995,6 +996,13 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
     fetch("/api/autoservicio", { credentials: "include" })
       .then(r => r.json())
       .then(d => { if (Array.isArray(d)) setAutoservActivasCount(d.length); })
+      .catch(() => { });
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/tareas", { credentials: "include" })
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setTareasPendientes(d.filter((t: any) => !t.completada).length); })
       .catch(() => { });
   }, []);
 
@@ -1077,6 +1085,26 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
         </div>
 
 
+
+        <div className="relative">
+          <Link
+            href="/empleado/tareas"
+            className="w-full flex items-center gap-4 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl px-6 py-5 transition shadow-sm active:scale-[0.98] block"
+          >
+            <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+              <CheckSquare className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="font-extrabold text-lg leading-tight">Lista de Tareas</p>
+              <p className="text-emerald-200 text-sm">Tareas del turno</p>
+            </div>
+          </Link>
+          {tareasPendientes > 0 && (
+            <span className="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1.5 bg-white text-emerald-700 text-xs font-black rounded-full flex items-center justify-center shadow-md border-2 border-emerald-700 pointer-events-none">
+              {tareasPendientes}
+            </span>
+          )}
+        </div>
 
         <Link
           href="/menu"

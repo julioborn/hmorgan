@@ -21,7 +21,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (!tarea) return NextResponse.json({ error: "No encontrada" }, { status: 404 });
 
     tarea.completada = !tarea.completada;
-    tarea.completadaPor = tarea.completada ? user.id : null;
+    tarea.completadaPor = tarea.completada ? (user.sub || user.id) : null;
     tarea.completadaAt = tarea.completada ? new Date() : null;
     await tarea.save();
 
