@@ -1144,32 +1144,13 @@ export default function CajaPage() {
             const cartSnapshot = [...editItemCart];
             closeEditItemModal();
 
-            const patchRes = await fetch(`/api/pedidos/${pedido._id}`, {
+            await fetch(`/api/pedidos/${pedido._id}`, {
                 method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
                 body: JSON.stringify({ items: cartSnapshot.map(i => ({ menuItemId: i.menuItemId, cantidad: i.cantidad })) }),
             });
-            const patchData = patchRes.ok ? await patchRes.json().catch(() => ({})) : {};
 
-            if (yaAceptado) {
-                // Bloquear los IDs nuevos en el ref para que detectarAgregados no los imprima en paralelo
-                const nuevosIds: string[] = (patchData.pedido?.items || [])
-                    .filter((it: any) => it.impreso === false)
-                    .map((it: any) => it._id?.toString())
-                    .filter(Boolean);
-                nuevosIds.forEach((id: string) => itemsImprimiendoRef.current.add(id));
-
-                try {
-                    await printItemsAgregados(pedido, cartSnapshot.map(i => ({
-                        cantidad: i.cantidad,
-                        menuItemId: { nombre: i.nombre, categoria: i.categoria },
-                    } as Pedido["items"][number])));
-                } catch { }
-
-                // Marcar como impresos en DB antes de que loadData los detecte
-                if (nuevosIds.length > 0) await marcarItemsImpresos(pedido._id, nuevosIds);
-                nuevosIds.forEach((id: string) => itemsImprimiendoRef.current.delete(id));
-            }
-
+            // La impresión la maneja detectarAgregados al ejecutarse dentro de loadData():
+            // encuentra los ítems con impreso:false, los imprime UNA sola vez y luego los marca.
             loadData();
         } finally {
             setConfirmandoAgregados(false);
