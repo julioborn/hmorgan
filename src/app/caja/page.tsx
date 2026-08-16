@@ -1390,37 +1390,24 @@ export default function CajaPage() {
             });
             clearTimeout(tid);
             if (res.ok) return;
-        } catch { /* servidor no disponible o timeout → fallback */ }
+        } catch { /* servidor local no disponible → cloud polling */ }
 
-        // Fallback: ventana del navegador
-        const rows = printItems.map(i =>
-            `<tr><td>${i.cantidad}x ${i.nombre}</td><td style="text-align:right">${formatMoney(i.precio * i.cantidad)}</td></tr>`
-        ).join("") + (!itemsOverride && pedido.tipoEntrega === "envio" && (pedido.costoEnvio || costoDelivery) > 0
-            ? `<tr><td>Envío a domicilio</td><td style="text-align:right">${formatMoney(pedido.costoEnvio || costoDelivery)}</td></tr>` : "");
-        const descuentoRow = descuento > 0
-            ? `<tr><td class="desc">Descuento</td><td class="desc" style="text-align:right">- ${formatMoney(descuento)}</td></tr>
-               <tr><td class="total">A COBRAR</td><td class="total" style="text-align:right">${formatMoney(totalConDescuento)}</td></tr>` : "";
-        const pagosRows = pagos.map(p => `<tr><td>${METODO_LABEL[p.metodo] || p.metodo}</td><td style="text-align:right">${formatMoney(p.monto)}</td></tr>`).join("");
-        const vueltoRow = vuelto > 0 ? `<tr><td class="vuelto">** VUELTO **</td><td class="vuelto" style="text-align:right">${formatMoney(vuelto)}</td></tr>` : "";
-        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Ticket</title><style>
-            *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Courier New',monospace;font-size:12px;padding:12px;max-width:280px}
-            h2{text-align:center;font-size:15px;letter-spacing:2px;margin-bottom:2px}
-            .sub{text-align:center;font-size:11px;color:#000;margin-bottom:4px}
-            hr{border:none;border-top:1px dashed #000;margin:5px 0}
-            table{width:100%;border-collapse:collapse}td{padding:2px 0;font-size:12px}
-            .total{font-size:14px;font-weight:bold}.vuelto{font-weight:bold}
-            .desc{font-weight:bold;text-decoration:underline}
-            .legal{text-align:center;font-size:9px;color:#000;margin-top:10px}
-        </style></head><body>
-        <h2>TICKET</h2><div class="sub">${fecha} ${hora}</div>
-        <hr/><table>${rows}</table><hr/>
-        <table>
-            <tr><td class="total">TOTAL</td><td class="total" style="text-align:right">${formatMoney(displayTotal)}</td></tr>
-            ${descuentoRow}${pagosRows}${vueltoRow}
-        </table>
-        <div class="legal">Comprobante no válido como factura</div></body></html>`;
-        const w = window.open("", "_blank", "width=320,height=500,toolbar=0,menubar=0");
-        if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 200); }
+        // Fallback: encolar ticket via cloud polling
+        try {
+            await fetch("/api/print-jobs", {
+                method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
+                body: JSON.stringify({
+                    tipo: "ticket", impresora: "Barra",
+                    payload: {
+                        mesa: pedido.mesa || "—", fecha, hora,
+                        items: printItems,
+                        total: displayTotal,
+                        costoEnvio: !itemsOverride && pedido.tipoEntrega === "envio" ? (pedido.costoEnvio || costoDelivery) : 0,
+                        descuento, pagos, vuelto,
+                    },
+                }),
+            });
+        } catch { /* silencioso */ }
     }
 
     async function printCuenta(pedido: Pedido) {
@@ -1462,31 +1449,18 @@ export default function CajaPage() {
             });
             clearTimeout(tid);
             if (res.ok) return;
-        } catch { /* servidor no disponible o timeout → fallback */ }
+        } catch { /* servidor local no disponible → cloud polling */ }
 
-        // Fallback: ventana del navegador
-        const rows = printItems.map(i =>
-            `<tr><td>${i.cantidad}x ${i.nombre}</td><td style="text-align:right">${formatMoney(i.precio * i.cantidad)}</td></tr>`
-        ).join("") + (costoEnvioVal > 0
-            ? `<tr><td>Envío a domicilio</td><td style="text-align:right">${formatMoney(costoEnvioVal)}</td></tr>` : "");
-        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cuenta</title><style>
-            *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Courier New',monospace;font-size:12px;padding:12px;max-width:280px}
-            h2{text-align:center;font-size:15px;letter-spacing:2px;margin-bottom:2px}
-            .sub{text-align:center;font-size:11px;color:#000;margin-bottom:4px}
-            hr{border:none;border-top:1px dashed #000;margin:5px 0}
-            table{width:100%;border-collapse:collapse}td{padding:2px 0;font-size:12px}
-            .total{font-size:14px;font-weight:bold}
-        </style></head><body>
-        <h2>CUENTA</h2>
-        <div class="sub">Mesa ${pedido.mesa || "—"} · ${fecha} ${hora}</div>
-        <hr/><table>${rows}</table><hr/>
-        <table>
-            <tr><td class="total">TOTAL</td><td class="total" style="text-align:right">${formatMoney(total)}</td></tr>
-        </table>
-        <div style="text-align:center;font-size:10px;margin-top:10px">Gracias por su visita!</div>
-        </body></html>`;
-        const w = window.open("", "_blank", "width=320,height=500,toolbar=0,menubar=0");
-        if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 200); }
+        // Fallback: encolar cuenta via cloud polling
+        try {
+            await fetch("/api/print-jobs", {
+                method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
+                body: JSON.stringify({
+                    tipo: "ticket", impresora: "Barra",
+                    payload: { mesa: pedido.mesa || "—", fecha, hora, items: printItems, total, costoEnvio: costoEnvioVal, descuento: 0, pagos: [], vuelto: 0, sinPago: true },
+                }),
+            });
+        } catch { /* silencioso */ }
     }
 
     function datosComanda(p: Pedido) {
@@ -1621,16 +1595,24 @@ export default function CajaPage() {
                 return; // impresión exitosa
             }
             clearTimeout(tid);
-        } catch { /* servidor no disponible o timeout → fallback */ }
+        } catch { /* servidor local no disponible → cloud polling */ }
 
-        // Fallback: ventana del navegador
-        if (comida.length > 0) abrirEImprimir(comandaHtml(p, "COCINA", comida));
-        if (bebidas.length > 0) setTimeout(() => abrirEImprimir(comandaHtml(p, "BARRA", bebidas)), 600);
+        // Fallback: encolar via cloud polling
+        const costoEnvioEfectivoPrint2 = p.tipoEntrega === "envio" ? (p.costoEnvio || costoDelivery) : 0;
+        const recargoItem2 = costoEnvioEfectivoPrint2 > 0 ? [{ cantidad: 1, nombre: `Recargo delivery: ${formatMoney(costoEnvioEfectivoPrint2)}` }] : [];
+        if (comida.length > 0) await crearPrintJobComanda("Cocina", { mesa, cliente, mozo, direccion, hora, nota, horarioPreferido: p.horarioPreferido || undefined, items: [...comida.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined, opcionesSeleccionadas: it.opcionesSeleccionadas })), ...recargoItem2] });
+        if (bebidas.length > 0) await crearPrintJobComanda("Barra", { mesa, cliente, mozo, direccion, hora, horarioPreferido: p.horarioPreferido || undefined, items: [...bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined, opcionesSeleccionadas: it.opcionesSeleccionadas })), ...recargoItem2] });
     }
 
-    // Reimpresión automática de ítems agregados a una comanda ya aceptada. Si el servidor
-    // local no está disponible (ej. probando sin impresora conectada), cae a la ventana de
-    // impresión del navegador, igual que printComanda.
+    async function crearPrintJobComanda(impresora: "Cocina" | "Barra", payload: object) {
+        try {
+            await fetch("/api/print-jobs", {
+                method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
+                body: JSON.stringify({ tipo: "comanda", impresora, payload }),
+            });
+        } catch { /* silencioso */ }
+    }
+
     async function printItemsAgregados(p: Pedido, itemsNuevos: Pedido["items"]) {
         const bebidas = itemsNuevos.filter(it => BEBIDAS_CATS.includes(it.menuItemId?.categoria || ""));
         const comida = itemsNuevos.filter(it => !BEBIDAS_CATS.includes(it.menuItemId?.categoria || ""));
@@ -1640,46 +1622,35 @@ export default function CajaPage() {
         const { mesa, cliente, mozo, direccion } = datosComanda(p);
         const nota = p.notaEmpleado || p.notaCliente || "";
 
+        const payloadCocina = {
+            impresora: "Cocina", titulo: "COCINA",
+            mesa, cliente, mozo, direccion, hora, nota,
+            horarioPreferido: p.horarioPreferido || undefined,
+            items: comida.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined, opcionesSeleccionadas: it.opcionesSeleccionadas })),
+        };
+        const payloadBarra = {
+            impresora: "Barra", titulo: "BARRA",
+            mesa, cliente, mozo, direccion, hora,
+            horarioPreferido: p.horarioPreferido || undefined,
+            items: bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined, opcionesSeleccionadas: it.opcionesSeleccionadas })),
+        };
+
         try {
             const ctrl = new AbortController();
-            const tid = setTimeout(() => ctrl.abort(), 15000);
+            const tid = setTimeout(() => ctrl.abort(), 5000);
             const promesas: Promise<Response>[] = [];
-            if (comida.length > 0) promesas.push(
-                fetch(`${PRINT_SERVER}/imprimir/comanda`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    signal: ctrl.signal,
-                    body: JSON.stringify({
-                        impresora: "Cocina", titulo: "COCINA",
-                        mesa, cliente, mozo, direccion, hora, nota,
-                        horarioPreferido: p.horarioPreferido || undefined,
-                        items: comida.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined, opcionesSeleccionadas: it.opcionesSeleccionadas })),
-                    }),
-                })
-            );
-            if (bebidas.length > 0) promesas.push(
-                fetch(`${PRINT_SERVER}/imprimir/comanda`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    signal: ctrl.signal,
-                    body: JSON.stringify({
-                        impresora: "Barra", titulo: "BARRA",
-                        mesa, cliente, mozo, direccion, hora,
-                        horarioPreferido: p.horarioPreferido || undefined,
-                        items: bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined, opcionesSeleccionadas: it.opcionesSeleccionadas })),
-                    }),
-                })
-            );
+            if (comida.length > 0) promesas.push(fetch(`${PRINT_SERVER}/imprimir/comanda`, { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal, body: JSON.stringify(payloadCocina) }));
+            if (bebidas.length > 0) promesas.push(fetch(`${PRINT_SERVER}/imprimir/comanda`, { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal, body: JSON.stringify(payloadBarra) }));
             if (promesas.length > 0) {
                 await Promise.all(promesas);
                 clearTimeout(tid);
-                return; // impresión exitosa
+                return; // servidor local OK
             }
-        } catch { /* servidor no disponible → fallback */ }
+        } catch { /* servidor local no disponible → cloud polling */ }
 
-        // Fallback: ventana del navegador
-        if (comida.length > 0) abrirEImprimir(comandaHtml(p, "COCINA", comida));
-        if (bebidas.length > 0) setTimeout(() => abrirEImprimir(comandaHtml(p, "BARRA", bebidas)), 600);
+        // Fallback: encolar via cloud polling (el print server lo levanta en ~3s)
+        if (comida.length > 0) await crearPrintJobComanda("Cocina", payloadCocina);
+        if (bebidas.length > 0) await crearPrintJobComanda("Barra", payloadBarra);
     }
 
     async function guardarPrecioTarjeta(eventoId: string) {
