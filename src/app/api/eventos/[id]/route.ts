@@ -48,6 +48,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         return NextResponse.json({ ok: true, evento });
     }
 
+    if (body.accion === "updateImagen") {
+        (evento as any).imagen = body.imagen || null;
+        await evento.save();
+        return NextResponse.json({ ok: true, evento });
+    }
+
     if (body.accion === "editarPrecioTarjeta") {
         const precio = Number(body.precio);
         if (isNaN(precio) || precio < 0) return NextResponse.json({ error: "Precio inválido" }, { status: 400 });

@@ -59,6 +59,7 @@ const EventoSchema = new Schema(
         nombre:         { type: String, required: true },
         estado:         { type: String, enum: ["activo", "cerrado"], default: "activo" },
         soloBebidas:    { type: Boolean, default: false },
+        imagen:         { type: String, default: null },
         ventas:         [VentaSchema],
         mesas:          [{ type: String }],
         precioTarjeta:  { type: Number, default: 0 },

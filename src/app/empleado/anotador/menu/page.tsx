@@ -458,7 +458,7 @@ function AnotadorMenuContent() {
                 confirmButtonText: "Sí, continuar",
                 cancelButtonText: "Elegir mesa",
             });
-            if (!isConfirmed) return;
+            if (!isConfirmed) { enviandoRef.current = false; return; }
         }
 
         const confirm = await swalBase.fire({
@@ -471,7 +471,7 @@ function AnotadorMenuContent() {
             confirmButtonText: esAgregado ? "Sí, agregar" : "Sí, enviar",
             cancelButtonText: "Revisar de nuevo",
         });
-        if (!confirm.isConfirmed) return;
+        if (!confirm.isConfirmed) { enviandoRef.current = false; return; }
 
         setEnviando(true); setError("");
         try {
