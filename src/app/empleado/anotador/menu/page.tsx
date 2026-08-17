@@ -113,7 +113,7 @@ function AnotadorMenuContent() {
     const isDelivery          = searchParams.get("delivery") === "1";
     const [step, setStep]    = useState<"info"|"menu">(comandaId || isDelivery ? "menu" : "info");
 
-    type DeliveryDraft = { nombre: string; telefono: string; direccion: string; horario?: string };
+    type DeliveryDraft = { nombre: string; telefono: string; direccion: string; horario?: string; tipoEntrega?: "envio" | "retira" };
     const [deliveryDraft, setDeliveryDraft] = useState<DeliveryDraft | null>(null);
 
     const [menuItems, setMenuItems]     = useState<MenuItem[]>([]);
@@ -492,12 +492,12 @@ function AnotadorMenuContent() {
                     credentials: "include",
                     body: JSON.stringify({
                         items: cart.map(c => ({ menuItemId: c.menuItemId, cantidad: c.cantidad, nota: c.nota?.trim() || undefined })),
-                        tipoEntrega:      isDelivery ? "envio" : "retira",
+                        tipoEntrega:      isDelivery ? (deliveryDraft?.tipoEntrega || "envio") : "retira",
                         fuente:           "empleado",
                         mesa:             isDelivery || eventoActivo ? undefined : (mesas.join(", ") || undefined),
                         comensales:       isDelivery || eventoActivo ? undefined : (totalComensales || undefined),
                         nombreComanda:    isDelivery ? (deliveryDraft?.nombre || undefined) : (clienteNombre.trim() || undefined),
-                        direccion:        isDelivery ? (deliveryDraft?.direccion || undefined) : undefined,
+                        direccion:        isDelivery && deliveryDraft?.tipoEntrega !== "retira" ? (deliveryDraft?.direccion || undefined) : undefined,
                         telefonoContacto: isDelivery ? (deliveryDraft?.telefono || undefined) : undefined,
                         horarioPreferido: isDelivery ? (deliveryDraft?.horario || undefined) : undefined,
                         eventoId:         eventoActivo?._id || undefined,
@@ -881,9 +881,13 @@ function AnotadorMenuContent() {
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-xs font-black text-blue-600 uppercase tracking-wide mb-0.5">Delivery manual</p>
+                                <p className="text-xs font-black text-blue-600 uppercase tracking-wide mb-0.5">
+                                    {deliveryDraft.tipoEntrega === "retira" ? "Retiro en el local" : "Delivery manual"}
+                                </p>
                                 <p className="text-sm font-bold text-gray-900 truncate">{deliveryDraft.nombre}</p>
-                                <p className="text-xs text-gray-500 truncate">{deliveryDraft.telefono} · {deliveryDraft.direccion}</p>
+                                <p className="text-xs text-gray-500 truncate">
+                                    {deliveryDraft.telefono}{deliveryDraft.tipoEntrega !== "retira" && deliveryDraft.direccion ? ` · ${deliveryDraft.direccion}` : ""}
+                                </p>
                             </div>
                         </div>
                     )}

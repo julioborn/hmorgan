@@ -268,7 +268,7 @@ export default function CajaPage() {
     const [cierreDiferencia, setCierreDiferencia] = useState(0);
     const [cierreDeliveryCount, setCierreDeliveryCount] = useState(0);
     const [deliveryModal, setDeliveryModal] = useState(false);
-    const [deliveryForm, setDeliveryForm] = useState({ nombre: "", telefono: "", direccion: "", horario: "" });
+    const [deliveryForm, setDeliveryForm] = useState({ nombre: "", telefono: "", direccion: "", horario: "", tipoEntrega: "envio" as "envio" | "retira" });
     const [costoDelivery, setCostoDelivery] = useState<number>(0);
     const [gastoModal, setGastoModal] = useState(false);
     const [gastoForm, setGastoForm] = useState<{ concepto: string; monto: string; metodo: typeof METODOS[number] }>({ concepto: "", monto: "", metodo: "efectivo" });
@@ -4481,7 +4481,7 @@ export default function CajaPage() {
                         {/* Header */}
                         <div className="bg-blue-600 px-5 py-4 flex items-center gap-3">
                             <div className="flex-1">
-                                <p className="font-black text-white text-lg leading-tight">Nuevo delivery</p>
+                                <p className="font-black text-white text-lg leading-tight">Nuevo pedido</p>
                                 <p className="text-blue-200 text-xs mt-0.5">Completá los datos del cliente</p>
                             </div>
                             <button onClick={() => setDeliveryModal(false)} className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition">
@@ -4490,6 +4490,15 @@ export default function CajaPage() {
                         </div>
                         {/* Form */}
                         <div className="px-5 py-5 space-y-4">
+                            {/* Tipo de entrega */}
+                            <div className="flex gap-2">
+                                {(["envio", "retira"] as const).map(tipo => (
+                                    <button key={tipo} onClick={() => setDeliveryForm(f => ({ ...f, tipoEntrega: tipo }))}
+                                        className={`flex-1 py-2.5 rounded-xl font-bold text-sm border-2 transition ${deliveryForm.tipoEntrega === tipo ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200"}`}>
+                                        {tipo === "envio" ? "🛵 Delivery" : "🏠 Retiro en el local"}
+                                    </button>
+                                ))}
+                            </div>
                             <div>
                                 <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Nombre</label>
                                 <input
@@ -4512,6 +4521,7 @@ export default function CajaPage() {
                                     className="w-full border-2 border-gray-100 focus:border-blue-400 rounded-xl px-4 py-3 focus:outline-none transition font-semibold text-gray-900 placeholder:font-normal placeholder:text-gray-300"
                                 />
                             </div>
+                            {deliveryForm.tipoEntrega === "envio" && (
                             <div>
                                 <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Dirección</label>
                                 <input
@@ -4523,6 +4533,7 @@ export default function CajaPage() {
                                     className="w-full border-2 border-gray-100 focus:border-blue-400 rounded-xl px-4 py-3 focus:outline-none transition font-semibold text-gray-900 placeholder:font-normal placeholder:text-gray-300"
                                 />
                             </div>
+                            )}
                             <div>
                                 <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Horario preferido <span className="font-normal normal-case tracking-normal">(opcional)</span></label>
                                 <select
@@ -4549,12 +4560,17 @@ export default function CajaPage() {
                             </button>
                             <button
                                 onClick={() => {
-                                    if (!deliveryForm.nombre.trim() || !deliveryForm.telefono.trim() || !deliveryForm.direccion.trim()) return;
+                                    const esEnvio = deliveryForm.tipoEntrega === "envio";
+                                    if (!deliveryForm.nombre.trim() || !deliveryForm.telefono.trim()) return;
+                                    if (esEnvio && !deliveryForm.direccion.trim()) return;
                                     sessionStorage.setItem("caja_delivery_draft", JSON.stringify(deliveryForm));
                                     setDeliveryModal(false);
                                     router.push("/empleado/anotador/menu?delivery=1");
                                 }}
-                                disabled={!deliveryForm.nombre.trim() || !deliveryForm.telefono.trim() || !deliveryForm.direccion.trim()}
+                                disabled={
+                                    !deliveryForm.nombre.trim() || !deliveryForm.telefono.trim() ||
+                                    (deliveryForm.tipoEntrega === "envio" && !deliveryForm.direccion.trim())
+                                }
                                 className="flex-1 bg-blue-600 disabled:opacity-40 text-white font-black py-3 rounded-xl transition hover:bg-blue-700 flex items-center justify-center gap-1.5">
                                 Elegir productos →
                             </button>
