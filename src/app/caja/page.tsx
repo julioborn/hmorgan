@@ -216,6 +216,7 @@ export default function CajaPage() {
     const [sesion, setSesion] = useState<CajaSession | null | undefined>(undefined);
     const [pedidosActivos, setPedidosActivos] = useState(true);
     const [reservasActivas, setReservasActivas] = useState(true);
+    const [deliveryActivo, setDeliveryActivo] = useState(true);
     const [reservasPendientes, setReservasPendientes] = useState(0);
     const [pedidos, setPedidos] = useState<Pedido[]>([]);
     const [loading, setLoading] = useState(true);
@@ -749,6 +750,7 @@ export default function CajaPage() {
     useEffect(() => {
         fetch("/api/config/pedidos").then(r => r.json()).then(d => setPedidosActivos(d.activo ?? true));
         fetch("/api/config/reservas").then(r => r.json()).then(d => setReservasActivas(d.activo ?? true));
+        fetch("/api/config/delivery").then(r => r.json()).then(d => setDeliveryActivo(d.activo ?? true));
     }, []);
 
     useEffect(() => {
@@ -887,6 +889,12 @@ export default function CajaPage() {
         const next = !pedidosActivos;
         setPedidosActivos(next);
         await fetch("/api/config/pedidos", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activos: next }) });
+    }
+
+    async function toggleDeliveryActivo() {
+        const next = !deliveryActivo;
+        setDeliveryActivo(next);
+        await fetch("/api/config/delivery", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activo: next }) });
     }
 
     async function toggleReservasActivas() {
@@ -2241,6 +2249,13 @@ export default function CajaPage() {
                         <button onClick={togglePedidosActivos}
                             className={`relative flex h-5 w-9 shrink-0 cursor-pointer rounded-full items-center transition-colors duration-200 ${pedidosActivos ? "bg-red-500" : "bg-gray-600"}`}>
                             <span className={`absolute h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-200 ${pedidosActivos ? "translate-x-[18px]" : "translate-x-[2px]"}`} />
+                        </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-white/80">Delivery</span>
+                        <button onClick={toggleDeliveryActivo}
+                            className={`relative flex h-5 w-9 shrink-0 cursor-pointer rounded-full items-center transition-colors duration-200 ${deliveryActivo ? "bg-red-500" : "bg-gray-600"}`}>
+                            <span className={`absolute h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-200 ${deliveryActivo ? "translate-x-[18px]" : "translate-x-[2px]"}`} />
                         </button>
                     </div>
                     <div className="flex items-center gap-2">

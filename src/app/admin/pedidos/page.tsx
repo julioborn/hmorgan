@@ -32,6 +32,8 @@ export default function AdminPedidosPage() {
 
     const [pedidosActivos, setPedidosActivos]   = useState<boolean | null>(null);
     const [togglingPedidos, setTogglingPedidos] = useState(false);
+    const [deliveryActivo, setDeliveryActivo]   = useState<boolean | null>(null);
+    const [togglingDelivery, setTogglingDelivery] = useState(false);
     const prevStatesRef      = useRef<Record<string, string>>({});
     const prevItemListosRef  = useRef<Record<string, Set<string>>>({});
     const initialLoadDoneRef = useRef(false);
@@ -52,6 +54,7 @@ export default function AdminPedidosPage() {
     useEffect(() => {
         fetch("/api/caja/status", { credentials: "include" }).then(r => r.json()).then(d => setCajaAbierta(!!d.abierta)).catch(() => setCajaAbierta(false));
         fetch("/api/config/pedidos").then(r => r.json()).then(d => setPedidosActivos(!!d.activo)).catch(() => {});
+        fetch("/api/config/delivery").then(r => r.json()).then(d => setDeliveryActivo(!!d.activo)).catch(() => {});
     }, []);
 
     useEffect(() => {
@@ -129,6 +132,14 @@ export default function AdminPedidosPage() {
         const res = await fetch("/api/config/pedidos", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activos: !pedidosActivos }) });
         if (res.ok) setPedidosActivos(p => !p);
         setTogglingPedidos(false);
+    }
+
+    async function toggleDelivery() {
+        if (togglingDelivery || deliveryActivo === null) return;
+        setTogglingDelivery(true);
+        const res = await fetch("/api/config/delivery", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activo: !deliveryActivo }) });
+        if (res.ok) setDeliveryActivo(d => !d);
+        setTogglingDelivery(false);
     }
 
     async function cambiarEstado(id: string, estado: string) {
@@ -287,12 +298,12 @@ export default function AdminPedidosPage() {
                         <h1 className="text-xl font-black text-white">Pedidos</h1>
                         <p className="text-xs text-gray-500">{pedidos.filter(p => ["pendiente","preparando","listo","entregado"].includes(p.estado)).length} activos</p>
                     </div>
-                    {pedidosActivos !== null && (
+                    {deliveryActivo !== null && (
                         <div className="flex items-center gap-2">
                             <span className="text-xs font-semibold text-gray-400">Delivery</span>
-                            <button onClick={togglePedidos} disabled={togglingPedidos}
-                                className={`relative flex h-6 w-11 rounded-full items-center transition-colors duration-200 disabled:opacity-50 ${pedidosActivos ? "bg-emerald-500" : "bg-gray-600"}`}>
-                                <span className={`absolute h-5 w-5 rounded-full bg-white shadow-md transition-transform duration-200 ${pedidosActivos ? "translate-x-[22px]" : "translate-x-[2px]"}`} />
+                            <button onClick={toggleDelivery} disabled={togglingDelivery}
+                                className={`relative flex h-6 w-11 rounded-full items-center transition-colors duration-200 disabled:opacity-50 ${deliveryActivo ? "bg-emerald-500" : "bg-gray-600"}`}>
+                                <span className={`absolute h-5 w-5 rounded-full bg-white shadow-md transition-transform duration-200 ${deliveryActivo ? "translate-x-[22px]" : "translate-x-[2px]"}`} />
                             </button>
                         </div>
                     )}

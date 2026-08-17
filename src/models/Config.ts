@@ -19,6 +19,10 @@ const ConfigSchema = new Schema(
             type: Number,
             default: 0,
         },
+        deliveryActivo: {
+            type: Boolean,
+            default: true,
+        },
     },
     {
         timestamps: true,

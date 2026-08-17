@@ -177,6 +177,7 @@ interface CartDrawerProps {
     enviando: boolean;
     total: number;
     costoEnvio: number;
+    deliveryActivo: boolean;
     metodoPago: string;
     setMetodoPago: (v: string) => void;
     onClose: () => void;
@@ -191,7 +192,7 @@ function CartDrawer({
     usarOtraDireccion, setUsarOtraDireccion, onEliminarDireccion,
     horarioPreferido, setHorarioPreferido,
     onSetNota, onSetCarnes, onSelectCoords,
-    enviando, total, costoEnvio, metodoPago, setMetodoPago,
+    enviando, total, costoEnvio, deliveryActivo, metodoPago, setMetodoPago,
     onClose, onVaciar, onEliminarLinea, onEnviar,
 }: CartDrawerProps) {
     const totalFinal = total + (tipoEntrega === "envio" ? costoEnvio : 0);
@@ -278,12 +279,21 @@ function CartDrawer({
 
                 <div className="mt-5 space-y-3">
                     <div className="flex gap-3">
-                        {["retira", "envio"].map((tipo) => (
-                            <button key={tipo} onClick={() => setTipoEntrega(tipo)}
-                                className={`flex-1 py-2 rounded-xl font-semibold text-sm border transition ${tipoEntrega === tipo ? "bg-red-600 text-white border-red-600" : "bg-white text-gray-700 border-gray-300"}`}>
-                                {tipo === "retira" ? "Retira en el bar" : "Envío a domicilio"}
+                        <button onClick={() => setTipoEntrega("retira")}
+                            className={`flex-1 py-2 rounded-xl font-semibold text-sm border transition ${tipoEntrega === "retira" ? "bg-red-600 text-white border-red-600" : "bg-white text-gray-700 border-gray-300"}`}>
+                            Retira en el bar
+                        </button>
+                        {deliveryActivo && (
+                            <button onClick={() => setTipoEntrega("envio")}
+                                className={`flex-1 py-2 rounded-xl font-semibold text-sm border transition ${tipoEntrega === "envio" ? "bg-red-600 text-white border-red-600" : "bg-white text-gray-700 border-gray-300"}`}>
+                                Envío a domicilio
                             </button>
-                        ))}
+                        )}
+                        {!deliveryActivo && (
+                            <div className="flex-1 py-2 rounded-xl font-semibold text-sm border border-gray-200 bg-gray-50 text-gray-400 text-center">
+                                Delivery no disponible
+                            </div>
+                        )}
                     </div>
 
                     {tipoEntrega === "envio" && (
@@ -457,6 +467,7 @@ export default function PedidosClientePage() {
     const [mapLng, setMapLng] = useState<number | null>(null);
     const [telefono, setTelefono] = useState<string>("");
     const [costoEnvio, setCostoEnvio] = useState<number>(0);
+    const [deliveryActivo, setDeliveryActivo] = useState(true);
     const [metodoPago, setMetodoPago] = useState<string>("efectivo");
     const [opcionModal, setOpcionModal] = useState<{ item: MenuItem; seleccion: Record<string, string> } | null>(null);
     const router = useRouter();
@@ -519,6 +530,14 @@ export default function PedidosClientePage() {
         fetch("/api/config/envio", { cache: "no-store" })
             .then((r) => r.json())
             .then((d) => setCostoEnvio(d.costoEnvio ?? 0))
+            .catch(() => {});
+        fetch("/api/config/delivery", { cache: "no-store" })
+            .then((r) => r.json())
+            .then((d) => {
+                setDeliveryActivo(d.activo ?? true);
+                // Si delivery está desactivado, forzar retira
+                if (!d.activo) setTipoEntrega("retira");
+            })
             .catch(() => {});
     }, []);
 
@@ -819,7 +838,7 @@ export default function PedidosClientePage() {
         onSetNota: setNota,
         onSetCarnes: setCarnes,
         onSelectCoords: (lat, lng) => { setMapLat(lat); setMapLng(lng); },
-        enviando, total, costoEnvio,
+        enviando, total, costoEnvio, deliveryActivo,
         metodoPago, setMetodoPago,
         onClose: () => setDrawerOpen(false),
         onVaciar: vaciarCarrito,
