@@ -2428,7 +2428,7 @@ export default function CajaPage() {
                                     className="flex items-center gap-1.5 bg-black text-white font-bold text-xs px-3 py-2 rounded-xl transition shadow-sm active:scale-[0.98]">
                                     <Plus size={14} /> Nueva comanda
                                 </button>
-                                <button onClick={() => { setDeliveryForm({ nombre: "", telefono: "", direccion: "", horario: "" }); setDeliveryModal(true); }}
+                                <button onClick={() => { setDeliveryForm({ nombre: "", telefono: "", direccion: "", horario: "", tipoEntrega: "envio" }); setDeliveryModal(true); }}
                                     className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3 py-2 rounded-xl transition shadow-sm active:scale-[0.98]">
                                     <Plus size={14} /> Delivery
                                 </button>
