@@ -252,7 +252,7 @@ function CartDrawer({
                                                 className="w-8 h-8 flex items-center justify-center text-red-500 font-bold hover:bg-gray-100 transition text-lg">−</button>
                                             <span className="w-6 text-center text-sm font-black text-gray-900">{line.carnes ?? 1}</span>
                                             <button
-                                                onClick={() => onSetCarnes(line.lineId, Math.min(3, (line.carnes ?? 1) + 1))}
+                                                onClick={() => onSetCarnes(line.lineId, Math.min(10, (line.carnes ?? 1) + 1))}
                                                 className="w-8 h-8 flex items-center justify-center text-red-500 font-bold hover:bg-gray-100 transition text-lg">+</button>
                                         </div>
                                         {(() => {
