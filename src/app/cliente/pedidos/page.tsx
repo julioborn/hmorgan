@@ -38,6 +38,7 @@ type CartLine = {
 const formatPrice = (value: number) =>
     new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(value);
 
+const PRECIO_CARNE_EXTRA = 4000;
 const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
 const MAIN_ORDER = ["PARRILLA", "PIZZAS", "HAMBURGUESAS", "SANDWICHES", "PICADAS", "ENSALADAS", "FRITURAS", "BEBIDAS", "POSTRE Y CAFE"];
 
@@ -226,7 +227,17 @@ function CartDrawer({
                                                 ))}
                                             </div>
                                         )}
-                                        <p className="text-sm text-gray-500 mt-0.5">×{line.cantidad} — ${formatPrice(producto.precio * line.cantidad)}</p>
+                                                        {(() => {
+                                            const extraCarnes = producto.categoria === "HAMBURGUESAS" && line.carnes !== undefined
+                                                ? Math.max(0, line.carnes - defaultCarnes(producto)) * PRECIO_CARNE_EXTRA * line.cantidad
+                                                : 0;
+                                            const lineTotal = producto.precio * line.cantidad + extraCarnes;
+                                            return (
+                                                <p className="text-sm text-gray-500 mt-0.5">
+                                                    ×{line.cantidad} — ${formatPrice(lineTotal)}
+                                                </p>
+                                            );
+                                        })()}
                                     </div>
                                     <button onClick={() => onEliminarLinea(line.lineId)} className="text-red-500 hover:text-red-700 p-1 shrink-0">
                                         <X size={18} />
@@ -244,7 +255,12 @@ function CartDrawer({
                                                 onClick={() => onSetCarnes(line.lineId, Math.min(3, (line.carnes ?? 1) + 1))}
                                                 className="w-8 h-8 flex items-center justify-center text-red-500 font-bold hover:bg-gray-100 transition text-lg">+</button>
                                         </div>
-                                        <span className="text-xs text-gray-400">máx. 3</span>
+                                        {(() => {
+                                            const extra = Math.max(0, (line.carnes ?? 1) - defaultCarnes(producto));
+                                            return extra > 0
+                                                ? <span className="text-xs font-semibold text-red-500">+${formatPrice(extra * PRECIO_CARNE_EXTRA)} carne{extra > 1 ? "s" : ""} extra</span>
+                                                : <span className="text-xs text-gray-400">+${formatPrice(PRECIO_CARNE_EXTRA)} c/extra</span>;
+                                        })()}
                                     </div>
                                 )}
                                 <input
@@ -694,6 +710,11 @@ export default function PedidosClientePage() {
                     lng: tipoEntrega === "envio" && mapLng ? mapLng : undefined,
                     horarioPreferido: horarioPreferido.trim() || undefined,
                     metodoPago: MERCADOPAGO_ACTIVO && metodoPago === "mercadopago" ? "mercadopago" : (metodoPago || undefined),
+                    cargoExtraCarnes: cartLines.reduce((acc, line) => {
+                        const item = menu.find(m => m._id === line.menuItemId);
+                        if (item?.categoria !== "HAMBURGUESAS" || line.carnes === undefined) return acc;
+                        return acc + Math.max(0, line.carnes - defaultCarnes(item)) * PRECIO_CARNE_EXTRA * line.cantidad;
+                    }, 0),
                 }),
             });
 
@@ -754,7 +775,11 @@ export default function PedidosClientePage() {
     const totalItems = cartLines.reduce((sum, l) => sum + l.cantidad, 0);
     const total = cartLines.reduce((acc, line) => {
         const item = menu.find(m => m._id === line.menuItemId);
-        return acc + (item?.precio ?? 0) * line.cantidad;
+        const base = (item?.precio ?? 0) * line.cantidad;
+        const extraCarnes = item?.categoria === "HAMBURGUESAS" && line.carnes !== undefined
+            ? Math.max(0, line.carnes - defaultCarnes(item)) * PRECIO_CARNE_EXTRA * line.cantidad
+            : 0;
+        return acc + base + extraCarnes;
     }, 0);
     const totalFinal = total + (tipoEntrega === "envio" ? costoEnvio : 0);
 

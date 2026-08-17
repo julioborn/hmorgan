@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
             { upsert: true, new: true }
         );
 
-        const { items, tipoEntrega, direccion, fuente, mesa, comensales, nombreComanda, notaEmpleado, notaCliente, horarioPreferido, lat, lng, clienteId, eventoId, comensalesIds, metodoPago, telefonoContacto } = await req.json();
+        const { items, tipoEntrega, direccion, fuente, mesa, comensales, nombreComanda, notaEmpleado, notaCliente, horarioPreferido, lat, lng, clienteId, eventoId, comensalesIds, metodoPago, telefonoContacto, cargoExtraCarnes } = await req.json();
         const esAutoservicio = fuente === "autoservicio";
         const esEmpleado = ["empleado", "cajero", "admin", "superadmin"].includes(payload.role);
 
@@ -168,6 +168,7 @@ export async function POST(req: NextRequest) {
             : 0;
 
         const costoEnvio = tipoEntrega === "envio" ? (config.costoEnvio || 0) : 0;
+        const extraCarnes = esEmpleado ? 0 : Math.max(0, Number(cargoExtraCarnes) || 0);
 
         // 🧠 Buscar usuario con seguridad
         const user = await User.findById(payload.sub);
@@ -251,7 +252,7 @@ export async function POST(req: NextRequest) {
             userId: user._id,
             items,
             tipoEntrega,
-            total: total + costoEnvio,
+            total: total + costoEnvio + extraCarnes,
             costoEnvio,
             direccion: tipoEntrega === "envio" ? direccion : undefined,
             estado: "pendiente",
