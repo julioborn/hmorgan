@@ -1371,7 +1371,7 @@ export default function CajaPage() {
 
         try {
             const ctrl = new AbortController();
-            const tid = setTimeout(() => ctrl.abort(), 15000);
+            const tid = setTimeout(() => ctrl.abort(), 1500);
             const res = await fetch(`${PRINT_SERVER}/imprimir/ticket`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -1430,7 +1430,7 @@ export default function CajaPage() {
 
         try {
             const ctrl = new AbortController();
-            const tid = setTimeout(() => ctrl.abort(), 15000);
+            const tid = setTimeout(() => ctrl.abort(), 1500);
             const res = await fetch(`${PRINT_SERVER}/imprimir/ticket`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -1551,7 +1551,7 @@ export default function CajaPage() {
         // Intentar servidor local de impresión
         try {
             const ctrl = new AbortController();
-            const tid = setTimeout(() => ctrl.abort(), 15000);
+            const tid = setTimeout(() => ctrl.abort(), 1500);
             const promesas: Promise<Response>[] = [];
             const costoEnvioEfectivoPrint = p.tipoEntrega === "envio" ? (p.costoEnvio || costoDelivery) : 0;
             const recargoItem = costoEnvioEfectivoPrint > 0
@@ -1637,7 +1637,7 @@ export default function CajaPage() {
 
         try {
             const ctrl = new AbortController();
-            const tid = setTimeout(() => ctrl.abort(), 5000);
+            const tid = setTimeout(() => ctrl.abort(), 1500);
             const promesas: Promise<Response>[] = [];
             if (comida.length > 0) promesas.push(fetch(`${PRINT_SERVER}/imprimir/comanda`, { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal, body: JSON.stringify(payloadCocina) }));
             if (bebidas.length > 0) promesas.push(fetch(`${PRINT_SERVER}/imprimir/comanda`, { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal, body: JSON.stringify(payloadBarra) }));
