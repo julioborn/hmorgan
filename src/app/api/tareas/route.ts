@@ -31,12 +31,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     }
 
-    const { texto } = await req.json();
+    const { texto, tipo } = await req.json();
     if (!texto?.trim()) return NextResponse.json({ error: "Texto requerido" }, { status: 400 });
 
+    const tipoValido = tipo === "cierre" ? "cierre" : "apertura";
     await connectMongoDB();
-    const count = await TareaEmpleado.countDocuments();
-    const tarea = await TareaEmpleado.create({ texto: texto.trim(), orden: count });
+    const count = await TareaEmpleado.countDocuments({ tipo: tipoValido });
+    const tarea = await TareaEmpleado.create({ texto: texto.trim(), tipo: tipoValido, orden: count });
 
     return NextResponse.json(tarea, { status: 201 });
 }
