@@ -149,12 +149,13 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
   const [llamarConfirm, setLlamarConfirm] = useState<"mozo" | "cuenta" | null>(null);
   const [pedidoCancelado, setPedidoCancelado] = useState<{ _id: string; tipoEntrega?: string; numeroDia?: number } | null>(null);
   const [canjeCumple, setCanjeCumple] = useState<{ _id: string; estado: string } | null>(null);
+  const [saldoPuntos, setSaldoPuntos] = useState<number>(puntos);
   const prevActiveRef = useRef<Set<string>>(new Set());
   const firstPollRef  = useRef(false);
 
   async function solicitarCanje(r: Reward) {
-    if (puntos < r.puntos) {
-      await swalBase.fire({ title: "Puntos insuficientes", text: `Necesitás ${r.puntos} pts y tenés ${puntos} pts.`, icon: "warning" });
+    if (saldoPuntos < r.puntos) {
+      await swalBase.fire({ title: "Puntos insuficientes", text: `Necesitás ${r.puntos} pts y tenés ${saldoPuntos} pts.`, icon: "warning" });
       return;
     }
     const confirm = await swalBase.fire({ title: `Canjear "${r.titulo}"`, text: `Usarás ${r.puntos} puntos. La solicitud quedará pendiente hasta que la acepten en caja.`, icon: "question", showCancelButton: true, confirmButtonText: "Solicitar canje", cancelButtonText: "Cancelar" });
@@ -245,6 +246,10 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
     fetch("/api/autoservicio", { credentials: "include" })
       .then(r => r.json())
       .then(d => { setSesionAutoserv(!!(d?.sesion)); })
+      .catch(() => {});
+    fetch("/api/puntos", { cache: "no-store" })
+      .then(r => r.json())
+      .then(d => { if (typeof d.saldoReal === "number") setSaldoPuntos(d.saldoReal); })
       .catch(() => {});
   }, []);
 
@@ -375,7 +380,7 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
           Hola, <span className="font-bold text-black">{nombre}</span>
         </p>
         <span className="text-sm font-bold text-red-600 bg-red-50 border border-red-100 px-4 py-2 rounded-full">
-          ★ {puntos} pts
+          ★ {saldoPuntos} pts
         </span>
       </div>
 
@@ -801,10 +806,10 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
             <div className="px-5 py-4 border-t border-gray-100 space-y-2">
               <div className="flex items-center justify-between text-sm text-gray-500">
                 <span>Tus puntos</span>
-                <span className="font-bold text-gray-900">★ {puntos} pts</span>
+                <span className="font-bold text-gray-900">★ {saldoPuntos} pts</span>
               </div>
-              {puntos < canjeModal.puntos && (
-                <p className="text-xs text-red-500 font-semibold text-center">Te faltan {canjeModal.puntos - puntos} puntos para este canje</p>
+              {saldoPuntos < canjeModal.puntos && (
+                <p className="text-xs text-red-500 font-semibold text-center">Te faltan {canjeModal.puntos - saldoPuntos} puntos para este canje</p>
               )}
               {canjeSolicitados.has(canjeModal._id) ? (
                 <div className="w-full flex items-center justify-center gap-2 bg-emerald-100 text-emerald-700 font-bold py-3 rounded-2xl text-sm">
@@ -813,7 +818,7 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
               ) : (
                 <button
                   onClick={() => solicitarCanje(canjeModal)}
-                  disabled={canjeSolicitando || puntos < canjeModal.puntos}
+                  disabled={canjeSolicitando || saldoPuntos < canjeModal.puntos}
                   className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-bold py-3 rounded-2xl text-sm transition active:scale-[0.98]">
                   <Gift size={15} />
                   {canjeSolicitando ? "Solicitando..." : "Solicitar canje"}
