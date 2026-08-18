@@ -34,6 +34,7 @@ export default function MiQRPage() {
     const [tab, setTab] = useState<"puntos" | "canjes">("puntos");
     const [items, setItems] = useState<Tx[]>([]);
     const [canjes, setCanjes] = useState<Canje[]>([]);
+    const [saldoReal, setSaldoReal] = useState<number | null>(null);
     const [loadingPuntos, setLoadingPuntos] = useState(true);
     const [loadingCanjes, setLoadingCanjes] = useState(true);
     const [page, setPage] = useState(1);
@@ -52,7 +53,7 @@ export default function MiQRPage() {
 
     useEffect(() => {
         fetch("/api/puntos", { cache: "no-store" })
-            .then(r => r.json()).then(d => setItems(d.items || [])).catch(() => setItems([])).finally(() => setLoadingPuntos(false));
+            .then(r => r.json()).then(d => { setItems(d.items || []); if (typeof d.saldoReal === "number") setSaldoReal(d.saldoReal); }).catch(() => setItems([])).finally(() => setLoadingPuntos(false));
         fetch("/api/canjes", { cache: "no-store" })
             .then(r => r.json()).then(d => setCanjes(Array.isArray(d) ? d : [])).catch(() => setCanjes([])).finally(() => setLoadingCanjes(false));
     }, []);
@@ -91,7 +92,7 @@ export default function MiQRPage() {
                         <p className="text-xs text-gray-400 mt-0.5">Mostrá este código en caja para sumar puntos</p>
                     </div>
                     <div className="text-right">
-                        <span className="text-2xl font-black text-gray-900">{user.puntos ?? 0}</span>
+                        <span className="text-2xl font-black text-gray-900">{saldoReal ?? user.puntos ?? 0}</span>
                         <span className="ml-1 text-red-600 text-base font-bold">pts</span>
                     </div>
                 </div>
