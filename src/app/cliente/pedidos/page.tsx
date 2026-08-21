@@ -343,7 +343,7 @@ function CartDrawer({
 
                 <div className="mt-3">
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">
-                        Horario preferido <span className="font-normal normal-case text-gray-400">(opcional)</span>
+                        Horario preferido <span className="text-red-500">*</span>
                     </label>
                     <select
                         value={horarioPreferido}
@@ -696,6 +696,8 @@ export default function PedidosClientePage() {
             return swalBase.fire("⚠️", "Seleccioná al menos un ítem", "warning");
         if (tipoEntrega === "envio" && !(direccionEnvio || direccionPrincipal))
             return swalBase.fire("⚠️", "Ingresá una dirección de envío", "warning");
+        if (!horarioPreferido)
+            return swalBase.fire("⚠️", "Seleccioná un horario preferido", "warning");
 
         // Doble confirmación
         const totalFinalConfirm = total + (tipoEntrega === "envio" ? costoEnvio : 0);
