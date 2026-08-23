@@ -500,12 +500,10 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
                       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                     </svg>
 
-                    {/* ── Compás — centro derecha ── */}
-                    <svg className="absolute top-1/2 right-3 opacity-12" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.1" strokeLinecap="round" style={{ transform: "translateY(-50%) rotate(15deg)" }}>
-                      <circle cx="12" cy="5" r="2"/>
-                      <path d="M12 7v4M9.5 18l2.5-7 2.5 7"/>
-                      <line x1="8" y1="22" x2="11" y2="16"/>
-                      <line x1="16" y1="22" x2="13" y2="16"/>
+                    {/* ── Libro abierto — centro derecha ── */}
+                    <svg className="absolute top-1/2 right-3 opacity-15" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" style={{ transform: "translateY(-50%)" }}>
+                      <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
+                      <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
                     </svg>
 
                     {/* Contenido */}
