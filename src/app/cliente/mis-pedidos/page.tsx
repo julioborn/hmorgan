@@ -215,7 +215,7 @@ export default function MisPedidosPage() {
 
             <div className="max-w-xl mx-auto px-4 pt-4">
                 {/* Tabs */}
-                <div className="flex gap-3 mb-5">
+                <div className="flex gap-3 mb-5 justify-center">
                     <button
                         onClick={() => { setVista("activos"); setPage(1); }}
                         className={`px-5 py-2 rounded-full text-sm font-medium border transition-all ${vista === "activos"
