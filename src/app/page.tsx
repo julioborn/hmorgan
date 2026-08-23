@@ -459,6 +459,55 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
             {invitaciones.map(inv => {
               const fechaEvento = new Date(inv.fecha.slice(0, 10) + "T12:00:00");
               const fechaStr = fechaEvento.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+              const esMaestro = /maestro/i.test(inv.titulo);
+
+              if (esMaestro) {
+                return (
+                  <div key={inv._id} className="relative rounded-2xl overflow-hidden shadow-2xl border border-emerald-900/60" style={{ minHeight: "190px", background: "#162d1a" }}>
+                    {/* Líneas de pizarrón */}
+                    <div className="absolute inset-0 pointer-events-none" style={{
+                      backgroundImage: "repeating-linear-gradient(transparent, transparent 27px, rgba(255,255,255,0.06) 27px, rgba(255,255,255,0.06) 28px)",
+                      backgroundPosition: "0 8px",
+                    }} />
+                    {/* Halo verde suave */}
+                    <div className="absolute -top-10 -left-10 w-52 h-52 rounded-full bg-emerald-700 blur-3xl opacity-30 pointer-events-none" />
+                    <div className="absolute -bottom-8 -right-8 w-44 h-44 rounded-full bg-lime-600 blur-3xl opacity-20 pointer-events-none" />
+                    {/* Decoraciones escolares flotantes */}
+                    <span className="absolute top-3 right-5   text-xl select-none leading-none opacity-70">🍎</span>
+                    <span className="absolute top-3 right-14  text-base select-none leading-none opacity-60">✏️</span>
+                    <span className="absolute top-10 right-6  text-sm select-none leading-none opacity-50">⭐</span>
+                    <span className="absolute bottom-6 left-5 text-xl select-none leading-none opacity-60">📚</span>
+                    <span className="absolute bottom-3 left-16 text-base select-none leading-none opacity-50">📝</span>
+                    <span className="absolute top-5 left-5   text-base select-none leading-none opacity-40">🎓</span>
+                    <span className="absolute bottom-8 right-8 text-sm select-none leading-none opacity-50">✏️</span>
+                    {/* Contenido */}
+                    <div className="relative z-10 p-5 flex flex-col" style={{ minHeight: "190px" }}>
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="font-black text-2xl leading-tight text-white" style={{ textShadow: "0 2px 12px rgba(0,0,0,0.6)" }}>{inv.titulo}</h3>
+                        {(inv.precio ?? 0) > 0 && (
+                          <span className="shrink-0 bg-white/10 border border-emerald-400/40 backdrop-blur-sm text-emerald-200 text-sm font-black px-3 py-1 rounded-full">
+                            ${new Intl.NumberFormat("es-AR").format(inv.precio!)}
+                          </span>
+                        )}
+                      </div>
+                      {inv.descripcion && (
+                        <p className="text-sm text-emerald-100/80 line-clamp-2 mt-2">{inv.descripcion}</p>
+                      )}
+                      <div className="flex items-center gap-2 mt-auto pt-4">
+                        <span className="flex items-center gap-1.5 bg-white/10 border border-emerald-400/30 backdrop-blur-sm text-emerald-100 text-xs font-semibold px-3 py-1 rounded-full capitalize">
+                          <CalendarDays size={12} />
+                          {fechaStr}
+                        </span>
+                        {inv.hora && (
+                          <span className="bg-white/10 border border-emerald-400/30 backdrop-blur-sm text-emerald-100 text-xs font-semibold px-3 py-1 rounded-full">
+                            {inv.hora}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
 
               if (inv.tema === "trasnoche") {
                 return (
