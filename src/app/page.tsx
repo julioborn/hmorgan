@@ -463,43 +463,93 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
 
               if (esMaestro) {
                 return (
-                  <div key={inv._id} className="relative rounded-2xl overflow-hidden shadow-2xl border border-emerald-900/60" style={{ minHeight: "190px", background: "#162d1a" }}>
-                    {/* Líneas de pizarrón */}
+                  <div key={inv._id} className="relative rounded-2xl overflow-hidden shadow-2xl" style={{ minHeight: "200px", background: "#0e1a10" }}>
+                    {/* Líneas horizontales tiza — pizarrón rayado */}
                     <div className="absolute inset-0 pointer-events-none" style={{
-                      backgroundImage: "repeating-linear-gradient(transparent, transparent 27px, rgba(255,255,255,0.06) 27px, rgba(255,255,255,0.06) 28px)",
-                      backgroundPosition: "0 8px",
+                      backgroundImage: "repeating-linear-gradient(transparent, transparent 30px, rgba(255,255,255,0.055) 30px, rgba(255,255,255,0.055) 31px)",
+                      backgroundPosition: "0 14px",
                     }} />
-                    {/* Halo verde suave */}
-                    <div className="absolute -top-10 -left-10 w-52 h-52 rounded-full bg-emerald-700 blur-3xl opacity-30 pointer-events-none" />
-                    <div className="absolute -bottom-8 -right-8 w-44 h-44 rounded-full bg-lime-600 blur-3xl opacity-20 pointer-events-none" />
-                    {/* Decoraciones escolares flotantes */}
-                    <span className="absolute top-3 right-5   text-xl select-none leading-none opacity-70">🍎</span>
-                    <span className="absolute top-3 right-14  text-base select-none leading-none opacity-60">✏️</span>
-                    <span className="absolute top-10 right-6  text-sm select-none leading-none opacity-50">⭐</span>
-                    <span className="absolute bottom-6 left-5 text-xl select-none leading-none opacity-60">📚</span>
-                    <span className="absolute bottom-3 left-16 text-base select-none leading-none opacity-50">📝</span>
-                    <span className="absolute top-5 left-5   text-base select-none leading-none opacity-40">🎓</span>
-                    <span className="absolute bottom-8 right-8 text-sm select-none leading-none opacity-50">✏️</span>
+                    {/* Borde estilo marco de pizarrón */}
+                    <div className="absolute inset-0 rounded-2xl pointer-events-none" style={{ boxShadow: "inset 0 0 0 3px rgba(255,255,255,0.07)" }} />
+
+                    {/* ── Birrete (graduation cap) — arriba derecha ── */}
+                    <svg className="absolute top-3 right-4 opacity-20" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 10L12 5 2 10l10 5 10-5z"/>
+                      <path d="M6 12.5v4c0 0 2 2 6 2s6-2 6-2v-4"/>
+                      <line x1="22" y1="10" x2="22" y2="16"/>
+                    </svg>
+
+                    {/* ── Lápiz — esquina inferior derecha, inclinado ── */}
+                    <svg className="absolute bottom-5 right-5 opacity-18" width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" style={{ transform: "rotate(40deg)" }}>
+                      <path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                      <line x1="15" y1="5" x2="19" y2="9"/>
+                    </svg>
+
+                    {/* ── Regla — arriba, inclinada ── */}
+                    <svg className="absolute top-2 right-16 opacity-15" width="68" height="22" viewBox="0 0 68 22" fill="none" stroke="white" strokeWidth="1.1" strokeLinecap="round" style={{ transform: "rotate(-8deg)" }}>
+                      <rect x="1" y="1" width="66" height="20" rx="2"/>
+                      <line x1="12" y1="1" x2="12" y2="11"/>
+                      <line x1="22" y1="1" x2="22" y2="8"/>
+                      <line x1="32" y1="1" x2="32" y2="11"/>
+                      <line x1="42" y1="1" x2="42" y2="8"/>
+                      <line x1="52" y1="1" x2="52" y2="11"/>
+                    </svg>
+
+                    {/* ── Libro abierto — abajo izquierda ── */}
+                    <svg className="absolute bottom-4 left-4 opacity-18" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
+                      <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
+                    </svg>
+
+                    {/* ── Estrella de tiza — arriba izquierda ── */}
+                    <svg className="absolute top-4 left-4 opacity-15" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                    </svg>
+
+                    {/* ── Compás — centro derecha ── */}
+                    <svg className="absolute top-1/2 right-3 opacity-12" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.1" strokeLinecap="round" style={{ transform: "translateY(-50%) rotate(15deg)" }}>
+                      <circle cx="12" cy="5" r="2"/>
+                      <path d="M12 7v4M9.5 18l2.5-7 2.5 7"/>
+                      <line x1="8" y1="22" x2="11" y2="16"/>
+                      <line x1="16" y1="22" x2="13" y2="16"/>
+                    </svg>
+
                     {/* Contenido */}
-                    <div className="relative z-10 p-5 flex flex-col" style={{ minHeight: "190px" }}>
+                    <div className="relative z-10 p-5 flex flex-col" style={{ minHeight: "200px" }}>
                       <div className="flex items-start justify-between gap-3">
-                        <h3 className="font-black text-2xl leading-tight text-white" style={{ textShadow: "0 2px 12px rgba(0,0,0,0.6)" }}>{inv.titulo}</h3>
+                        <h3 className="font-black text-2xl leading-tight" style={{
+                          color: "#f0ece0",
+                          textShadow: "0 0 12px rgba(255,255,255,0.25), 1px 1px 0 rgba(255,255,255,0.08), -1px 0px 0 rgba(255,255,255,0.06)",
+                          letterSpacing: "0.02em",
+                        }}>{inv.titulo}</h3>
                         {(inv.precio ?? 0) > 0 && (
-                          <span className="shrink-0 bg-white/10 border border-emerald-400/40 backdrop-blur-sm text-emerald-200 text-sm font-black px-3 py-1 rounded-full">
+                          <span className="shrink-0 text-sm font-black px-3 py-1 rounded-full" style={{
+                            border: "1px solid rgba(255,255,255,0.2)",
+                            background: "rgba(255,255,255,0.07)",
+                            color: "rgba(240,236,224,0.9)",
+                          }}>
                             ${new Intl.NumberFormat("es-AR").format(inv.precio!)}
                           </span>
                         )}
                       </div>
                       {inv.descripcion && (
-                        <p className="text-sm text-emerald-100/80 line-clamp-2 mt-2">{inv.descripcion}</p>
+                        <p className="text-sm line-clamp-2 mt-2" style={{ color: "rgba(240,236,224,0.65)" }}>{inv.descripcion}</p>
                       )}
                       <div className="flex items-center gap-2 mt-auto pt-4">
-                        <span className="flex items-center gap-1.5 bg-white/10 border border-emerald-400/30 backdrop-blur-sm text-emerald-100 text-xs font-semibold px-3 py-1 rounded-full capitalize">
+                        <span className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full capitalize" style={{
+                          border: "1px solid rgba(255,255,255,0.15)",
+                          background: "rgba(255,255,255,0.06)",
+                          color: "rgba(240,236,224,0.8)",
+                        }}>
                           <CalendarDays size={12} />
                           {fechaStr}
                         </span>
                         {inv.hora && (
-                          <span className="bg-white/10 border border-emerald-400/30 backdrop-blur-sm text-emerald-100 text-xs font-semibold px-3 py-1 rounded-full">
+                          <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{
+                            border: "1px solid rgba(255,255,255,0.15)",
+                            background: "rgba(255,255,255,0.06)",
+                            color: "rgba(240,236,224,0.8)",
+                          }}>
                             {inv.hora}
                           </span>
                         )}
