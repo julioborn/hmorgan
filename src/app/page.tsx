@@ -495,12 +495,6 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
                       <line x1="52" y1="1" x2="52" y2="11"/>
                     </svg>
 
-                    {/* ── Libro abierto — abajo izquierda ── */}
-                    <svg className="absolute bottom-4 left-4 opacity-18" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
-                      <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
-                    </svg>
-
                     {/* ── Estrella de tiza — arriba izquierda ── */}
                     <svg className="absolute top-4 left-4 opacity-15" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
                       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
