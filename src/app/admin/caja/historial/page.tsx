@@ -579,7 +579,8 @@ export default function CajaHistorialPage() {
             let matched = false;
             for (const s of (sesiones ?? [])) {
                 const apertura = new Date(s.fechaApertura);
-                const cierre   = s.fechaCierre ? new Date(s.fechaCierre) : new Date();
+                // +30s de margen para eventos cerrados justo después de fechaCierre
+                const cierre   = s.fechaCierre ? new Date(new Date(s.fechaCierre).getTime() + 30000) : new Date();
                 if (evDate >= apertura && evDate <= cierre) {
                     if (!map[s._id]) map[s._id] = [];
                     map[s._id].push(ev);

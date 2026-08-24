@@ -55,7 +55,6 @@ export async function POST(req: NextRequest) {
     );
     const eventosMap: Record<string, { total: number; porMetodo: Record<string, number> }> = {};
     for (const m of movEvento as any[]) {
-        // Extraer nombre del evento: "Venta directa evento: NOMBRE" o "Entradas evento: NOMBRE (N×)"
         const match = m.concepto.match(/^(?:Venta directa evento|Entradas evento): (.+?)(?:\s+\(\d+×\))?$/);
         const nombre = match?.[1] || "Evento";
         if (!eventosMap[nombre]) eventosMap[nombre] = { total: 0, porMetodo: {} };
@@ -64,21 +63,92 @@ export async function POST(req: NextRequest) {
     }
     const eventosResumen = Object.entries(eventosMap).map(([nombre, data]) => ({ nombre, ...data }));
 
+    // ── PASO 1: Cerrar eventos activos ANTES de grabar fechaCierre ──────────────
+    // Así su updatedAt queda ANTES de sesion.fechaCierre y el historial los asocia
+    // correctamente a esta sesión (no como "huérfanos").
+    const eventosActivosAhora = await Evento.find({ estado: "activo" }).lean<any[]>();
+
+    for (const ev of eventosActivosAhora) {
+        const evId = ev._id;
+
+        // Pedidos de este evento
+        const pedidosEv = await Pedido.find({ eventoId: evId })
+            .select("estado total metodoPago")
+            .lean<any[]>();
+
+        // IDs de pedidos de este evento
+        const pedidoIds = pedidosEv.map((p: any) => p._id.toString());
+
+        // Ventas directas (desde el documento del evento)
+        const ventas: any[] = ev.ventas ?? [];
+        const ventasEfectivo      = ventas.filter(v => v.metodoPago === "efectivo").reduce((a, v) => a + v.total, 0);
+        const ventasTransferencia  = ventas.filter(v => v.metodoPago === "transferencia").reduce((a, v) => a + v.total, 0);
+        const ventasTarjeta        = ventas.filter(v => v.metodoPago === "tarjeta").reduce((a, v) => a + v.total, 0);
+
+        // Tarjetas de entrada
+        const tarjetas: any[] = ev.tarjetas ?? [];
+        const precioTarjeta   = ev.precioTarjeta ?? 0;
+        const entradasCantidad = tarjetas.reduce((a: number, t: any) => a + t.cantidad, 0);
+        const entradasTotal    = entradasCantidad * precioTarjeta;
+
+        // Comandas cobradas (cerradas con total > 0)
+        const cobradas = pedidosEv.filter((p: any) => p.estado === "cerrado" && (p.total ?? 0) > 0);
+        const sinCobrar = pedidosEv.filter((p: any) => p.estado !== "cerrado" && p.estado !== "cancelado" && (p.total ?? 0) > 0);
+        const comandasEfectivo     = cobradas.filter((p: any) => p.metodoPago === "efectivo").reduce((a, p: any) => a + p.total, 0);
+        const comandasTransferencia = cobradas.filter((p: any) => p.metodoPago === "transferencia").reduce((a, p: any) => a + p.total, 0);
+        const comandasTarjeta      = cobradas.filter((p: any) => p.metodoPago === "tarjeta").reduce((a, p: any) => a + p.total, 0);
+        const comandasSinCobrar    = sinCobrar.reduce((a, p: any) => a + p.total, 0);
+
+        // Cobros parciales de comandas de este evento (desde CajaMovements de esta sesión)
+        const parcialesEv = (movimientos as any[]).filter((m: any) =>
+            m.concepto?.startsWith("Parcial") && pedidoIds.includes(m.pedidoId?.toString())
+        );
+        const parcialesEfectivo      = parcialesEv.filter(m => m.metodoPago === "efectivo").reduce((a, m) => a + m.monto, 0);
+        const parcialesTransferencia  = parcialesEv.filter(m => m.metodoPago === "transferencia").reduce((a, m) => a + m.monto, 0);
+        const parcialesTarjeta        = parcialesEv.filter(m => m.metodoPago === "tarjeta").reduce((a, m) => a + m.monto, 0);
+
+        const totalEfectivo      = ventasEfectivo      + comandasEfectivo      + parcialesEfectivo;
+        const totalTransferencia  = ventasTransferencia  + comandasTransferencia  + parcialesTransferencia;
+        const totalTarjeta        = ventasTarjeta        + comandasTarjeta        + parcialesTarjeta;
+        const totalGeneral        = totalEfectivo + totalTransferencia + totalTarjeta + entradasTotal + comandasSinCobrar;
+
+        await Evento.findByIdAndUpdate(evId, {
+            $set: {
+                estado: "cerrado",
+                cierreData: {
+                    fecha: new Date(),
+                    ventasEfectivo,
+                    ventasTransferencia,
+                    ventasTarjeta,
+                    entradasCantidad,
+                    entradasPrecio: precioTarjeta,
+                    entradasTotal,
+                    comandasEfectivo,
+                    comandasTransferencia,
+                    comandasTarjeta,
+                    comandasSinCobrar,
+                    totalEfectivo,
+                    totalTransferencia,
+                    totalTarjeta,
+                    totalGeneral,
+                },
+            },
+        });
+    }
+
+    // ── PASO 2: Auto-cerrar comandas de evento vacías ──────────────────────────
+    await Pedido.updateMany(
+        { eventoId: { $exists: true, $ne: null }, estado: { $nin: ["cerrado", "cancelado"] }, total: 0 },
+        { $set: { estado: "cerrado" } }
+    );
+
+    // ── PASO 3: Cerrar la sesión (DESPUÉS de eventos para que updatedAt < fechaCierre) ──
     sesion.estado = "cerrada";
     sesion.montoCierre = montoCierreNum;
     sesion.cerradaPor = payload.sub;
     sesion.fechaCierre = new Date();
     if (notas) sesion.notas = notas;
     await sesion.save();
-
-    // Cerrar cualquier evento activo al cerrar la caja
-    await Evento.updateMany({ estado: "activo" }, { $set: { estado: "cerrado" } });
-
-    // Auto-cerrar comandas de evento vacías (total=0) que quedaron abiertas
-    await Pedido.updateMany(
-        { eventoId: { $exists: true, $ne: null }, estado: { $nin: ["cerrado", "cancelado"] }, total: 0 },
-        { $set: { estado: "cerrado" } }
-    );
 
     return NextResponse.json({ ok: true, resumen, eventosResumen, sesion, montoInicial, montoCierre: montoCierreNum, efectivoSistema, diferencia, deliveryCount });
     } catch (e) {

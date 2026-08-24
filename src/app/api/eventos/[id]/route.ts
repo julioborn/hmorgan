@@ -63,6 +63,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     if (body.accion === "agregarTarjetas") {
+        if (evento.estado === "cerrado") {
+            return NextResponse.json({ error: "El evento está cerrado" }, { status: 400 });
+        }
         const cantidad = Number(body.cantidad);
         if (!cantidad || cantidad < 1) return NextResponse.json({ error: "Cantidad inválida" }, { status: 400 });
         const metodoPago = body.metodoPago || "efectivo";
