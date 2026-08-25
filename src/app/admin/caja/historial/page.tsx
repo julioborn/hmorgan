@@ -747,6 +747,7 @@ export default function CajaHistorialPage() {
                                             {eventos.length === 1 ? "Evento de esta sesión" : `${eventos.length} eventos de esta sesión`}
                                             <span className="ml-auto font-black text-amber-700 text-xs">{fmt(totalEventos)}</span>
                                         </p>
+                                        <p className="text-[10px] text-amber-500">⚠️ Ya incluido en "Ingresos caja" — no sumar por separado.</p>
                                         {eventos.map(ev => <EventoEnSesion key={ev._id} ev={ev} puedeEliminar={puedeEliminar} onDeleted={handleEventoDeleted} />)}
                                     </div>
                                 )}

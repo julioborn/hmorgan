@@ -4159,8 +4159,8 @@ export default function CajaPage() {
                                     {cierreEventosResumen.length > 0 && (
                                         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-2.5">
                                             <div>
-                                                <p className="text-[10px] font-black text-amber-700 uppercase tracking-wider flex items-center gap-1.5">⭐ Del total anterior · porción de eventos</p>
-                                                <p className="text-[10px] text-amber-600 mt-0.5">(ya incluido en el desglose por método)</p>
+                                                <p className="text-[10px] font-black text-amber-700 uppercase tracking-wider flex items-center gap-1.5">⭐ Desglose de eventos</p>
+                                                <p className="text-[10px] text-amber-600 mt-0.5">⚠️ Estos montos ya están sumados arriba en "Recaudado por método". No volver a sumarlos.</p>
                                             </div>
                                             {cierreEventosResumen.map(ev => (
                                                 <div key={ev.nombre} className="space-y-1">
