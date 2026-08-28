@@ -1056,6 +1056,7 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
   const [reservasHoyCount, setReservasHoyCount] = useState(0);
   const [autoservActivasCount, setAutoservActivasCount] = useState(0);
   const [tareasPendientes, setTareasPendientes] = useState(0);
+  const [eventosActivosCount, setEventosActivosCount] = useState(0);
 
   useEffect(() => {
     const tick = setInterval(() => setHora(new Date().getHours()), 60000);
@@ -1102,6 +1103,13 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
       .catch(() => { });
   }, []);
 
+  useEffect(() => {
+    fetch("/api/eventos?activo=true", { credentials: "include" })
+      .then(r => r.json())
+      .then(d => setEventosActivosCount(Array.isArray(d) ? d.length : 0))
+      .catch(() => { });
+  }, []);
+
   const saludo = hora < 12 ? "Buenos días" : hora < 20 ? "Buenas tardes" : "Buenas noches";
   const fechaHoy = new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
 
@@ -1136,6 +1144,30 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
           {comandasCount > 0 && (
             <span className="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1.5 bg-white text-red-600 text-xs font-black rounded-full flex items-center justify-center shadow-md border-2 border-black pointer-events-none">
               {comandasCount}
+            </span>
+          )}
+        </div>
+
+        <div className="relative">
+          <Link
+            href="/empleado/entradas"
+            className="w-full flex items-center gap-4 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl px-6 py-5 transition shadow-sm active:scale-[0.98] block"
+          >
+            <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+              <Ticket className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="font-extrabold text-lg leading-tight">Entradas</p>
+              <p className="text-amber-200 text-sm">
+                {eventosActivosCount > 0
+                  ? `${eventosActivosCount} evento${eventosActivosCount !== 1 ? "s" : ""} activo${eventosActivosCount !== 1 ? "s" : ""}`
+                  : "Sin eventos activos"}
+              </p>
+            </div>
+          </Link>
+          {eventosActivosCount > 0 && (
+            <span className="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1.5 bg-white text-amber-600 text-xs font-black rounded-full flex items-center justify-center shadow-md border-2 border-amber-600 pointer-events-none">
+              {eventosActivosCount}
             </span>
           )}
         </div>
