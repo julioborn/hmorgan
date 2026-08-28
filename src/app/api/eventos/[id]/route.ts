@@ -68,32 +68,33 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         }
         const cantidad = Number(body.cantidad);
         if (!cantidad || cantidad < 1) return NextResponse.json({ error: "Cantidad inválida" }, { status: 400 });
-        evento.tarjetas.push({ cantidad, cobrado: false });
+        (evento as any).entradasRegistradas = ((evento as any).entradasRegistradas ?? 0) + cantidad;
         await evento.save();
         return NextResponse.json({ ok: true, evento });
     }
 
-    if (body.accion === "cobrarEntrada") {
-        const { tarjetaId, metodoPago } = body;
-        if (!tarjetaId || !metodoPago) return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
-        const tarjetas = evento.tarjetas as any[];
-        const t = tarjetas.find((t: any) => t._id.toString() === tarjetaId);
-        if (!t) return NextResponse.json({ error: "Tarjeta no encontrada" }, { status: 404 });
-        if (t.cobrado) return NextResponse.json({ error: "Ya cobrada" }, { status: 400 });
-        t.cobrado = true;
-        t.metodoPago = metodoPago;
-        t.cobradoAt = new Date();
+    if (body.accion === "cobrarEntradas") {
+        const { cantidad, metodoPago } = body;
+        if (!cantidad || !metodoPago) return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
+        const cant = Number(cantidad);
+        if (cant < 1) return NextResponse.json({ error: "Cantidad inválida" }, { status: 400 });
+        const registradas = (evento as any).entradasRegistradas ?? 0;
+        const cobradas = (evento.tarjetas as any[]).reduce((a: number, t: any) => a + t.cantidad, 0);
+        const pendientes = registradas - cobradas;
+        if (cant > pendientes) return NextResponse.json({ error: "Cantidad supera las pendientes" }, { status: 400 });
+        evento.tarjetas.push({ cantidad: cant, metodoPago });
         await evento.save();
+        const nuevaTarjeta = (evento.tarjetas as any[])[(evento.tarjetas as any[]).length - 1];
         const precioTarjeta = (evento as any).precioTarjeta ?? 0;
-        const monto = t.cantidad * precioTarjeta;
+        const monto = cant * precioTarjeta;
         if (monto > 0) {
             const sesion = await CajaSession.findOne({ estado: "abierta" });
             if (sesion) {
                 await CajaMovement.create({
                     sesionId: sesion._id, tipo: "ingreso",
-                    concepto: `Entradas evento: ${evento.nombre} (${t.cantidad}×)`,
+                    concepto: `Entradas evento: ${evento.nombre} (${cant}×)`,
                     monto, metodoPago, userId: payload.sub,
-                    tarjetaId: t._id,
+                    tarjetaId: nuevaTarjeta._id,
                 });
             }
         }

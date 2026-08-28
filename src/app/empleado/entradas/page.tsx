@@ -2,12 +2,18 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
-import { Ticket, Plus, X, Loader2, Star, ChevronLeft } from "lucide-react";
+import { Ticket, Plus, X, Loader2, Star, ChevronLeft, Banknote, Send, CreditCard } from "lucide-react";
 import Link from "next/link";
 import Loader from "@/components/Loader";
 
-type TarjetaEntry = { _id: string; cantidad: number; metodoPago?: string; createdAt: string };
-type EventoActivo = { _id: string; nombre: string; precioTarjeta?: number; tarjetas?: TarjetaEntry[] };
+type CobroEntry = { _id: string; cantidad: number; metodoPago: string; createdAt: string };
+type EventoActivo = {
+    _id: string;
+    nombre: string;
+    precioTarjeta?: number;
+    entradasRegistradas?: number;
+    tarjetas?: CobroEntry[];
+};
 
 const fmt = (n: number) =>
     new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", minimumFractionDigits: 0 }).format(n);
@@ -19,11 +25,8 @@ function agoLabel(iso: string) {
     return `hace ${Math.floor(diff / 60)}h`;
 }
 
-const METODO_LABEL: Record<string, string> = {
-    efectivo: "Efectivo",
-    transferencia: "Transf.",
-    tarjeta: "Tarjeta",
-};
+const METODO_LABEL: Record<string, string> = { efectivo: "Efectivo", transferencia: "Transf.", tarjeta: "Tarjeta" };
+const METODO_ICON: Record<string, React.ElementType> = { efectivo: Banknote, transferencia: Send, tarjeta: CreditCard };
 
 export default function EntradasEmpleadoPage() {
     const { user, loading } = useAuth();
@@ -31,7 +34,6 @@ export default function EntradasEmpleadoPage() {
 
     const [eventos, setEventos] = useState<EventoActivo[]>([]);
     const [loadingData, setLoadingData] = useState(true);
-    const [cajaAbierta, setCajaAbierta] = useState<boolean | null>(null);
 
     const [modal, setModal] = useState<{ eventoId: string; eventoNombre: string } | null>(null);
     const [cantidad, setCantidad] = useState("");
@@ -47,6 +49,7 @@ export default function EntradasEmpleadoPage() {
                       _id: e._id,
                       nombre: e.nombre,
                       precioTarjeta: e.precioTarjeta ?? 0,
+                      entradasRegistradas: e.entradasRegistradas ?? 0,
                       tarjetas: e.tarjetas ?? [],
                   }))
                 : []
@@ -59,13 +62,7 @@ export default function EntradasEmpleadoPage() {
             router.replace("/");
             return;
         }
-        Promise.all([
-            fetchEventos(),
-            fetch("/api/caja/status", { credentials: "include" })
-                .then(r => r.json())
-                .then(d => setCajaAbierta(!!d.abierta))
-                .catch(() => setCajaAbierta(false)),
-        ]).finally(() => setLoadingData(false));
+        fetchEventos().finally(() => setLoadingData(false));
     }, [loading, user, router, fetchEventos]);
 
     function abrirModal(ev: EventoActivo) {
@@ -88,7 +85,12 @@ export default function EntradasEmpleadoPage() {
                 setEventos(prev =>
                     prev.map(e =>
                         e._id === modal.eventoId
-                            ? { ...e, tarjetas: evento.tarjetas ?? [], precioTarjeta: evento.precioTarjeta ?? e.precioTarjeta }
+                            ? {
+                                  ...e,
+                                  entradasRegistradas: evento.entradasRegistradas ?? e.entradasRegistradas,
+                                  tarjetas: evento.tarjetas ?? [],
+                                  precioTarjeta: evento.precioTarjeta ?? e.precioTarjeta,
+                              }
                             : e
                     )
                 );
@@ -126,63 +128,76 @@ export default function EntradasEmpleadoPage() {
             {/* Eventos */}
             <div className="space-y-4">
                 {eventos.map(ev => {
-                    const tarjetas = ev.tarjetas ?? [];
-                    const totalEnt = tarjetas.reduce((s, t) => s + t.cantidad, 0);
+                    const registradas = ev.entradasRegistradas ?? 0;
+                    const cobros = ev.tarjetas ?? [];
+                    const cobradas = cobros.reduce((s, t) => s + t.cantidad, 0);
+                    const pendientes = registradas - cobradas;
                     const precio = ev.precioTarjeta ?? 0;
 
                     return (
                         <div key={ev._id} className="rounded-2xl border-2 border-amber-300 bg-amber-50 overflow-hidden">
 
-                            {/* Evento header */}
+                            {/* Header */}
                             <div className="flex items-center gap-2 px-4 py-3 bg-amber-600">
                                 <Star size={13} className="text-amber-200 shrink-0" />
                                 <span className="font-black text-white flex-1 truncate">{ev.nombre}</span>
                                 <div className="text-right">
                                     <p className="text-xs font-black text-amber-100">
-                                        {totalEnt} entrada{totalEnt !== 1 ? "s" : ""}
+                                        {registradas} entrada{registradas !== 1 ? "s" : ""}
                                     </p>
-                                    {precio > 0 && totalEnt > 0 && (
-                                        <p className="text-[10px] text-amber-200">{fmt(totalEnt * precio)}</p>
+                                    {precio > 0 && cobradas > 0 && (
+                                        <p className="text-[10px] text-amber-200">{fmt(cobradas * precio)} cobrado</p>
                                     )}
                                 </div>
                             </div>
 
-                            {/* Lotes */}
-                            <div className="px-4 py-3 space-y-2">
-                                {tarjetas.length === 0 && (
-                                    <p className="text-sm text-amber-600 italic py-1">Sin entradas registradas aún</p>
-                                )}
-                                {tarjetas.map(t => (
-                                    <div key={t._id} className="flex items-center gap-2 rounded-xl bg-white border border-amber-100 px-3 py-2">
-                                        <Ticket size={13} className="text-amber-400 shrink-0" />
-                                        <span className="text-sm font-black text-gray-800">×{t.cantidad}</span>
-                                        {(t as any).cobrado ? (
-                                            <span className="bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded-full text-[11px]">
-                                                ✓ {METODO_LABEL[(t as any).metodoPago] ?? "Cobrado"}
-                                            </span>
-                                        ) : (
-                                            <span className="bg-orange-100 text-orange-600 font-bold px-2 py-0.5 rounded-full text-[11px]">
-                                                Pendiente cobro
-                                            </span>
-                                        )}
-                                        {precio > 0 && (
-                                            <span className="text-sm font-semibold text-gray-500">{fmt(t.cantidad * precio)}</span>
-                                        )}
-                                        <span className="text-[11px] text-gray-400 ml-auto">{agoLabel(t.createdAt)}</span>
-                                    </div>
-                                ))}
+                            {/* Contadores */}
+                            <div className="grid grid-cols-3 gap-2 px-4 pt-3">
+                                <div className="bg-white rounded-xl border border-amber-100 py-2 text-center">
+                                    <p className="text-lg font-black text-gray-900">{registradas}</p>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase">Registradas</p>
+                                </div>
+                                <div className="bg-green-50 rounded-xl border border-green-100 py-2 text-center">
+                                    <p className="text-lg font-black text-green-700">{cobradas}</p>
+                                    <p className="text-[10px] font-bold text-green-400 uppercase">Cobradas</p>
+                                </div>
+                                <div className={`rounded-xl border py-2 text-center ${pendientes > 0 ? "bg-orange-50 border-orange-100" : "bg-gray-50 border-gray-100"}`}>
+                                    <p className={`text-lg font-black ${pendientes > 0 ? "text-orange-600" : "text-gray-400"}`}>{pendientes}</p>
+                                    <p className={`text-[10px] font-bold uppercase ${pendientes > 0 ? "text-orange-400" : "text-gray-300"}`}>Pendientes</p>
+                                </div>
                             </div>
 
-                            {/* Botón agregar */}
-                            {cajaAbierta !== false && (
-                                <div className="px-4 pb-4">
-                                    <button
-                                        onClick={() => abrirModal(ev)}
-                                        className="w-full flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 text-white font-black py-3 rounded-xl transition active:scale-[0.98] text-sm">
-                                        <Plus size={16} /> Agregar entradas
-                                    </button>
+                            {/* Cobros de caja */}
+                            {cobros.length > 0 && (
+                                <div className="px-4 pt-3 space-y-1.5">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Cobros desde caja</p>
+                                    {cobros.map(t => {
+                                        const Icon = METODO_ICON[t.metodoPago] ?? Banknote;
+                                        return (
+                                            <div key={t._id} className="flex items-center gap-2 rounded-xl bg-white border border-gray-100 px-3 py-2">
+                                                <Icon size={12} className="text-gray-400 shrink-0" />
+                                                <span className="text-sm font-black text-gray-800">×{t.cantidad}</span>
+                                                <span className="bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded-full text-[11px]">
+                                                    {METODO_LABEL[t.metodoPago] ?? t.metodoPago}
+                                                </span>
+                                                {precio > 0 && (
+                                                    <span className="text-sm font-semibold text-gray-400">{fmt(t.cantidad * precio)}</span>
+                                                )}
+                                                <span className="text-[11px] text-gray-300 ml-auto">{agoLabel(t.createdAt)}</span>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             )}
+
+                            {/* Botón agregar */}
+                            <div className="px-4 py-4">
+                                <button
+                                    onClick={() => abrirModal(ev)}
+                                    className="w-full flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 text-white font-black py-3 rounded-xl transition active:scale-[0.98] text-sm">
+                                    <Plus size={16} /> Agregar entradas
+                                </button>
+                            </div>
                         </div>
                     );
                 })}
@@ -201,20 +216,18 @@ export default function EntradasEmpleadoPage() {
                             <button onClick={() => setModal(null)} className="p-1 text-gray-400"><X size={18} /></button>
                         </div>
 
-                        <div className="px-5 py-5 space-y-4">
-                            <div>
-                                <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Cantidad de personas</label>
-                                <input
-                                    autoFocus type="number" inputMode="numeric" min="1"
-                                    value={cantidad}
-                                    onChange={e => setCantidad(e.target.value)}
-                                    onKeyDown={e => { if (e.key === "Enter") guardar(); }}
-                                    style={{ fontSize: "16px" }}
-                                    className="w-full px-4 py-3 border border-black rounded-xl text-2xl font-black focus:outline-none focus:ring-2 focus:ring-amber-500 text-center"
-                                    placeholder="0"
-                                />
-                            </div>
-                            <p className="text-xs text-gray-400">El método de cobro se define desde caja al momento de cobrar.</p>
+                        <div className="px-5 py-5 space-y-3">
+                            <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Cantidad de personas</label>
+                            <input
+                                autoFocus type="number" inputMode="numeric" min="1"
+                                value={cantidad}
+                                onChange={e => setCantidad(e.target.value)}
+                                onKeyDown={e => { if (e.key === "Enter") guardar(); }}
+                                style={{ fontSize: "16px" }}
+                                className="w-full px-4 py-3 border border-black rounded-xl text-2xl font-black focus:outline-none focus:ring-2 focus:ring-amber-500 text-center"
+                                placeholder="0"
+                            />
+                            <p className="text-xs text-gray-400">Se suman al total. El cobro lo hace la caja.</p>
                         </div>
 
                         <div className="px-5 pb-5 flex gap-2">

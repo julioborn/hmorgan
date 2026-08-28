@@ -330,7 +330,8 @@ export default function CajaPage() {
     const [tarjetasEventoId, setTarjetasEventoId] = useState<string | null>(null);
     const [tarjetasCantidad, setTarjetasCantidad] = useState("1");
     const [tarjetasSaving, setTarjetasSaving] = useState(false);
-    const [cobrarEntradaModal, setCobrarEntradaModal] = useState<{ tarjetaId: string; eventoId: string; eventoNombre: string; cantidad: number; precio: number } | null>(null);
+    const [cobrarEntradaModal, setCobrarEntradaModal] = useState<{ eventoId: string; eventoNombre: string; pendientes: number; precio: number } | null>(null);
+    const [cobrarEntradaCantidad, setCobrarEntradaCantidad] = useState("");
     const [cobrarEntradaMetodo, setCobrarEntradaMetodo] = useState<"efectivo" | "transferencia" | "tarjeta">("efectivo");
     const [cobrarEntradaSaving, setCobrarEntradaSaving] = useState(false);
     const [editTarjetaId, setEditTarjetaId] = useState<string | null>(null);
@@ -1840,13 +1841,13 @@ export default function CajaPage() {
         const ventasTransferencia = ev.ventas.filter(v => v.metodoPago === "transferencia").reduce((a, v) => a + v.total, 0);
         const ventasTarjeta = ev.ventas.filter(v => v.metodoPago === "tarjeta").reduce((a, v) => a + v.total, 0);
 
-        // Tarjetas de entrada — solo cobradas contribuyen a los totales
-        const entradasCantidad = tarjetas.reduce((a: number, t: any) => a + t.cantidad, 0);
-        const cobradas_ = tarjetas.filter((t: any) => t.cobrado);
-        const entradasTotal = cobradas_.reduce((a: number, t: any) => a + t.cantidad * precioTarjeta, 0);
-        const entradasEfectivo = cobradas_.filter((t: any) => t.metodoPago === "efectivo").reduce((a: number, t: any) => a + t.cantidad * precioTarjeta, 0);
-        const entradasTransferencia = cobradas_.filter((t: any) => t.metodoPago === "transferencia").reduce((a: number, t: any) => a + t.cantidad * precioTarjeta, 0);
-        const entradasTarjeta = cobradas_.filter((t: any) => t.metodoPago === "tarjeta").reduce((a: number, t: any) => a + t.cantidad * precioTarjeta, 0);
+        // Entradas: entradasRegistradas = total acumulado; tarjetas = cobros de caja
+        const entradasCantidad = (ev as any).entradasRegistradas ?? tarjetas.reduce((a: number, t: any) => a + t.cantidad, 0);
+        const cobros = tarjetas; // todos son cobros (tienen metodoPago)
+        const entradasTotal = cobros.reduce((a: number, t: any) => a + t.cantidad * precioTarjeta, 0);
+        const entradasEfectivo = cobros.filter((t: any) => t.metodoPago === "efectivo").reduce((a: number, t: any) => a + t.cantidad * precioTarjeta, 0);
+        const entradasTransferencia = cobros.filter((t: any) => t.metodoPago === "transferencia").reduce((a: number, t: any) => a + t.cantidad * precioTarjeta, 0);
+        const entradasTarjeta = cobros.filter((t: any) => t.metodoPago === "tarjeta").reduce((a: number, t: any) => a + t.cantidad * precioTarjeta, 0);
 
         // Comandas cobradas por método
         const cobradas = pedidosEv.filter(p => p.estado === "cerrado");
@@ -1899,11 +1900,13 @@ export default function CajaPage() {
 
     async function ejecutarCobrarEntrada() {
         if (!cobrarEntradaModal) return;
+        const cant = Number(cobrarEntradaCantidad);
+        if (!cant || cant < 1 || cant > cobrarEntradaModal.pendientes) return;
         setCobrarEntradaSaving(true);
         try {
             const res = await fetch(`/api/eventos/${cobrarEntradaModal.eventoId}`, {
                 method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
-                body: JSON.stringify({ accion: "cobrarEntrada", tarjetaId: cobrarEntradaModal.tarjetaId, metodoPago: cobrarEntradaMetodo }),
+                body: JSON.stringify({ accion: "cobrarEntradas", cantidad: cant, metodoPago: cobrarEntradaMetodo }),
             });
             if (!res.ok) return;
             const { evento: updated } = await res.json();
@@ -1911,8 +1914,8 @@ export default function CajaPage() {
             // Imprimir ticket de entrada
             const hora = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
             const fecha = new Date().toLocaleDateString("es-AR");
-            const items = [{ cantidad: cobrarEntradaModal.cantidad, nombre: `Entrada — ${cobrarEntradaModal.eventoNombre}`, precio: cobrarEntradaModal.precio }];
-            const total = cobrarEntradaModal.cantidad * cobrarEntradaModal.precio;
+            const items = [{ cantidad: cant, nombre: `Entrada — ${cobrarEntradaModal.eventoNombre}`, precio: cobrarEntradaModal.precio }];
+            const total = cant * cobrarEntradaModal.precio;
             const pagos = [{ metodo: cobrarEntradaMetodo, monto: total }];
             try {
                 const ctrl = new AbortController();
@@ -3313,7 +3316,10 @@ export default function CajaPage() {
                                 const pedidosEv = pedidos.filter(p => p.eventoId === ev._id);
                                 const totalPedidos = pedidosEv.reduce((a, p) => a + (p.total || 0), 0);
                                 const totalVentas = ev.ventas.reduce((a, v) => a + v.total, 0);
-                                const totalTarjetas = (ev as any).tarjetas?.reduce((a: number, t: any) => a + t.cantidad, 0) ?? 0;
+                                const entradasRegistradas: number = (ev as any).entradasRegistradas ?? 0;
+                                const cobrosEntradas: any[] = (ev as any).tarjetas ?? [];
+                                const totalTarjetas = cobrosEntradas.reduce((a: number, t: any) => a + t.cantidad, 0);
+                                const entradasPendientes = entradasRegistradas - totalTarjetas;
                                 const precioTarjeta = (ev as any).precioTarjeta ?? 0;
                                 const cobrosParcialesEv = cobrosParcialesMovs.filter(m => {
                                     const eid = m.pedidoId?.eventoId;
@@ -3383,10 +3389,13 @@ export default function CajaPage() {
 
                                             {/* ── Stats ── */}
                                             <div className="grid grid-cols-3 gap-3">
-                                                <div className="bg-gray-50 rounded-xl p-3 text-center border border-gray-200">
-                                                    <p className="text-lg font-black text-gray-900">{totalTarjetas}</p>
+                                                <div className={`rounded-xl p-3 text-center border ${entradasPendientes > 0 ? "bg-orange-50 border-orange-200" : "bg-gray-50 border-gray-200"}`}>
+                                                    <p className="text-lg font-black text-gray-900">{entradasRegistradas}</p>
                                                     <p className="text-xs font-bold text-gray-500 mt-0.5">Entradas</p>
-                                                    {precioTarjeta > 0 && <p className="text-[10px] text-gray-400 font-semibold">{formatMoney(totalTarjetas * precioTarjeta)}</p>}
+                                                    {entradasPendientes > 0
+                                                        ? <p className="text-[10px] text-orange-500 font-bold">{entradasPendientes} pendiente{entradasPendientes !== 1 ? "s" : ""}</p>
+                                                        : precioTarjeta > 0 && totalTarjetas > 0 && <p className="text-[10px] text-gray-400 font-semibold">{formatMoney(totalTarjetas * precioTarjeta)}</p>
+                                                    }
                                                 </div>
                                                 <div className="bg-gray-50 rounded-xl p-3 text-center border border-gray-200">
                                                     <p className="text-lg font-black text-gray-900">{pedidosEv.length}</p>
@@ -3400,11 +3409,8 @@ export default function CajaPage() {
                                                 </div>
                                             </div>
 
-                                            {/* ── Entradas (lotes) ── */}
-                                            {totalTarjetas > 0 && (() => {
-                                                const tarjetasArr: any[] = (ev as any).tarjetas ?? [];
-                                                const pendientes = tarjetasArr.filter(t => !t.cobrado);
-                                                const cobradas = tarjetasArr.filter(t => t.cobrado);
+                                            {/* ── Entradas ── */}
+                                            {entradasRegistradas > 0 && (() => {
                                                 const colKey = `${ev._id}:entradas`;
                                                 const colapsado = seccionesColapsadas.has(colKey);
                                                 return (
@@ -3412,60 +3418,56 @@ export default function CajaPage() {
                                                         <button onClick={() => toggleSeccion(colKey)}
                                                             className="flex items-center gap-2 w-full mb-2 group">
                                                             <p className="text-xs font-black text-gray-400 uppercase tracking-wider flex-1 text-left">
-                                                                Entradas · {totalTarjetas} total
-                                                                {pendientes.length > 0 && <span className="ml-1.5 bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full text-[10px]">{pendientes.length} pendiente{pendientes.length !== 1 ? "s" : ""}</span>}
+                                                                Entradas · {entradasRegistradas} registradas
+                                                                {entradasPendientes > 0 && (
+                                                                    <span className="ml-1.5 bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full text-[10px]">{entradasPendientes} pendiente{entradasPendientes !== 1 ? "s" : ""}</span>
+                                                                )}
                                                             </p>
                                                             <ChevronDown size={13} className={`text-gray-400 transition-transform ${colapsado ? "-rotate-90" : ""}`} />
                                                         </button>
                                                         {!colapsado && (
-                                                            <div className="space-y-1.5">
-                                                                {tarjetasArr.map((t: any) => {
-                                                                    const monto = t.cantidad * precioTarjeta;
-                                                                    const MetodoIcon = t.metodoPago ? (METODO_ICON[t.metodoPago] || Banknote) : Banknote;
+                                                            <div className="space-y-2">
+                                                                {/* Cobros registrados */}
+                                                                {cobrosEntradas.map((t: any) => {
+                                                                    const MetodoIcon = METODO_ICON[t.metodoPago] || Banknote;
                                                                     return (
-                                                                        <div key={t._id} className={`rounded-xl border overflow-hidden ${t.cobrado ? "border-green-200 bg-green-50" : "border-amber-200 bg-amber-50"}`}>
-                                                                            <div className="flex items-center justify-between px-3 py-2.5">
-                                                                                <div className="flex items-center gap-2">
-                                                                                    <Ticket size={13} className={t.cobrado ? "text-green-500" : "text-amber-500"} />
-                                                                                    <span className="text-sm font-black text-gray-900">{t.cantidad} entrada{t.cantidad !== 1 ? "s" : ""}</span>
-                                                                                    {t.cobrado ? (
-                                                                                        <span className="flex items-center gap-1 text-[11px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
-                                                                                            <MetodoIcon size={10} /> {METODO_LABEL[t.metodoPago] ?? t.metodoPago}
-                                                                                        </span>
-                                                                                    ) : (
-                                                                                        <span className="text-[11px] font-bold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">Pendiente</span>
-                                                                                    )}
-                                                                                </div>
-                                                                                <div className="flex items-center gap-2">
-                                                                                    {precioTarjeta > 0 && <span className="text-sm font-bold text-gray-500">{formatMoney(monto)}</span>}
-                                                                                    {!t.cobrado && (
-                                                                                        <button
-                                                                                            onClick={() => { setCobrarEntradaMetodo("efectivo"); setCobrarEntradaModal({ tarjetaId: t._id, eventoId: ev._id, eventoNombre: ev.nombre, cantidad: t.cantidad, precio: precioTarjeta }); }}
-                                                                                            className="flex items-center gap-1 bg-black hover:bg-gray-800 text-white text-[11px] font-black px-2.5 py-1.5 rounded-lg transition active:scale-95">
-                                                                                            <Wallet size={11} /> Cobrar
-                                                                                        </button>
-                                                                                    )}
-                                                                                    <button
-                                                                                        onClick={async () => {
-                                                                                            const res = await fetch(`/api/eventos/${ev._id}`, {
-                                                                                                method: "PATCH", credentials: "include",
-                                                                                                headers: { "Content-Type": "application/json" },
-                                                                                                body: JSON.stringify({ accion: "eliminarTarjeta", tarjetaId: t._id }),
-                                                                                            });
-                                                                                            if (res.ok) {
-                                                                                                const { evento: updated } = await res.json();
-                                                                                                setEventosActivos(prev => prev.map(e => e._id === ev._id ? updated : e));
-                                                                                            }
-                                                                                        }}
-                                                                                        className="p-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-400 transition"
-                                                                                        title="Eliminar">
-                                                                                        <Trash2 size={11} />
-                                                                                    </button>
-                                                                                </div>
+                                                                        <div key={t._id} className="flex items-center justify-between rounded-xl border border-green-200 bg-green-50 px-3 py-2">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <MetodoIcon size={12} className="text-green-600 shrink-0" />
+                                                                                <span className="text-sm font-black text-gray-900">{t.cantidad} entrada{t.cantidad !== 1 ? "s" : ""}</span>
+                                                                                <span className="text-[11px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">{METODO_LABEL[t.metodoPago] ?? t.metodoPago}</span>
+                                                                            </div>
+                                                                            <div className="flex items-center gap-2">
+                                                                                {precioTarjeta > 0 && <span className="text-sm font-bold text-gray-500">{formatMoney(t.cantidad * precioTarjeta)}</span>}
+                                                                                <button
+                                                                                    onClick={async () => {
+                                                                                        const res = await fetch(`/api/eventos/${ev._id}`, {
+                                                                                            method: "PATCH", credentials: "include",
+                                                                                            headers: { "Content-Type": "application/json" },
+                                                                                            body: JSON.stringify({ accion: "eliminarTarjeta", tarjetaId: t._id }),
+                                                                                        });
+                                                                                        if (res.ok) {
+                                                                                            const { evento: updated } = await res.json();
+                                                                                            setEventosActivos(prev => prev.map(e => e._id === ev._id ? updated : e));
+                                                                                        }
+                                                                                    }}
+                                                                                    className="p-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-400 transition"
+                                                                                    title="Anular cobro">
+                                                                                    <Trash2 size={11} />
+                                                                                </button>
                                                                             </div>
                                                                         </div>
                                                                     );
                                                                 })}
+                                                                {/* Botón cobrar pendientes */}
+                                                                {entradasPendientes > 0 && (
+                                                                    <button
+                                                                        onClick={() => { setCobrarEntradaCantidad(String(entradasPendientes)); setCobrarEntradaMetodo("efectivo"); setCobrarEntradaModal({ eventoId: ev._id, eventoNombre: ev.nombre, pendientes: entradasPendientes, precio: precioTarjeta }); }}
+                                                                        className="w-full flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-black py-2.5 rounded-xl transition active:scale-[0.98]">
+                                                                        <Wallet size={14} /> Cobrar {entradasPendientes} pendiente{entradasPendientes !== 1 ? "s" : ""}
+                                                                        {precioTarjeta > 0 && <span className="opacity-80">· {formatMoney(entradasPendientes * precioTarjeta)}</span>}
+                                                                    </button>
+                                                                )}
                                                             </div>
                                                         )}
                                                     </div>
@@ -5613,25 +5615,42 @@ export default function CajaPage() {
                 </div>
             )}
 
-            {/* Modal cobrar entrada */}
+            {/* Modal cobrar entradas */}
             {cobrarEntradaModal && (() => {
-                const total = cobrarEntradaModal.cantidad * cobrarEntradaModal.precio;
+                const cant = Number(cobrarEntradaCantidad) || 0;
+                const total = cant * cobrarEntradaModal.precio;
+                const invalid = cant < 1 || cant > cobrarEntradaModal.pendientes;
                 return (
                     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
                         <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl">
                             <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
                                 <Ticket size={18} className="text-amber-600 shrink-0" />
                                 <div className="flex-1">
-                                    <h2 className="font-black text-gray-900">Cobrar entrada</h2>
-                                    <p className="text-xs text-gray-500">{cobrarEntradaModal.eventoNombre} · {cobrarEntradaModal.cantidad} entrada{cobrarEntradaModal.cantidad !== 1 ? "s" : ""}</p>
+                                    <h2 className="font-black text-gray-900">Cobrar entradas</h2>
+                                    <p className="text-xs text-gray-500">{cobrarEntradaModal.eventoNombre} · {cobrarEntradaModal.pendientes} pendiente{cobrarEntradaModal.pendientes !== 1 ? "s" : ""}</p>
                                 </div>
                                 <button onClick={() => setCobrarEntradaModal(null)} className="p-1 text-gray-400"><X size={18} /></button>
                             </div>
                             <div className="px-5 py-5 space-y-4">
-                                {cobrarEntradaModal.precio > 0 && (
-                                    <div className="bg-gray-50 rounded-2xl px-4 py-3 text-center">
-                                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-0.5">Total</p>
-                                        <p className="text-3xl font-black text-gray-900">{formatMoney(total)}</p>
+                                <div>
+                                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1.5 tracking-wider">Cantidad a cobrar</p>
+                                    <input
+                                        autoFocus type="number" inputMode="numeric" min="1" max={cobrarEntradaModal.pendientes}
+                                        value={cobrarEntradaCantidad}
+                                        onChange={e => setCobrarEntradaCantidad(e.target.value)}
+                                        onKeyDown={e => { if (e.key === "Enter" && !invalid) ejecutarCobrarEntrada(); }}
+                                        style={{ fontSize: "16px" }}
+                                        className={`w-full px-4 py-3 border-2 rounded-xl text-2xl font-black focus:outline-none text-center transition ${invalid && cobrarEntradaCantidad ? "border-red-400" : "border-black focus:border-amber-500"}`}
+                                        placeholder={String(cobrarEntradaModal.pendientes)}
+                                    />
+                                    {cant > cobrarEntradaModal.pendientes && (
+                                        <p className="text-xs text-red-500 mt-1 font-semibold">Máximo: {cobrarEntradaModal.pendientes}</p>
+                                    )}
+                                </div>
+                                {cobrarEntradaModal.precio > 0 && cant > 0 && !invalid && (
+                                    <div className="bg-amber-50 rounded-2xl px-4 py-3 text-center border border-amber-200">
+                                        <p className="text-xs font-semibold text-amber-500 uppercase tracking-widest mb-0.5">Total</p>
+                                        <p className="text-3xl font-black text-amber-800">{formatMoney(total)}</p>
                                     </div>
                                 )}
                                 <div>
@@ -5654,7 +5673,7 @@ export default function CajaPage() {
                                 <button onClick={() => setCobrarEntradaModal(null)} className="flex-1 py-3 border border-gray-300 rounded-xl text-sm font-semibold text-gray-600">
                                     Cancelar
                                 </button>
-                                <button onClick={ejecutarCobrarEntrada} disabled={cobrarEntradaSaving}
+                                <button onClick={ejecutarCobrarEntrada} disabled={cobrarEntradaSaving || invalid}
                                     className="flex-1 py-3 bg-black hover:bg-gray-800 disabled:opacity-50 text-white rounded-xl text-sm font-black transition flex items-center justify-center gap-2">
                                     {cobrarEntradaSaving ? <Loader2 size={16} className="animate-spin" /> : <><Wallet size={15} /> Cobrar e imprimir</>}
                                 </button>

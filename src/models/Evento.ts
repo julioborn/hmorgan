@@ -20,12 +20,11 @@ const VentaSchema = new Schema(
     { timestamps: true }
 );
 
+// Cada elemento de tarjetas = un cobro efectivo registrado desde caja
 const TarjetaSchema = new Schema(
     {
         cantidad:   { type: Number, required: true },
-        metodoPago: { type: String, enum: ["efectivo", "transferencia", "tarjeta"] },
-        cobrado:    { type: Boolean, default: false },
-        cobradoAt:  { type: Date },
+        metodoPago: { type: String, enum: ["efectivo", "transferencia", "tarjeta"], required: true },
     },
     { timestamps: true }
 );
@@ -67,8 +66,9 @@ const EventoSchema = new Schema(
         imagen:         { type: String, default: null },
         ventas:         [VentaSchema],
         mesas:          [{ type: String }],
-        precioTarjeta:  { type: Number, default: 0 },
-        tarjetas:       [TarjetaSchema],
+        precioTarjeta:        { type: Number, default: 0 },
+        entradasRegistradas:  { type: Number, default: 0 },
+        tarjetas:             [TarjetaSchema],
         creadoPor:      { type: Schema.Types.ObjectId, ref: "User" },
         cierreData:     { type: CierreSchema, default: null },
     },
