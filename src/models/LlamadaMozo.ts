@@ -1,4 +1,4 @@
-import { Schema, model, models } from "mongoose";
+import mongoose, { Schema, model } from "mongoose";
 
 const LlamadaMozoSchema = new Schema(
     {
@@ -13,4 +13,5 @@ const LlamadaMozoSchema = new Schema(
     { timestamps: true }
 );
 
-export const LlamadaMozo = models.LlamadaMozo || model("LlamadaMozo", LlamadaMozoSchema);
+try { mongoose.deleteModel("LlamadaMozo"); } catch {}
+export const LlamadaMozo = model("LlamadaMozo", LlamadaMozoSchema);
