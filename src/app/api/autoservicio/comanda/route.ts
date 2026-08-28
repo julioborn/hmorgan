@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { AutoservicioSesion } from "@/models/AutoservicioSesion";
 import { Pedido } from "@/models/Pedido";
+import "@/models/User";
+import "@/models/MenuItem";
 import jwt from "jsonwebtoken";
 
 const SECRET = process.env.NEXTAUTH_SECRET!;

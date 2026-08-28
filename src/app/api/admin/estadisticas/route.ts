@@ -3,6 +3,7 @@ import { connectMongoDB } from "@/lib/mongodb";
 import { Pedido } from "@/models/Pedido";
 import { User } from "@/models/User";
 import { Canje } from "@/models/Canje";
+import "@/models/MenuItem";
 import jwt from "jsonwebtoken";
 
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET!;

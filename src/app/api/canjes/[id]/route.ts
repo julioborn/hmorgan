@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { Canje } from "@/models/Canje";
 import { User } from "@/models/User";
+import "@/models/Reward";
 import { sendPushAndCollectInvalid } from "@/lib/push-server";
 import { enviarNotificacionFCM, isFCMTokenInvalid } from "@/lib/firebase-admin";
 import jwt from "jsonwebtoken";

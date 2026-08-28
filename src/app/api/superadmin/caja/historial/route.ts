@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { CajaSession } from "@/models/CajaSession";
 import { CajaMovement } from "@/models/CajaMovement";
+import "@/models/User";
 import jwt from "jsonwebtoken";
 
 const SECRET = process.env.NEXTAUTH_SECRET!;

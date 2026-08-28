@@ -3,6 +3,7 @@ import { connectMongoDB } from "@/lib/mongodb";
 import { Pedido } from "@/models/Pedido";
 import { User } from "@/models/User";
 import { PointTransaction } from "@/models/PointTransaction";
+import "@/models/MenuItem";
 import { getPointsRatio } from "@/lib/getPointsRatio";
 import { sendPushAndCollectInvalid } from "@/lib/push-server";
 import { enviarNotificacionFCM, isFCMTokenInvalid } from "@/lib/firebase-admin";

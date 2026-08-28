@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { MercadoPagoConfig, Preference } from "mercadopago";
 import { connectMongoDB } from "@/lib/mongodb";
 import { Pedido } from "@/models/Pedido";
+import "@/models/MenuItem";
 import jwt from "jsonwebtoken";
 
 export async function POST(req: NextRequest) {

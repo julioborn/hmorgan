@@ -4,6 +4,7 @@ import { Reserva } from "@/models/Reserva";
 import { User } from "@/models/User";
 import { Mesa } from "@/models/Mesa";
 import Config from "@/models/Config";
+import "@/models/Canje";
 import jwt from "jsonwebtoken";
 import { sendPushToSubscriptions } from "@/lib/push-server";
 import { enviarNotificacionFCM, isFCMTokenInvalid } from "@/lib/firebase-admin";
