@@ -327,10 +327,10 @@ export default function CajaPage() {
     const [eventoModalElementos, setEventoModalElementos] = useState<SalonElPlano[]>([]);
     const [ventaEventoId, setVentaEventoId] = useState<string | null>(null);
     const [tarjetasModal, setTarjetasModal] = useState(false);
-    const [tarjetasMetodo, setTarjetasMetodo] = useState<"efectivo" | "transferencia" | "tarjeta">("efectivo");
     const [tarjetasEventoId, setTarjetasEventoId] = useState<string | null>(null);
     const [tarjetasCantidad, setTarjetasCantidad] = useState("1");
     const [tarjetasSaving, setTarjetasSaving] = useState(false);
+    const [entradasDist, setEntradasDist] = useState({ efectivo: "", transferencia: "" });
     const [editTarjetaId, setEditTarjetaId] = useState<string | null>(null);
     const [editTarjetaMetodo, setEditTarjetaMetodo] = useState<"efectivo" | "transferencia" | "tarjeta">("efectivo");
     const [seccionesColapsadas, setSeccionesColapsadas] = useState<Set<string>>(new Set());
@@ -1869,6 +1869,7 @@ export default function CajaPage() {
         const totalTarjeta = ventasTarjeta + comandasTarjeta + parcialesTarjeta + entradasTarjeta;
         const totalGeneral = totalEfectivo + totalTransferencia + totalTarjeta + comandasSinCobrar;
 
+        setEntradasDist({ efectivo: "", transferencia: "" });
         setCierreEventoData({
             eventoId, eventoNombre: ev.nombre,
             ventasEfectivo, ventasTransferencia, ventasTarjeta,
@@ -1881,11 +1882,45 @@ export default function CajaPage() {
 
     async function confirmarCierreEvento() {
         if (!cierreEventoData) return;
+        const { entradasCantidad: totalEnt, entradasPrecio: precio } = cierreEventoData;
+
+        let finalData = { ...cierreEventoData };
+        let distribucion: { efectivo: number; transferencia: number; tarjeta: number } | undefined;
+
+        if (totalEnt > 0 && precio > 0) {
+            const efCant   = Number(entradasDist.efectivo)       || 0;
+            const trCant   = Number(entradasDist.transferencia)   || 0;
+            const tarCant  = totalEnt - efCant - trCant;
+            if (tarCant < 0 || efCant + trCant > totalEnt) return; // guard — UI already shows error
+            const efAmt  = efCant  * precio;
+            const trAmt  = trCant  * precio;
+            const tarAmt = tarCant * precio;
+            const { ventasEfectivo, ventasTransferencia, ventasTarjeta,
+                    comandasEfectivo, comandasTransferencia, comandasTarjeta,
+                    comandasSinCobrar } = cierreEventoData;
+            // Need parciales — read from state (already included in the original totals via abrirCierreEvento)
+            // Re-derive parcial amounts by subtracting ventas+comandas+prevEntradas from original totals
+            const prevEf = cierreEventoData.totalEfectivo - ventasEfectivo - comandasEfectivo - cierreEventoData.entradasEfectivo;
+            const prevTr = cierreEventoData.totalTransferencia - ventasTransferencia - comandasTransferencia - cierreEventoData.entradasTransferencia;
+            const prevTar = cierreEventoData.totalTarjeta - ventasTarjeta - comandasTarjeta - cierreEventoData.entradasTarjeta;
+            const newTotalEf  = ventasEfectivo + comandasEfectivo + prevEf + efAmt;
+            const newTotalTr  = ventasTransferencia + comandasTransferencia + prevTr + trAmt;
+            const newTotalTar = ventasTarjeta + comandasTarjeta + prevTar + tarAmt;
+            const newTotalGen = newTotalEf + newTotalTr + newTotalTar + comandasSinCobrar;
+            finalData = {
+                ...cierreEventoData,
+                entradasEfectivo: efAmt, entradasTransferencia: trAmt, entradasTarjeta: tarAmt,
+                totalEfectivo: newTotalEf, totalTransferencia: newTotalTr, totalTarjeta: newTotalTar,
+                totalGeneral: newTotalGen,
+            };
+            distribucion = { efectivo: efCant, transferencia: trCant, tarjeta: tarCant };
+        }
+
         setCierreEventoSaving(true);
         try {
             const res = await fetch(`/api/eventos/${cierreEventoData.eventoId}`, {
                 method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
-                body: JSON.stringify({ accion: "cerrar", cierreData: cierreEventoData }),
+                body: JSON.stringify({ accion: "cerrar", cierreData: finalData, entradasDistribucion: distribucion }),
             });
             if (res.ok) {
                 setEventosActivos(prev => prev.filter(e => e._id !== cierreEventoData.eventoId));
@@ -1897,7 +1932,6 @@ export default function CajaPage() {
     async function abrirTarjetasModal(eventoId: string) {
         setTarjetasEventoId(eventoId);
         setTarjetasCantidad("");
-        setTarjetasMetodo("efectivo");
         setTarjetasModal(true);
     }
 
@@ -1907,7 +1941,7 @@ export default function CajaPage() {
         try {
             const res = await fetch(`/api/eventos/${tarjetasEventoId}`, {
                 method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
-                body: JSON.stringify({ accion: "agregarTarjetas", cantidad: Number(tarjetasCantidad), metodoPago: tarjetasMetodo }),
+                body: JSON.stringify({ accion: "agregarTarjetas", cantidad: Number(tarjetasCantidad) }),
             });
             if (res.ok) {
                 const { evento } = await res.json();
@@ -5101,24 +5135,14 @@ export default function CajaPage() {
                             </div>
                             <div className="px-5 py-5 space-y-4">
                                 <div>
-                                    <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Cantidad de tarjetas</label>
+                                    <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Cantidad de entradas</label>
                                     <input autoFocus type="number" inputMode="numeric" min="1"
                                         value={tarjetasCantidad}
                                         onChange={e => setTarjetasCantidad(e.target.value)}
                                         style={{ fontSize: "16px" }}
                                         className="w-full px-4 py-3 border border-black rounded-xl text-base font-semibold focus:outline-none focus:ring-2 focus:ring-black text-center" />
                                 </div>
-                                <div>
-                                    <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Método de pago</label>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        {(["efectivo", "transferencia", "tarjeta"] as const).map(m => (
-                                            <button key={m} onClick={() => setTarjetasMetodo(m)}
-                                                className={`py-2 rounded-xl text-xs font-bold capitalize border-2 transition ${tarjetasMetodo === m ? "bg-black text-white border-black" : "bg-white text-gray-700 border-gray-200"}`}>
-                                                {m === "efectivo" ? "Efectivo" : m === "transferencia" ? "Transf." : "Tarjeta"}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
+                                <p className="text-[11px] text-gray-400 text-center">El método de pago se asigna al cerrar el evento</p>
                                 {precio > 0 && cant > 0 && (
                                     <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
                                         <span className="text-sm text-gray-500">{cant} × {formatMoney(precio)}</span>
@@ -5533,16 +5557,65 @@ export default function CajaPage() {
                         </div>
 
                         <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
-                            {/* Tarjetas de entrada */}
-                            {cierreEventoData.entradasCantidad > 0 && (
-                                <div className="bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3">
-                                    <p className="text-[10px] font-black text-amber-600 uppercase tracking-wider mb-2">Tarjetas de entrada</p>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm text-gray-600">{cierreEventoData.entradasCantidad} tarjetas × {formatMoney(cierreEventoData.entradasPrecio)}</span>
-                                        <span className="font-black text-gray-900 text-base">{formatMoney(cierreEventoData.entradasTotal)}</span>
+                            {/* Entradas — distribución por método */}
+                            {cierreEventoData.entradasCantidad > 0 && (() => {
+                                const total = cierreEventoData.entradasCantidad;
+                                const precio = cierreEventoData.entradasPrecio;
+                                const sinPrecio = precio === 0;
+                                const efCant  = Number(entradasDist.efectivo)      || 0;
+                                const trCant  = Number(entradasDist.transferencia)  || 0;
+                                const tarCant = total - efCant - trCant;
+                                const invalid = tarCant < 0;
+                                return (
+                                    <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-[10px] font-black text-amber-700 uppercase tracking-wider">Entradas · {total} total</p>
+                                            {precio > 0 && <span className="font-black text-amber-800">{formatMoney(total * precio)}</span>}
+                                        </div>
+                                        {sinPrecio ? (
+                                            <p className="text-xs text-amber-600">Sin precio asignado — se registrará sin cobro.</p>
+                                        ) : (
+                                            <>
+                                                <div className="space-y-2">
+                                                    {([
+                                                        { label: "Efectivo", key: "efectivo" as const },
+                                                        { label: "Transferencia", key: "transferencia" as const },
+                                                    ] as const).map(({ label, key }) => (
+                                                        <div key={key} className="flex items-center gap-3">
+                                                            <span className="text-xs font-semibold text-gray-600 w-24 shrink-0">{label}</span>
+                                                            <input
+                                                                type="number" inputMode="numeric" min="0" max={String(total)}
+                                                                value={entradasDist[key]}
+                                                                onChange={e => setEntradasDist(prev => ({ ...prev, [key]: e.target.value }))}
+                                                                style={{ fontSize: "16px" }}
+                                                                className="flex-1 px-3 py-1.5 border border-gray-300 rounded-xl text-sm font-bold text-center focus:outline-none focus:border-black"
+                                                                placeholder="0"
+                                                            />
+                                                            {precio > 0 && (efCant > 0 || trCant > 0) && (
+                                                                <span className="text-xs text-gray-400 w-20 text-right shrink-0">
+                                                                    {formatMoney((Number(entradasDist[key]) || 0) * precio)}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                    <div className={`flex items-center gap-3 ${invalid ? "opacity-50" : ""}`}>
+                                                        <span className="text-xs font-semibold text-gray-600 w-24 shrink-0">Tarjeta</span>
+                                                        <div className={`flex-1 px-3 py-1.5 border rounded-xl text-sm font-bold text-center ${invalid ? "border-red-300 text-red-500" : "border-gray-200 text-gray-500 bg-gray-50"}`}>
+                                                            {invalid ? "— excedido" : tarCant}
+                                                        </div>
+                                                        {precio > 0 && !invalid && tarCant > 0 && (
+                                                            <span className="text-xs text-gray-400 w-20 text-right shrink-0">{formatMoney(tarCant * precio)}</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                {invalid && (
+                                                    <p className="text-xs font-bold text-red-500">La suma no puede superar {total}.</p>
+                                                )}
+                                            </>
+                                        )}
                                     </div>
-                                </div>
-                            )}
+                                );
+                            })()}
 
                             {/* Ventas directas */}
                             {(cierreEventoData.ventasEfectivo + cierreEventoData.ventasTransferencia + cierreEventoData.ventasTarjeta) > 0 && (
@@ -5615,7 +5688,15 @@ export default function CajaPage() {
                                 className="flex-1 py-2.5 border border-black rounded-xl text-sm font-semibold text-gray-600">
                                 Cancelar
                             </button>
-                            <button onClick={confirmarCierreEvento} disabled={cierreEventoSaving}
+                            <button onClick={confirmarCierreEvento} disabled={cierreEventoSaving || (() => {
+                                if (cierreEventoData.entradasCantidad > 0 && cierreEventoData.entradasPrecio > 0) {
+                                    const total = cierreEventoData.entradasCantidad;
+                                    const ef = Number(entradasDist.efectivo) || 0;
+                                    const tr = Number(entradasDist.transferencia) || 0;
+                                    return (total - ef - tr) < 0;
+                                }
+                                return false;
+                            })()}
                                 className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
                                 {cierreEventoSaving ? "Cerrando..." : "Confirmar cierre"}
                             </button>

@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
-import { Plus, UtensilsCrossed, ChevronRight, LockKeyhole, Star, X, ArrowLeftRight, User, Users, Search, Loader2, MessageCircle } from "lucide-react";
+import { Plus, UtensilsCrossed, ChevronRight, LockKeyhole, Star, X, ArrowLeftRight, User, Users, Search, Loader2, MessageCircle, Ticket } from "lucide-react";
 import Loader from "@/components/Loader";
 import { swalBase } from "@/lib/swalConfig";
 
@@ -24,6 +24,8 @@ type Comanda = {
 
 type EventoActivo = { _id: string; nombre: string };
 type Toast = { id: string; msg: string; tipo: string };
+
+type EntradasModal = { eventoId: string; eventoNombre: string } | null;
 
 const fmt = (n: number) => new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0 }).format(n);
 
@@ -53,6 +55,9 @@ export default function AnotadorPage() {
     const [loadingData, setLoadingData] = useState(true);
     const [eventosActivos, setEventosActivos] = useState<EventoActivo[]>([]);
     const [eventoPickerModal, setEventoPickerModal] = useState(false);
+    const [entradasModal, setEntradasModal] = useState<EntradasModal>(null);
+    const [entradasCantidad, setEntradasCantidad] = useState("");
+    const [entradasSaving, setEntradasSaving] = useState(false);
     const [cambiarMesaModal, setCambiarMesaModal] = useState<Comanda | null>(null);
     const [mesasDisponibles, setMesasDisponibles] = useState<{ _id: string; nombre: string; tipo?: string; activa: boolean; x: number; y: number; forma: string; ancho?: number; alto?: number; rotacion?: number }[]>([]);
     const [elementsPlano, setElementsPlano] = useState<{ _id: string; tipo: string; label: string; x: number; y: number; ancho: number; alto: number; color: string }[]>([]);
@@ -286,6 +291,25 @@ export default function AnotadorPage() {
         setComensalesIds(prev => prev.filter(c => c._id !== userId));
     }
 
+    function abrirEntradasModal(ev: EventoActivo) {
+        setEntradasCantidad("");
+        setEntradasModal({ eventoId: ev._id, eventoNombre: ev.nombre });
+    }
+
+    async function guardarEntradas() {
+        if (!entradasModal || !entradasCantidad || Number(entradasCantidad) < 1) return;
+        setEntradasSaving(true);
+        try {
+            await fetch(`/api/eventos/${entradasModal.eventoId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ accion: "agregarTarjetas", cantidad: Number(entradasCantidad) }),
+            });
+            setEntradasModal(null);
+        } finally { setEntradasSaving(false); }
+    }
+
     function handleNuevaComanda() {
         if (eventosActivos.length > 0) {
             setEventoPickerModal(true);
@@ -323,13 +347,20 @@ export default function AnotadorPage() {
             <div className="max-w-2xl mx-auto px-4 pt-4 space-y-5">
 
                 {eventosActivos.length > 0 && (
-                    <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-                        <Star size={14} className="text-amber-500 shrink-0" />
-                        <p className="text-sm font-bold text-amber-700 truncate">
-                            {eventosActivos.length === 1
-                                ? `Evento activo: ${eventosActivos[0].nombre}`
-                                : `${eventosActivos.length} eventos activos`}
-                        </p>
+                    <div className="space-y-2">
+                        {eventosActivos.map(ev => (
+                            <div key={ev._id} className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                                <Star size={14} className="text-amber-500 shrink-0" />
+                                <p className="text-sm font-bold text-amber-700 truncate flex-1">{ev.nombre}</p>
+                                {cajaAbierta !== false && (
+                                    <button
+                                        onClick={() => abrirEntradasModal(ev)}
+                                        className="flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-black px-3 py-1.5 rounded-lg transition active:scale-95 shrink-0">
+                                        <Ticket size={12} /> Entradas
+                                    </button>
+                                )}
+                            </div>
+                        ))}
                     </div>
                 )}
 
@@ -567,6 +598,41 @@ export default function AnotadorPage() {
                 </div>
 
             </div>
+
+            {/* Modal agregar entradas */}
+            {entradasModal && (
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl">
+                        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+                            <Ticket size={18} className="text-amber-600 shrink-0" />
+                            <div className="flex-1">
+                                <h2 className="font-black text-gray-900">Registrar entradas</h2>
+                                <p className="text-xs text-gray-500">{entradasModal.eventoNombre}</p>
+                            </div>
+                            <button onClick={() => setEntradasModal(null)} className="p-1 text-gray-400"><X size={18} /></button>
+                        </div>
+                        <div className="px-5 py-5">
+                            <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Cantidad de personas</label>
+                            <input
+                                autoFocus type="number" inputMode="numeric" min="1"
+                                value={entradasCantidad}
+                                onChange={e => setEntradasCantidad(e.target.value)}
+                                onKeyDown={e => { if (e.key === "Enter") guardarEntradas(); }}
+                                style={{ fontSize: "16px" }}
+                                className="w-full px-4 py-3 border border-black rounded-xl text-xl font-black focus:outline-none focus:ring-2 focus:ring-black text-center"
+                                placeholder="0"
+                            />
+                        </div>
+                        <div className="px-5 pb-5 flex gap-2">
+                            <button onClick={() => setEntradasModal(null)} className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
+                            <button onClick={guardarEntradas} disabled={!entradasCantidad || Number(entradasCantidad) < 1 || entradasSaving}
+                                className="flex-1 py-2.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white rounded-xl text-sm font-black transition">
+                                {entradasSaving ? <Loader2 size={16} className="animate-spin mx-auto" /> : "Registrar"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Modal selector de evento */}
             {eventoPickerModal && (

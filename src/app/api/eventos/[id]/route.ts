@@ -123,6 +123,32 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
             { eventoId: params.id, estado: { $nin: ["cerrado", "cancelado"] }, total: 0 },
             { $set: { estado: "cerrado" } }
         );
+
+        // Fix CajaMovements to reflect the user-specified payment method distribution for entradas
+        if (body.entradasDistribucion) {
+            const { efectivo: efCant, transferencia: trCant, tarjeta: tarCant } = body.entradasDistribucion;
+            const precio = (evento as any).precioTarjeta ?? 0;
+            const tarjetaIds = (evento.tarjetas as any[]).map((t: any) => t._id);
+            if (tarjetaIds.length > 0 && precio > 0) {
+                await CajaMovement.deleteMany({ tarjetaId: { $in: tarjetaIds } });
+                const sesion = await CajaSession.findOne({ estado: "abierta" });
+                if (sesion) {
+                    const movPairs = [
+                        { metodoPago: "efectivo",      monto: Number(efCant)  * precio },
+                        { metodoPago: "transferencia", monto: Number(trCant)  * precio },
+                        { metodoPago: "tarjeta",       monto: Number(tarCant) * precio },
+                    ].filter(p => p.monto > 0);
+                    for (const p of movPairs) {
+                        await CajaMovement.create({
+                            sesionId: sesion._id, tipo: "ingreso",
+                            concepto: `Entradas evento: ${evento.nombre}`,
+                            monto: p.monto, metodoPago: p.metodoPago, userId: payload.sub,
+                        });
+                    }
+                }
+            }
+        }
+
         if (body.cierreData) {
             const cd = body.cierreData;
             (evento as any).cierreData = {
