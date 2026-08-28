@@ -119,6 +119,9 @@ type CierreResumen = {
     entradasCantidad: number;
     entradasPrecio: number;
     entradasTotal: number;
+    entradasEfectivo: number;
+    entradasTransferencia: number;
+    entradasTarjeta: number;
     comandasEfectivo: number;
     comandasTransferencia: number;
     comandasTarjeta: number;
@@ -1835,9 +1838,12 @@ export default function CajaPage() {
         const ventasTransferencia = ev.ventas.filter(v => v.metodoPago === "transferencia").reduce((a, v) => a + v.total, 0);
         const ventasTarjeta = ev.ventas.filter(v => v.metodoPago === "tarjeta").reduce((a, v) => a + v.total, 0);
 
-        // Tarjetas de entrada
+        // Tarjetas de entrada por método
         const entradasCantidad = tarjetas.reduce((a: number, t: any) => a + t.cantidad, 0);
         const entradasTotal = entradasCantidad * precioTarjeta;
+        const entradasEfectivo = tarjetas.filter((t: any) => (t.metodoPago || "efectivo") === "efectivo").reduce((a: number, t: any) => a + t.cantidad * precioTarjeta, 0);
+        const entradasTransferencia = tarjetas.filter((t: any) => t.metodoPago === "transferencia").reduce((a: number, t: any) => a + t.cantidad * precioTarjeta, 0);
+        const entradasTarjeta = tarjetas.filter((t: any) => t.metodoPago === "tarjeta").reduce((a: number, t: any) => a + t.cantidad * precioTarjeta, 0);
 
         // Comandas cobradas por método
         const cobradas = pedidosEv.filter(p => p.estado === "cerrado");
@@ -1857,16 +1863,17 @@ export default function CajaPage() {
         const parcialesTransferencia = parciales.filter(m => m.metodoPago === "transferencia").reduce((a, m) => a + (m.monto || 0), 0);
         const parcialesTarjeta = parciales.filter(m => m.metodoPago === "tarjeta").reduce((a, m) => a + (m.monto || 0), 0);
 
-        // Totales por método (ventas directas + comandas cobradas + cobros parciales; entradas aparte)
-        const totalEfectivo = ventasEfectivo + comandasEfectivo + parcialesEfectivo;
-        const totalTransferencia = ventasTransferencia + comandasTransferencia + parcialesTransferencia;
-        const totalTarjeta = ventasTarjeta + comandasTarjeta + parcialesTarjeta;
-        const totalGeneral = totalEfectivo + totalTransferencia + totalTarjeta + entradasTotal + comandasSinCobrar;
+        // Totales por método (ventas + comandas + parciales + entradas)
+        const totalEfectivo = ventasEfectivo + comandasEfectivo + parcialesEfectivo + entradasEfectivo;
+        const totalTransferencia = ventasTransferencia + comandasTransferencia + parcialesTransferencia + entradasTransferencia;
+        const totalTarjeta = ventasTarjeta + comandasTarjeta + parcialesTarjeta + entradasTarjeta;
+        const totalGeneral = totalEfectivo + totalTransferencia + totalTarjeta + comandasSinCobrar;
 
         setCierreEventoData({
             eventoId, eventoNombre: ev.nombre,
             ventasEfectivo, ventasTransferencia, ventasTarjeta,
             entradasCantidad, entradasPrecio: precioTarjeta, entradasTotal,
+            entradasEfectivo, entradasTransferencia, entradasTarjeta,
             comandasEfectivo, comandasTransferencia, comandasTarjeta, comandasSinCobrar,
             totalEfectivo, totalTransferencia, totalTarjeta, totalGeneral,
         });
@@ -1890,6 +1897,7 @@ export default function CajaPage() {
     async function abrirTarjetasModal(eventoId: string) {
         setTarjetasEventoId(eventoId);
         setTarjetasCantidad("");
+        setTarjetasMetodo("efectivo");
         setTarjetasModal(true);
     }
 

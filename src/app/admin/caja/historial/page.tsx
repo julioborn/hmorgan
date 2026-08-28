@@ -60,6 +60,9 @@ type EventoCerrado = {
         entradasCantidad: number;
         entradasPrecio: number;
         entradasTotal: number;
+        entradasEfectivo?: number;
+        entradasTransferencia?: number;
+        entradasTarjeta?: number;
         totalEfectivo: number;
         ventasEfectivo: number;
         comandasEfectivo: number;
@@ -363,9 +366,9 @@ function DetalleEvento({ ev }: { ev: EventoCerrado }) {
         .sort((a, b) => b.total - a.total);
 
     const metodos = [
-        { label: "Efectivo",      icon: Banknote,   key: "efectivo",      total: cd.totalEfectivo,      ventas: cd.ventasEfectivo,      comandas: cd.comandasEfectivo },
-        { label: "Transferencia", icon: Send,        key: "transferencia", total: cd.totalTransferencia, ventas: cd.ventasTransferencia, comandas: cd.comandasTransferencia },
-        { label: "Tarjeta",       icon: CreditCard,  key: "tarjeta",       total: cd.totalTarjeta,       ventas: cd.ventasTarjeta,       comandas: cd.comandasTarjeta },
+        { label: "Efectivo",      icon: Banknote,   key: "efectivo",      total: cd.totalEfectivo,      ventas: cd.ventasEfectivo,      comandas: cd.comandasEfectivo,      entradas: cd.entradasEfectivo ?? 0 },
+        { label: "Transferencia", icon: Send,        key: "transferencia", total: cd.totalTransferencia, ventas: cd.ventasTransferencia, comandas: cd.comandasTransferencia, entradas: cd.entradasTransferencia ?? 0 },
+        { label: "Tarjeta",       icon: CreditCard,  key: "tarjeta",       total: cd.totalTarjeta,       ventas: cd.ventasTarjeta,       comandas: cd.comandasTarjeta,       entradas: cd.entradasTarjeta ?? 0 },
     ].filter(m => m.total > 0);
 
     return (
@@ -395,8 +398,9 @@ function DetalleEvento({ ev }: { ev: EventoCerrado }) {
                                     </div>
                                     <span className="font-black text-base">{fmt(m.total)}</span>
                                 </div>
-                                {(m.ventas > 0 || m.comandas > 0) && (
+                                {(m.ventas > 0 || m.comandas > 0 || m.entradas > 0) && (
                                     <div className="flex gap-4 mt-1 text-xs opacity-70">
+                                        {m.entradas > 0 && <span className="font-semibold">entradas {fmt(m.entradas)}</span>}
                                         {m.ventas > 0 && <span className="font-semibold">ventas {fmt(m.ventas)}</span>}
                                         {m.comandas > 0 && <span className="font-semibold">comandas {fmt(m.comandas)}</span>}
                                     </div>

@@ -39,6 +39,9 @@ const CierreSchema = new Schema(
         entradasCantidad:       { type: Number, default: 0 },
         entradasPrecio:         { type: Number, default: 0 },
         entradasTotal:          { type: Number, default: 0 },
+        entradasEfectivo:       { type: Number, default: 0 },
+        entradasTransferencia:  { type: Number, default: 0 },
+        entradasTarjeta:        { type: Number, default: 0 },
         // Comandas cobradas por método
         comandasEfectivo:       { type: Number, default: 0 },
         comandasTransferencia:  { type: Number, default: 0 },

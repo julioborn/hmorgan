@@ -90,6 +90,9 @@ export async function POST(req: NextRequest) {
         const precioTarjeta   = ev.precioTarjeta ?? 0;
         const entradasCantidad = tarjetas.reduce((a: number, t: any) => a + t.cantidad, 0);
         const entradasTotal    = entradasCantidad * precioTarjeta;
+        const entradasEfectivo      = tarjetas.filter(t => (t.metodoPago || "efectivo") === "efectivo").reduce((a, t) => a + t.cantidad * precioTarjeta, 0);
+        const entradasTransferencia = tarjetas.filter(t => t.metodoPago === "transferencia").reduce((a, t) => a + t.cantidad * precioTarjeta, 0);
+        const entradasTarjeta       = tarjetas.filter(t => t.metodoPago === "tarjeta").reduce((a, t) => a + t.cantidad * precioTarjeta, 0);
 
         // Comandas cobradas (cerradas con total > 0)
         const cobradas = pedidosEv.filter((p: any) => p.estado === "cerrado" && (p.total ?? 0) > 0);
@@ -107,10 +110,10 @@ export async function POST(req: NextRequest) {
         const parcialesTransferencia  = parcialesEv.filter(m => m.metodoPago === "transferencia").reduce((a, m) => a + m.monto, 0);
         const parcialesTarjeta        = parcialesEv.filter(m => m.metodoPago === "tarjeta").reduce((a, m) => a + m.monto, 0);
 
-        const totalEfectivo      = ventasEfectivo      + comandasEfectivo      + parcialesEfectivo;
-        const totalTransferencia  = ventasTransferencia  + comandasTransferencia  + parcialesTransferencia;
-        const totalTarjeta        = ventasTarjeta        + comandasTarjeta        + parcialesTarjeta;
-        const totalGeneral        = totalEfectivo + totalTransferencia + totalTarjeta + entradasTotal + comandasSinCobrar;
+        const totalEfectivo      = ventasEfectivo      + comandasEfectivo      + parcialesEfectivo      + entradasEfectivo;
+        const totalTransferencia  = ventasTransferencia  + comandasTransferencia  + parcialesTransferencia  + entradasTransferencia;
+        const totalTarjeta        = ventasTarjeta        + comandasTarjeta        + parcialesTarjeta        + entradasTarjeta;
+        const totalGeneral        = totalEfectivo + totalTransferencia + totalTarjeta + comandasSinCobrar;
 
         await Evento.findByIdAndUpdate(evId, {
             $set: {
@@ -123,6 +126,9 @@ export async function POST(req: NextRequest) {
                     entradasCantidad,
                     entradasPrecio: precioTarjeta,
                     entradasTotal,
+                    entradasEfectivo,
+                    entradasTransferencia,
+                    entradasTarjeta,
                     comandasEfectivo,
                     comandasTransferencia,
                     comandasTarjeta,
