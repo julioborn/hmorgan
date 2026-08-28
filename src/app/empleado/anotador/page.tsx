@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 import { Plus, UtensilsCrossed, ChevronRight, LockKeyhole, Star, X, ArrowLeftRight, User, Users, Search, Loader2, MessageCircle, Ticket } from "lucide-react";
+import Link from "next/link";
 import Loader from "@/components/Loader";
 import { swalBase } from "@/lib/swalConfig";
 
@@ -22,11 +23,8 @@ type Comanda = {
     notaEmpleado?: string;
 };
 
-type TarjetaEntry = { _id: string; cantidad: number; metodoPago?: string; createdAt: string };
-type EventoActivo = { _id: string; nombre: string; precioTarjeta?: number; tarjetas?: TarjetaEntry[] };
+type EventoActivo = { _id: string; nombre: string };
 type Toast = { id: string; msg: string; tipo: string };
-
-type EntradasModal = { eventoId: string; eventoNombre: string } | null;
 
 const fmt = (n: number) => new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0 }).format(n);
 
@@ -56,10 +54,6 @@ export default function AnotadorPage() {
     const [loadingData, setLoadingData] = useState(true);
     const [eventosActivos, setEventosActivos] = useState<EventoActivo[]>([]);
     const [eventoPickerModal, setEventoPickerModal] = useState(false);
-    const [entradasModal, setEntradasModal] = useState<EntradasModal>(null);
-    const [entradasCantidad, setEntradasCantidad] = useState("");
-    const [entradasMetodo, setEntradasMetodo] = useState<"efectivo" | "transferencia">("efectivo");
-    const [entradasSaving, setEntradasSaving] = useState(false);
     const [cambiarMesaModal, setCambiarMesaModal] = useState<Comanda | null>(null);
     const [mesasDisponibles, setMesasDisponibles] = useState<{ _id: string; nombre: string; tipo?: string; activa: boolean; x: number; y: number; forma: string; ancho?: number; alto?: number; rotacion?: number }[]>([]);
     const [elementsPlano, setElementsPlano] = useState<{ _id: string; tipo: string; label: string; x: number; y: number; ancho: number; alto: number; color: string }[]>([]);
@@ -151,11 +145,7 @@ export default function AnotadorPage() {
                 .catch(() => setCajaAbierta(false)),
             fetch("/api/eventos?activo=true", { credentials: "include" })
                 .then(r => r.json())
-                .then(d => setEventosActivos(Array.isArray(d) ? d.map((e: any) => ({
-                    _id: e._id, nombre: e.nombre,
-                    precioTarjeta: e.precioTarjeta ?? 0,
-                    tarjetas: e.tarjetas ?? [],
-                })) : []))
+                .then(d => setEventosActivos(Array.isArray(d) ? d.map((e: any) => ({ _id: e._id, nombre: e.nombre })) : []))
                 .catch(() => null),
         ]).finally(() => setLoadingData(false));
 
@@ -297,33 +287,6 @@ export default function AnotadorPage() {
         setComensalesIds(prev => prev.filter(c => c._id !== userId));
     }
 
-    function abrirEntradasModal(ev: EventoActivo) {
-        setEntradasCantidad("");
-        setEntradasMetodo("efectivo");
-        setEntradasModal({ eventoId: ev._id, eventoNombre: ev.nombre });
-    }
-
-    async function guardarEntradas() {
-        if (!entradasModal || !entradasCantidad || Number(entradasCantidad) < 1) return;
-        setEntradasSaving(true);
-        try {
-            const res = await fetch(`/api/eventos/${entradasModal.eventoId}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-                body: JSON.stringify({ accion: "agregarTarjetas", cantidad: Number(entradasCantidad), metodoPago: entradasMetodo }),
-            });
-            if (res.ok) {
-                const { evento } = await res.json();
-                setEventosActivos(prev => prev.map(e => e._id === entradasModal.eventoId
-                    ? { ...e, tarjetas: evento.tarjetas ?? [], precioTarjeta: evento.precioTarjeta ?? e.precioTarjeta }
-                    : e
-                ));
-                setEntradasModal(null);
-            }
-        } finally { setEntradasSaving(false); }
-    }
-
     function handleNuevaComanda() {
         if (eventosActivos.length > 0) {
             setEventoPickerModal(true);
@@ -361,66 +324,19 @@ export default function AnotadorPage() {
             <div className="max-w-2xl mx-auto px-4 pt-4 space-y-5">
 
                 {eventosActivos.length > 0 && (
-                    <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 overflow-hidden">
-                        <div className="flex items-center gap-2 px-4 py-3 border-b border-amber-200">
-                            <Ticket size={15} className="text-amber-600 shrink-0" />
-                            <p className="text-sm font-black text-amber-800 flex-1 uppercase tracking-wide">Entradas</p>
+                    <Link href="/empleado/entradas"
+                        className="flex items-center gap-3 bg-amber-50 border-2 border-amber-300 rounded-xl px-4 py-3 hover:bg-amber-100 transition active:scale-[0.98]">
+                        <Ticket size={16} className="text-amber-600 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-black text-amber-800">Entradas</p>
+                            <p className="text-xs text-amber-600 truncate">
+                                {eventosActivos.length === 1
+                                    ? eventosActivos[0].nombre
+                                    : `${eventosActivos.length} eventos activos`}
+                            </p>
                         </div>
-                        {eventosActivos.map((ev, evIdx) => {
-                            const tarjetas = ev.tarjetas ?? [];
-                            const totalEnt = tarjetas.reduce((s, t) => s + t.cantidad, 0);
-                            const precio = ev.precioTarjeta ?? 0;
-                            const fmt = (n: number) => new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", minimumFractionDigits: 0 }).format(n);
-                            const agoLabel = (iso: string) => {
-                                const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
-                                if (diff < 1) return "ahora";
-                                if (diff < 60) return `hace ${diff} min`;
-                                return `hace ${Math.floor(diff / 60)}h`;
-                            };
-                            const METODO_LABEL: Record<string, string> = { efectivo: "Efectivo", transferencia: "Transf.", tarjeta: "Tarjeta" };
-                            return (
-                                <div key={ev._id} className={evIdx > 0 ? "border-t border-amber-200" : ""}>
-                                    {/* Evento header */}
-                                    <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-100/60">
-                                        <Star size={11} className="text-amber-500 shrink-0" />
-                                        <span className="text-xs font-black text-amber-900 flex-1 truncate">{ev.nombre}</span>
-                                        <span className="text-xs font-black text-amber-700">
-                                            {totalEnt} entrada{totalEnt !== 1 ? "s" : ""}
-                                            {precio > 0 && totalEnt > 0 && ` · ${fmt(totalEnt * precio)}`}
-                                        </span>
-                                    </div>
-                                    {/* Lotes */}
-                                    {tarjetas.length > 0 && (
-                                        <div className="px-4 py-2 space-y-1">
-                                            {tarjetas.map(t => (
-                                                <div key={t._id} className="flex items-center gap-2 text-xs text-amber-800">
-                                                    <span className="font-black">×{t.cantidad}</span>
-                                                    <span className="bg-amber-200 text-amber-800 font-bold px-1.5 py-0.5 rounded-full text-[10px]">
-                                                        {METODO_LABEL[t.metodoPago || "efectivo"] ?? t.metodoPago}
-                                                    </span>
-                                                    {precio > 0 && <span className="text-amber-600 font-semibold">{fmt(t.cantidad * precio)}</span>}
-                                                    <span className="text-amber-400 ml-auto">{agoLabel(t.createdAt)}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                    {tarjetas.length === 0 && (
-                                        <p className="px-4 py-2 text-xs text-amber-500 italic">Sin entradas registradas</p>
-                                    )}
-                                    {/* Botón agregar */}
-                                    {cajaAbierta !== false && (
-                                        <div className="px-4 pb-3">
-                                            <button
-                                                onClick={() => abrirEntradasModal(ev)}
-                                                className="w-full flex items-center justify-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-black py-2.5 rounded-xl transition active:scale-[0.98]">
-                                                <Plus size={14} /> Agregar entradas
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
+                        <ChevronRight size={16} className="text-amber-400 shrink-0" />
+                    </Link>
                 )}
 
                 {cajaAbierta === false && (
@@ -657,54 +573,6 @@ export default function AnotadorPage() {
                 </div>
 
             </div>
-
-            {/* Modal agregar entradas */}
-            {entradasModal && (
-                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl">
-                        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
-                            <Ticket size={18} className="text-amber-600 shrink-0" />
-                            <div className="flex-1">
-                                <h2 className="font-black text-gray-900">Registrar entradas</h2>
-                                <p className="text-xs text-gray-500">{entradasModal.eventoNombre}</p>
-                            </div>
-                            <button onClick={() => setEntradasModal(null)} className="p-1 text-gray-400"><X size={18} /></button>
-                        </div>
-                        <div className="px-5 py-5 space-y-4">
-                            <div>
-                                <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Cantidad de personas</label>
-                                <input
-                                    autoFocus type="number" inputMode="numeric" min="1"
-                                    value={entradasCantidad}
-                                    onChange={e => setEntradasCantidad(e.target.value)}
-                                    onKeyDown={e => { if (e.key === "Enter") guardarEntradas(); }}
-                                    style={{ fontSize: "16px" }}
-                                    className="w-full px-4 py-3 border border-black rounded-xl text-xl font-black focus:outline-none focus:ring-2 focus:ring-black text-center"
-                                    placeholder="0"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Forma de pago</label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {(["efectivo", "transferencia"] as const).map(m => (
-                                        <button key={m} onClick={() => setEntradasMetodo(m)}
-                                            className={`py-2.5 rounded-xl text-sm font-bold capitalize border-2 transition ${entradasMetodo === m ? "bg-amber-600 text-white border-amber-600" : "bg-white text-gray-600 border-gray-200"}`}>
-                                            {m === "efectivo" ? "Efectivo" : "Transferencia"}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                        <div className="px-5 pb-5 flex gap-2">
-                            <button onClick={() => setEntradasModal(null)} className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
-                            <button onClick={guardarEntradas} disabled={!entradasCantidad || Number(entradasCantidad) < 1 || entradasSaving}
-                                className="flex-1 py-2.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white rounded-xl text-sm font-black transition">
-                                {entradasSaving ? <Loader2 size={16} className="animate-spin mx-auto" /> : "Registrar"}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Modal selector de evento */}
             {eventoPickerModal && (

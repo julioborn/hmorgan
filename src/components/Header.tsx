@@ -103,6 +103,7 @@ export default function Header() {
 
   const linksEmpleado = [
     { href: "/empleado/anotador", label: "Anotador de Pedidos", icon: ClipboardList },
+    { href: "/empleado/entradas", label: "Entradas", icon: Ticket },
     { href: "/empleado/tareas", label: "Lista de Tareas", icon: CheckSquare },
     { href: "/menu", label: "Menú", icon: Utensils },
   ];
