@@ -68,20 +68,32 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         }
         const cantidad = Number(body.cantidad);
         if (!cantidad || cantidad < 1) return NextResponse.json({ error: "Cantidad inválida" }, { status: 400 });
-        const metodoPago = body.metodoPago || "efectivo";
-        evento.tarjetas.push({ cantidad, metodoPago });
+        evento.tarjetas.push({ cantidad, cobrado: false });
         await evento.save();
-        const nuevaTarjeta = (evento.tarjetas as any[])[(evento.tarjetas as any[]).length - 1];
+        return NextResponse.json({ ok: true, evento });
+    }
+
+    if (body.accion === "cobrarEntrada") {
+        const { tarjetaId, metodoPago } = body;
+        if (!tarjetaId || !metodoPago) return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
+        const tarjetas = evento.tarjetas as any[];
+        const t = tarjetas.find((t: any) => t._id.toString() === tarjetaId);
+        if (!t) return NextResponse.json({ error: "Tarjeta no encontrada" }, { status: 404 });
+        if (t.cobrado) return NextResponse.json({ error: "Ya cobrada" }, { status: 400 });
+        t.cobrado = true;
+        t.metodoPago = metodoPago;
+        t.cobradoAt = new Date();
+        await evento.save();
         const precioTarjeta = (evento as any).precioTarjeta ?? 0;
-        const totalTarjetas = cantidad * precioTarjeta;
-        if (totalTarjetas > 0) {
+        const monto = t.cantidad * precioTarjeta;
+        if (monto > 0) {
             const sesion = await CajaSession.findOne({ estado: "abierta" });
             if (sesion) {
                 await CajaMovement.create({
                     sesionId: sesion._id, tipo: "ingreso",
-                    concepto: `Entradas evento: ${evento.nombre} (${cantidad}×)`,
-                    monto: totalTarjetas, metodoPago, userId: payload.sub,
-                    tarjetaId: nuevaTarjeta._id,
+                    concepto: `Entradas evento: ${evento.nombre} (${t.cantidad}×)`,
+                    monto, metodoPago, userId: payload.sub,
+                    tarjetaId: t._id,
                 });
             }
         }
@@ -123,31 +135,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
             { eventoId: params.id, estado: { $nin: ["cerrado", "cancelado"] }, total: 0 },
             { $set: { estado: "cerrado" } }
         );
-
-        // Fix CajaMovements to reflect the user-specified payment method distribution for entradas
-        if (body.entradasDistribucion) {
-            const { efectivo: efCant, transferencia: trCant, tarjeta: tarCant } = body.entradasDistribucion;
-            const precio = (evento as any).precioTarjeta ?? 0;
-            const tarjetaIds = (evento.tarjetas as any[]).map((t: any) => t._id);
-            if (tarjetaIds.length > 0 && precio > 0) {
-                await CajaMovement.deleteMany({ tarjetaId: { $in: tarjetaIds } });
-                const sesion = await CajaSession.findOne({ estado: "abierta" });
-                if (sesion) {
-                    const movPairs = [
-                        { metodoPago: "efectivo",      monto: Number(efCant)  * precio },
-                        { metodoPago: "transferencia", monto: Number(trCant)  * precio },
-                        { metodoPago: "tarjeta",       monto: Number(tarCant) * precio },
-                    ].filter(p => p.monto > 0);
-                    for (const p of movPairs) {
-                        await CajaMovement.create({
-                            sesionId: sesion._id, tipo: "ingreso",
-                            concepto: `Entradas evento: ${evento.nombre}`,
-                            monto: p.monto, metodoPago: p.metodoPago, userId: payload.sub,
-                        });
-                    }
-                }
-            }
-        }
 
         if (body.cierreData) {
             const cd = body.cierreData;

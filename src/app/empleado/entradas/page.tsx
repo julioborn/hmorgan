@@ -35,7 +35,6 @@ export default function EntradasEmpleadoPage() {
 
     const [modal, setModal] = useState<{ eventoId: string; eventoNombre: string } | null>(null);
     const [cantidad, setCantidad] = useState("");
-    const [metodo, setMetodo] = useState<"efectivo" | "transferencia">("efectivo");
     const [saving, setSaving] = useState(false);
 
     const fetchEventos = useCallback(async () => {
@@ -71,7 +70,6 @@ export default function EntradasEmpleadoPage() {
 
     function abrirModal(ev: EventoActivo) {
         setCantidad("");
-        setMetodo("efectivo");
         setModal({ eventoId: ev._id, eventoNombre: ev.nombre });
     }
 
@@ -83,7 +81,7 @@ export default function EntradasEmpleadoPage() {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
-                body: JSON.stringify({ accion: "agregarTarjetas", cantidad: Number(cantidad), metodoPago: metodo }),
+                body: JSON.stringify({ accion: "agregarTarjetas", cantidad: Number(cantidad) }),
             });
             if (res.ok) {
                 const { evento } = await res.json();
@@ -158,9 +156,15 @@ export default function EntradasEmpleadoPage() {
                                     <div key={t._id} className="flex items-center gap-2 rounded-xl bg-white border border-amber-100 px-3 py-2">
                                         <Ticket size={13} className="text-amber-400 shrink-0" />
                                         <span className="text-sm font-black text-gray-800">×{t.cantidad}</span>
-                                        <span className="bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full text-[11px]">
-                                            {METODO_LABEL[t.metodoPago || "efectivo"] ?? t.metodoPago}
-                                        </span>
+                                        {(t as any).cobrado ? (
+                                            <span className="bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded-full text-[11px]">
+                                                ✓ {METODO_LABEL[(t as any).metodoPago] ?? "Cobrado"}
+                                            </span>
+                                        ) : (
+                                            <span className="bg-orange-100 text-orange-600 font-bold px-2 py-0.5 rounded-full text-[11px]">
+                                                Pendiente cobro
+                                            </span>
+                                        )}
                                         {precio > 0 && (
                                             <span className="text-sm font-semibold text-gray-500">{fmt(t.cantidad * precio)}</span>
                                         )}
@@ -210,17 +214,7 @@ export default function EntradasEmpleadoPage() {
                                     placeholder="0"
                                 />
                             </div>
-                            <div>
-                                <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Forma de pago</label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {(["efectivo", "transferencia"] as const).map(m => (
-                                        <button key={m} onClick={() => setMetodo(m)}
-                                            className={`py-3 rounded-xl text-sm font-black border-2 transition active:scale-95 ${metodo === m ? "bg-amber-600 text-white border-amber-600" : "bg-white text-gray-600 border-gray-200"}`}>
-                                            {m === "efectivo" ? "Efectivo" : "Transferencia"}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
+                            <p className="text-xs text-gray-400">El método de cobro se define desde caja al momento de cobrar.</p>
                         </div>
 
                         <div className="px-5 pb-5 flex gap-2">

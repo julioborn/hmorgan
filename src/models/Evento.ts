@@ -23,7 +23,9 @@ const VentaSchema = new Schema(
 const TarjetaSchema = new Schema(
     {
         cantidad:   { type: Number, required: true },
-        metodoPago: { type: String, enum: ["efectivo", "transferencia", "tarjeta"], default: "efectivo" },
+        metodoPago: { type: String, enum: ["efectivo", "transferencia", "tarjeta"] },
+        cobrado:    { type: Boolean, default: false },
+        cobradoAt:  { type: Date },
     },
     { timestamps: true }
 );

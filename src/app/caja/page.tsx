@@ -330,7 +330,9 @@ export default function CajaPage() {
     const [tarjetasEventoId, setTarjetasEventoId] = useState<string | null>(null);
     const [tarjetasCantidad, setTarjetasCantidad] = useState("1");
     const [tarjetasSaving, setTarjetasSaving] = useState(false);
-    const [entradasDist, setEntradasDist] = useState({ efectivo: "", transferencia: "" });
+    const [cobrarEntradaModal, setCobrarEntradaModal] = useState<{ tarjetaId: string; eventoId: string; eventoNombre: string; cantidad: number; precio: number } | null>(null);
+    const [cobrarEntradaMetodo, setCobrarEntradaMetodo] = useState<"efectivo" | "transferencia" | "tarjeta">("efectivo");
+    const [cobrarEntradaSaving, setCobrarEntradaSaving] = useState(false);
     const [editTarjetaId, setEditTarjetaId] = useState<string | null>(null);
     const [editTarjetaMetodo, setEditTarjetaMetodo] = useState<"efectivo" | "transferencia" | "tarjeta">("efectivo");
     const [seccionesColapsadas, setSeccionesColapsadas] = useState<Set<string>>(new Set());
@@ -1838,12 +1840,13 @@ export default function CajaPage() {
         const ventasTransferencia = ev.ventas.filter(v => v.metodoPago === "transferencia").reduce((a, v) => a + v.total, 0);
         const ventasTarjeta = ev.ventas.filter(v => v.metodoPago === "tarjeta").reduce((a, v) => a + v.total, 0);
 
-        // Tarjetas de entrada por método
+        // Tarjetas de entrada — solo cobradas contribuyen a los totales
         const entradasCantidad = tarjetas.reduce((a: number, t: any) => a + t.cantidad, 0);
-        const entradasTotal = entradasCantidad * precioTarjeta;
-        const entradasEfectivo = tarjetas.filter((t: any) => (t.metodoPago || "efectivo") === "efectivo").reduce((a: number, t: any) => a + t.cantidad * precioTarjeta, 0);
-        const entradasTransferencia = tarjetas.filter((t: any) => t.metodoPago === "transferencia").reduce((a: number, t: any) => a + t.cantidad * precioTarjeta, 0);
-        const entradasTarjeta = tarjetas.filter((t: any) => t.metodoPago === "tarjeta").reduce((a: number, t: any) => a + t.cantidad * precioTarjeta, 0);
+        const cobradas_ = tarjetas.filter((t: any) => t.cobrado);
+        const entradasTotal = cobradas_.reduce((a: number, t: any) => a + t.cantidad * precioTarjeta, 0);
+        const entradasEfectivo = cobradas_.filter((t: any) => t.metodoPago === "efectivo").reduce((a: number, t: any) => a + t.cantidad * precioTarjeta, 0);
+        const entradasTransferencia = cobradas_.filter((t: any) => t.metodoPago === "transferencia").reduce((a: number, t: any) => a + t.cantidad * precioTarjeta, 0);
+        const entradasTarjeta = cobradas_.filter((t: any) => t.metodoPago === "tarjeta").reduce((a: number, t: any) => a + t.cantidad * precioTarjeta, 0);
 
         // Comandas cobradas por método
         const cobradas = pedidosEv.filter(p => p.estado === "cerrado");
@@ -1869,7 +1872,6 @@ export default function CajaPage() {
         const totalTarjeta = ventasTarjeta + comandasTarjeta + parcialesTarjeta + entradasTarjeta;
         const totalGeneral = totalEfectivo + totalTransferencia + totalTarjeta + comandasSinCobrar;
 
-        setEntradasDist({ efectivo: "", transferencia: "" });
         setCierreEventoData({
             eventoId, eventoNombre: ev.nombre,
             ventasEfectivo, ventasTransferencia, ventasTarjeta,
@@ -1882,51 +1884,56 @@ export default function CajaPage() {
 
     async function confirmarCierreEvento() {
         if (!cierreEventoData) return;
-        const { entradasCantidad: totalEnt, entradasPrecio: precio } = cierreEventoData;
-
-        let finalData = { ...cierreEventoData };
-        let distribucion: { efectivo: number; transferencia: number; tarjeta: number } | undefined;
-
-        if (totalEnt > 0 && precio > 0) {
-            const efCant   = Number(entradasDist.efectivo)       || 0;
-            const trCant   = Number(entradasDist.transferencia)   || 0;
-            const tarCant  = totalEnt - efCant - trCant;
-            if (tarCant < 0 || efCant + trCant > totalEnt) return; // guard — UI already shows error
-            const efAmt  = efCant  * precio;
-            const trAmt  = trCant  * precio;
-            const tarAmt = tarCant * precio;
-            const { ventasEfectivo, ventasTransferencia, ventasTarjeta,
-                    comandasEfectivo, comandasTransferencia, comandasTarjeta,
-                    comandasSinCobrar } = cierreEventoData;
-            // Need parciales — read from state (already included in the original totals via abrirCierreEvento)
-            // Re-derive parcial amounts by subtracting ventas+comandas+prevEntradas from original totals
-            const prevEf = cierreEventoData.totalEfectivo - ventasEfectivo - comandasEfectivo - cierreEventoData.entradasEfectivo;
-            const prevTr = cierreEventoData.totalTransferencia - ventasTransferencia - comandasTransferencia - cierreEventoData.entradasTransferencia;
-            const prevTar = cierreEventoData.totalTarjeta - ventasTarjeta - comandasTarjeta - cierreEventoData.entradasTarjeta;
-            const newTotalEf  = ventasEfectivo + comandasEfectivo + prevEf + efAmt;
-            const newTotalTr  = ventasTransferencia + comandasTransferencia + prevTr + trAmt;
-            const newTotalTar = ventasTarjeta + comandasTarjeta + prevTar + tarAmt;
-            const newTotalGen = newTotalEf + newTotalTr + newTotalTar + comandasSinCobrar;
-            finalData = {
-                ...cierreEventoData,
-                entradasEfectivo: efAmt, entradasTransferencia: trAmt, entradasTarjeta: tarAmt,
-                totalEfectivo: newTotalEf, totalTransferencia: newTotalTr, totalTarjeta: newTotalTar,
-                totalGeneral: newTotalGen,
-            };
-            distribucion = { efectivo: efCant, transferencia: trCant, tarjeta: tarCant };
-        }
-
         setCierreEventoSaving(true);
         try {
             const res = await fetch(`/api/eventos/${cierreEventoData.eventoId}`, {
                 method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
-                body: JSON.stringify({ accion: "cerrar", cierreData: finalData, entradasDistribucion: distribucion }),
+                body: JSON.stringify({ accion: "cerrar", cierreData: cierreEventoData }),
             });
             if (res.ok) {
                 setEventosActivos(prev => prev.filter(e => e._id !== cierreEventoData.eventoId));
                 setCierreEventoData(null);
             }
         } finally { setCierreEventoSaving(false); }
+    }
+
+    async function ejecutarCobrarEntrada() {
+        if (!cobrarEntradaModal) return;
+        setCobrarEntradaSaving(true);
+        try {
+            const res = await fetch(`/api/eventos/${cobrarEntradaModal.eventoId}`, {
+                method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
+                body: JSON.stringify({ accion: "cobrarEntrada", tarjetaId: cobrarEntradaModal.tarjetaId, metodoPago: cobrarEntradaMetodo }),
+            });
+            if (!res.ok) return;
+            const { evento: updated } = await res.json();
+            setEventosActivos(prev => prev.map(e => e._id === cobrarEntradaModal.eventoId ? updated : e));
+            // Imprimir ticket de entrada
+            const hora = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+            const fecha = new Date().toLocaleDateString("es-AR");
+            const items = [{ cantidad: cobrarEntradaModal.cantidad, nombre: `Entrada — ${cobrarEntradaModal.eventoNombre}`, precio: cobrarEntradaModal.precio }];
+            const total = cobrarEntradaModal.cantidad * cobrarEntradaModal.precio;
+            const pagos = [{ metodo: cobrarEntradaMetodo, monto: total }];
+            try {
+                const ctrl = new AbortController();
+                const tid = setTimeout(() => ctrl.abort(), 1500);
+                const rp = await fetch(`${PRINT_SERVER}/imprimir/ticket`, {
+                    method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal,
+                    body: JSON.stringify({ mesa: "Entrada", fecha, hora, items, total, costoEnvio: 0, descuento: 0, pagos, vuelto: 0 }),
+                });
+                clearTimeout(tid);
+                if (!rp.ok) throw new Error();
+            } catch {
+                try {
+                    await fetch("/api/print-jobs", {
+                        method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
+                        body: JSON.stringify({ tipo: "ticket", impresora: "Barra",
+                            payload: { mesa: "Entrada", fecha, hora, items, total, costoEnvio: 0, descuento: 0, pagos, vuelto: 0 } }),
+                    });
+                } catch { }
+            }
+            setCobrarEntradaModal(null);
+        } finally { setCobrarEntradaSaving(false); }
     }
 
     async function abrirTarjetasModal(eventoId: string) {
@@ -3393,17 +3400,11 @@ export default function CajaPage() {
                                                 </div>
                                             </div>
 
-                                            {/* ── Desglose entradas por método ── */}
+                                            {/* ── Entradas (lotes) ── */}
                                             {totalTarjetas > 0 && (() => {
-                                                const tarjetasArr = (ev as any).tarjetas ?? [];
-                                                const METODO_NOMBRE: Record<string, string> = { efectivo: "Efectivo", transferencia: "Transferencia", tarjeta: "Tarjeta" };
-                                                const grupos: Record<string, { total: number; registros: any[] }> = {};
-                                                for (const t of tarjetasArr) {
-                                                    const m = t.metodoPago || "efectivo";
-                                                    if (!grupos[m]) grupos[m] = { total: 0, registros: [] };
-                                                    grupos[m].total += t.cantidad;
-                                                    grupos[m].registros.push(t);
-                                                }
+                                                const tarjetasArr: any[] = (ev as any).tarjetas ?? [];
+                                                const pendientes = tarjetasArr.filter(t => !t.cobrado);
+                                                const cobradas = tarjetasArr.filter(t => t.cobrado);
                                                 const colKey = `${ev._id}:entradas`;
                                                 const colapsado = seccionesColapsadas.has(colKey);
                                                 return (
@@ -3412,101 +3413,61 @@ export default function CajaPage() {
                                                             className="flex items-center gap-2 w-full mb-2 group">
                                                             <p className="text-xs font-black text-gray-400 uppercase tracking-wider flex-1 text-left">
                                                                 Entradas · {totalTarjetas} total
+                                                                {pendientes.length > 0 && <span className="ml-1.5 bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full text-[10px]">{pendientes.length} pendiente{pendientes.length !== 1 ? "s" : ""}</span>}
                                                             </p>
                                                             <ChevronDown size={13} className={`text-gray-400 transition-transform ${colapsado ? "-rotate-90" : ""}`} />
                                                         </button>
-                                                        {!colapsado && <div className="space-y-1.5">
-                                                            {Object.entries(grupos).map(([metodo, g]) => {
-                                                                const Icon = METODO_ICON[metodo] || Banknote;
-                                                                return (
-                                                                    <div key={metodo} className="rounded-xl border border-gray-200 overflow-hidden">
-                                                                        {/* Fila total del método */}
-                                                                        <div className="flex items-center justify-between bg-gray-50 px-3 py-2">
-                                                                            <span className="flex items-center gap-1.5 text-sm font-semibold text-gray-700">
-                                                                                <Icon size={13} className="text-gray-500" />
-                                                                                {METODO_NOMBRE[metodo] || metodo}
-                                                                            </span>
-                                                                            <div className="flex items-center gap-2">
-                                                                                <span className="text-sm font-black text-gray-900">{g.total} entrada{g.total !== 1 ? "s" : ""}</span>
-                                                                                {precioTarjeta > 0 && (
-                                                                                    <span className="text-xs font-bold text-gray-400">{formatMoney(g.total * precioTarjeta)}</span>
-                                                                                )}
+                                                        {!colapsado && (
+                                                            <div className="space-y-1.5">
+                                                                {tarjetasArr.map((t: any) => {
+                                                                    const monto = t.cantidad * precioTarjeta;
+                                                                    const MetodoIcon = t.metodoPago ? (METODO_ICON[t.metodoPago] || Banknote) : Banknote;
+                                                                    return (
+                                                                        <div key={t._id} className={`rounded-xl border overflow-hidden ${t.cobrado ? "border-green-200 bg-green-50" : "border-amber-200 bg-amber-50"}`}>
+                                                                            <div className="flex items-center justify-between px-3 py-2.5">
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <Ticket size={13} className={t.cobrado ? "text-green-500" : "text-amber-500"} />
+                                                                                    <span className="text-sm font-black text-gray-900">{t.cantidad} entrada{t.cantidad !== 1 ? "s" : ""}</span>
+                                                                                    {t.cobrado ? (
+                                                                                        <span className="flex items-center gap-1 text-[11px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
+                                                                                            <MetodoIcon size={10} /> {METODO_LABEL[t.metodoPago] ?? t.metodoPago}
+                                                                                        </span>
+                                                                                    ) : (
+                                                                                        <span className="text-[11px] font-bold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">Pendiente</span>
+                                                                                    )}
+                                                                                </div>
+                                                                                <div className="flex items-center gap-2">
+                                                                                    {precioTarjeta > 0 && <span className="text-sm font-bold text-gray-500">{formatMoney(monto)}</span>}
+                                                                                    {!t.cobrado && (
+                                                                                        <button
+                                                                                            onClick={() => { setCobrarEntradaMetodo("efectivo"); setCobrarEntradaModal({ tarjetaId: t._id, eventoId: ev._id, eventoNombre: ev.nombre, cantidad: t.cantidad, precio: precioTarjeta }); }}
+                                                                                            className="flex items-center gap-1 bg-black hover:bg-gray-800 text-white text-[11px] font-black px-2.5 py-1.5 rounded-lg transition active:scale-95">
+                                                                                            <Wallet size={11} /> Cobrar
+                                                                                        </button>
+                                                                                    )}
+                                                                                    <button
+                                                                                        onClick={async () => {
+                                                                                            const res = await fetch(`/api/eventos/${ev._id}`, {
+                                                                                                method: "PATCH", credentials: "include",
+                                                                                                headers: { "Content-Type": "application/json" },
+                                                                                                body: JSON.stringify({ accion: "eliminarTarjeta", tarjetaId: t._id }),
+                                                                                            });
+                                                                                            if (res.ok) {
+                                                                                                const { evento: updated } = await res.json();
+                                                                                                setEventosActivos(prev => prev.map(e => e._id === ev._id ? updated : e));
+                                                                                            }
+                                                                                        }}
+                                                                                        className="p-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-400 transition"
+                                                                                        title="Eliminar">
+                                                                                        <Trash2 size={11} />
+                                                                                    </button>
+                                                                                </div>
                                                                             </div>
                                                                         </div>
-                                                                        {/* Sub-filas por registro */}
-                                                                        {g.registros.map((t: any) => (
-                                                                            <div key={t._id} className="border-t border-gray-100 bg-white">
-                                                                                <div className="flex items-center justify-between px-3 py-1.5">
-                                                                                    <span className="text-xs text-gray-400">{t.cantidad} entrada{t.cantidad !== 1 ? "s" : ""}</span>
-                                                                                    <div className="flex items-center gap-1.5">
-                                                                                        {precioTarjeta > 0 && (
-                                                                                            <span className="text-xs text-gray-400">{formatMoney(t.cantidad * precioTarjeta)}</span>
-                                                                                        )}
-                                                                                        <button
-                                                                                            onClick={() => { setEditTarjetaId(t._id); setEditTarjetaMetodo(t.metodoPago || "efectivo"); }}
-                                                                                            className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition"
-                                                                                            title="Cambiar método de pago">
-                                                                                            <Pencil size={11} />
-                                                                                        </button>
-                                                                                        <button
-                                                                                            onClick={async () => {
-                                                                                                const res = await fetch(`/api/eventos/${ev._id}`, {
-                                                                                                    method: "PATCH", credentials: "include",
-                                                                                                    headers: { "Content-Type": "application/json" },
-                                                                                                    body: JSON.stringify({ accion: "eliminarTarjeta", tarjetaId: t._id }),
-                                                                                                });
-                                                                                                if (res.ok) {
-                                                                                                    const { evento: updated } = await res.json();
-                                                                                                    setEventosActivos(prev => prev.map(e => e._id === ev._id ? updated : e));
-                                                                                                }
-                                                                                            }}
-                                                                                            className="p-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition"
-                                                                                            title="Eliminar">
-                                                                                            <Trash2 size={11} />
-                                                                                        </button>
-                                                                                    </div>
-                                                                                </div>
-                                                                                {editTarjetaId === t._id && (
-                                                                                    <div className="px-3 pb-2 space-y-1.5">
-                                                                                        <div className="flex gap-1.5">
-                                                                                            {(["efectivo", "transferencia", "tarjeta"] as const).map(m => {
-                                                                                                const Icon = METODO_ICON[m];
-                                                                                                return (
-                                                                                                    <button key={m} onClick={() => setEditTarjetaMetodo(m)}
-                                                                                                        className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 border transition ${editTarjetaMetodo === m ? "bg-black text-white border-black" : "bg-white text-gray-500 border-gray-200"}`}>
-                                                                                                        <Icon size={11} /> {METODO_LABEL[m]}
-                                                                                                    </button>
-                                                                                                );
-                                                                                            })}
-                                                                                        </div>
-                                                                                        <div className="flex gap-1.5">
-                                                                                            <button onClick={() => setEditTarjetaId(null)}
-                                                                                                className="flex-1 py-1.5 rounded-lg text-[11px] font-semibold border border-gray-200 text-gray-500">
-                                                                                                Cancelar
-                                                                                            </button>
-                                                                                            <button onClick={async () => {
-                                                                                                const res = await fetch(`/api/eventos/${ev._id}`, {
-                                                                                                    method: "PATCH", credentials: "include",
-                                                                                                    headers: { "Content-Type": "application/json" },
-                                                                                                    body: JSON.stringify({ accion: "editarMetodoTarjeta", tarjetaId: t._id, metodoPago: editTarjetaMetodo }),
-                                                                                                });
-                                                                                                if (res.ok) {
-                                                                                                    const { evento: updated } = await res.json();
-                                                                                                    setEventosActivos(prev => prev.map(e => e._id === ev._id ? updated : e));
-                                                                                                    setEditTarjetaId(null);
-                                                                                                }
-                                                                                            }} className="flex-1 py-1.5 rounded-lg text-[11px] font-black bg-black text-white">
-                                                                                                Guardar
-                                                                                            </button>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                )}
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>}
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 );
                                             })()}
@@ -5557,65 +5518,26 @@ export default function CajaPage() {
                         </div>
 
                         <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
-                            {/* Entradas — distribución por método */}
-                            {cierreEventoData.entradasCantidad > 0 && (() => {
-                                const total = cierreEventoData.entradasCantidad;
-                                const precio = cierreEventoData.entradasPrecio;
-                                const sinPrecio = precio === 0;
-                                const efCant  = Number(entradasDist.efectivo)      || 0;
-                                const trCant  = Number(entradasDist.transferencia)  || 0;
-                                const tarCant = total - efCant - trCant;
-                                const invalid = tarCant < 0;
-                                return (
-                                    <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <p className="text-[10px] font-black text-amber-700 uppercase tracking-wider">Entradas · {total} total</p>
-                                            {precio > 0 && <span className="font-black text-amber-800">{formatMoney(total * precio)}</span>}
-                                        </div>
-                                        {sinPrecio ? (
-                                            <p className="text-xs text-amber-600">Sin precio asignado — se registrará sin cobro.</p>
-                                        ) : (
-                                            <>
-                                                <div className="space-y-2">
-                                                    {([
-                                                        { label: "Efectivo", key: "efectivo" as const },
-                                                        { label: "Transferencia", key: "transferencia" as const },
-                                                    ] as const).map(({ label, key }) => (
-                                                        <div key={key} className="flex items-center gap-3">
-                                                            <span className="text-xs font-semibold text-gray-600 w-24 shrink-0">{label}</span>
-                                                            <input
-                                                                type="number" inputMode="numeric" min="0" max={String(total)}
-                                                                value={entradasDist[key]}
-                                                                onChange={e => setEntradasDist(prev => ({ ...prev, [key]: e.target.value }))}
-                                                                style={{ fontSize: "16px" }}
-                                                                className="flex-1 px-3 py-1.5 border border-gray-300 rounded-xl text-sm font-bold text-center focus:outline-none focus:border-black"
-                                                                placeholder="0"
-                                                            />
-                                                            {precio > 0 && (efCant > 0 || trCant > 0) && (
-                                                                <span className="text-xs text-gray-400 w-20 text-right shrink-0">
-                                                                    {formatMoney((Number(entradasDist[key]) || 0) * precio)}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    ))}
-                                                    <div className={`flex items-center gap-3 ${invalid ? "opacity-50" : ""}`}>
-                                                        <span className="text-xs font-semibold text-gray-600 w-24 shrink-0">Tarjeta</span>
-                                                        <div className={`flex-1 px-3 py-1.5 border rounded-xl text-sm font-bold text-center ${invalid ? "border-red-300 text-red-500" : "border-gray-200 text-gray-500 bg-gray-50"}`}>
-                                                            {invalid ? "— excedido" : tarCant}
-                                                        </div>
-                                                        {precio > 0 && !invalid && tarCant > 0 && (
-                                                            <span className="text-xs text-gray-400 w-20 text-right shrink-0">{formatMoney(tarCant * precio)}</span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                {invalid && (
-                                                    <p className="text-xs font-bold text-red-500">La suma no puede superar {total}.</p>
-                                                )}
-                                            </>
-                                        )}
+                            {/* Entradas — resumen de cobradas */}
+                            {cierreEventoData.entradasCantidad > 0 && (
+                                <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 space-y-1.5">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <p className="text-[10px] font-black text-amber-700 uppercase tracking-wider">Entradas · {cierreEventoData.entradasCantidad} total</p>
+                                        {cierreEventoData.entradasTotal > 0 && <span className="font-black text-amber-800">{formatMoney(cierreEventoData.entradasTotal)}</span>}
                                     </div>
-                                );
-                            })()}
+                                    {[
+                                        { label: "Efectivo", Icon: Banknote, val: cierreEventoData.entradasEfectivo },
+                                        { label: "Transferencia", Icon: Send, val: cierreEventoData.entradasTransferencia },
+                                        { label: "Tarjeta", Icon: CreditCard, val: cierreEventoData.entradasTarjeta },
+                                    ].filter(r => r.val > 0).map(r => (
+                                        <div key={r.label} className="flex items-center justify-between">
+                                            <span className="text-xs text-amber-700 flex items-center gap-1.5"><r.Icon size={11} />{r.label}</span>
+                                            <span className="text-xs font-bold text-amber-800">{formatMoney(r.val)}</span>
+                                        </div>
+                                    ))}
+                                    {cierreEventoData.entradasTotal === 0 && <p className="text-xs text-amber-600">Sin entradas cobradas aún.</p>}
+                                </div>
+                            )}
 
                             {/* Ventas directas */}
                             {(cierreEventoData.ventasEfectivo + cierreEventoData.ventasTransferencia + cierreEventoData.ventasTarjeta) > 0 && (
@@ -5670,12 +5592,6 @@ export default function CajaPage() {
                                         <span className="font-bold text-white">{formatMoney(r.val)}</span>
                                     </div>
                                 ))}
-                                {cierreEventoData.entradasTotal > 0 && (
-                                    <div className="flex items-center justify-between py-1.5">
-                                        <span className="text-sm text-white/70 flex items-center gap-1.5"><Star size={12} />Tarjetas entrada</span>
-                                        <span className="font-bold text-white">{formatMoney(cierreEventoData.entradasTotal)}</span>
-                                    </div>
-                                )}
                                 <div className="flex items-center justify-between pt-3 mt-2 border-t border-gray-700">
                                     <span className="font-black text-white">TOTAL GENERAL</span>
                                     <span className="font-black text-white text-xl">{formatMoney(cierreEventoData.totalGeneral)}</span>
@@ -5688,15 +5604,7 @@ export default function CajaPage() {
                                 className="flex-1 py-2.5 border border-black rounded-xl text-sm font-semibold text-gray-600">
                                 Cancelar
                             </button>
-                            <button onClick={confirmarCierreEvento} disabled={cierreEventoSaving || (() => {
-                                if (cierreEventoData.entradasCantidad > 0 && cierreEventoData.entradasPrecio > 0) {
-                                    const total = cierreEventoData.entradasCantidad;
-                                    const ef = Number(entradasDist.efectivo) || 0;
-                                    const tr = Number(entradasDist.transferencia) || 0;
-                                    return (total - ef - tr) < 0;
-                                }
-                                return false;
-                            })()}
+                            <button onClick={confirmarCierreEvento} disabled={cierreEventoSaving}
                                 className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
                                 {cierreEventoSaving ? "Cerrando..." : "Confirmar cierre"}
                             </button>
@@ -5704,6 +5612,57 @@ export default function CajaPage() {
                     </div>
                 </div>
             )}
+
+            {/* Modal cobrar entrada */}
+            {cobrarEntradaModal && (() => {
+                const total = cobrarEntradaModal.cantidad * cobrarEntradaModal.precio;
+                return (
+                    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+                        <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl">
+                            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+                                <Ticket size={18} className="text-amber-600 shrink-0" />
+                                <div className="flex-1">
+                                    <h2 className="font-black text-gray-900">Cobrar entrada</h2>
+                                    <p className="text-xs text-gray-500">{cobrarEntradaModal.eventoNombre} · {cobrarEntradaModal.cantidad} entrada{cobrarEntradaModal.cantidad !== 1 ? "s" : ""}</p>
+                                </div>
+                                <button onClick={() => setCobrarEntradaModal(null)} className="p-1 text-gray-400"><X size={18} /></button>
+                            </div>
+                            <div className="px-5 py-5 space-y-4">
+                                {cobrarEntradaModal.precio > 0 && (
+                                    <div className="bg-gray-50 rounded-2xl px-4 py-3 text-center">
+                                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-0.5">Total</p>
+                                        <p className="text-3xl font-black text-gray-900">{formatMoney(total)}</p>
+                                    </div>
+                                )}
+                                <div>
+                                    <p className="text-xs font-semibold text-gray-500 uppercase mb-2 tracking-wider">Método de pago</p>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {(["efectivo", "transferencia", "tarjeta"] as const).map(m => {
+                                            const Icon = METODO_ICON[m];
+                                            return (
+                                                <button key={m} onClick={() => setCobrarEntradaMetodo(m)}
+                                                    className={`flex flex-col items-center gap-1.5 py-3 rounded-xl text-xs font-black border-2 transition active:scale-95 ${cobrarEntradaMetodo === m ? "bg-black text-white border-black" : "bg-white text-gray-500 border-gray-200"}`}>
+                                                    <Icon size={18} />
+                                                    {m === "efectivo" ? "Efectivo" : m === "tarjeta" ? "Tarjeta" : "Transf."}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="px-5 pb-5 flex gap-2">
+                                <button onClick={() => setCobrarEntradaModal(null)} className="flex-1 py-3 border border-gray-300 rounded-xl text-sm font-semibold text-gray-600">
+                                    Cancelar
+                                </button>
+                                <button onClick={ejecutarCobrarEntrada} disabled={cobrarEntradaSaving}
+                                    className="flex-1 py-3 bg-black hover:bg-gray-800 disabled:opacity-50 text-white rounded-xl text-sm font-black transition flex items-center justify-center gap-2">
+                                    {cobrarEntradaSaving ? <Loader2 size={16} className="animate-spin" /> : <><Wallet size={15} /> Cobrar e imprimir</>}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* Modal detalle de reserva */}
             {reservaDetalle && (
