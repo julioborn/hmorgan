@@ -77,6 +77,7 @@ type EventoCerrado = {
     ventas?: Array<{
         items?: Array<{ nombre: string; precio: number; cantidad: number; categoria?: string }>;
     }>;
+    tarjetas?: Array<{ _id: string; cantidad: number; metodoPago?: string }>;
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -349,9 +350,25 @@ function DetalleSesion({ s, onRefresh }: { s: SesionDetail; onRefresh: () => voi
 
 // ── Detalle Evento ────────────────────────────────────────────────────────────
 
-function DetalleEvento({ ev }: { ev: EventoCerrado }) {
+function DetalleEvento({ ev, onRefreshed }: { ev: EventoCerrado; onRefreshed?: () => void }) {
     const cd = ev.cierreData;
     if (!cd) return <p className="px-4 py-3 text-xs text-gray-500">Sin resumen de cierre registrado</p>;
+
+    const [editingTarjeta, setEditingTarjeta] = useState<string | null>(null);
+    const [editMetodo, setEditMetodo] = useState("efectivo");
+    const [savingTarjeta, setSavingTarjeta] = useState(false);
+
+    async function guardarMetodoTarjeta(tarjetaId: string) {
+        setSavingTarjeta(true);
+        const res = await fetch(`/api/eventos/${ev._id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ accion: "editarMetodoTarjeta", tarjetaId, metodoPago: editMetodo }),
+        });
+        setSavingTarjeta(false);
+        if (res.ok) { setEditingTarjeta(null); onRefreshed?.(); }
+    }
 
     const grouped: Record<string, { cantidad: number; total: number; categoria: string }> = {};
     (ev.ventas ?? []).forEach(v => {
@@ -382,6 +399,48 @@ function DetalleEvento({ ev }: { ev: EventoCerrado }) {
                         </p>
                     </div>
                     <span className="font-black text-gray-900">{fmt(cd.entradasTotal)}</span>
+                </div>
+            )}
+
+            {(ev.tarjetas?.length ?? 0) > 0 && (
+                <div className="px-4 py-3 space-y-2">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Lotes de entradas</p>
+                    {ev.tarjetas!.map(t => {
+                        const isEditing = editingTarjeta === t._id;
+                        const metodo = t.metodoPago || "efectivo";
+                        return (
+                            <div key={t._id} className="flex items-center gap-2 rounded-xl border border-gray-100 px-3 py-2 bg-gray-50">
+                                <Ticket size={12} className="text-gray-300 shrink-0" />
+                                <span className="text-xs font-semibold text-gray-700 flex-1">×{t.cantidad} entradas</span>
+                                {isEditing ? (
+                                    <div className="flex items-center gap-1.5">
+                                        <select
+                                            value={editMetodo}
+                                            onChange={e => setEditMetodo(e.target.value)}
+                                            className="text-xs border border-gray-300 rounded-lg px-2 py-1 font-semibold text-gray-800 bg-white"
+                                        >
+                                            <option value="efectivo">Efectivo</option>
+                                            <option value="transferencia">Transferencia</option>
+                                            <option value="tarjeta">Tarjeta</option>
+                                        </select>
+                                        <button onClick={() => guardarMetodoTarjeta(t._id)} disabled={savingTarjeta}
+                                            className="text-xs font-black bg-black text-white px-2.5 py-1 rounded-lg disabled:opacity-50 transition">
+                                            {savingTarjeta ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+                                        </button>
+                                        <button onClick={() => setEditingTarjeta(null)} className="text-xs text-gray-400 hover:text-gray-600 px-1">✕</button>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-xs font-bold text-gray-600">{METODO_LABEL[metodo] || metodo}</span>
+                                        <button onClick={() => { setEditingTarjeta(t._id); setEditMetodo(metodo); }}
+                                            className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-700 transition">
+                                            <Pencil size={11} />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
             )}
 
@@ -449,7 +508,7 @@ function DetalleEvento({ ev }: { ev: EventoCerrado }) {
 
 // ── Evento dentro de sesión ────────────────────────────────────────────────────
 
-function EventoEnSesion({ ev, puedeEliminar, onDeleted }: { ev: EventoCerrado; puedeEliminar?: boolean; onDeleted?: (id: string) => void }) {
+function EventoEnSesion({ ev, puedeEliminar, onDeleted, onRefreshed }: { ev: EventoCerrado; puedeEliminar?: boolean; onDeleted?: (id: string) => void; onRefreshed?: () => void }) {
     const [open, setOpen] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [deleting, setDeleting] = useState(false);
@@ -533,7 +592,7 @@ function EventoEnSesion({ ev, puedeEliminar, onDeleted }: { ev: EventoCerrado; p
                 </div>
             )}
 
-            {open && <DetalleEvento ev={ev} />}
+            {open && <DetalleEvento ev={ev} onRefreshed={onRefreshed} />}
 
             <button
                 onClick={() => setOpen(v => !v)}
@@ -752,7 +811,7 @@ export default function CajaHistorialPage() {
                                             <span className="ml-auto font-black text-amber-700 text-xs">{fmt(totalEventos)}</span>
                                         </p>
                                         <p className="text-[10px] text-amber-500">⚠️ Ya incluido en "Ingresos caja" — no sumar por separado.</p>
-                                        {eventos.map(ev => <EventoEnSesion key={ev._id} ev={ev} puedeEliminar={puedeEliminar} onDeleted={handleEventoDeleted} />)}
+                                        {eventos.map(ev => <EventoEnSesion key={ev._id} ev={ev} puedeEliminar={puedeEliminar} onDeleted={handleEventoDeleted} onRefreshed={reloadEventos} />)}
                                     </div>
                                 )}
 
@@ -813,7 +872,7 @@ export default function CajaHistorialPage() {
                     <div className="space-y-4">
                         {eventosHuerfanos.map(ev => (
                             <div key={ev._id} className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-                                <EventoEnSesion ev={ev} puedeEliminar={puedeEliminar} onDeleted={handleEventoDeleted} />
+                                <EventoEnSesion ev={ev} puedeEliminar={puedeEliminar} onDeleted={handleEventoDeleted} onRefreshed={reloadEventos} />
                             </div>
                         ))}
                     </div>
