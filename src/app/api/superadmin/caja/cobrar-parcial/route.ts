@@ -54,13 +54,7 @@ export async function POST(req: NextRequest) {
         return acc + (it.menuItemId?.precio || 0) * it.cantidad;
     }, 0);
 
-    // Comandas de evento quedan abiertas y vacías (el mozo agrega más ítems sin recrearla)
-    if ((pedido.items as any[]).length === 0 && !(pedido as any).eventoId) {
-        pedido.estado = "cerrado";
-        pedido.metodoPago = metodoPago;
-        pedido.montoPagado = Number(montoPagado) || 0;
-    }
-
+    // El cobro parcial nunca cierra la comanda — queda abierta para seguir agregando ítems
     await pedido.save();
 
     // Register movement in open caja session
