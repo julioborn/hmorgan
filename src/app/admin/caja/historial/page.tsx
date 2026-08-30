@@ -78,6 +78,7 @@ type EventoCerrado = {
         items?: Array<{ nombre: string; precio: number; cantidad: number; categoria?: string }>;
     }>;
     entradasRegistradas?: number;
+    precioTarjeta?: number;
     tarjetas?: Array<{ _id: string; cantidad: number; metodoPago: string; createdAt?: string }>;
 };
 
@@ -366,10 +367,15 @@ function DetalleEvento({ ev, onRefreshed }: { ev: EventoCerrado; onRefreshed?: (
     const [cobrarMetodo, setCobrarMetodo] = useState<"efectivo" | "transferencia" | "tarjeta">("efectivo");
     const [cobrarSaving, setCobrarSaving] = useState(false);
 
+    const [agregarModal, setAgregarModal] = useState(false);
+    const [agregarCantidad, setAgregarCantidad] = useState("");
+    const [agregarPrecio, setAgregarPrecio] = useState("");
+    const [agregarSaving, setAgregarSaving] = useState(false);
+
     const registradas = Math.max(ev.entradasRegistradas ?? 0, cd?.entradasCantidad ?? 0);
     const cobradas = (ev.tarjetas ?? []).reduce((s, t) => s + t.cantidad, 0);
     const pendientes = Math.max(0, registradas - cobradas);
-    const precioTarjeta = cd?.entradasPrecio ?? 0;
+    const precioTarjeta = ev.precioTarjeta ?? cd?.entradasPrecio ?? 0;
 
     async function guardarMetodoTarjeta(tarjetaId: string) {
         setSavingTarjeta(true);
@@ -381,6 +387,29 @@ function DetalleEvento({ ev, onRefreshed }: { ev: EventoCerrado; onRefreshed?: (
         });
         setSavingTarjeta(false);
         if (res.ok) { setEditingTarjeta(null); onRefreshed?.(); }
+    }
+
+    async function confirmarAgregar() {
+        const cant = Number(agregarCantidad);
+        if (!cant || cant < 1) return;
+        setAgregarSaving(true);
+        const nuevoPrecio = Number(agregarPrecio);
+        if (nuevoPrecio >= 0 && nuevoPrecio !== precioTarjeta) {
+            await fetch(`/api/eventos/${ev._id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ accion: "editarPrecioTarjeta", precio: nuevoPrecio }),
+            });
+        }
+        const res = await fetch(`/api/eventos/${ev._id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ accion: "agregarTarjetas", cantidad: cant }),
+        });
+        setAgregarSaving(false);
+        if (res.ok) { setAgregarModal(false); setAgregarCantidad(""); setAgregarPrecio(""); onRefreshed?.(); }
     }
 
     async function confirmarCobro() {
@@ -429,16 +458,22 @@ function DetalleEvento({ ev, onRefreshed }: { ev: EventoCerrado; onRefreshed?: (
                 </div>
             )}
 
-            {(registradas > 0 || (ev.tarjetas?.length ?? 0) > 0 || (cd?.entradasCantidad ?? 0) > 0) && (
+            {true && (
                 <div className="px-4 py-3 space-y-2">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                         <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Cobros de entradas</p>
-                        {pendientes > 0 && (
-                            <button onClick={() => { setCobrarCantidad(String(pendientes)); setCobrarMetodo("efectivo"); setCobrarModal(true); }}
-                                className="flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-black px-2.5 py-1.5 rounded-lg transition active:scale-95">
-                                <Wallet size={11} /> Cobrar {pendientes} pendiente{pendientes !== 1 ? "s" : ""}
+                        <div className="flex items-center gap-1.5">
+                            <button onClick={() => { setAgregarCantidad(""); setAgregarPrecio(String(precioTarjeta || "")); setAgregarModal(true); }}
+                                className="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-[11px] font-black px-2.5 py-1.5 rounded-lg transition active:scale-95">
+                                <Ticket size={11} /> + Agregar
                             </button>
-                        )}
+                            {pendientes > 0 && (
+                                <button onClick={() => { setCobrarCantidad(String(pendientes)); setCobrarMetodo("efectivo"); setCobrarModal(true); }}
+                                    className="flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-black px-2.5 py-1.5 rounded-lg transition active:scale-95">
+                                    <Wallet size={11} /> Cobrar {pendientes}
+                                </button>
+                            )}
+                        </div>
                     </div>
                     {(ev.tarjetas ?? []).map(t => {
                         const isEditing = editingTarjeta === t._id;
@@ -481,6 +516,58 @@ function DetalleEvento({ ev, onRefreshed }: { ev: EventoCerrado; onRefreshed?: (
                             {precioTarjeta > 0 && <span className="text-xs font-bold text-orange-600">{fmt(pendientes * precioTarjeta)}</span>}
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* Modal agregar entradas desde historial */}
+            {agregarModal && (
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl">
+                        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+                            <Ticket size={18} className="text-gray-600 shrink-0" />
+                            <div className="flex-1">
+                                <h2 className="font-black text-gray-900">Agregar entradas</h2>
+                                <p className="text-xs text-gray-500">{ev.nombre} · actualmente {registradas} registradas</p>
+                            </div>
+                            <button onClick={() => setAgregarModal(false)} className="p-1 text-gray-400"><X size={18} /></button>
+                        </div>
+                        <div className="px-5 py-5 space-y-4">
+                            <div>
+                                <p className="text-xs font-semibold text-gray-500 uppercase mb-1.5 tracking-wider">Cantidad a agregar</p>
+                                <input autoFocus type="number" inputMode="numeric" min="1"
+                                    value={agregarCantidad} onChange={e => setAgregarCantidad(e.target.value)}
+                                    style={{ fontSize: "16px" }}
+                                    className="w-full px-4 py-3 border-2 border-black rounded-xl text-2xl font-black focus:outline-none text-center"
+                                    placeholder="0"
+                                />
+                            </div>
+                            <div>
+                                <p className="text-xs font-semibold text-gray-500 uppercase mb-1.5 tracking-wider">Precio por entrada</p>
+                                <div className="relative">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-black text-lg">$</span>
+                                    <input type="number" inputMode="decimal" min="0"
+                                        value={agregarPrecio} onChange={e => setAgregarPrecio(e.target.value)}
+                                        style={{ fontSize: "16px" }}
+                                        className="w-full pl-8 pr-4 py-3 border-2 border-gray-300 rounded-xl text-xl font-black focus:outline-none focus:border-black text-center"
+                                        placeholder={String(precioTarjeta || "0")}
+                                    />
+                                </div>
+                            </div>
+                            {Number(agregarCantidad) >= 1 && Number(agregarPrecio) > 0 && (
+                                <div className="bg-amber-50 rounded-2xl px-4 py-3 text-center border border-amber-200">
+                                    <p className="text-xs font-semibold text-amber-500 uppercase tracking-widest mb-0.5">Total a cobrar</p>
+                                    <p className="text-2xl font-black text-amber-800">{fmt(Number(agregarCantidad) * Number(agregarPrecio))}</p>
+                                </div>
+                            )}
+                        </div>
+                        <div className="px-5 pb-5 flex gap-2">
+                            <button onClick={() => setAgregarModal(false)} className="flex-1 py-3 border border-gray-300 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
+                            <button onClick={confirmarAgregar} disabled={agregarSaving || Number(agregarCantidad) < 1}
+                                className="flex-1 py-3 bg-black hover:bg-gray-800 disabled:opacity-50 text-white rounded-xl text-sm font-black transition flex items-center justify-center gap-2">
+                                {agregarSaving ? <Loader2 size={16} className="animate-spin" /> : <><Ticket size={15} /> Agregar</>}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 

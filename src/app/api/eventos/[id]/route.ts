@@ -63,7 +63,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     if (body.accion === "agregarTarjetas") {
-        if (evento.estado === "cerrado") {
+        const esAdmin = ["admin", "superadmin"].includes(payload.role);
+        if (evento.estado === "cerrado" && !esAdmin) {
             return NextResponse.json({ error: "El evento está cerrado" }, { status: 400 });
         }
         const cantidad = Number(body.cantidad);
