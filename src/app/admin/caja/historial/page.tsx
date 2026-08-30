@@ -366,10 +366,10 @@ function DetalleEvento({ ev, onRefreshed }: { ev: EventoCerrado; onRefreshed?: (
     const [cobrarMetodo, setCobrarMetodo] = useState<"efectivo" | "transferencia" | "tarjeta">("efectivo");
     const [cobrarSaving, setCobrarSaving] = useState(false);
 
-    const registradas = ev.entradasRegistradas ?? 0;
+    const registradas = Math.max(ev.entradasRegistradas ?? 0, cd?.entradasCantidad ?? 0);
     const cobradas = (ev.tarjetas ?? []).reduce((s, t) => s + t.cantidad, 0);
-    const pendientes = registradas - cobradas;
-    const precioTarjeta = cd.entradasPrecio ?? 0;
+    const pendientes = Math.max(0, registradas - cobradas);
+    const precioTarjeta = cd?.entradasPrecio ?? 0;
 
     async function guardarMetodoTarjeta(tarjetaId: string) {
         setSavingTarjeta(true);
@@ -429,7 +429,7 @@ function DetalleEvento({ ev, onRefreshed }: { ev: EventoCerrado; onRefreshed?: (
                 </div>
             )}
 
-            {(registradas > 0 || (ev.tarjetas?.length ?? 0) > 0) && (
+            {(registradas > 0 || (ev.tarjetas?.length ?? 0) > 0 || (cd?.entradasCantidad ?? 0) > 0) && (
                 <div className="px-4 py-3 space-y-2">
                     <div className="flex items-center justify-between">
                         <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Cobros de entradas</p>

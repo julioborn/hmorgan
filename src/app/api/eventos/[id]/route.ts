@@ -78,17 +78,25 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         if (!cantidad || !metodoPago) return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
         const cant = Number(cantidad);
         if (cant < 1) return NextResponse.json({ error: "Cantidad inválida" }, { status: 400 });
-        const registradas = (evento as any).entradasRegistradas ?? 0;
+        const entradasDoc = (evento as any).entradasRegistradas ?? 0;
+        const entradasCierre = (evento as any).cierreData?.entradasCantidad ?? 0;
+        const registradas = Math.max(entradasDoc, entradasCierre);
         const cobradas = (evento.tarjetas as any[]).reduce((a: number, t: any) => a + t.cantidad, 0);
-        const pendientes = registradas - cobradas;
+        const pendientes = Math.max(0, registradas - cobradas);
         if (cant > pendientes) return NextResponse.json({ error: "Cantidad supera las pendientes" }, { status: 400 });
         const precioTarjeta = (evento as any).precioTarjeta ?? 0;
         const monto = cant * precioTarjeta;
-        // Requiere caja abierta cuando hay precio (para no perder el movimiento)
+        const esAdmin = ["admin", "superadmin"].includes(payload.role);
         let sesion = null;
         if (monto > 0) {
             sesion = await CajaSession.findOne({ estado: "abierta" });
-            if (!sesion) return NextResponse.json({ error: "No hay caja abierta. Abrí la caja antes de cobrar entradas." }, { status: 400 });
+            if (!sesion) {
+                if (!esAdmin) {
+                    return NextResponse.json({ error: "No hay caja abierta. Abrí la caja antes de cobrar entradas." }, { status: 400 });
+                }
+                // Admin puede cobrar aunque caja esté cerrada: usa la sesión más reciente
+                sesion = await CajaSession.findOne().sort({ createdAt: -1 });
+            }
         }
         evento.tarjetas.push({ cantidad: cant, metodoPago });
         await evento.save();
