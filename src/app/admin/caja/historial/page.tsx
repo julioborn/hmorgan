@@ -370,6 +370,7 @@ function DetalleEvento({ ev, onRefreshed }: { ev: EventoCerrado; onRefreshed?: (
     const [agregarModal, setAgregarModal] = useState(false);
     const [agregarCantidad, setAgregarCantidad] = useState("");
     const [agregarPrecio, setAgregarPrecio] = useState("");
+    const [agregarMetodo, setAgregarMetodo] = useState<"efectivo" | "transferencia" | "tarjeta">("efectivo");
     const [agregarSaving, setAgregarSaving] = useState(false);
 
     const registradas = Math.max(ev.entradasRegistradas ?? 0, cd?.entradasCantidad ?? 0);
@@ -393,8 +394,9 @@ function DetalleEvento({ ev, onRefreshed }: { ev: EventoCerrado; onRefreshed?: (
         const cant = Number(agregarCantidad);
         if (!cant || cant < 1) return;
         setAgregarSaving(true);
+        // 1. Actualizar precio si cambió
         const nuevoPrecio = Number(agregarPrecio);
-        if (nuevoPrecio >= 0 && nuevoPrecio !== precioTarjeta) {
+        if (!isNaN(nuevoPrecio) && nuevoPrecio >= 0 && nuevoPrecio !== precioTarjeta) {
             await fetch(`/api/eventos/${ev._id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
@@ -402,11 +404,19 @@ function DetalleEvento({ ev, onRefreshed }: { ev: EventoCerrado; onRefreshed?: (
                 body: JSON.stringify({ accion: "editarPrecioTarjeta", precio: nuevoPrecio }),
             });
         }
-        const res = await fetch(`/api/eventos/${ev._id}`, {
+        // 2. Agregar al contador
+        await fetch(`/api/eventos/${ev._id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
             body: JSON.stringify({ accion: "agregarTarjetas", cantidad: cant }),
+        });
+        // 3. Cobrar inmediatamente con el método elegido
+        const res = await fetch(`/api/eventos/${ev._id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ accion: "cobrarEntradas", cantidad: cant, metodoPago: agregarMetodo }),
         });
         setAgregarSaving(false);
         if (res.ok) { setAgregarModal(false); setAgregarCantidad(""); setAgregarPrecio(""); onRefreshed?.(); }
@@ -526,8 +536,8 @@ function DetalleEvento({ ev, onRefreshed }: { ev: EventoCerrado; onRefreshed?: (
                         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
                             <Ticket size={18} className="text-gray-600 shrink-0" />
                             <div className="flex-1">
-                                <h2 className="font-black text-gray-900">Agregar entradas</h2>
-                                <p className="text-xs text-gray-500">{ev.nombre} · actualmente {registradas} registradas</p>
+                                <h2 className="font-black text-gray-900">Registrar cobro de entradas</h2>
+                                <p className="text-xs text-gray-500">{ev.nombre} · {registradas} registradas hasta ahora</p>
                             </div>
                             <button onClick={() => setAgregarModal(false)} className="p-1 text-gray-400"><X size={18} /></button>
                         </div>
@@ -553,9 +563,24 @@ function DetalleEvento({ ev, onRefreshed }: { ev: EventoCerrado; onRefreshed?: (
                                     />
                                 </div>
                             </div>
+                            <div>
+                                <p className="text-xs font-semibold text-gray-500 uppercase mb-2 tracking-wider">Método de pago</p>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {(["efectivo", "transferencia", "tarjeta"] as const).map(m => {
+                                        const Icon = METODO_ICON_LOCAL[m];
+                                        return (
+                                            <button key={m} onClick={() => setAgregarMetodo(m)}
+                                                className={`flex flex-col items-center gap-1.5 py-3 rounded-xl text-xs font-black border-2 transition active:scale-95 ${agregarMetodo === m ? "bg-black text-white border-black" : "bg-white text-gray-500 border-gray-200"}`}>
+                                                <Icon size={18} />
+                                                {m === "efectivo" ? "Efectivo" : m === "tarjeta" ? "Tarjeta" : "Transf."}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
                             {Number(agregarCantidad) >= 1 && Number(agregarPrecio) > 0 && (
                                 <div className="bg-amber-50 rounded-2xl px-4 py-3 text-center border border-amber-200">
-                                    <p className="text-xs font-semibold text-amber-500 uppercase tracking-widest mb-0.5">Total a cobrar</p>
+                                    <p className="text-xs font-semibold text-amber-500 uppercase tracking-widest mb-0.5">Total</p>
                                     <p className="text-2xl font-black text-amber-800">{fmt(Number(agregarCantidad) * Number(agregarPrecio))}</p>
                                 </div>
                             )}
@@ -564,7 +589,7 @@ function DetalleEvento({ ev, onRefreshed }: { ev: EventoCerrado; onRefreshed?: (
                             <button onClick={() => setAgregarModal(false)} className="flex-1 py-3 border border-gray-300 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
                             <button onClick={confirmarAgregar} disabled={agregarSaving || Number(agregarCantidad) < 1}
                                 className="flex-1 py-3 bg-black hover:bg-gray-800 disabled:opacity-50 text-white rounded-xl text-sm font-black transition flex items-center justify-center gap-2">
-                                {agregarSaving ? <Loader2 size={16} className="animate-spin" /> : <><Ticket size={15} /> Agregar</>}
+                                {agregarSaving ? <Loader2 size={16} className="animate-spin" /> : <><Wallet size={15} /> Cobrar</>}
                             </button>
                         </div>
                     </div>
