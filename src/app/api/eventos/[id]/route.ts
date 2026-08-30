@@ -59,6 +59,34 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         if (isNaN(precio) || precio < 0) return NextResponse.json({ error: "Precio inválido" }, { status: 400 });
         (evento as any).precioTarjeta = precio;
         await evento.save();
+
+        // Crear retroactivamente CajaMovements para tarjetas que no tienen uno
+        if (precio > 0) {
+            const sesion = await CajaSession.findOne({ estado: "abierta" })
+                ?? await CajaSession.findOne().sort({ createdAt: -1 });
+            if (sesion) {
+                for (const tarjeta of evento.tarjetas as any[]) {
+                    const existe = await CajaMovement.findOne({ tarjetaId: tarjeta._id });
+                    if (!existe) {
+                        await CajaMovement.create({
+                            sesionId: sesion._id,
+                            tipo: "ingreso",
+                            concepto: `Entradas evento: ${evento.nombre} (${tarjeta.cantidad}×)`,
+                            monto: tarjeta.cantidad * precio,
+                            metodoPago: tarjeta.metodoPago,
+                            userId: payload.sub,
+                            tarjetaId: tarjeta._id,
+                        });
+                    } else {
+                        // Actualizar monto si el precio cambió
+                        await CajaMovement.updateMany(
+                            { tarjetaId: tarjeta._id },
+                            { $set: { monto: tarjeta.cantidad * precio } }
+                        );
+                    }
+                }
+            }
+        }
         return NextResponse.json({ ok: true, evento });
     }
 
@@ -140,7 +168,20 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         await evento.save();
         if (precioTarjeta > 0) {
             const monto = cant * precioTarjeta;
-            await CajaMovement.updateMany({ tarjetaId }, { $set: { monto } });
+            const existe = await CajaMovement.findOne({ tarjetaId });
+            if (existe) {
+                await CajaMovement.updateMany({ tarjetaId }, { $set: { monto } });
+            } else {
+                const sesion = await CajaSession.findOne({ estado: "abierta" })
+                    ?? await CajaSession.findOne().sort({ createdAt: -1 });
+                if (sesion) {
+                    await CajaMovement.create({
+                        sesionId: sesion._id, tipo: "ingreso",
+                        concepto: `Entradas evento: ${evento.nombre} (${cant}×)`,
+                        monto, metodoPago: t.metodoPago, userId: payload.sub, tarjetaId,
+                    });
+                }
+            }
         }
         return NextResponse.json({ ok: true, evento });
     }
