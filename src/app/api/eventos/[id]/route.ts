@@ -125,6 +125,26 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         return NextResponse.json({ ok: true, evento });
     }
 
+    if (body.accion === "editarCantidadTarjeta") {
+        const { tarjetaId, cantidad } = body;
+        const cant = Number(cantidad);
+        if (!tarjetaId || !cant || cant < 1) return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
+        const tarjetas = evento.tarjetas as any[];
+        const t = tarjetas.find((t: any) => t._id.toString() === tarjetaId);
+        if (!t) return NextResponse.json({ error: "Tarjeta no encontrada" }, { status: 404 });
+        const precioTarjeta = (evento as any).precioTarjeta ?? 0;
+        const diff = cant - t.cantidad;
+        t.cantidad = cant;
+        // Ajustar entradasRegistradas para mantener coherencia
+        (evento as any).entradasRegistradas = Math.max(0, ((evento as any).entradasRegistradas ?? 0) + diff);
+        await evento.save();
+        if (precioTarjeta > 0) {
+            const monto = cant * precioTarjeta;
+            await CajaMovement.updateMany({ tarjetaId }, { $set: { monto } });
+        }
+        return NextResponse.json({ ok: true, evento });
+    }
+
     if (body.accion === "eliminarTarjeta") {
         const { tarjetaId } = body;
         if (!tarjetaId) return NextResponse.json({ error: "tarjetaId requerido" }, { status: 400 });

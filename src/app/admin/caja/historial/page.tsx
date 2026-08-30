@@ -373,6 +373,11 @@ function DetalleEvento({ ev, onRefreshed }: { ev: EventoCerrado; onRefreshed?: (
     const [agregarMetodo, setAgregarMetodo] = useState<"efectivo" | "transferencia" | "tarjeta">("efectivo");
     const [agregarSaving, setAgregarSaving] = useState(false);
 
+    const [editModal, setEditModal] = useState<{ _id: string; cantidad: number; metodoPago: string } | null>(null);
+    const [editCantidad, setEditCantidad] = useState("");
+    const [editSaving, setEditSaving] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+
     const registradas = Math.max(ev.entradasRegistradas ?? 0, cd?.entradasCantidad ?? 0);
     const cobradas = (ev.tarjetas ?? []).reduce((s, t) => s + t.cantidad, 0);
     const pendientes = Math.max(0, registradas - cobradas);
@@ -420,6 +425,42 @@ function DetalleEvento({ ev, onRefreshed }: { ev: EventoCerrado; onRefreshed?: (
         });
         setAgregarSaving(false);
         if (res.ok) { setAgregarModal(false); setAgregarCantidad(""); setAgregarPrecio(""); onRefreshed?.(); }
+    }
+
+    async function guardarEditTarjeta() {
+        if (!editModal) return;
+        const cant = Number(editCantidad);
+        if (!cant || cant < 1) return;
+        setEditSaving(true);
+        await fetch(`/api/eventos/${ev._id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ accion: "editarMetodoTarjeta", tarjetaId: editModal._id, metodoPago: editMetodo }),
+        });
+        if (cant !== editModal.cantidad) {
+            await fetch(`/api/eventos/${ev._id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ accion: "editarCantidadTarjeta", tarjetaId: editModal._id, cantidad: cant }),
+            });
+        }
+        setEditSaving(false);
+        setEditModal(null);
+        onRefreshed?.();
+    }
+
+    async function handleEliminarTarjeta(tarjetaId: string) {
+        setDeletingId(tarjetaId);
+        await fetch(`/api/eventos/${ev._id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ accion: "eliminarTarjeta", tarjetaId }),
+        });
+        setDeletingId(null);
+        onRefreshed?.();
     }
 
     async function confirmarCobro() {
@@ -486,36 +527,24 @@ function DetalleEvento({ ev, onRefreshed }: { ev: EventoCerrado; onRefreshed?: (
                         </div>
                     </div>
                     {(ev.tarjetas ?? []).map(t => {
-                        const isEditing = editingTarjeta === t._id;
                         const Icon = METODO_ICON_LOCAL[t.metodoPago] ?? Banknote;
+                        const isDeleting = deletingId === t._id;
                         return (
                             <div key={t._id} className="flex items-center gap-2 rounded-xl border border-green-100 px-3 py-2 bg-green-50">
                                 <Icon size={12} className="text-green-500 shrink-0" />
                                 <span className="text-xs font-semibold text-gray-700 flex-1">×{t.cantidad} entradas</span>
-                                {isEditing ? (
-                                    <div className="flex items-center gap-1.5">
-                                        <select value={editMetodo} onChange={e => setEditMetodo(e.target.value)}
-                                            className="text-xs border border-gray-300 rounded-lg px-2 py-1 font-semibold text-gray-800 bg-white">
-                                            <option value="efectivo">Efectivo</option>
-                                            <option value="transferencia">Transferencia</option>
-                                            <option value="tarjeta">Tarjeta</option>
-                                        </select>
-                                        <button onClick={() => guardarMetodoTarjeta(t._id)} disabled={savingTarjeta}
-                                            className="text-xs font-black bg-black text-white px-2.5 py-1 rounded-lg disabled:opacity-50 transition">
-                                            {savingTarjeta ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
-                                        </button>
-                                        <button onClick={() => setEditingTarjeta(null)} className="text-xs text-gray-400 hover:text-gray-600 px-1">✕</button>
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center gap-1.5">
-                                        {precioTarjeta > 0 && <span className="text-xs text-gray-400">{fmt(t.cantidad * precioTarjeta)}</span>}
-                                        <span className="text-xs font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">{METODO_LABEL[t.metodoPago] || t.metodoPago}</span>
-                                        <button onClick={() => { setEditingTarjeta(t._id); setEditMetodo(t.metodoPago); }}
-                                            className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-700 transition">
-                                            <Pencil size={11} />
-                                        </button>
-                                    </div>
-                                )}
+                                <div className="flex items-center gap-1.5">
+                                    {precioTarjeta > 0 && <span className="text-xs text-gray-400">{fmt(t.cantidad * precioTarjeta)}</span>}
+                                    <span className="text-xs font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">{METODO_LABEL[t.metodoPago] || t.metodoPago}</span>
+                                    <button onClick={() => { setEditModal(t); setEditCantidad(String(t.cantidad)); setEditMetodo(t.metodoPago); }}
+                                        className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-700 transition">
+                                        <Pencil size={11} />
+                                    </button>
+                                    <button onClick={() => handleEliminarTarjeta(t._id)} disabled={isDeleting}
+                                        className="p-1 rounded hover:bg-red-100 text-gray-400 hover:text-red-600 transition disabled:opacity-40">
+                                        {isDeleting ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
+                                    </button>
+                                </div>
                             </div>
                         );
                     })}
@@ -558,10 +587,13 @@ function DetalleEvento({ ev, onRefreshed }: { ev: EventoCerrado; onRefreshed?: (
                                     <input type="number" inputMode="decimal" min="0"
                                         value={agregarPrecio} onChange={e => setAgregarPrecio(e.target.value)}
                                         style={{ fontSize: "16px" }}
-                                        className="w-full pl-8 pr-4 py-3 border-2 border-gray-300 rounded-xl text-xl font-black focus:outline-none focus:border-black text-center"
-                                        placeholder={String(precioTarjeta || "0")}
+                                        className={`w-full pl-8 pr-4 py-3 border-2 rounded-xl text-xl font-black focus:outline-none text-center transition ${!agregarPrecio || Number(agregarPrecio) <= 0 ? "border-red-400 bg-red-50" : "border-gray-300 focus:border-black"}`}
+                                        placeholder="0"
                                     />
                                 </div>
+                                {(!agregarPrecio || Number(agregarPrecio) <= 0) && (
+                                    <p className="text-xs text-red-500 font-semibold mt-1">El precio es obligatorio</p>
+                                )}
                             </div>
                             <div>
                                 <p className="text-xs font-semibold text-gray-500 uppercase mb-2 tracking-wider">Método de pago</p>
@@ -587,9 +619,63 @@ function DetalleEvento({ ev, onRefreshed }: { ev: EventoCerrado; onRefreshed?: (
                         </div>
                         <div className="px-5 pb-5 flex gap-2">
                             <button onClick={() => setAgregarModal(false)} className="flex-1 py-3 border border-gray-300 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
-                            <button onClick={confirmarAgregar} disabled={agregarSaving || Number(agregarCantidad) < 1}
+                            <button onClick={confirmarAgregar} disabled={agregarSaving || Number(agregarCantidad) < 1 || !agregarPrecio || Number(agregarPrecio) <= 0}
                                 className="flex-1 py-3 bg-black hover:bg-gray-800 disabled:opacity-50 text-white rounded-xl text-sm font-black transition flex items-center justify-center gap-2">
                                 {agregarSaving ? <Loader2 size={16} className="animate-spin" /> : <><Wallet size={15} /> Cobrar</>}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal editar cobro */}
+            {editModal && (
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl">
+                        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+                            <Pencil size={18} className="text-gray-600 shrink-0" />
+                            <div className="flex-1">
+                                <h2 className="font-black text-gray-900">Editar cobro</h2>
+                                <p className="text-xs text-gray-500">{ev.nombre}</p>
+                            </div>
+                            <button onClick={() => setEditModal(null)} className="p-1 text-gray-400"><X size={18} /></button>
+                        </div>
+                        <div className="px-5 py-5 space-y-4">
+                            <div>
+                                <p className="text-xs font-semibold text-gray-500 uppercase mb-1.5 tracking-wider">Cantidad</p>
+                                <input autoFocus type="number" inputMode="numeric" min="1"
+                                    value={editCantidad} onChange={e => setEditCantidad(e.target.value)}
+                                    style={{ fontSize: "16px" }}
+                                    className="w-full px-4 py-3 border-2 border-black rounded-xl text-2xl font-black focus:outline-none text-center"
+                                />
+                            </div>
+                            <div>
+                                <p className="text-xs font-semibold text-gray-500 uppercase mb-2 tracking-wider">Método de pago</p>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {(["efectivo", "transferencia", "tarjeta"] as const).map(m => {
+                                        const Icon = METODO_ICON_LOCAL[m];
+                                        return (
+                                            <button key={m} onClick={() => setEditMetodo(m)}
+                                                className={`flex flex-col items-center gap-1.5 py-3 rounded-xl text-xs font-black border-2 transition active:scale-95 ${editMetodo === m ? "bg-black text-white border-black" : "bg-white text-gray-500 border-gray-200"}`}>
+                                                <Icon size={18} />
+                                                {m === "efectivo" ? "Efectivo" : m === "tarjeta" ? "Tarjeta" : "Transf."}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                            {precioTarjeta > 0 && Number(editCantidad) >= 1 && (
+                                <div className="bg-gray-50 rounded-2xl px-4 py-3 text-center border border-gray-200">
+                                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-0.5">Total</p>
+                                    <p className="text-2xl font-black text-gray-800">{fmt(Number(editCantidad) * precioTarjeta)}</p>
+                                </div>
+                            )}
+                        </div>
+                        <div className="px-5 pb-5 flex gap-2">
+                            <button onClick={() => setEditModal(null)} className="flex-1 py-3 border border-gray-300 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
+                            <button onClick={guardarEditTarjeta} disabled={editSaving || Number(editCantidad) < 1}
+                                className="flex-1 py-3 bg-black hover:bg-gray-800 disabled:opacity-50 text-white rounded-xl text-sm font-black transition flex items-center justify-center gap-2">
+                                {editSaving ? <Loader2 size={16} className="animate-spin" /> : <><Check size={15} /> Guardar</>}
                             </button>
                         </div>
                     </div>
