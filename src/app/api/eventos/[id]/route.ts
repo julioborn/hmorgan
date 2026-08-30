@@ -82,21 +82,24 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         const cobradas = (evento.tarjetas as any[]).reduce((a: number, t: any) => a + t.cantidad, 0);
         const pendientes = registradas - cobradas;
         if (cant > pendientes) return NextResponse.json({ error: "Cantidad supera las pendientes" }, { status: 400 });
+        const precioTarjeta = (evento as any).precioTarjeta ?? 0;
+        const monto = cant * precioTarjeta;
+        // Requiere caja abierta cuando hay precio (para no perder el movimiento)
+        let sesion = null;
+        if (monto > 0) {
+            sesion = await CajaSession.findOne({ estado: "abierta" });
+            if (!sesion) return NextResponse.json({ error: "No hay caja abierta. Abrí la caja antes de cobrar entradas." }, { status: 400 });
+        }
         evento.tarjetas.push({ cantidad: cant, metodoPago });
         await evento.save();
         const nuevaTarjeta = (evento.tarjetas as any[])[(evento.tarjetas as any[]).length - 1];
-        const precioTarjeta = (evento as any).precioTarjeta ?? 0;
-        const monto = cant * precioTarjeta;
-        if (monto > 0) {
-            const sesion = await CajaSession.findOne({ estado: "abierta" });
-            if (sesion) {
-                await CajaMovement.create({
-                    sesionId: sesion._id, tipo: "ingreso",
-                    concepto: `Entradas evento: ${evento.nombre} (${cant}×)`,
-                    monto, metodoPago, userId: payload.sub,
-                    tarjetaId: nuevaTarjeta._id,
-                });
-            }
+        if (sesion && monto > 0) {
+            await CajaMovement.create({
+                sesionId: sesion._id, tipo: "ingreso",
+                concepto: `Entradas evento: ${evento.nombre} (${cant}×)`,
+                monto, metodoPago, userId: payload.sub,
+                tarjetaId: nuevaTarjeta._id,
+            });
         }
         return NextResponse.json({ ok: true, evento });
     }

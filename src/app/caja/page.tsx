@@ -1908,7 +1908,11 @@ export default function CajaPage() {
                 method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
                 body: JSON.stringify({ accion: "cobrarEntradas", cantidad: cant, metodoPago: cobrarEntradaMetodo }),
             });
-            if (!res.ok) return;
+            if (!res.ok) {
+                const { error } = await res.json().catch(() => ({ error: "Error al cobrar" }));
+                await swalBase.fire({ title: error ?? "Error al cobrar", icon: "error" });
+                return;
+            }
             const { evento: updated } = await res.json();
             setEventosActivos(prev => prev.map(e => e._id === cobrarEntradaModal.eventoId ? updated : e));
             // Imprimir ticket de entrada
