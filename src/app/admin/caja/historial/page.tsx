@@ -5,7 +5,7 @@ import { useState, useCallback, useMemo } from "react";
 import {
     ChevronLeft, ChevronDown, ChevronUp,
     TrendingUp, TrendingDown, Banknote, CreditCard, Send,
-    Package, AlertCircle, Receipt, Ticket, Pencil, Check, Star, Loader2, Truck, Trash2,
+    Package, AlertCircle, Receipt, Ticket, Pencil, Check, Star, Loader2, Truck, Trash2, Wallet, X,
 } from "lucide-react";
 import Loader from "@/components/Loader";
 import { useAuth } from "@/context/auth-context";
@@ -77,7 +77,8 @@ type EventoCerrado = {
     ventas?: Array<{
         items?: Array<{ nombre: string; precio: number; cantidad: number; categoria?: string }>;
     }>;
-    tarjetas?: Array<{ _id: string; cantidad: number; metodoPago?: string }>;
+    entradasRegistradas?: number;
+    tarjetas?: Array<{ _id: string; cantidad: number; metodoPago: string; createdAt?: string }>;
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -350,6 +351,8 @@ function DetalleSesion({ s, onRefresh }: { s: SesionDetail; onRefresh: () => voi
 
 // ── Detalle Evento ────────────────────────────────────────────────────────────
 
+const METODO_ICON_LOCAL: Record<string, React.ElementType> = { efectivo: Banknote, transferencia: Send, tarjeta: CreditCard };
+
 function DetalleEvento({ ev, onRefreshed }: { ev: EventoCerrado; onRefreshed?: () => void }) {
     const cd = ev.cierreData;
     if (!cd) return <p className="px-4 py-3 text-xs text-gray-500">Sin resumen de cierre registrado</p>;
@@ -357,6 +360,16 @@ function DetalleEvento({ ev, onRefreshed }: { ev: EventoCerrado; onRefreshed?: (
     const [editingTarjeta, setEditingTarjeta] = useState<string | null>(null);
     const [editMetodo, setEditMetodo] = useState("efectivo");
     const [savingTarjeta, setSavingTarjeta] = useState(false);
+
+    const [cobrarModal, setCobrarModal] = useState(false);
+    const [cobrarCantidad, setCobrarCantidad] = useState("");
+    const [cobrarMetodo, setCobrarMetodo] = useState<"efectivo" | "transferencia" | "tarjeta">("efectivo");
+    const [cobrarSaving, setCobrarSaving] = useState(false);
+
+    const registradas = ev.entradasRegistradas ?? 0;
+    const cobradas = (ev.tarjetas ?? []).reduce((s, t) => s + t.cantidad, 0);
+    const pendientes = registradas - cobradas;
+    const precioTarjeta = cd.entradasPrecio ?? 0;
 
     async function guardarMetodoTarjeta(tarjetaId: string) {
         setSavingTarjeta(true);
@@ -368,6 +381,20 @@ function DetalleEvento({ ev, onRefreshed }: { ev: EventoCerrado; onRefreshed?: (
         });
         setSavingTarjeta(false);
         if (res.ok) { setEditingTarjeta(null); onRefreshed?.(); }
+    }
+
+    async function confirmarCobro() {
+        const cant = Number(cobrarCantidad);
+        if (!cant || cant < 1 || cant > pendientes) return;
+        setCobrarSaving(true);
+        const res = await fetch(`/api/eventos/${ev._id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ accion: "cobrarEntradas", cantidad: cant, metodoPago: cobrarMetodo }),
+        });
+        setCobrarSaving(false);
+        if (res.ok) { setCobrarModal(false); setCobrarCantidad(""); onRefreshed?.(); }
     }
 
     const grouped: Record<string, { cantidad: number; total: number; categoria: string }> = {};
@@ -402,23 +429,28 @@ function DetalleEvento({ ev, onRefreshed }: { ev: EventoCerrado; onRefreshed?: (
                 </div>
             )}
 
-            {(ev.tarjetas?.length ?? 0) > 0 && (
+            {(registradas > 0 || (ev.tarjetas?.length ?? 0) > 0) && (
                 <div className="px-4 py-3 space-y-2">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Lotes de entradas</p>
-                    {ev.tarjetas!.map(t => {
+                    <div className="flex items-center justify-between">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Cobros de entradas</p>
+                        {pendientes > 0 && (
+                            <button onClick={() => { setCobrarCantidad(String(pendientes)); setCobrarMetodo("efectivo"); setCobrarModal(true); }}
+                                className="flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-black px-2.5 py-1.5 rounded-lg transition active:scale-95">
+                                <Wallet size={11} /> Cobrar {pendientes} pendiente{pendientes !== 1 ? "s" : ""}
+                            </button>
+                        )}
+                    </div>
+                    {(ev.tarjetas ?? []).map(t => {
                         const isEditing = editingTarjeta === t._id;
-                        const metodo = t.metodoPago || "efectivo";
+                        const Icon = METODO_ICON_LOCAL[t.metodoPago] ?? Banknote;
                         return (
-                            <div key={t._id} className="flex items-center gap-2 rounded-xl border border-gray-100 px-3 py-2 bg-gray-50">
-                                <Ticket size={12} className="text-gray-300 shrink-0" />
+                            <div key={t._id} className="flex items-center gap-2 rounded-xl border border-green-100 px-3 py-2 bg-green-50">
+                                <Icon size={12} className="text-green-500 shrink-0" />
                                 <span className="text-xs font-semibold text-gray-700 flex-1">×{t.cantidad} entradas</span>
                                 {isEditing ? (
                                     <div className="flex items-center gap-1.5">
-                                        <select
-                                            value={editMetodo}
-                                            onChange={e => setEditMetodo(e.target.value)}
-                                            className="text-xs border border-gray-300 rounded-lg px-2 py-1 font-semibold text-gray-800 bg-white"
-                                        >
+                                        <select value={editMetodo} onChange={e => setEditMetodo(e.target.value)}
+                                            className="text-xs border border-gray-300 rounded-lg px-2 py-1 font-semibold text-gray-800 bg-white">
                                             <option value="efectivo">Efectivo</option>
                                             <option value="transferencia">Transferencia</option>
                                             <option value="tarjeta">Tarjeta</option>
@@ -431,8 +463,9 @@ function DetalleEvento({ ev, onRefreshed }: { ev: EventoCerrado; onRefreshed?: (
                                     </div>
                                 ) : (
                                     <div className="flex items-center gap-1.5">
-                                        <span className="text-xs font-bold text-gray-600">{METODO_LABEL[metodo] || metodo}</span>
-                                        <button onClick={() => { setEditingTarjeta(t._id); setEditMetodo(metodo); }}
+                                        {precioTarjeta > 0 && <span className="text-xs text-gray-400">{fmt(t.cantidad * precioTarjeta)}</span>}
+                                        <span className="text-xs font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">{METODO_LABEL[t.metodoPago] || t.metodoPago}</span>
+                                        <button onClick={() => { setEditingTarjeta(t._id); setEditMetodo(t.metodoPago); }}
                                             className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-700 transition">
                                             <Pencil size={11} />
                                         </button>
@@ -441,8 +474,77 @@ function DetalleEvento({ ev, onRefreshed }: { ev: EventoCerrado; onRefreshed?: (
                             </div>
                         );
                     })}
+                    {pendientes > 0 && (
+                        <div className="flex items-center gap-2 rounded-xl border border-orange-100 px-3 py-2 bg-orange-50">
+                            <Ticket size={12} className="text-orange-400 shrink-0" />
+                            <span className="text-xs font-semibold text-orange-700 flex-1">{pendientes} entrada{pendientes !== 1 ? "s" : ""} sin cobrar</span>
+                            {precioTarjeta > 0 && <span className="text-xs font-bold text-orange-600">{fmt(pendientes * precioTarjeta)}</span>}
+                        </div>
+                    )}
                 </div>
             )}
+
+            {/* Modal cobrar entradas desde historial */}
+            {cobrarModal && (() => {
+                const cant = Number(cobrarCantidad) || 0;
+                const total = cant * precioTarjeta;
+                const invalid = cant < 1 || cant > pendientes;
+                return (
+                    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+                        <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl">
+                            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+                                <Ticket size={18} className="text-amber-600 shrink-0" />
+                                <div className="flex-1">
+                                    <h2 className="font-black text-gray-900">Cobrar entradas</h2>
+                                    <p className="text-xs text-gray-500">{ev.nombre} · {pendientes} pendiente{pendientes !== 1 ? "s" : ""}</p>
+                                </div>
+                                <button onClick={() => setCobrarModal(false)} className="p-1 text-gray-400"><X size={18} /></button>
+                            </div>
+                            <div className="px-5 py-5 space-y-4">
+                                <div>
+                                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1.5 tracking-wider">Cantidad</p>
+                                    <input autoFocus type="number" inputMode="numeric" min="1" max={pendientes}
+                                        value={cobrarCantidad} onChange={e => setCobrarCantidad(e.target.value)}
+                                        onKeyDown={e => { if (e.key === "Enter" && !invalid) confirmarCobro(); }}
+                                        style={{ fontSize: "16px" }}
+                                        className={`w-full px-4 py-3 border-2 rounded-xl text-2xl font-black focus:outline-none text-center transition ${invalid && cobrarCantidad ? "border-red-400" : "border-black"}`}
+                                        placeholder={String(pendientes)}
+                                    />
+                                    {cant > pendientes && <p className="text-xs text-red-500 mt-1 font-semibold">Máximo: {pendientes}</p>}
+                                </div>
+                                {precioTarjeta > 0 && cant > 0 && !invalid && (
+                                    <div className="bg-amber-50 rounded-2xl px-4 py-3 text-center border border-amber-200">
+                                        <p className="text-xs font-semibold text-amber-500 uppercase tracking-widest mb-0.5">Total</p>
+                                        <p className="text-3xl font-black text-amber-800">{fmt(total)}</p>
+                                    </div>
+                                )}
+                                <div>
+                                    <p className="text-xs font-semibold text-gray-500 uppercase mb-2 tracking-wider">Método de pago</p>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {(["efectivo", "transferencia", "tarjeta"] as const).map(m => {
+                                            const Icon = METODO_ICON_LOCAL[m];
+                                            return (
+                                                <button key={m} onClick={() => setCobrarMetodo(m)}
+                                                    className={`flex flex-col items-center gap-1.5 py-3 rounded-xl text-xs font-black border-2 transition active:scale-95 ${cobrarMetodo === m ? "bg-black text-white border-black" : "bg-white text-gray-500 border-gray-200"}`}>
+                                                    <Icon size={18} />
+                                                    {m === "efectivo" ? "Efectivo" : m === "tarjeta" ? "Tarjeta" : "Transf."}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="px-5 pb-5 flex gap-2">
+                                <button onClick={() => setCobrarModal(false)} className="flex-1 py-3 border border-gray-300 rounded-xl text-sm font-semibold text-gray-600">Cancelar</button>
+                                <button onClick={confirmarCobro} disabled={cobrarSaving || invalid}
+                                    className="flex-1 py-3 bg-black hover:bg-gray-800 disabled:opacity-50 text-white rounded-xl text-sm font-black transition flex items-center justify-center gap-2">
+                                    {cobrarSaving ? <Loader2 size={16} className="animate-spin" /> : <><Wallet size={15} /> Cobrar</>}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
 
             {metodos.length > 0 && (
                 <div className="px-4 py-4">
