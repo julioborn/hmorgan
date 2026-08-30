@@ -375,6 +375,7 @@ function DetalleEvento({ ev, onRefreshed }: { ev: EventoCerrado; onRefreshed?: (
 
     const [editModal, setEditModal] = useState<{ _id: string; cantidad: number; metodoPago: string } | null>(null);
     const [editCantidad, setEditCantidad] = useState("");
+    const [editPrecio, setEditPrecio] = useState("");
     const [editSaving, setEditSaving] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -432,6 +433,15 @@ function DetalleEvento({ ev, onRefreshed }: { ev: EventoCerrado; onRefreshed?: (
         const cant = Number(editCantidad);
         if (!cant || cant < 1) return;
         setEditSaving(true);
+        const nuevoPrecio = Number(editPrecio);
+        if (!isNaN(nuevoPrecio) && nuevoPrecio >= 0 && nuevoPrecio !== precioTarjeta) {
+            await fetch(`/api/eventos/${ev._id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ accion: "editarPrecioTarjeta", precio: nuevoPrecio }),
+            });
+        }
         await fetch(`/api/eventos/${ev._id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
@@ -534,9 +544,11 @@ function DetalleEvento({ ev, onRefreshed }: { ev: EventoCerrado; onRefreshed?: (
                                 <Icon size={12} className="text-green-500 shrink-0" />
                                 <span className="text-xs font-semibold text-gray-700 flex-1">×{t.cantidad} entradas</span>
                                 <div className="flex items-center gap-1.5">
-                                    {precioTarjeta > 0 && <span className="text-xs text-gray-400">{fmt(t.cantidad * precioTarjeta)}</span>}
+                                    <span className="text-xs text-gray-400">
+                                        {precioTarjeta > 0 ? fmt(t.cantidad * precioTarjeta) : <span className="text-orange-400 font-semibold">Sin precio</span>}
+                                    </span>
                                     <span className="text-xs font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">{METODO_LABEL[t.metodoPago] || t.metodoPago}</span>
-                                    <button onClick={() => { setEditModal(t); setEditCantidad(String(t.cantidad)); setEditMetodo(t.metodoPago); }}
+                                    <button onClick={() => { setEditModal(t); setEditCantidad(String(t.cantidad)); setEditMetodo(t.metodoPago); setEditPrecio(String(precioTarjeta || "")); }}
                                         className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-700 transition">
                                         <Pencil size={11} />
                                     </button>
@@ -650,6 +662,18 @@ function DetalleEvento({ ev, onRefreshed }: { ev: EventoCerrado; onRefreshed?: (
                                 />
                             </div>
                             <div>
+                                <p className="text-xs font-semibold text-gray-500 uppercase mb-1.5 tracking-wider">Precio por entrada</p>
+                                <div className="relative">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-black text-lg">$</span>
+                                    <input type="number" inputMode="decimal" min="0"
+                                        value={editPrecio} onChange={e => setEditPrecio(e.target.value)}
+                                        style={{ fontSize: "16px" }}
+                                        className="w-full pl-8 pr-4 py-3 border-2 border-gray-300 rounded-xl text-xl font-black focus:outline-none focus:border-black text-center"
+                                        placeholder="0"
+                                    />
+                                </div>
+                            </div>
+                            <div>
                                 <p className="text-xs font-semibold text-gray-500 uppercase mb-2 tracking-wider">Método de pago</p>
                                 <div className="grid grid-cols-3 gap-2">
                                     {(["efectivo", "transferencia", "tarjeta"] as const).map(m => {
@@ -664,10 +688,10 @@ function DetalleEvento({ ev, onRefreshed }: { ev: EventoCerrado; onRefreshed?: (
                                     })}
                                 </div>
                             </div>
-                            {precioTarjeta > 0 && Number(editCantidad) >= 1 && (
+                            {Number(editCantidad) >= 1 && Number(editPrecio) > 0 && (
                                 <div className="bg-gray-50 rounded-2xl px-4 py-3 text-center border border-gray-200">
                                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-0.5">Total</p>
-                                    <p className="text-2xl font-black text-gray-800">{fmt(Number(editCantidad) * precioTarjeta)}</p>
+                                    <p className="text-2xl font-black text-gray-800">{fmt(Number(editCantidad) * Number(editPrecio))}</p>
                                 </div>
                             )}
                         </div>
