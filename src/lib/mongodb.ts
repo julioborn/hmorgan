@@ -13,7 +13,14 @@ if (!cached) cached = (global as any).mongoose = { conn: null, promise: null };
 export async function connectMongoDB() {
   if (cached.conn) return cached.conn;
   if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI, { dbName: "hmorgan" });
+    cached.promise = mongoose.connect(MONGODB_URI, {
+      dbName: "hmorgan",
+      maxPoolSize: 5,       // máx conexiones por instancia serverless
+      minPoolSize: 0,       // no mantener conexiones abiertas de base
+      maxIdleTimeMS: 10000, // cerrar conexiones ociosas a los 10s
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 30000,
+    });
   }
   cached.conn = await cached.promise;
 
