@@ -4095,8 +4095,8 @@ export default function CajaPage() {
 
             {/* Modal cerrar caja */}
             {closeModal && (
-                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl max-h-[92vh] flex flex-col">
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start sm:items-center justify-center p-4 overflow-y-auto">
+                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl max-h-none sm:max-h-[92vh] flex flex-col my-4 sm:my-0">
                         {closeStep === "resumen" ? (
                             <>
                                 <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
