@@ -5,7 +5,7 @@ import {
   Package, CalendarDays, Wallet, TrendingUp, Users,
   LayoutGrid, ClipboardList, Ticket, Star, UserCog,
   Utensils, Images, BarChart2, Settings, Bell, ChevronRight,
-  CheckSquare,
+  CheckSquare, QrCode,
 } from "lucide-react";
 import { hoyArgentina } from "@/lib/argentina-time";
 
@@ -304,6 +304,7 @@ export function AdminHome() {
             </p>
             <div className="grid grid-cols-2 gap-2.5">
               <AdminCard href="/admin/mesas" title="Mesas" Icon={LayoutGrid} color="indigo" />
+              <AdminCard href="/admin/qr-mesas" title="QR Mesas" Icon={QrCode} color="cyan" />
               <AdminCard href="/empleado/anotador" title="Anotador" Icon={ClipboardList} color="zinc" />
               <AdminCard
                 href="/admin/tareas"

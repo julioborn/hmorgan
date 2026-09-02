@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
-import { Plus, UtensilsCrossed, ChevronRight, LockKeyhole, Star, X, ArrowLeftRight, User, Users, Search, Loader2, MessageCircle, Ticket } from "lucide-react";
+import { Plus, UtensilsCrossed, ChevronRight, LockKeyhole, Star, X, ArrowLeftRight, User, Users, Search, Loader2, MessageCircle, Ticket, ScanLine } from "lucide-react";
 import Link from "next/link";
 import Loader from "@/components/Loader";
 import { swalBase } from "@/lib/swalConfig";
@@ -70,6 +70,14 @@ export default function AnotadorPage() {
     const [guardandoComensales, setGuardandoComensales] = useState(false);
     const [editingNota, setEditingNota] = useState<{ pedidoId: string; itemId: string; valor: string } | null>(null);
     const [sesionesAutoserv, setSesionesAutoserv] = useState<{ mesasNombres: string[] }[]>([]);
+
+    // QR de mesa (mozo escanea para pre-seleccionar mesa en nueva comanda)
+    const [mesaQrOpen, setMesaQrOpen] = useState(false);
+    const [mesaQrError, setMesaQrError] = useState("");
+    const [mesaQrManual, setMesaQrManual] = useState("");
+    const [mesaDesdeQr, setMesaDesdeQr] = useState<string | null>(null);
+    const mesaQrVideoRef = useRef<HTMLVideoElement>(null);
+    const mesaQrStreamRef = useRef<MediaStream | null>(null);
 
     // Solo las terminadas cobradas dentro de la sesión de caja actual
     const terminadasSesion = useMemo(() =>
@@ -287,6 +295,65 @@ export default function AnotadorPage() {
         setComensalesIds(prev => prev.filter(c => c._id !== userId));
     }
 
+    // Cámara QR de mesa
+    useEffect(() => {
+        if (!mesaQrOpen) {
+            mesaQrStreamRef.current?.getTracks().forEach(t => t.stop());
+            mesaQrStreamRef.current = null;
+            setMesaQrError("");
+            setMesaQrManual("");
+            return;
+        }
+        let active = true;
+        (async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                if (!active) { stream.getTracks().forEach(t => t.stop()); return; }
+                mesaQrStreamRef.current = stream;
+                if (mesaQrVideoRef.current) mesaQrVideoRef.current.srcObject = stream;
+
+                const detector = typeof (window as any).BarcodeDetector !== "undefined"
+                    ? new (window as any).BarcodeDetector({ formats: ["qr_code"] })
+                    : null;
+                if (!detector) { setMesaQrError("Ingresá el número de mesa manualmente"); return; }
+
+                const scan = async () => {
+                    if (!active || !mesaQrVideoRef.current) return;
+                    try {
+                        const barcodes = await detector.detect(mesaQrVideoRef.current);
+                        if (barcodes.length > 0) {
+                            onMesaQrDetected(barcodes[0].rawValue as string);
+                            return;
+                        }
+                    } catch { }
+                    if (active) requestAnimationFrame(scan);
+                };
+                mesaQrVideoRef.current?.addEventListener("loadeddata", () => { if (active) requestAnimationFrame(scan); }, { once: true });
+            } catch {
+                setMesaQrError("No se pudo acceder a la cámara");
+            }
+        })();
+        return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [mesaQrOpen]);
+
+    function onMesaQrDetected(raw: string) {
+        try {
+            const match = raw.match(/\/mesa\/([^/?#]+)/);
+            if (!match) { setMesaQrError("QR no corresponde a una mesa de H. Morgan"); return; }
+            const numeroMesa = match[1];
+            setMesaQrOpen(false);
+            setMesaDesdeQr(numeroMesa);
+            if (eventosActivos.length > 0) {
+                setEventoPickerModal(true);
+            } else {
+                router.push(`/empleado/anotador/menu?mesa=${encodeURIComponent(numeroMesa)}`);
+            }
+        } catch {
+            setMesaQrError("QR inválido");
+        }
+    }
+
     function handleNuevaComanda() {
         if (eventosActivos.length > 0) {
             setEventoPickerModal(true);
@@ -297,9 +364,11 @@ export default function AnotadorPage() {
 
     function irAMenu(eventoId?: string) {
         setEventoPickerModal(false);
+        const mesaQuery = mesaDesdeQr ? `&mesa=${encodeURIComponent(mesaDesdeQr)}` : "";
         const url = eventoId
-            ? `/empleado/anotador/menu?eventoId=${eventoId}`
-            : "/empleado/anotador/menu";
+            ? `/empleado/anotador/menu?eventoId=${eventoId}${mesaQuery}`
+            : `/empleado/anotador/menu${mesaQuery ? `?${mesaQuery.slice(1)}` : ""}`;
+        setMesaDesdeQr(null);
         router.push(url);
     }
 
@@ -356,10 +425,17 @@ export default function AnotadorPage() {
                 </div>
 
                 {cajaAbierta !== false && (
-                    <button onClick={handleNuevaComanda}
-                        className="w-full flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 text-white font-black py-4 rounded-2xl transition active:scale-[0.98] shadow-sm text-base">
-                        <Plus size={20} /> Nueva comanda
-                    </button>
+                    <div className="flex gap-2">
+                        <button onClick={handleNuevaComanda}
+                            className="flex-1 flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 text-white font-black py-4 rounded-2xl transition active:scale-[0.98] shadow-sm text-base">
+                            <Plus size={20} /> Nueva comanda
+                        </button>
+                        <button onClick={() => setMesaQrOpen(true)}
+                            title="Escanear QR de mesa"
+                            className="w-14 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl transition active:scale-[0.98] shadow-sm">
+                            <ScanLine size={22} />
+                        </button>
+                    </div>
                 )}
 
                 {/* Tabs de filtro — 2 filas */}
@@ -772,6 +848,51 @@ export default function AnotadorPage() {
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal QR de mesa */}
+            {mesaQrOpen && (
+                <div className="fixed inset-0 z-50 bg-black/80 flex flex-col items-center justify-center p-4" onClick={() => setMesaQrOpen(false)}>
+                    <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between px-5 pt-5 pb-3">
+                            <div>
+                                <h3 className="font-black text-lg">Escanear QR de mesa</h3>
+                                <p className="text-xs text-gray-400">Apuntá la cámara al código QR de la mesa</p>
+                            </div>
+                            <button onClick={() => setMesaQrOpen(false)} className="p-1.5 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200">
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className="relative mx-4 mb-3 rounded-2xl overflow-hidden bg-black aspect-square">
+                            <video ref={mesaQrVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div className="w-40 h-40 border-4 border-white/80 rounded-2xl" />
+                            </div>
+                        </div>
+                        {mesaQrError && (
+                            <p className="text-center text-red-500 text-sm px-4 pb-2">{mesaQrError}</p>
+                        )}
+                        <div className="px-4 pb-5 space-y-2">
+                            <p className="text-xs text-gray-400 text-center">O ingresá el número de mesa manualmente:</p>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    placeholder="Ej: 110"
+                                    value={mesaQrManual}
+                                    onChange={e => setMesaQrManual(e.target.value)}
+                                    onKeyDown={e => { if (e.key === "Enter" && mesaQrManual.trim()) { setMesaQrOpen(false); router.push(`/empleado/anotador/menu?mesa=${encodeURIComponent(mesaQrManual.trim())}`); } }}
+                                    className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none focus:border-gray-400"
+                                />
+                                <button
+                                    onClick={() => { if (mesaQrManual.trim()) { setMesaQrOpen(false); router.push(`/empleado/anotador/menu?mesa=${encodeURIComponent(mesaQrManual.trim())}`); } }}
+                                    className="bg-gray-900 text-white font-black px-4 py-2.5 rounded-xl text-sm"
+                                >
+                                    Ir
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

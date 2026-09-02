@@ -111,6 +111,7 @@ function AnotadorMenuContent() {
     const comandaId           = searchParams.get("id");      // null = nueva comanda
     const eventoIdParam       = searchParams.get("eventoId"); // null = comanda normal
     const isDelivery          = searchParams.get("delivery") === "1";
+    const mesaParam           = searchParams.get("mesa");     // pre-fill desde QR de mesa
     const [step, setStep]    = useState<"info"|"menu">(comandaId || isDelivery ? "menu" : "info");
 
     type DeliveryDraft = { nombre: string; telefono: string; direccion: string; horario?: string; tipoEntrega?: "envio" | "retira" };
@@ -240,7 +241,7 @@ function AnotadorMenuContent() {
                 setCart(sc);
                 if (!comandaId) setStep("menu"); // borrador existente → saltar info
             }
-            if (Array.isArray(sm) && sm.length > 0 && !comandaId) setMesas(sm);
+            if (Array.isArray(sm) && sm.length > 0 && !comandaId && !mesaParam) setMesas(sm);
             if (scm && !comandaId) setComensales(scm);
             if (sn) setClienteNombre(sn);
             if (Array.isArray(scs) && scs.length > 0) setComensalesSeleccionados(scs);
@@ -255,6 +256,12 @@ function AnotadorMenuContent() {
             sessionStorage.removeItem(CART_KEY);
         }
     }, [cart, mesas, comensales, clienteNombre, comensalesSeleccionados, CART_KEY]);
+
+    // Pre-fill mesa desde QR (param ?mesa=XXX)
+    useEffect(() => {
+        if (mesaParam && !comandaId) setMesas([mesaParam]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Reset zoom al abrir el picker
     useEffect(() => {

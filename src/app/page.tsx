@@ -153,6 +153,15 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
   const prevActiveRef = useRef<Set<string>>(new Set());
   const firstPollRef  = useRef(false);
 
+  // Unirse a mesa via QR
+  const [unirseQrOpen, setUnirseQrOpen] = useState(false);
+  const [unirseQrError, setUnirseQrError] = useState("");
+  const [unirseSaving, setUnirseSaving] = useState(false);
+  const [unirseExito, setUnirseExito] = useState<string | null>(null);
+  const [unirseManual, setUnirseManual] = useState("");
+  const unirseVideoRef = useRef<HTMLVideoElement>(null);
+  const unirseStreamRef = useRef<MediaStream | null>(null);
+
   async function solicitarCanje(r: Reward) {
     if (saldoPuntos < r.puntos) {
       await swalBase.fire({ title: "Puntos insuficientes", text: `Necesitás ${r.puntos} pts y tenés ${saldoPuntos} pts.`, icon: "warning" });
@@ -325,6 +334,68 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
     }).catch(() => { });
   }
 
+  // Cámara QR para unirse a mesa
+  useEffect(() => {
+    if (!unirseQrOpen) {
+      unirseStreamRef.current?.getTracks().forEach(t => t.stop());
+      unirseStreamRef.current = null;
+      setUnirseQrError("");
+      setUnirseManual("");
+      return;
+    }
+    let active = true;
+    (async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        if (!active) { stream.getTracks().forEach(t => t.stop()); return; }
+        unirseStreamRef.current = stream;
+        if (unirseVideoRef.current) unirseVideoRef.current.srcObject = stream;
+        const detector = typeof (window as any).BarcodeDetector !== "undefined"
+          ? new (window as any).BarcodeDetector({ formats: ["qr_code"] })
+          : null;
+        if (!detector) { setUnirseQrError("Ingresá el número de mesa manualmente"); return; }
+        const scan = async () => {
+          if (!active || !unirseVideoRef.current) return;
+          try {
+            const barcodes = await detector.detect(unirseVideoRef.current);
+            if (barcodes.length > 0) { onUnirseQrDetected(barcodes[0].rawValue as string); return; }
+          } catch { }
+          if (active) requestAnimationFrame(scan);
+        };
+        unirseVideoRef.current?.addEventListener("loadeddata", () => { if (active) requestAnimationFrame(scan); }, { once: true });
+      } catch {
+        setUnirseQrError("No se pudo acceder a la cámara");
+      }
+    })();
+    return () => { active = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unirseQrOpen]);
+
+  async function onUnirseQrDetected(raw: string) {
+    const match = raw.match(/\/mesa\/([^/?#]+)/);
+    if (!match) { setUnirseQrError("QR no corresponde a una mesa de H. Morgan"); return; }
+    await unirseEnMesa(match[1]);
+  }
+
+  async function unirseEnMesa(numero: string) {
+    setUnirseSaving(true);
+    setUnirseQrError("");
+    try {
+      const r = await fetch(`/api/mesa/${encodeURIComponent(numero)}/unirse`, {
+        method: "POST", credentials: "include",
+      });
+      const d = await r.json();
+      if (!r.ok) { setUnirseQrError(d.error || "No se pudo unir"); return; }
+      setUnirseQrOpen(false);
+      setUnirseExito(`Mesa ${numero}`);
+      setTimeout(() => setUnirseExito(null), 4000);
+    } catch {
+      setUnirseQrError("Error de conexión");
+    } finally {
+      setUnirseSaving(false);
+    }
+  }
+
   if (loadingRewards) {
     return (
       <div className={`${container} py-10 flex justify-center`}>
@@ -437,6 +508,34 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
               {llamadaEnviada.has("cuenta") ? "¡Avisado!" : "Pedir cuenta"}
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Unirme a una mesa (solo cuando no hay comanda activa) */}
+      {!comandaActiva && (
+        <div className="space-y-2">
+          {unirseExito ? (
+            <div className="bg-green-500 text-white rounded-2xl px-5 py-4 flex items-center gap-3">
+              <ScanQrCode size={22} className="shrink-0" />
+              <div>
+                <p className="font-black text-sm">¡Estás en {unirseExito}!</p>
+                <p className="text-green-100 text-xs">Tus puntos se acreditarán al cerrar la cuenta.</p>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setUnirseQrOpen(true)}
+              className="w-full flex items-center gap-4 bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 active:scale-[0.98] transition hover:bg-gray-100"
+            >
+              <div className="w-10 h-10 rounded-xl bg-gray-900 flex items-center justify-center shrink-0">
+                <ScanQrCode size={20} className="text-white" />
+              </div>
+              <div className="text-left">
+                <p className="font-black text-sm text-gray-900">Unirme a una mesa</p>
+                <p className="text-xs text-gray-400">Escaneá el QR para ganar puntos</p>
+              </div>
+            </button>
+          )}
         </div>
       )}
 
@@ -987,6 +1086,60 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
                 className="w-full py-3 rounded-2xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 active:scale-[0.98] transition">
                 Entendido
               </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Modal QR — Unirse a mesa */}
+      {unirseQrOpen && createPortal(
+        <div className="fixed inset-0 z-[200] bg-black/80 flex flex-col items-center justify-center p-4"
+          onClick={() => setUnirseQrOpen(false)}>
+          <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 pt-5 pb-3">
+              <div>
+                <h3 className="font-black text-lg">Escaneá el QR de tu mesa</h3>
+                <p className="text-xs text-gray-400">Apuntá la cámara al código en la mesa</p>
+              </div>
+              <button onClick={() => setUnirseQrOpen(false)} className="p-1.5 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="relative mx-4 mb-3 rounded-2xl overflow-hidden bg-black aspect-square">
+              <video ref={unirseVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-40 h-40 border-4 border-white/80 rounded-2xl" />
+              </div>
+              {unirseSaving && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                  <Loader size={32} />
+                </div>
+              )}
+            </div>
+            {unirseQrError && (
+              <p className="text-center text-red-500 text-sm px-4 pb-2">{unirseQrError}</p>
+            )}
+            <div className="px-4 pb-5 space-y-2">
+              <p className="text-xs text-gray-400 text-center">O ingresá el número de mesa:</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Ej: 110"
+                  value={unirseManual}
+                  onChange={e => setUnirseManual(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter" && unirseManual.trim()) unirseEnMesa(unirseManual.trim()); }}
+                  className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none focus:border-gray-400"
+                />
+                <button
+                  onClick={() => { if (unirseManual.trim()) unirseEnMesa(unirseManual.trim()); }}
+                  disabled={unirseSaving}
+                  className="bg-gray-900 text-white font-black px-4 py-2.5 rounded-xl text-sm disabled:opacity-50"
+                >
+                  Ir
+                </button>
+              </div>
             </div>
           </div>
         </div>,
