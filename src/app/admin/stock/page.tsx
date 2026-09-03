@@ -1,9 +1,10 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { swalBase } from "@/lib/swalConfig";
 import {
     Plus, TrendingUp, TrendingDown, AlertTriangle,
-    X, History, Edit2, Trash2, Loader2, ChevronLeft,
+    X, History, Edit2, Trash2, Loader2, ChevronLeft, ClipboardList,
 } from "lucide-react";
 
 type Tipo = "cocina" | "bebida";
@@ -65,6 +66,8 @@ const formatNum = (n: number) =>
 export default function StockPage() {
     const [items, setItems] = useState<StockItem[]>([]);
     const [loading, setLoading] = useState(true);
+
+    const router = useRouter();
 
     // navegación
     const [vista, setVista] = useState<Tipo | null>(null);
@@ -191,19 +194,12 @@ export default function StockPage() {
                     {(["cocina", "bebida"] as Tipo[]).map(t => {
                         const m = TIPO_META[t];
                         const total = items.filter(i => (i.tipo ?? "cocina") === t).length;
-                        const bajos = alertas.filter(i => (i.tipo ?? "cocina") === t).length;
                         return (
                             <button
                                 key={t}
                                 onClick={() => abrirVista(t)}
                                 className={`relative flex flex-col items-center justify-center gap-3 rounded-2xl border-2 ${m.border} ${m.bg} py-10 px-4 shadow-sm active:scale-[0.97] transition-transform`}
                             >
-                                {/* badge stock bajo mínimo — desactivado por ahora
-                                {bajos > 0 && (
-                                    <span className="absolute top-3 right-3 bg-yellow-400 text-yellow-900 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1">
-                                        <AlertTriangle size={9} />{bajos}
-                                    </span>
-                                )} */}
                                 <span className="text-5xl">{m.emoji}</span>
                                 <div className="text-center">
                                     <p className={`text-xl font-black ${m.color}`}>{m.label}</p>
@@ -213,6 +209,14 @@ export default function StockPage() {
                         );
                     })}
                 </div>
+
+                {/* Botón Cargar Stock */}
+                <button
+                    onClick={() => router.push("/admin/stock/cargar")}
+                    className="w-full mt-4 flex items-center justify-center gap-2 py-3.5 bg-gray-900 hover:bg-gray-700 text-white rounded-2xl font-bold text-sm transition"
+                >
+                    <ClipboardList size={17} /> Cargar Stock Semanal
+                </button>
             </div>
         );
     }
