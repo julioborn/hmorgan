@@ -511,8 +511,8 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
         </div>
       )}
 
-      {/* Unirme a una mesa (solo cuando no hay comanda activa) */}
-      {!comandaActiva && (
+      {/* Unirme a una mesa — oculto hasta que estén los QRs impresos */}
+      {false && !comandaActiva && (
         <div className="space-y-2">
           {unirseExito ? (
             <div className="bg-green-500 text-white rounded-2xl px-5 py-4 flex items-center gap-3">
@@ -1103,28 +1103,9 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
               )}
             </div>
             {unirseQrError && (
-              <p className="text-center text-red-500 text-sm px-4 pb-2">{unirseQrError}</p>
+              <p className="text-center text-red-500 text-sm px-4 pb-4">{unirseQrError}</p>
             )}
-            <div className="px-4 pb-5 space-y-2">
-              <p className="text-xs text-gray-400 text-center">O ingresá el número de mesa:</p>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Ej: 110"
-                  value={unirseManual}
-                  onChange={e => setUnirseManual(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter" && unirseManual.trim()) unirseEnMesa(unirseManual.trim()); }}
-                  className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none focus:border-gray-400"
-                />
-                <button
-                  onClick={() => { if (unirseManual.trim()) unirseEnMesa(unirseManual.trim()); }}
-                  disabled={unirseSaving}
-                  className="bg-gray-900 text-white font-black px-4 py-2.5 rounded-xl text-sm disabled:opacity-50"
-                >
-                  Ir
-                </button>
-              </div>
-            </div>
+            {!unirseQrError && <div className="pb-2" />}
           </div>
         </div>,
         document.body
