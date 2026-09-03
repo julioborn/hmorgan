@@ -187,16 +187,6 @@ export default function StockPage() {
                     <p className="text-sm text-gray-400 mt-1">Seleccioná una sección para gestionar</p>
                 </div>
 
-                {alertas.length > 0 && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-6 flex items-start gap-2">
-                        <AlertTriangle size={16} className="text-yellow-600 mt-0.5 shrink-0" />
-                        <div>
-                            <p className="text-sm font-semibold text-yellow-800">Stock bajo mínimo</p>
-                            <p className="text-xs text-yellow-700 mt-0.5">{alertas.map(i => `${i.nombre} (${i.stockActual} ${i.unidad})`).join(", ")}</p>
-                        </div>
-                    </div>
-                )}
-
                 <div className="grid grid-cols-2 gap-4">
                     {(["cocina", "bebida"] as Tipo[]).map(t => {
                         const m = TIPO_META[t];
