@@ -606,7 +606,7 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
 
                       {/* Descripción */}
                       {inv.descripcion && (
-                        <p className="text-[15px] mt-3 leading-snug line-clamp-2" style={{ color: "#6b5c44" }}>
+                        <p className="text-[15px] mt-1 leading-snug line-clamp-2" style={{ color: "#6b5c44" }}>
                           {inv.descripcion.replace(/\bDj\b/gi, "DJ")}
                         </p>
                       )}
