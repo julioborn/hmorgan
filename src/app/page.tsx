@@ -572,20 +572,20 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
                     <div className="absolute inset-0 rounded-2xl pointer-events-none" style={{ boxShadow: "inset 0 0 0 3px rgba(255,255,255,0.07)" }} />
 
                     {/* ── Birrete (graduation cap) — arriba derecha ── */}
-                    <svg className="absolute top-3 right-4 opacity-20" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
+                    <svg className="absolute top-3 right-4 pointer-events-none" style={{ opacity: 0.20 }} width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M22 10L12 5 2 10l10 5 10-5z"/>
                       <path d="M6 12.5v4c0 0 2 2 6 2s6-2 6-2v-4"/>
                       <line x1="22" y1="10" x2="22" y2="16"/>
                     </svg>
 
                     {/* ── Lápiz — esquina inferior derecha, inclinado ── */}
-                    <svg className="absolute bottom-5 right-5 opacity-18" width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" style={{ transform: "rotate(40deg)" }}>
+                    <svg className="absolute bottom-5 right-5 pointer-events-none" style={{ opacity: 0.15, transform: "rotate(40deg)" }} width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
                       <line x1="15" y1="5" x2="19" y2="9"/>
                     </svg>
 
                     {/* ── Regla — arriba, inclinada ── */}
-                    <svg className="absolute top-2 right-16 opacity-15" width="68" height="22" viewBox="0 0 68 22" fill="none" stroke="white" strokeWidth="1.1" strokeLinecap="round" style={{ transform: "rotate(-8deg)" }}>
+                    <svg className="absolute top-2 right-16 pointer-events-none" style={{ opacity: 0.13, transform: "rotate(-8deg)" }} width="68" height="22" viewBox="0 0 68 22" fill="none" stroke="white" strokeWidth="1.1" strokeLinecap="round">
                       <rect x="1" y="1" width="66" height="20" rx="2"/>
                       <line x1="12" y1="1" x2="12" y2="11"/>
                       <line x1="22" y1="1" x2="22" y2="8"/>
@@ -595,12 +595,12 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
                     </svg>
 
                     {/* ── Estrella de tiza — arriba izquierda ── */}
-                    <svg className="absolute top-4 left-4 opacity-15" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+                    <svg className="absolute top-4 left-4 pointer-events-none" style={{ opacity: 0.13 }} width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
                       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                     </svg>
 
                     {/* ── Libro abierto — centro derecha ── */}
-                    <svg className="absolute top-1/2 right-3 opacity-15" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" style={{ transform: "translateY(-50%)" }}>
+                    <svg className="absolute top-1/2 right-3 pointer-events-none" style={{ opacity: 0.13, transform: "translateY(-50%)" }} width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
                       <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
                     </svg>
