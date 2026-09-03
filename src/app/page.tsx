@@ -562,84 +562,68 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
 
               if (esMaestro) {
                 return (
-                  <div key={inv._id} className="relative rounded-2xl overflow-hidden shadow-2xl" style={{ minHeight: "200px", background: "#0e1a10" }}>
-                    {/* Líneas horizontales tiza — pizarrón rayado */}
+                  <div key={inv._id} className="relative rounded-2xl overflow-hidden shadow-lg" style={{
+                    background: "#f7f3e8",
+                    minHeight: "210px",
+                    border: "1px solid #e0d8c4",
+                  }}>
+                    {/* Líneas del cuaderno */}
                     <div className="absolute inset-0 pointer-events-none" style={{
-                      backgroundImage: "repeating-linear-gradient(transparent, transparent 30px, rgba(255,255,255,0.055) 30px, rgba(255,255,255,0.055) 31px)",
-                      backgroundPosition: "0 14px",
+                      backgroundImage: "repeating-linear-gradient(transparent, transparent 31px, #c5d8f0 31px, #c5d8f0 32px)",
+                      backgroundPosition: "0 48px",
                     }} />
-                    {/* Borde estilo marco de pizarrón */}
-                    <div className="absolute inset-0 rounded-2xl pointer-events-none" style={{ boxShadow: "inset 0 0 0 3px rgba(255,255,255,0.07)" }} />
-
-                    {/* ── Birrete (graduation cap) — arriba derecha ── */}
-                    <svg className="absolute top-3 right-4 pointer-events-none" style={{ opacity: 0.20 }} width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M22 10L12 5 2 10l10 5 10-5z"/>
-                      <path d="M6 12.5v4c0 0 2 2 6 2s6-2 6-2v-4"/>
-                      <line x1="22" y1="10" x2="22" y2="16"/>
-                    </svg>
-
-                    {/* ── Lápiz — esquina inferior derecha, inclinado ── */}
-                    <svg className="absolute bottom-5 right-5 pointer-events-none" style={{ opacity: 0.15, transform: "rotate(40deg)" }} width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
-                      <line x1="15" y1="5" x2="19" y2="9"/>
-                    </svg>
-
-                    {/* ── Regla — arriba, inclinada ── */}
-                    <svg className="absolute top-2 right-16 pointer-events-none" style={{ opacity: 0.13, transform: "rotate(-8deg)" }} width="68" height="22" viewBox="0 0 68 22" fill="none" stroke="white" strokeWidth="1.1" strokeLinecap="round">
-                      <rect x="1" y="1" width="66" height="20" rx="2"/>
-                      <line x1="12" y1="1" x2="12" y2="11"/>
-                      <line x1="22" y1="1" x2="22" y2="8"/>
-                      <line x1="32" y1="1" x2="32" y2="11"/>
-                      <line x1="42" y1="1" x2="42" y2="8"/>
-                      <line x1="52" y1="1" x2="52" y2="11"/>
-                    </svg>
-
-                    {/* ── Estrella de tiza — arriba izquierda ── */}
-                    <svg className="absolute top-4 left-4 pointer-events-none" style={{ opacity: 0.13 }} width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                    </svg>
-
-                    {/* ── Libro abierto — centro derecha ── */}
-                    <svg className="absolute top-1/2 right-3 pointer-events-none" style={{ opacity: 0.13, transform: "translateY(-50%)" }} width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
-                      <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
-                    </svg>
+                    {/* Margen rojo izquierdo */}
+                    <div className="absolute top-0 bottom-0 pointer-events-none" style={{
+                      left: "52px",
+                      width: "1.5px",
+                      background: "#e8a0a0",
+                      opacity: 0.7,
+                    }} />
+                    {/* Espiral izquierda — puntos decorativos */}
+                    <div className="absolute top-0 bottom-0 left-0 pointer-events-none flex flex-col justify-around items-center" style={{ width: "22px", paddingTop: "12px", paddingBottom: "12px" }}>
+                      {Array.from({ length: 7 }).map((_, i) => (
+                        <div key={i} style={{ width: "10px", height: "10px", borderRadius: "50%", border: "2px solid #b8bfc8", background: "#f7f3e8" }} />
+                      ))}
+                    </div>
 
                     {/* Contenido */}
-                    <div className="relative z-10 p-5 flex flex-col" style={{ minHeight: "200px" }}>
-                      <div className="flex items-start justify-between gap-3">
-                        <h3 className="font-black text-2xl leading-tight" style={{
-                          color: "#f0ece0",
-                          textShadow: "0 0 12px rgba(255,255,255,0.25), 1px 1px 0 rgba(255,255,255,0.08), -1px 0px 0 rgba(255,255,255,0.06)",
-                          letterSpacing: "0.02em",
-                        }}>{inv.titulo}</h3>
+                    <div className="relative z-10 flex flex-col" style={{ minHeight: "210px", paddingLeft: "64px", paddingRight: "16px", paddingTop: "14px", paddingBottom: "14px" }}>
+                      {/* Encabezado con precio */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-widest mb-0.5" style={{ color: "#9b7e5c" }}>H. Morgan Bar</p>
+                          <h3 className="font-black leading-tight" style={{ fontSize: "1.45rem", color: "#2c2416", letterSpacing: "-0.01em" }}>{inv.titulo}</h3>
+                        </div>
                         {(inv.precio ?? 0) > 0 && (
-                          <span className="shrink-0 text-sm font-black px-3 py-1 rounded-full" style={{
-                            border: "1px solid rgba(255,255,255,0.2)",
-                            background: "rgba(255,255,255,0.07)",
-                            color: "rgba(240,236,224,0.9)",
+                          <span className="shrink-0 text-sm font-black px-3 py-1 rounded-full mt-1" style={{
+                            background: "#e8a0a0",
+                            color: "#5a1a1a",
                           }}>
                             ${new Intl.NumberFormat("es-AR").format(inv.precio!)}
                           </span>
                         )}
                       </div>
+
+                      {/* Descripción */}
                       {inv.descripcion && (
-                        <p className="text-sm line-clamp-2 mt-2" style={{ color: "rgba(240,236,224,0.65)" }}>{inv.descripcion}</p>
+                        <p className="text-sm mt-2 leading-snug line-clamp-2" style={{ color: "#6b5c44" }}>{inv.descripcion}</p>
                       )}
-                      <div className="flex items-center gap-2 mt-auto pt-4">
-                        <span className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full capitalize" style={{
-                          border: "1px solid rgba(255,255,255,0.15)",
-                          background: "rgba(255,255,255,0.06)",
-                          color: "rgba(240,236,224,0.8)",
+
+                      {/* Fecha y hora */}
+                      <div className="flex items-center gap-2 mt-auto pt-5 flex-wrap">
+                        <span className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full capitalize" style={{
+                          background: "#e8e0cc",
+                          color: "#4a3c28",
+                          border: "1px solid #d0c4a8",
                         }}>
-                          <CalendarDays size={12} />
+                          <CalendarDays size={11} />
                           {fechaStr}
                         </span>
                         {inv.hora && (
-                          <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{
-                            border: "1px solid rgba(255,255,255,0.15)",
-                            background: "rgba(255,255,255,0.06)",
-                            color: "rgba(240,236,224,0.8)",
+                          <span className="text-xs font-bold px-3 py-1.5 rounded-full" style={{
+                            background: "#e8e0cc",
+                            color: "#4a3c28",
+                            border: "1px solid #d0c4a8",
                           }}>
                             {inv.hora}
                           </span>
