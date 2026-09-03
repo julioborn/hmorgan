@@ -119,15 +119,17 @@ export default function CargarStockPage() {
         if (comparandoCon === id) setComparandoCon(null);
     }
 
-    // Agrupación de productos por tipo → categoria
-    const grupos = productos.reduce((acc, p) => {
-        const key = `${p.tipo ?? "bebida"}-${p.categoria}`;
-        if (!acc[key]) acc[key] = { tipo: p.tipo ?? "bebida", categoria: p.categoria, items: [] };
-        acc[key].items.push(p);
-        return acc;
-    }, {} as Record<string, { tipo: string; categoria: string; items: StockItem[] }>);
-
-    const gruposOrdenados = Object.entries(grupos).sort(([a], [b]) => a.localeCompare(b));
+    // Agrupación por tipo → subcategorías
+    const porTipo = (["cocina", "bebida"] as const).map(tipo => {
+        const prodsTipo = productos.filter(p => (p.tipo ?? "bebida") === tipo);
+        const subcats = prodsTipo.reduce((acc, p) => {
+            const cat = p.categoria || "Otros";
+            if (!acc[cat]) acc[cat] = [];
+            acc[cat].push(p);
+            return acc;
+        }, {} as Record<string, StockItem[]>);
+        return { tipo, subcats, total: prodsTipo.length };
+    }).filter(t => t.total > 0);
 
     // Comparativa entre dos conteos
     const conteoBase = conteos.find(c => c._id === expandido);
@@ -166,45 +168,59 @@ export default function CargarStockPage() {
                             <div className="flex justify-center py-16"><Loader2 className="animate-spin text-gray-400" size={32} /></div>
                         ) : (
                             <>
-                                {gruposOrdenados.map(([key, grupo]) => {
-                                    const abierto = gruposAbiertos[key] !== false;
+                                {porTipo.map(({ tipo, subcats }) => {
+                                    const tipoKey = `tipo-${tipo}`;
+                                    const tipoAbierto = gruposAbiertos[tipoKey] !== false;
                                     return (
-                                        <div key={key} className="mb-4">
+                                        <div key={tipo} className="mb-6">
+                                            {/* Encabezado de tipo */}
                                             <button
-                                                onClick={() => setGruposAbiertos(p => ({ ...p, [key]: !abierto }))}
-                                                className="w-full flex items-center justify-between px-1 mb-2"
+                                                onClick={() => setGruposAbiertos(p => ({ ...p, [tipoKey]: !tipoAbierto }))}
+                                                className="w-full flex items-center justify-between mb-3"
                                             >
-                                                <div className="text-left">
-                                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                                        {TIPO_LABEL[grupo.tipo] ?? grupo.tipo}
-                                                    </span>
-                                                    <p className="text-sm font-black text-gray-700">{grupo.categoria}</p>
-                                                </div>
-                                                {abierto ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+                                                <p className="text-base font-black text-gray-900">{TIPO_LABEL[tipo]}</p>
+                                                {tipoAbierto ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
                                             </button>
 
-                                            {abierto && (
-                                                <div className="space-y-2">
-                                                    {grupo.items.map(prod => (
-                                                        <div key={prod._id} className="bg-white border border-gray-100 rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm">
-                                                            <p className="flex-1 text-sm font-semibold text-gray-800">{prod.nombre}</p>
-                                                            <div className="flex items-center gap-2 shrink-0">
-                                                                <button onClick={() => setCantidades(p => ({ ...p, [prod._id]: String(Math.max(0, Number(p[prod._id] ?? 0) - 1)) }))}
-                                                                    className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold text-lg transition">−</button>
-                                                                <input
-                                                                    type="number" min="0" step="any" inputMode="numeric"
-                                                                    value={cantidades[prod._id] ?? "0"}
-                                                                    onChange={e => setCantidades(p => ({ ...p, [prod._id]: e.target.value }))}
-                                                                    className="w-16 text-center border border-gray-200 rounded-lg py-1.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-gray-400"
-                                                                />
-                                                                <button onClick={() => setCantidades(p => ({ ...p, [prod._id]: String(Number(p[prod._id] ?? 0) + 1) }))}
-                                                                    className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold text-lg transition">+</button>
-                                                                <span className="text-xs text-gray-400 w-12">{prod.unidad}</span>
+                                            {tipoAbierto && Object.entries(subcats).sort(([a], [b]) => a.localeCompare(b)).map(([cat, prods]) => {
+                                                const subKey = `${tipo}-${cat}`;
+                                                const subAbierto = gruposAbiertos[subKey] !== false;
+                                                return (
+                                                    <div key={cat} className="mb-3 ml-1">
+                                                        {/* Encabezado de subcategoría */}
+                                                        <button
+                                                            onClick={() => setGruposAbiertos(p => ({ ...p, [subKey]: !subAbierto }))}
+                                                            className="w-full flex items-center justify-between px-1 mb-2"
+                                                        >
+                                                            <p className="text-xs font-black text-gray-500 uppercase tracking-widest">{cat}</p>
+                                                            {subAbierto ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
+                                                        </button>
+
+                                                        {subAbierto && (
+                                                            <div className="space-y-2">
+                                                                {prods.map(prod => (
+                                                                    <div key={prod._id} className="bg-white border border-gray-100 rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm">
+                                                                        <p className="flex-1 text-sm font-semibold text-gray-800">{prod.nombre}</p>
+                                                                        <div className="flex items-center gap-2 shrink-0">
+                                                                            <button onClick={() => setCantidades(p => ({ ...p, [prod._id]: String(Math.max(0, Number(p[prod._id] ?? 0) - 1)) }))}
+                                                                                className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold text-lg transition">−</button>
+                                                                            <input
+                                                                                type="number" min="0" step="any" inputMode="numeric"
+                                                                                value={cantidades[prod._id] ?? "0"}
+                                                                                onChange={e => setCantidades(p => ({ ...p, [prod._id]: e.target.value }))}
+                                                                                className="w-16 text-center border border-gray-200 rounded-lg py-1.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-gray-400"
+                                                                            />
+                                                                            <button onClick={() => setCantidades(p => ({ ...p, [prod._id]: String(Number(p[prod._id] ?? 0) + 1) }))}
+                                                                                className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold text-lg transition">+</button>
+                                                                            <span className="text-xs text-gray-400 w-12">{prod.unidad}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
                                                             </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     );
                                 })}
