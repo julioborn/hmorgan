@@ -80,7 +80,6 @@ export default function StockPage() {
     const [movSaving, setMovSaving] = useState(false);
     const [editSaving, setEditSaving] = useState(false);
     const [search, setSearch] = useState("");
-    const [migrando, setMigrando] = useState(false);
 
     const loadItems = useCallback(() => {
         setLoading(true);
@@ -154,17 +153,6 @@ export default function StockPage() {
             const data = await res.json();
             setHistModal(prev => ({ ...prev, movs: data.movimientos || [] }));
         } finally { setHistLoading(false); }
-    }
-
-    async function migrarTodos(ids: string[], tipo: Tipo) {
-        setMigrando(true);
-        try {
-            await fetch("/api/superadmin/stock/migrar", {
-                method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
-                body: JSON.stringify({ ids, tipo }),
-            });
-            loadItems();
-        } finally { setMigrando(false); }
     }
 
     // alertas globales
@@ -252,24 +240,6 @@ export default function StockPage() {
                         <Plus size={15} /> Nuevo
                     </button>
                 </div>
-
-                {/* Banner de migración — solo en Cocina si hay items mal asignados */}
-                {vista === "cocina" && itemsVista.length > 0 && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4 flex items-start gap-3">
-                        <span className="text-xl shrink-0">🍺</span>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-blue-800">¿Son bebidas?</p>
-                            <p className="text-xs text-blue-600 mt-0.5">Hay {itemsVista.length} productos en Cocina que pueden ser de Bebida. Movelós todos de una.</p>
-                        </div>
-                        <button
-                            disabled={migrando}
-                            onClick={() => migrarTodos(itemsVista.map(i => i._id), "bebida")}
-                            className="shrink-0 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition"
-                        >
-                            {migrando ? "Moviendo..." : "Mover a Bebida"}
-                        </button>
-                    </div>
-                )}
 
                 {/* Alertas de esta vista */}
                 {alertas.filter(i => (i.tipo ?? "cocina") === vista).length > 0 && (
