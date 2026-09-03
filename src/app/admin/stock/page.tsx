@@ -198,11 +198,12 @@ export default function StockPage() {
                                 onClick={() => abrirVista(t)}
                                 className={`relative flex flex-col items-center justify-center gap-3 rounded-2xl border-2 ${m.border} ${m.bg} py-10 px-4 shadow-sm active:scale-[0.97] transition-transform`}
                             >
+                                {/* badge stock bajo mínimo — desactivado por ahora
                                 {bajos > 0 && (
                                     <span className="absolute top-3 right-3 bg-yellow-400 text-yellow-900 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1">
                                         <AlertTriangle size={9} />{bajos}
                                     </span>
-                                )}
+                                )} */}
                                 <span className="text-5xl">{m.emoji}</span>
                                 <div className="text-center">
                                     <p className={`text-xl font-black ${m.color}`}>{m.label}</p>
@@ -241,7 +242,7 @@ export default function StockPage() {
                     </button>
                 </div>
 
-                {/* Alertas de esta vista */}
+                {/* Alertas de esta vista — desactivado por ahora
                 {alertas.filter(i => (i.tipo ?? "cocina") === vista).length > 0 && (
                     <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4 flex items-start gap-2">
                         <AlertTriangle size={16} className="text-yellow-600 mt-0.5 shrink-0" />
@@ -252,7 +253,7 @@ export default function StockPage() {
                             </p>
                         </div>
                     </div>
-                )}
+                )} */}
 
                 {/* Tabs de subcategorías */}
                 <div className="flex gap-2 overflow-x-auto pb-1 mb-4 scrollbar-hide">
