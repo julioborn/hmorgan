@@ -192,7 +192,7 @@ export default function CargarStockPage() {
                                                                 <button onClick={() => setCantidades(p => ({ ...p, [prod._id]: String(Math.max(0, Number(p[prod._id] ?? 0) - 1)) }))}
                                                                     className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold text-lg transition">−</button>
                                                                 <input
-                                                                    type="number" min="0" step="any"
+                                                                    type="number" min="0" step="any" inputMode="numeric"
                                                                     value={cantidades[prod._id] ?? "0"}
                                                                     onChange={e => setCantidades(p => ({ ...p, [prod._id]: e.target.value }))}
                                                                     className="w-16 text-center border border-gray-200 rounded-lg py-1.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-gray-400"
