@@ -32,7 +32,7 @@ type StockMovimiento = {
 
 const SUBCATS: Record<Tipo, string[]> = {
     cocina: ["Carnes", "Verduras", "Lácteos", "Panificados", "Condimentos", "Pastas & Arroces", "Snacks", "Otros"],
-    bebida: ["Cervezas", "Vinos", "Espirituosos", "Gaseosas & Aguas", "Cócteles & Tragos", "Sin Alcohol", "Otros"],
+    bebida: ["Gin", "Licores", "Ron", "Tequila", "Vermu", "Vodka", "Whisky's", "Otros"],
 };
 
 const TIPO_META: Record<Tipo, { label: string; emoji: string; color: string; bg: string; border: string; pill: string }> = {
