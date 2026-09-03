@@ -13,6 +13,7 @@ import { enviarNotificacionFCM, isFCMTokenInvalid } from "@/lib/firebase-admin";
 import Config from "@/models/Config";
 import { getPointsRatio } from "@/lib/getPointsRatio";
 import { hoyArgentina } from "@/lib/argentina-time";
+import { crearPaseCocina } from "@/lib/crearPaseCocina";
 // Numeración diaria de pedidos de la app (se reinicia cada día, hora Argentina)
 async function siguienteNumeroDelDia(): Promise<number> {
     const key = `pedidos-${hoyArgentina()}`;
@@ -229,6 +230,12 @@ export async function POST(req: NextRequest) {
                 (comandaActiva.items as any[]).push(...nuevosItems);
                 comandaActiva.total = (comandaActiva.total || 0) + total;
                 await comandaActiva.save();
+                await crearPaseCocina({
+                    pedidoId: comandaActiva._id.toString(),
+                    mesa: comandaActiva.mesa,
+                    nombreComanda: comandaActiva.nombreComanda,
+                    items: items as any[],
+                });
                 return NextResponse.json({ ok: true, pedido: comandaActiva }, { status: 200 });
             }
         }
@@ -274,6 +281,21 @@ export async function POST(req: NextRequest) {
             mpEstadoPago:     metodoPago === "mercadopago" ? "pendiente" : undefined,
             deliveryNumero:   deliveryNumero,
             telefonoContacto: telefonoContacto || undefined,
+        });
+
+        // Crear pase de cocina para todos los pedidos con ítems de comida
+        await crearPaseCocina({
+            pedidoId: pedido._id.toString(),
+            mesa: pedido.mesa,
+            nombreComanda: pedido.nombreComanda,
+            items: (items as any[]),
+            fuente: pedido.fuente,
+            tipoEntrega: pedido.tipoEntrega,
+            deliveryNumero: (pedido as any).deliveryNumero,
+            numeroDia: (pedido as any).numeroDia,
+            direccion: (pedido as any).direccion,
+            telefonoContacto: (pedido as any).telefonoContacto,
+            eventoId: eventoId,
         });
 
         // Pedidos de mozo no generan notificación al admin (ya está en el local)

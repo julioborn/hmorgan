@@ -8,7 +8,6 @@ import { useCategoryConfigs } from "@/hooks/useCategoryConfigs";
 
 const BEBIDAS_CATS = new Set(["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"]);
 const PICAR_CATS   = ["PICADAS", "FRITURAS"];
-const DEMORA_MS    = 25 * 60 * 1000;
 const MENU_ORDER   = ["PARRILLA","PIZZAS","HAMBURGUESAS","SANDWICHES","PICADAS Y FRITURAS","ENSALADAS","BEBIDAS","POSTRE Y CAFE"];
 
 const categoryImages: Record<string, string> = {
@@ -22,32 +21,30 @@ const categoryImages: Record<string, string> = {
     MEDIDAS: "/subcategoria-bebidas/medidas.png",
 };
 
-type Item = {
+type ItemPase = {
     _id: string;
-    menuItemId: { nombre: string; precio: number; categoria?: string };
+    nombre: string;
     cantidad: number;
     nota?: string;
-    opcionesSeleccionadas?: Record<string, string>;
-    listo?: boolean;
+    listo: boolean;
 };
 
-type Pedido = {
+type Pase = {
     _id: string;
+    pedidoId: string;
     mesa?: string;
     nombreComanda?: string;
+    numeroPase: number;
     fuente: string;
-    estado: string;
-    items: Item[];
-    createdAt: string;
-    primeraComidaAt?: string;
-    userId?: { nombre: string; apellido: string };
     tipoEntrega?: string;
-    eventoId?: string;
-    telefonoContacto?: string;
-    direccion?: string;
     deliveryNumero?: number;
     numeroDia?: number;
-    horarioPreferido?: string;
+    direccion?: string;
+    telefonoContacto?: string;
+    eventoId?: string;
+    items: ItemPase[];
+    estado: "pendiente" | "listo";
+    createdAt: string;
 };
 
 type MenuItemLite = {
@@ -60,25 +57,18 @@ type MenuItemLite = {
     descripcion?: string;
 };
 
-function foodItems(items: Item[]) {
-    return items.filter(it => {
-        const cat = (it.menuItemId?.categoria || "").toUpperCase();
-        return !BEBIDAS_CATS.has(cat);
-    });
-}
-
 export default function CocinaPage() {
     const router = useRouter();
     const categoryConfigMap = useCategoryConfigs();
     const [tab, setTab] = useState<"comandas" | "menu">("comandas");
 
-    // ── Comandas ──────────────────────────────────────────────────────────────
-    const [pedidos, setPedidos] = useState<Pedido[]>([]);
+    // ── Pases ─────────────────────────────────────────────────────────────────
+    const [pases, setPases] = useState<Pase[]>([]);
     const [loading, setLoading] = useState(true);
     const [marcando, setMarcando] = useState<string | null>(null);
     const [confirmarId, setConfirmarId] = useState<string | null>(null);
-    const [marcandoItem, setMarcandoItem] = useState<string | null>(null); // "pedidoId:itemId"
-    const [confirmarItem, setConfirmarItem] = useState<{ pedidoId: string; itemId: string; nombre: string } | null>(null);
+    const [marcandoItem, setMarcandoItem] = useState<string | null>(null);
+    const [confirmarItem, setConfirmarItem] = useState<{ paseId: string; itemId: string; nombre: string } | null>(null);
     const prevIdsRef = useRef<Set<string>>(new Set());
     const procesandoIdsRef = useRef<Set<string>>(new Set());
     const [nuevosIds, setNuevosIds] = useState<Set<string>>(new Set());
@@ -86,42 +76,31 @@ export default function CocinaPage() {
 
     function playNotificationSound() {
         try {
-            if (!audioCtxRef.current) {
-                audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-            }
+            if (!audioCtxRef.current) audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
             const ctx = audioCtxRef.current;
             if (ctx.state === "suspended") ctx.resume();
-
-            // Dos "dings" ascendentes
-            const times = [0, 0.22];
-            const freqs = [880, 1100];
-            times.forEach((t, i) => {
+            [0, 0.22].forEach((t, i) => {
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.type = "sine";
-                osc.frequency.value = freqs[i];
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.type = "sine"; osc.frequency.value = [880, 1100][i];
                 gain.gain.setValueAtTime(0, ctx.currentTime + t);
                 gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + t + 0.02);
                 gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.35);
-                osc.start(ctx.currentTime + t);
-                osc.stop(ctx.currentTime + t + 0.35);
+                osc.start(ctx.currentTime + t); osc.stop(ctx.currentTime + t + 0.35);
             });
         } catch { }
     }
 
-    const loadPedidos = useCallback(async () => {
+    const loadPases = useCallback(async () => {
         try {
-            const res = await fetch("/api/pedidos", { credentials: "include" });
+            const res = await fetch("/api/cocina/pases", { credentials: "include" });
             if (res.status === 401) { router.replace("/login"); return; }
             const data = await res.json();
             if (!Array.isArray(data)) return;
 
-            const conComida = data.filter((p: Pedido) => foodItems(p.items).length > 0);
-            conComida.sort((a: Pedido, b: Pedido) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-
-            const currentIds = new Set(conComida.map((p: Pedido) => p._id));
+            // Ya llegan ordenados ASC del servidor (más viejo primero)
+            const currentIds = new Set(data.map((p: Pase) => p._id));
             const recienLlegados = new Set<string>();
             if (prevIdsRef.current.size > 0) {
                 for (const id of currentIds) {
@@ -142,34 +121,31 @@ export default function CocinaPage() {
             }
 
             if (procesandoIdsRef.current.size > 0) {
-                // Preserve local optimistic state for pedidos being processed (avoid race with 700ms delay)
-                setPedidos(prev => {
+                setPases(prev => {
                     const prevMap = new Map(prev.map(p => [p._id, p]));
-                    const result = conComida.map((p: Pedido) =>
+                    const result = data.map((p: Pase) =>
                         procesandoIdsRef.current.has(p._id) ? (prevMap.get(p._id) || p) : p
                     );
-                    // Keep locally-shown pedidos being processed even if server no longer returns them
                     for (const id of procesandoIdsRef.current) {
-                        if (!conComida.some((p: Pedido) => p._id === id)) {
+                        if (!data.some((p: Pase) => p._id === id)) {
                             const local = prevMap.get(id);
                             if (local) result.push(local);
                         }
                     }
-                    result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
                     return result;
                 });
             } else {
-                setPedidos(conComida);
+                setPases(data);
             }
         } catch { }
         finally { setLoading(false); }
     }, [router]);
 
     useEffect(() => {
-        loadPedidos();
-        const iv = setInterval(loadPedidos, 5000);
+        loadPases();
+        const iv = setInterval(loadPases, 5000);
         return () => clearInterval(iv);
-    }, [loadPedidos]);
+    }, [loadPases]);
 
     async function confirmarListo() {
         if (!confirmarId) return;
@@ -178,21 +154,19 @@ export default function CocinaPage() {
         setMarcando(id);
         procesandoIdsRef.current.add(id);
         try {
-            // Poner todos los ítems en verde
-            setPedidos(prev => prev.map(p =>
+            setPases(prev => prev.map(p =>
                 p._id !== id ? p : { ...p, items: p.items.map(it => ({ ...it, listo: true })) }
             ));
-            await fetch("/api/pedidos", {
-                method: "PUT",
+            await fetch(`/api/cocina/pases/${id}`, {
+                method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
-                body: JSON.stringify({ id, estado: "listo" }),
+                body: JSON.stringify({ accion: "listo" }),
             });
-            // Pausa para ver el verde; el polling no puede sobrescribir porque procesandoIdsRef lo protege
             await new Promise(r => setTimeout(r, 700));
-            setPedidos(prev => prev.filter(p => p._id !== id));
+            setPases(prev => prev.filter(p => p._id !== id));
         } catch {
-            setPedidos(prev => prev.map(p =>
+            setPases(prev => prev.map(p =>
                 p._id !== id ? p : { ...p, items: p.items.map(it => ({ ...it, listo: false })) }
             ));
         } finally {
@@ -201,38 +175,29 @@ export default function CocinaPage() {
         }
     }
 
-    async function marcarItemListo(pedidoId: string, itemId: string) {
-        const key = `${pedidoId}:${itemId}`;
+    async function marcarItemListo(paseId: string, itemId: string) {
+        const key = `${paseId}:${itemId}`;
         if (marcandoItem === key) return;
         setMarcandoItem(key);
-
-        // Optimistic update
-        setPedidos(prev => prev.map(p => {
-            if (p._id !== pedidoId) return p;
+        setPases(prev => prev.map(p => {
+            if (p._id !== paseId) return p;
             return { ...p, items: p.items.map(it => it._id === itemId ? { ...it, listo: true } : it) };
         }));
-
         try {
-            const res = await fetch(`/api/pedidos/${pedidoId}/item-listo`, {
+            const res = await fetch(`/api/cocina/pases/${paseId}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
-                body: JSON.stringify({ itemId }),
+                body: JSON.stringify({ accion: "itemListo", itemId }),
             });
             const data = await res.json();
-            if (data.todosListos) {
-                // Comanda completa → sacar de la lista
-                setPedidos(prev => prev.filter(p => p._id !== pedidoId));
-            }
+            if (data.todosListos) setPases(prev => prev.filter(p => p._id !== paseId));
         } catch {
-            // Revertir en caso de error
-            setPedidos(prev => prev.map(p => {
-                if (p._id !== pedidoId) return p;
+            setPases(prev => prev.map(p => {
+                if (p._id !== paseId) return p;
                 return { ...p, items: p.items.map(it => it._id === itemId ? { ...it, listo: false } : it) };
             }));
-        } finally {
-            setMarcandoItem(null);
-        }
+        } finally { setMarcandoItem(null); }
     }
 
     function logout() {
@@ -254,25 +219,16 @@ export default function CocinaPage() {
         } finally { setMenuLoading(false); }
     }
 
-    useEffect(() => {
-        if (tab === "menu" && menuItems.length === 0) loadMenu();
-    }, [tab]);
+    useEffect(() => { if (tab === "menu" && menuItems.length === 0) loadMenu(); }, [tab]);
 
     async function toggleDisponible(item: MenuItemLite) {
         const disponible = item.activo !== false && item.activoCliente !== false;
         setToggling(item._id);
         await fetch(`/api/menu/${item._id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify(disponible
-                ? { activo: false, activoCliente: false }
-                : { activo: true, activoCliente: true }),
+            method: "PUT", headers: { "Content-Type": "application/json" }, credentials: "include",
+            body: JSON.stringify(disponible ? { activo: false, activoCliente: false } : { activo: true, activoCliente: true }),
         });
-        setMenuItems(prev => prev.map(i => i._id === item._id
-            ? { ...i, activo: !disponible, activoCliente: !disponible }
-            : i
-        ));
+        setMenuItems(prev => prev.map(i => i._id === item._id ? { ...i, activo: !disponible, activoCliente: !disponible } : i));
         setToggling(null);
     }
 
@@ -291,14 +247,24 @@ export default function CocinaPage() {
             return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
         }),
     ];
-
     const productosCat = catActiva ? menuItems.filter(i =>
         catActiva === "BEBIDAS" ? BEBIDAS_CATS.has(i.categoria)
         : catActiva === "PICADAS Y FRITURAS" ? PICAR_CATS.includes(i.categoria)
         : i.categoria === catActiva
     ) : [];
 
-    const pedidoAConfirmar = confirmarId ? pedidos.find(p => p._id === confirmarId) : null;
+    const paseAConfirmar = confirmarId ? pases.find(p => p._id === confirmarId) : null;
+
+    function mesaLabel(p: Pase) {
+        if (p.tipoEntrega === "envio") return p.deliveryNumero ? `Delivery #${p.deliveryNumero}` : "Delivery";
+        if (p.fuente === "cliente") return p.numeroDia ? `Pedido #${p.numeroDia}` : "App";
+        return p.mesa ? `Mesa ${p.mesa}` : (p.nombreComanda || "Sin mesa");
+    }
+
+    function ordinalPase(n: number) {
+        if (n === 1) return null;
+        return `${n}° pase`;
+    }
 
     return (
         <div className="min-h-screen bg-white pb-10">
@@ -311,7 +277,7 @@ export default function CocinaPage() {
                 <div className="flex items-center gap-3">
                     {tab === "comandas" && (
                         <span className="text-sm text-gray-400 font-medium">
-                            {pedidos.length} comanda{pedidos.length !== 1 ? "s" : ""}
+                            {pases.length} orden{pases.length !== 1 ? "es" : ""}
                         </span>
                     )}
                     <button onClick={logout} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition">
@@ -325,143 +291,89 @@ export default function CocinaPage() {
                 {(["comandas", "menu"] as const).map(t => (
                     <button key={t} onClick={() => { setTab(t); setCatActiva(null); }}
                         className={`flex-1 py-3 text-sm font-black uppercase tracking-wide transition ${tab === t ? "text-black border-b-2 border-black" : "text-gray-400"}`}>
-                        {t === "comandas" ? "Comandas" : "Menú"}
+                        {t === "comandas" ? "Órdenes" : "Menú"}
                     </button>
                 ))}
             </div>
 
-            {/* ── COMANDAS ── */}
+            {/* ── ÓRDENES DE COCINA ── */}
             {tab === "comandas" && (
                 loading ? (
                     <div className="flex items-center justify-center py-32 text-gray-400 text-sm">Cargando...</div>
-                ) : pedidos.length === 0 ? (
+                ) : pases.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-32 space-y-3 text-gray-300">
                         <ChefHat size={52} />
-                        <p className="text-lg font-semibold text-gray-400">Sin comandas en preparación</p>
+                        <p className="text-lg font-semibold text-gray-400">Sin órdenes pendientes</p>
                     </div>
                 ) : (
                     <div className="max-w-2xl mx-auto px-3 pt-4 space-y-4">
-                        {pedidos.map(p => {
-                            const comida = foodItems(p.items);
-                            const esDelivery      = p.tipoEntrega === "envio";
-                            const esEvento        = !!p.eventoId;
-                            const esApp           = p.fuente === "cliente";
-                            const esAutoservicio  = p.fuente === "autoservicio";
-                            const esBar           = p.fuente === "empleado" && !esDelivery;
-
-                            const mesaLabel = esDelivery
-                                ? (p.deliveryNumero ? `Delivery #${p.deliveryNumero}` : "Delivery")
-                                : esApp
-                                ? (p.numeroDia ? `Pedido #${p.numeroDia}` : "App")
-                                : (p.mesa ? `Mesa ${p.mesa}` : p.nombreComanda || "Sin mesa");
-
-                            // Para delivery de caja el userId es el cajero, no el destinatario
-                            const mozo = esBar && p.userId
-                                ? `${p.userId.nombre} ${p.userId.apellido}`.trim()
-                                : null;
-                            const clienteNombre = (esApp || esAutoservicio) && p.userId
-                                ? `${p.userId.nombre} ${p.userId.apellido}`.trim()
-                                : p.nombreComanda || null;
-
-                            const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
-                            const isNuevo = nuevosIds.has(p._id);
+                        {pases.map(p => {
+                            const isNuevo    = nuevosIds.has(p._id);
                             const isMarcando = marcando === p._id;
-                            const algunoListo = comida.some(it => it.listo);
-                            const refComidaMs = new Date(p.primeraComidaAt ?? p.createdAt).getTime();
-                            const tiempoMs = Date.now() - refComidaMs;
-                            const esDemorada = p.estado === "preparando" && !algunoListo && tiempoMs > DEMORA_MS;
-                            const minutosEspera = Math.floor(tiempoMs / 60000);
+                            const algunoListo = p.items.some(it => it.listo);
+                            const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
+                            const esDelivery = p.tipoEntrega === "envio";
+                            const esApp      = p.fuente === "cliente";
+                            const esEvento   = !!p.eventoId;
+                            const nPase      = ordinalPase(p.numeroPase);
 
                             return (
                                 <div key={p._id}
-                                    className={`rounded-2xl border shadow-sm overflow-hidden transition-all duration-500 ${esDemorada ? "border-red-500" : isNuevo ? "border-red-300 ring-2 ring-red-200" : "border-gray-200"}`}>
-                                    <div className={`px-4 py-3 border-b ${esDemorada ? "bg-red-600 border-red-500" : isNuevo ? "bg-red-50 border-red-100" : "bg-gray-50 border-gray-100"}`}>
-                                        {/* Fila 1: badges de origen */}
+                                    className={`rounded-2xl border shadow-sm overflow-hidden transition-all duration-500 ${isNuevo ? "border-red-300 ring-2 ring-red-200" : "border-gray-200"}`}>
+
+                                    {/* Header del pase */}
+                                    <div className={`px-4 py-3 border-b ${isNuevo ? "bg-red-50 border-red-100" : "bg-gray-50 border-gray-100"}`}>
                                         <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
-                                            {esDemorada     && <span className="text-[10px] font-black uppercase tracking-widest bg-white text-red-600 px-2 py-0.5 rounded-full">⏰ Demorada</span>}
-                                            {isNuevo        && <span className="text-[10px] font-black uppercase tracking-widest bg-red-600 text-white px-2 py-0.5 rounded-full animate-pulse">Nuevo</span>}
-                                            {esDelivery     && <span className="text-[10px] font-black uppercase tracking-wide bg-blue-600 text-white px-2 py-0.5 rounded-full">🛵 Delivery</span>}
-                                            {esEvento       && <span className="text-[10px] font-black uppercase tracking-wide bg-amber-400 text-black px-2 py-0.5 rounded-full">⭐ Evento</span>}
-                                            {esApp          && <span className="text-[10px] font-black uppercase tracking-wide bg-violet-600 text-white px-2 py-0.5 rounded-full">📱 App</span>}
-                                            {esAutoservicio && <span className="text-[10px] font-black uppercase tracking-wide bg-purple-600 text-white px-2 py-0.5 rounded-full">🖥 Autoservicio</span>}
-                                            {esBar          && <span className={`text-[10px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full ${esDemorada ? "bg-white/20 text-white" : "bg-gray-800 text-white"}`}>🍽 Bar</span>}
+                                            {isNuevo   && <span className="text-[10px] font-black uppercase tracking-widest bg-red-600 text-white px-2 py-0.5 rounded-full animate-pulse">Nuevo</span>}
+                                            {nPase     && <span className="text-[10px] font-black uppercase tracking-widest bg-amber-500 text-white px-2 py-0.5 rounded-full">{nPase}</span>}
+                                            {esDelivery && <span className="text-[10px] font-black uppercase tracking-wide bg-blue-600 text-white px-2 py-0.5 rounded-full">🛵 Delivery</span>}
+                                            {esEvento  && <span className="text-[10px] font-black uppercase tracking-wide bg-amber-400 text-black px-2 py-0.5 rounded-full">⭐ Evento</span>}
+                                            {esApp     && <span className="text-[10px] font-black uppercase tracking-wide bg-violet-600 text-white px-2 py-0.5 rounded-full">📱 App</span>}
                                         </div>
-                                        {/* Fila 2: mesa/número + hora */}
                                         <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2 flex-wrap min-w-0">
-                                                <span className={`text-xl font-black leading-tight ${esDemorada ? "text-white" : "text-black"}`}>{mesaLabel}</span>
-                                                {(mozo || clienteNombre) && (
-                                                    <span className={`text-sm truncate ${esDemorada ? "text-white/70" : "text-gray-400"}`}>
-                                                        {mozo || clienteNombre}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className={`flex items-center gap-1.5 shrink-0 ml-2 ${esDemorada ? "text-white/70" : "text-gray-400"}`}>
+                                            <span className="text-xl font-black text-black">{mesaLabel(p)}</span>
+                                            <div className="flex items-center gap-1.5 text-gray-400">
                                                 <Clock size={13} />
-                                                <span className="text-sm">{esDemorada ? `${minutosEspera} min` : hora}</span>
+                                                <span className="text-sm">{hora}</span>
                                             </div>
                                         </div>
-                                        {/* Fila 3: dirección + teléfono (solo delivery) */}
                                         {esDelivery && p.direccion && (
-                                            <p className={`text-xs font-semibold mt-1 ${esDemorada ? "text-white/80" : "text-blue-600"}`}>📍 {p.direccion}</p>
+                                            <p className="text-xs font-semibold mt-1 text-blue-600">📍 {p.direccion}</p>
                                         )}
                                         {esDelivery && p.telefonoContacto && (
-                                            <p className={`text-xs font-semibold mt-0.5 flex items-center gap-1 ${esDemorada ? "text-white/80" : "text-emerald-700"}`}>
+                                            <p className="text-xs font-semibold mt-0.5 flex items-center gap-1 text-emerald-700">
                                                 <Phone size={11} className="shrink-0" />{p.telefonoContacto}
                                             </p>
                                         )}
-                                        {/* Fila 4: horario preferido (app y delivery) */}
-                                        {p.horarioPreferido && (
-                                            <div className="mt-1.5 flex items-center gap-1.5 bg-amber-100 border border-amber-300 rounded-lg px-2 py-1">
-                                                <Clock size={13} className="text-amber-700 shrink-0" />
-                                                <span className="text-sm font-black text-amber-800">Entregar: {p.horarioPreferido}</span>
-                                            </div>
-                                        )}
                                     </div>
+
+                                    {/* Ítems */}
                                     <div className="px-4 py-4 space-y-2 bg-white">
                                         {isMarcando ? (
-                                            // Flash verde al confirmar "Todo listo"
-                                            comida.map((it, idx) => (
+                                            p.items.map((it, idx) => (
                                                 <div key={idx} className="flex items-center gap-3 rounded-xl px-3 py-2.5 bg-emerald-50">
-                                                    <span className="text-2xl font-black min-w-[2rem] text-center leading-tight text-emerald-400">{it.cantidad}</span>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-lg font-bold leading-tight text-emerald-600">{it.menuItemId?.nombre || "Ítem"}</p>
-                                                    </div>
-                                                    <div className="shrink-0 w-9 h-9 rounded-full border-2 border-emerald-400 bg-emerald-400 text-white flex items-center justify-center">
-                                                        <CheckCircle size={18} />
-                                                    </div>
+                                                    <span className="text-2xl font-black min-w-[2rem] text-center text-emerald-400">{it.cantidad}</span>
+                                                    <p className="text-lg font-bold text-emerald-600 flex-1">{it.nombre}</p>
+                                                    <CheckCircle size={18} className="text-emerald-500" />
                                                 </div>
                                             ))
                                         ) : (
                                             <>
-                                                {/* Ítems pendientes (a preparar ahora) */}
-                                                {comida.filter(it => !it.listo).map(it => {
+                                                {/* Pendientes */}
+                                                {p.items.filter(it => !it.listo).map(it => {
                                                     const itemKey = `${p._id}:${it._id}`;
                                                     const isMarcandoEste = marcandoItem === itemKey;
                                                     return (
                                                         <div key={it._id} className="flex items-center gap-3 rounded-xl px-3 py-2.5 bg-white border border-gray-200 shadow-sm">
-                                                            <span className="text-2xl font-black min-w-[2rem] text-center leading-tight text-black">{it.cantidad}</span>
+                                                            <span className="text-2xl font-black min-w-[2rem] text-center text-black">{it.cantidad}</span>
                                                             <div className="flex-1 min-w-0">
-                                                                <p className="text-lg font-bold leading-tight text-black">{it.menuItemId?.nombre || "Ítem"}</p>
-                                                                {it.opcionesSeleccionadas && Object.keys(it.opcionesSeleccionadas).length > 0 && (
-                                                                    <div className="flex flex-wrap gap-1 mt-0.5">
-                                                                        {Object.entries(it.opcionesSeleccionadas).map(([titulo, valor]) => (
-                                                                            <span key={titulo} className="text-sm font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
-                                                                                {valor}
-                                                                            </span>
-                                                                        ))}
-                                                                    </div>
-                                                                )}
+                                                                <p className="text-lg font-bold text-black">{it.nombre}</p>
                                                                 {it.nota && <p className="text-sm text-amber-600 mt-0.5 italic">✏ {it.nota}</p>}
                                                             </div>
                                                             <button
-                                                                onClick={() => setConfirmarItem({ pedidoId: p._id, itemId: it._id, nombre: it.menuItemId?.nombre || "ítem" })}
+                                                                onClick={() => setConfirmarItem({ paseId: p._id, itemId: it._id, nombre: it.nombre })}
                                                                 disabled={isMarcandoEste}
-                                                                className={`shrink-0 w-9 h-9 rounded-full border-2 flex items-center justify-center transition active:scale-95 ${
-                                                                    isMarcandoEste
-                                                                        ? "border-gray-300 bg-gray-100 text-gray-400"
-                                                                        : "border-gray-300 bg-white hover:border-emerald-500 hover:bg-emerald-50"
-                                                                }`}
+                                                                className={`shrink-0 w-9 h-9 rounded-full border-2 flex items-center justify-center transition active:scale-95 ${isMarcandoEste ? "border-gray-300 bg-gray-100 text-gray-400" : "border-gray-300 bg-white hover:border-emerald-500 hover:bg-emerald-50"}`}
                                                             >
                                                                 <CheckCircle size={18} />
                                                             </button>
@@ -469,8 +381,8 @@ export default function CocinaPage() {
                                                     );
                                                 })}
 
-                                                {/* Separador — solo si hay mezcla */}
-                                                {comida.some(it => !it.listo) && comida.some(it => it.listo) && (
+                                                {/* Separador si hay mezcla */}
+                                                {p.items.some(it => !it.listo) && p.items.some(it => it.listo) && (
                                                     <div className="flex items-center gap-2 py-0.5">
                                                         <div className="flex-1 h-px bg-red-200" />
                                                         <span className="text-[10px] font-black uppercase tracking-wide text-red-400 px-1">Ya preparado · no repetir</span>
@@ -478,29 +390,19 @@ export default function CocinaPage() {
                                                     </div>
                                                 )}
 
-                                                {/* Ítems ya listos (referencia, tachados en rojo) */}
-                                                {comida.filter(it => it.listo).map(it => (
+                                                {/* Ya listos */}
+                                                {p.items.filter(it => it.listo).map(it => (
                                                     <div key={it._id} className="flex items-center gap-3 rounded-xl px-3 py-2 bg-red-50">
-                                                        <span className="text-xl font-black min-w-[2rem] text-center leading-tight text-red-300">{it.cantidad}</span>
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-base font-semibold leading-tight text-red-400 line-through">{it.menuItemId?.nombre || "Ítem"}</p>
-                                                            {it.opcionesSeleccionadas && Object.keys(it.opcionesSeleccionadas).length > 0 && (
-                                                                <div className="flex flex-wrap gap-1 mt-0.5">
-                                                                    {Object.values(it.opcionesSeleccionadas).map((valor, idx) => (
-                                                                        <span key={idx} className="text-xs font-semibold text-red-300 line-through">{valor}</span>
-                                                                    ))}
-                                                                </div>
-                                                            )}
-                                                            {it.nota && <p className="text-xs text-red-300 mt-0.5 italic line-through">✏ {it.nota}</p>}
-                                                        </div>
-                                                        <span className="shrink-0 text-[10px] font-black text-red-500 uppercase tracking-wide bg-red-100 px-2 py-1 rounded-full whitespace-nowrap">
-                                                            Ya salió
-                                                        </span>
+                                                        <span className="text-xl font-black min-w-[2rem] text-center text-red-300">{it.cantidad}</span>
+                                                        <p className="text-base font-semibold text-red-400 line-through flex-1">{it.nombre}</p>
+                                                        <span className="text-[10px] font-black text-red-500 uppercase tracking-wide bg-red-100 px-2 py-1 rounded-full whitespace-nowrap">Ya salió</span>
                                                     </div>
                                                 ))}
                                             </>
                                         )}
                                     </div>
+
+                                    {/* Botón "Todo listo" */}
                                     <div className="px-4 pb-4 bg-white">
                                         <button onClick={() => setConfirmarId(p._id)} disabled={isMarcando}
                                             className="w-full flex items-center justify-center gap-2 bg-black hover:bg-gray-800 disabled:bg-gray-200 disabled:text-gray-400 text-white font-black text-base py-3 rounded-xl transition active:scale-[0.98]">
@@ -521,34 +423,24 @@ export default function CocinaPage() {
                     {menuLoading ? (
                         <div className="flex justify-center py-20 text-gray-400 text-sm">Cargando menú...</div>
                     ) : !catActiva ? (
-                        /* Grilla de categorías */
                         <div className="grid grid-cols-2 gap-3">
                             {catsSorted.map(cat => {
-                                const img = getImage(cat);
-                                const pos = getPosition(cat);
+                                const img = getImage(cat); const pos = getPosition(cat);
                                 const isSpecial = cat === "MENÚ DEL DÍA";
-                                const count = cat === "BEBIDAS"
-                                    ? menuItems.filter(i => BEBIDAS_CATS.has(i.categoria)).length
-                                    : cat === "PICADAS Y FRITURAS"
-                                    ? menuItems.filter(i => PICAR_CATS.includes(i.categoria)).length
+                                const count = cat === "BEBIDAS" ? menuItems.filter(i => BEBIDAS_CATS.has(i.categoria)).length
+                                    : cat === "PICADAS Y FRITURAS" ? menuItems.filter(i => PICAR_CATS.includes(i.categoria)).length
                                     : menuItems.filter(i => i.categoria === cat).length;
-                                const off = cat === "BEBIDAS"
-                                    ? menuItems.filter(i => BEBIDAS_CATS.has(i.categoria) && (i.activo === false || i.activoCliente === false)).length
-                                    : cat === "PICADAS Y FRITURAS"
-                                    ? menuItems.filter(i => PICAR_CATS.includes(i.categoria) && (i.activo === false || i.activoCliente === false)).length
+                                const off = cat === "BEBIDAS" ? menuItems.filter(i => BEBIDAS_CATS.has(i.categoria) && (i.activo === false || i.activoCliente === false)).length
+                                    : cat === "PICADAS Y FRITURAS" ? menuItems.filter(i => PICAR_CATS.includes(i.categoria) && (i.activo === false || i.activoCliente === false)).length
                                     : menuItems.filter(i => i.categoria === cat && (i.activo === false || i.activoCliente === false)).length;
                                 return (
                                     <button key={cat} onClick={() => setCatActiva(cat)}
                                         className={`relative h-32 rounded-2xl overflow-hidden shadow-sm active:scale-[0.97] transition-transform ${isSpecial ? "col-span-2" : ""}`}>
-                                        {img
-                                            ? <MenuImg src={img} alt={cat} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: pos }} />
-                                            : <div className={`absolute inset-0 ${isSpecial ? "bg-gradient-to-br from-amber-400 to-amber-600" : "bg-gradient-to-br from-gray-800 to-gray-600"}`} />
-                                        }
+                                        {img ? <MenuImg src={img} alt={cat} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: pos }} />
+                                            : <div className={`absolute inset-0 ${isSpecial ? "bg-gradient-to-br from-amber-400 to-amber-600" : "bg-gradient-to-br from-gray-800 to-gray-600"}`} />}
                                         <div className={`absolute inset-0 bg-gradient-to-t ${isSpecial ? "from-amber-900/80 via-amber-800/20 to-transparent" : "from-black/80 via-black/25 to-black/10"}`} />
                                         {isSpecial && <span className="absolute top-2 left-2 bg-white/90 text-amber-700 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full">Hoy</span>}
-                                        {off > 0 && (
-                                            <span className="absolute top-2 right-2 bg-red-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">{off} fuera</span>
-                                        )}
+                                        {off > 0 && <span className="absolute top-2 right-2 bg-red-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">{off} fuera</span>}
                                         <div className="absolute bottom-3 left-0 right-0 px-2 text-center">
                                             <p className="text-white font-black text-sm tracking-tight leading-tight">{cat}</p>
                                             <p className="text-white/70 text-[11px] mt-0.5">{count} productos</p>
@@ -558,10 +450,8 @@ export default function CocinaPage() {
                             })}
                         </div>
                     ) : (
-                        /* Lista de productos */
                         <>
-                            <button onClick={() => setCatActiva(null)}
-                                className="flex items-center gap-1.5 text-sm font-bold text-gray-600 hover:text-black mb-4 transition">
+                            <button onClick={() => setCatActiva(null)} className="flex items-center gap-1.5 text-sm font-bold text-gray-600 hover:text-black mb-4 transition">
                                 <ChevronLeft size={16} /> Categorías
                             </button>
                             <div className="flex items-center gap-2 mb-4">
@@ -573,24 +463,13 @@ export default function CocinaPage() {
                                     const disponible = item.activo !== false && item.activoCliente !== false;
                                     const isToggling = toggling === item._id;
                                     return (
-                                        <div key={item._id}
-                                            className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl border transition-all ${disponible ? "bg-white border-gray-100 shadow-sm" : "bg-gray-50 border-gray-200 opacity-60"}`}>
+                                        <div key={item._id} className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl border transition-all ${disponible ? "bg-white border-gray-100 shadow-sm" : "bg-gray-50 border-gray-200 opacity-60"}`}>
                                             <div className="flex-1 min-w-0">
-                                                <p className={`font-bold text-base leading-tight ${disponible ? "text-black" : "text-gray-400 line-through"}`}>
-                                                    {item.nombre}
-                                                </p>
-                                                {item.descripcion && (
-                                                    <p className="text-xs text-gray-400 mt-0.5 truncate">{item.descripcion}</p>
-                                                )}
+                                                <p className={`font-bold text-base leading-tight ${disponible ? "text-black" : "text-gray-400 line-through"}`}>{item.nombre}</p>
+                                                {item.descripcion && <p className="text-xs text-gray-400 mt-0.5 truncate">{item.descripcion}</p>}
                                             </div>
-                                            <button
-                                                onClick={() => !isToggling && toggleDisponible(item)}
-                                                disabled={isToggling}
-                                                className="shrink-0 flex flex-col items-center gap-0.5"
-                                            >
-                                                <span className={`text-[9px] font-black uppercase tracking-wide ${disponible ? "text-emerald-600" : "text-red-500"}`}>
-                                                    {disponible ? "Disponible" : "Agotado"}
-                                                </span>
+                                            <button onClick={() => !isToggling && toggleDisponible(item)} disabled={isToggling} className="shrink-0 flex flex-col items-center gap-0.5">
+                                                <span className={`text-[9px] font-black uppercase tracking-wide ${disponible ? "text-emerald-600" : "text-red-500"}`}>{disponible ? "Disponible" : "Agotado"}</span>
                                                 <div className={`relative flex h-6 w-11 cursor-pointer rounded-full items-center transition-colors duration-200 ${disponible ? "bg-emerald-500" : "bg-red-400"} ${isToggling ? "opacity-50" : ""}`}>
                                                     <span className={`absolute h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ${disponible ? "translate-x-[22px]" : "translate-x-[2px]"}`} />
                                                 </div>
@@ -598,41 +477,28 @@ export default function CocinaPage() {
                                         </div>
                                     );
                                 })}
-                                {productosCat.length === 0 && (
-                                    <p className="text-center text-gray-400 py-12">Sin productos en esta categoría.</p>
-                                )}
+                                {productosCat.length === 0 && <p className="text-center text-gray-400 py-12">Sin productos en esta categoría.</p>}
                             </div>
                         </>
                     )}
                 </div>
             )}
 
-            {/* Modal confirmación ítem individual */}
+            {/* Modal confirmar ítem */}
             {confirmarItem && createPortal(
-                <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm px-4"
-                    onClick={() => setConfirmarItem(null)}>
+                <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm px-4" onClick={() => setConfirmarItem(null)}>
                     <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
                         <div className="px-5 pt-5 pb-3 flex items-center justify-between border-b border-gray-100">
-                            <div className="flex items-center gap-2">
-                                <CheckCircle size={18} className="text-emerald-600" />
-                                <p className="font-black text-gray-900">Confirmar ítem</p>
-                            </div>
+                            <div className="flex items-center gap-2"><CheckCircle size={18} className="text-emerald-600" /><p className="font-black text-gray-900">Confirmar ítem</p></div>
                             <button onClick={() => setConfirmarItem(null)} className="p-1 text-gray-400 hover:text-gray-600"><X size={18} /></button>
                         </div>
                         <div className="px-5 py-4">
                             <p className="text-base font-semibold text-gray-900">¿Marcar como listo?</p>
-                            <p className="text-sm text-gray-500 mt-1">
-                                <span className="font-bold text-gray-800">{confirmarItem.nombre}</span>
-                            </p>
+                            <p className="text-sm text-gray-500 mt-1"><span className="font-bold text-gray-800">{confirmarItem.nombre}</span></p>
                         </div>
                         <div className="px-5 pb-5 flex gap-3">
-                            <button onClick={() => setConfirmarItem(null)}
-                                className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-semibold hover:bg-gray-50 transition">Cancelar</button>
-                            <button onClick={() => {
-                                const { pedidoId, itemId } = confirmarItem;
-                                setConfirmarItem(null);
-                                marcarItemListo(pedidoId, itemId);
-                            }}
+                            <button onClick={() => setConfirmarItem(null)} className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-semibold hover:bg-gray-50 transition">Cancelar</button>
+                            <button onClick={() => { const { paseId, itemId } = confirmarItem; setConfirmarItem(null); marcarItemListo(paseId, itemId); }}
                                 className="flex-1 py-3 rounded-xl bg-emerald-600 text-white text-sm font-black hover:bg-emerald-700 transition">Sí, listo</button>
                         </div>
                     </div>
@@ -640,29 +506,21 @@ export default function CocinaPage() {
                 document.body
             )}
 
-            {/* Modal confirmación listo */}
-            {confirmarId && pedidoAConfirmar && createPortal(
-                <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm px-4"
-                    onClick={() => setConfirmarId(null)}>
+            {/* Modal confirmar todo listo */}
+            {confirmarId && paseAConfirmar && createPortal(
+                <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm px-4" onClick={() => setConfirmarId(null)}>
                     <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
                         <div className="px-5 pt-5 pb-3 flex items-center justify-between border-b border-gray-100">
-                            <div className="flex items-center gap-2">
-                                <CheckCircle size={18} className="text-black" />
-                                <p className="font-black text-gray-900">Confirmar</p>
-                            </div>
+                            <div className="flex items-center gap-2"><CheckCircle size={18} className="text-black" /><p className="font-black text-gray-900">Confirmar</p></div>
                             <button onClick={() => setConfirmarId(null)} className="p-1 text-gray-400 hover:text-gray-600"><X size={18} /></button>
                         </div>
                         <div className="px-5 py-4">
-                            <p className="text-base font-semibold text-gray-900">¿Marcar como listo?</p>
-                            <p className="text-sm text-gray-500 mt-1">
-                                {pedidoAConfirmar.mesa ? `Mesa ${pedidoAConfirmar.mesa}` : pedidoAConfirmar.nombreComanda || "Comanda"} — esto avisará al mozo.
-                            </p>
+                            <p className="text-base font-semibold text-gray-900">¿Todo listo para esta orden?</p>
+                            <p className="text-sm text-gray-500 mt-1">{mesaLabel(paseAConfirmar)}{paseAConfirmar.numeroPase > 1 ? ` · ${ordinalPase(paseAConfirmar.numeroPase)}` : ""}</p>
                         </div>
                         <div className="px-5 pb-5 flex gap-3">
-                            <button onClick={() => setConfirmarId(null)}
-                                className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-semibold hover:bg-gray-50 transition">Cancelar</button>
-                            <button onClick={confirmarListo}
-                                className="flex-1 py-3 rounded-xl bg-black text-white text-sm font-black hover:bg-gray-800 transition">Sí, listo</button>
+                            <button onClick={() => setConfirmarId(null)} className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-semibold hover:bg-gray-50 transition">Cancelar</button>
+                            <button onClick={confirmarListo} className="flex-1 py-3 rounded-xl bg-black text-white text-sm font-black hover:bg-gray-800 transition">Sí, listo</button>
                         </div>
                     </div>
                 </div>,
