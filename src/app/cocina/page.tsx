@@ -9,6 +9,7 @@ import { useCategoryConfigs } from "@/hooks/useCategoryConfigs";
 const BEBIDAS_CATS = new Set(["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"]);
 const PICAR_CATS   = ["PICADAS", "FRITURAS"];
 const MENU_ORDER   = ["PARRILLA","PIZZAS","HAMBURGUESAS","SANDWICHES","PICADAS Y FRITURAS","ENSALADAS","BEBIDAS","POSTRE Y CAFE"];
+const DEMORA_MS    = 25 * 60 * 1000;
 
 const categoryImages: Record<string, string> = {
     PARRILLA: "/parrilla.jpg", PIZZAS: "/pizzas.jpg", HAMBURGUESAS: "/hamburguesas.jpg",
@@ -45,6 +46,7 @@ type Pase = {
     items: ItemPase[];
     estado: "pendiente" | "listo";
     createdAt: string;
+    updatedAt: string;
 };
 
 type MenuItemLite = {
@@ -61,8 +63,9 @@ export default function CocinaPage() {
     const router = useRouter();
     const categoryConfigMap = useCategoryConfigs();
     const [tab, setTab] = useState<"comandas" | "menu">("comandas");
+    const [subTab, setSubTab] = useState<"pendientes" | "finalizados">("pendientes");
 
-    // ── Pases ─────────────────────────────────────────────────────────────────
+    // ── Pases pendientes ──────────────────────────────────────────────────────
     const [pases, setPases] = useState<Pase[]>([]);
     const [loading, setLoading] = useState(true);
     const [marcando, setMarcando] = useState<string | null>(null);
@@ -73,6 +76,13 @@ export default function CocinaPage() {
     const procesandoIdsRef = useRef<Set<string>>(new Set());
     const [nuevosIds, setNuevosIds] = useState<Set<string>>(new Set());
     const audioCtxRef = useRef<AudioContext | null>(null);
+    // tick fuerza re-render cada minuto para actualizar timers
+    const [, setTick] = useState(0);
+
+    // ── Pases finalizados ─────────────────────────────────────────────────────
+    const [pasesListo, setPasesListo] = useState<Pase[]>([]);
+    const [loadingListo, setLoadingListo] = useState(false);
+    const listoLoadedRef = useRef(false);
 
     function playNotificationSound() {
         try {
@@ -92,6 +102,11 @@ export default function CocinaPage() {
         } catch { }
     }
 
+    useEffect(() => {
+        const iv = setInterval(() => setTick(t => t + 1), 60000);
+        return () => clearInterval(iv);
+    }, []);
+
     const loadPases = useCallback(async () => {
         try {
             const res = await fetch("/api/cocina/pases", { credentials: "include" });
@@ -99,7 +114,6 @@ export default function CocinaPage() {
             const data = await res.json();
             if (!Array.isArray(data)) return;
 
-            // Ya llegan ordenados ASC del servidor (más viejo primero)
             const currentIds = new Set(data.map((p: Pase) => p._id));
             const recienLlegados = new Set<string>();
             if (prevIdsRef.current.size > 0) {
@@ -147,6 +161,23 @@ export default function CocinaPage() {
         return () => clearInterval(iv);
     }, [loadPases]);
 
+    async function loadPasesListo() {
+        if (loadingListo) return;
+        setLoadingListo(true);
+        try {
+            const res = await fetch("/api/cocina/pases?estado=listo", { credentials: "include" });
+            const data = await res.json();
+            if (Array.isArray(data)) setPasesListo(data);
+            listoLoadedRef.current = true;
+        } catch { }
+        finally { setLoadingListo(false); }
+    }
+
+    function handleSubTab(t: "pendientes" | "finalizados") {
+        setSubTab(t);
+        if (t === "finalizados" && !listoLoadedRef.current) loadPasesListo();
+    }
+
     async function confirmarListo() {
         if (!confirmarId) return;
         const id = confirmarId;
@@ -165,6 +196,7 @@ export default function CocinaPage() {
             });
             await new Promise(r => setTimeout(r, 700));
             setPases(prev => prev.filter(p => p._id !== id));
+            listoLoadedRef.current = false;
         } catch {
             setPases(prev => prev.map(p =>
                 p._id !== id ? p : { ...p, items: p.items.map(it => ({ ...it, listo: false })) }
@@ -191,7 +223,10 @@ export default function CocinaPage() {
                 body: JSON.stringify({ accion: "itemListo", itemId }),
             });
             const data = await res.json();
-            if (data.todosListos) setPases(prev => prev.filter(p => p._id !== paseId));
+            if (data.todosListos) {
+                setPases(prev => prev.filter(p => p._id !== paseId));
+                listoLoadedRef.current = false;
+            }
         } catch {
             setPases(prev => prev.map(p => {
                 if (p._id !== paseId) return p;
@@ -266,6 +301,134 @@ export default function CocinaPage() {
         return `${n}° pase`;
     }
 
+    function renderPaseCard(p: Pase, opts: { finalizado?: boolean } = {}) {
+        const { finalizado = false } = opts;
+        const isNuevo    = !finalizado && nuevosIds.has(p._id);
+        const isMarcando = !finalizado && marcando === p._id;
+        const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
+        const esDelivery = p.tipoEntrega === "envio";
+        const esApp      = p.fuente === "cliente";
+        const esEvento   = !!p.eventoId;
+        const nPase      = ordinalPase(p.numeroPase);
+
+        const msDemora   = Date.now() - new Date(p.createdAt).getTime();
+        const minDemora  = Math.floor(msDemora / 60000);
+        const esDemorada = !finalizado && msDemora > DEMORA_MS;
+
+        return (
+            <div key={p._id}
+                className={`rounded-2xl border shadow-sm overflow-hidden transition-all duration-500 ${
+                    finalizado ? "border-gray-200 opacity-75"
+                    : isNuevo ? "border-red-300 ring-2 ring-red-200"
+                    : esDemorada ? "border-red-500 ring-2 ring-red-400"
+                    : "border-gray-200"
+                }`}>
+
+                {/* Header */}
+                <div className={`px-4 py-3 border-b ${
+                    finalizado ? "bg-gray-50 border-gray-100"
+                    : isNuevo || esDemorada ? "bg-red-50 border-red-100"
+                    : "bg-gray-50 border-gray-100"
+                }`}>
+                    <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
+                        {isNuevo   && <span className="text-[10px] font-black uppercase tracking-widest bg-red-600 text-white px-2 py-0.5 rounded-full animate-pulse">Nuevo</span>}
+                        {esDemorada && <span className="text-[10px] font-black uppercase tracking-widest bg-red-600 text-white px-2 py-0.5 rounded-full">Demorada · {minDemora} min</span>}
+                        {finalizado && <span className="text-[10px] font-black uppercase tracking-wide bg-emerald-600 text-white px-2 py-0.5 rounded-full">Entregado</span>}
+                        {nPase     && <span className="text-[10px] font-black uppercase tracking-widest bg-amber-500 text-white px-2 py-0.5 rounded-full">{nPase}</span>}
+                        {esDelivery && <span className="text-[10px] font-black uppercase tracking-wide bg-blue-600 text-white px-2 py-0.5 rounded-full">🛵 Delivery</span>}
+                        {esEvento  && <span className="text-[10px] font-black uppercase tracking-wide bg-amber-400 text-black px-2 py-0.5 rounded-full">⭐ Evento</span>}
+                        {esApp     && <span className="text-[10px] font-black uppercase tracking-wide bg-violet-600 text-white px-2 py-0.5 rounded-full">📱 App</span>}
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <span className={`text-xl font-black ${finalizado ? "text-gray-500" : "text-black"}`}>{mesaLabel(p)}</span>
+                        <div className="flex items-center gap-1.5 text-gray-400">
+                            <Clock size={13} />
+                            <span className="text-sm">{hora}</span>
+                        </div>
+                    </div>
+                    {esDelivery && p.direccion && (
+                        <p className="text-xs font-semibold mt-1 text-blue-600">📍 {p.direccion}</p>
+                    )}
+                    {esDelivery && p.telefonoContacto && (
+                        <p className="text-xs font-semibold mt-0.5 flex items-center gap-1 text-emerald-700">
+                            <Phone size={11} className="shrink-0" />{p.telefonoContacto}
+                        </p>
+                    )}
+                </div>
+
+                {/* Ítems */}
+                <div className="px-4 py-4 space-y-2 bg-white">
+                    {finalizado ? (
+                        p.items.map(it => (
+                            <div key={it._id} className="flex items-center gap-3 rounded-xl px-3 py-2 bg-emerald-50">
+                                <span className="text-xl font-black min-w-[2rem] text-center text-emerald-500">{it.cantidad}</span>
+                                <p className="text-base font-semibold text-emerald-700 flex-1">{it.nombre}</p>
+                                <CheckCircle size={16} className="text-emerald-500 shrink-0" />
+                            </div>
+                        ))
+                    ) : isMarcando ? (
+                        p.items.map((it, idx) => (
+                            <div key={idx} className="flex items-center gap-3 rounded-xl px-3 py-2.5 bg-emerald-50">
+                                <span className="text-2xl font-black min-w-[2rem] text-center text-emerald-400">{it.cantidad}</span>
+                                <p className="text-lg font-bold text-emerald-600 flex-1">{it.nombre}</p>
+                                <CheckCircle size={18} className="text-emerald-500" />
+                            </div>
+                        ))
+                    ) : (
+                        <>
+                            {p.items.filter(it => !it.listo).map(it => {
+                                const itemKey = `${p._id}:${it._id}`;
+                                const isMarcandoEste = marcandoItem === itemKey;
+                                return (
+                                    <div key={it._id} className="flex items-center gap-3 rounded-xl px-3 py-2.5 bg-white border border-gray-200 shadow-sm">
+                                        <span className="text-2xl font-black min-w-[2rem] text-center text-black">{it.cantidad}</span>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-lg font-bold text-black">{it.nombre}</p>
+                                            {it.nota && <p className="text-sm text-amber-600 mt-0.5 italic">✏ {it.nota}</p>}
+                                        </div>
+                                        <button
+                                            onClick={() => setConfirmarItem({ paseId: p._id, itemId: it._id, nombre: it.nombre })}
+                                            disabled={isMarcandoEste}
+                                            className={`shrink-0 w-9 h-9 rounded-full border-2 flex items-center justify-center transition active:scale-95 ${isMarcandoEste ? "border-gray-300 bg-gray-100 text-gray-400" : "border-gray-300 bg-white hover:border-emerald-500 hover:bg-emerald-50"}`}
+                                        >
+                                            <CheckCircle size={18} />
+                                        </button>
+                                    </div>
+                                );
+                            })}
+
+                            {p.items.some(it => !it.listo) && p.items.some(it => it.listo) && (
+                                <div className="flex items-center gap-2 py-0.5">
+                                    <div className="flex-1 h-px bg-red-200" />
+                                    <span className="text-[10px] font-black uppercase tracking-wide text-red-400 px-1">Ya preparado · no repetir</span>
+                                    <div className="flex-1 h-px bg-red-200" />
+                                </div>
+                            )}
+
+                            {p.items.filter(it => it.listo).map(it => (
+                                <div key={it._id} className="flex items-center gap-3 rounded-xl px-3 py-2 bg-red-50">
+                                    <span className="text-xl font-black min-w-[2rem] text-center text-red-300">{it.cantidad}</span>
+                                    <p className="text-base font-semibold text-red-400 line-through flex-1">{it.nombre}</p>
+                                    <span className="text-[10px] font-black text-red-500 uppercase tracking-wide bg-red-100 px-2 py-1 rounded-full whitespace-nowrap">Ya salió</span>
+                                </div>
+                            ))}
+                        </>
+                    )}
+                </div>
+
+                {!finalizado && (
+                    <div className="px-4 pb-4 bg-white">
+                        <button onClick={() => setConfirmarId(p._id)} disabled={isMarcando}
+                            className="w-full flex items-center justify-center gap-2 bg-black hover:bg-gray-800 disabled:bg-gray-200 disabled:text-gray-400 text-white font-black text-base py-3 rounded-xl transition active:scale-[0.98]">
+                            <CheckCircle size={18} />
+                            {isMarcando ? "Marcando..." : "Todo listo"}
+                        </button>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-white pb-10">
             {/* Header */}
@@ -275,7 +438,7 @@ export default function CocinaPage() {
                     <span className="text-lg font-black tracking-tight text-black">Cocina</span>
                 </div>
                 <div className="flex items-center gap-3">
-                    {tab === "comandas" && (
+                    {tab === "comandas" && subTab === "pendientes" && (
                         <span className="text-sm text-gray-400 font-medium">
                             {pases.length} orden{pases.length !== 1 ? "es" : ""}
                         </span>
@@ -286,7 +449,7 @@ export default function CocinaPage() {
                 </div>
             </div>
 
-            {/* Tabs */}
+            {/* Tabs principales */}
             <div className="flex border-b border-gray-100 bg-white">
                 {(["comandas", "menu"] as const).map(t => (
                     <button key={t} onClick={() => { setTab(t); setCatActiva(null); }}
@@ -296,125 +459,54 @@ export default function CocinaPage() {
                 ))}
             </div>
 
-            {/* ── ÓRDENES DE COCINA ── */}
+            {/* ── ÓRDENES ── */}
             {tab === "comandas" && (
-                loading ? (
-                    <div className="flex items-center justify-center py-32 text-gray-400 text-sm">Cargando...</div>
-                ) : pases.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-32 space-y-3 text-gray-300">
-                        <ChefHat size={52} />
-                        <p className="text-lg font-semibold text-gray-400">Sin órdenes pendientes</p>
+                <>
+                    {/* Sub-tabs */}
+                    <div className="flex bg-gray-50 border-b border-gray-100">
+                        {(["pendientes", "finalizados"] as const).map(t => (
+                            <button key={t} onClick={() => handleSubTab(t)}
+                                className={`flex-1 py-2.5 text-xs font-black uppercase tracking-widest transition ${subTab === t ? "text-black border-b-2 border-black bg-white" : "text-gray-400 hover:text-gray-600"}`}>
+                                {t}
+                            </button>
+                        ))}
                     </div>
-                ) : (
-                    <div className="max-w-2xl mx-auto px-3 pt-4 space-y-4">
-                        {pases.map(p => {
-                            const isNuevo    = nuevosIds.has(p._id);
-                            const isMarcando = marcando === p._id;
-                            const algunoListo = p.items.some(it => it.listo);
-                            const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
-                            const esDelivery = p.tipoEntrega === "envio";
-                            const esApp      = p.fuente === "cliente";
-                            const esEvento   = !!p.eventoId;
-                            const nPase      = ordinalPase(p.numeroPase);
 
-                            return (
-                                <div key={p._id}
-                                    className={`rounded-2xl border shadow-sm overflow-hidden transition-all duration-500 ${isNuevo ? "border-red-300 ring-2 ring-red-200" : "border-gray-200"}`}>
+                    {subTab === "pendientes" && (
+                        loading ? (
+                            <div className="flex items-center justify-center py-32 text-gray-400 text-sm">Cargando...</div>
+                        ) : pases.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-32 space-y-3 text-gray-300">
+                                <ChefHat size={52} />
+                                <p className="text-lg font-semibold text-gray-400">Sin órdenes pendientes</p>
+                            </div>
+                        ) : (
+                            <div className="max-w-2xl mx-auto px-3 pt-4 space-y-4">
+                                {pases.map(p => renderPaseCard(p))}
+                            </div>
+                        )
+                    )}
 
-                                    {/* Header del pase */}
-                                    <div className={`px-4 py-3 border-b ${isNuevo ? "bg-red-50 border-red-100" : "bg-gray-50 border-gray-100"}`}>
-                                        <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
-                                            {isNuevo   && <span className="text-[10px] font-black uppercase tracking-widest bg-red-600 text-white px-2 py-0.5 rounded-full animate-pulse">Nuevo</span>}
-                                            {nPase     && <span className="text-[10px] font-black uppercase tracking-widest bg-amber-500 text-white px-2 py-0.5 rounded-full">{nPase}</span>}
-                                            {esDelivery && <span className="text-[10px] font-black uppercase tracking-wide bg-blue-600 text-white px-2 py-0.5 rounded-full">🛵 Delivery</span>}
-                                            {esEvento  && <span className="text-[10px] font-black uppercase tracking-wide bg-amber-400 text-black px-2 py-0.5 rounded-full">⭐ Evento</span>}
-                                            {esApp     && <span className="text-[10px] font-black uppercase tracking-wide bg-violet-600 text-white px-2 py-0.5 rounded-full">📱 App</span>}
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xl font-black text-black">{mesaLabel(p)}</span>
-                                            <div className="flex items-center gap-1.5 text-gray-400">
-                                                <Clock size={13} />
-                                                <span className="text-sm">{hora}</span>
-                                            </div>
-                                        </div>
-                                        {esDelivery && p.direccion && (
-                                            <p className="text-xs font-semibold mt-1 text-blue-600">📍 {p.direccion}</p>
-                                        )}
-                                        {esDelivery && p.telefonoContacto && (
-                                            <p className="text-xs font-semibold mt-0.5 flex items-center gap-1 text-emerald-700">
-                                                <Phone size={11} className="shrink-0" />{p.telefonoContacto}
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    {/* Ítems */}
-                                    <div className="px-4 py-4 space-y-2 bg-white">
-                                        {isMarcando ? (
-                                            p.items.map((it, idx) => (
-                                                <div key={idx} className="flex items-center gap-3 rounded-xl px-3 py-2.5 bg-emerald-50">
-                                                    <span className="text-2xl font-black min-w-[2rem] text-center text-emerald-400">{it.cantidad}</span>
-                                                    <p className="text-lg font-bold text-emerald-600 flex-1">{it.nombre}</p>
-                                                    <CheckCircle size={18} className="text-emerald-500" />
-                                                </div>
-                                            ))
-                                        ) : (
-                                            <>
-                                                {/* Pendientes */}
-                                                {p.items.filter(it => !it.listo).map(it => {
-                                                    const itemKey = `${p._id}:${it._id}`;
-                                                    const isMarcandoEste = marcandoItem === itemKey;
-                                                    return (
-                                                        <div key={it._id} className="flex items-center gap-3 rounded-xl px-3 py-2.5 bg-white border border-gray-200 shadow-sm">
-                                                            <span className="text-2xl font-black min-w-[2rem] text-center text-black">{it.cantidad}</span>
-                                                            <div className="flex-1 min-w-0">
-                                                                <p className="text-lg font-bold text-black">{it.nombre}</p>
-                                                                {it.nota && <p className="text-sm text-amber-600 mt-0.5 italic">✏ {it.nota}</p>}
-                                                            </div>
-                                                            <button
-                                                                onClick={() => setConfirmarItem({ paseId: p._id, itemId: it._id, nombre: it.nombre })}
-                                                                disabled={isMarcandoEste}
-                                                                className={`shrink-0 w-9 h-9 rounded-full border-2 flex items-center justify-center transition active:scale-95 ${isMarcandoEste ? "border-gray-300 bg-gray-100 text-gray-400" : "border-gray-300 bg-white hover:border-emerald-500 hover:bg-emerald-50"}`}
-                                                            >
-                                                                <CheckCircle size={18} />
-                                                            </button>
-                                                        </div>
-                                                    );
-                                                })}
-
-                                                {/* Separador si hay mezcla */}
-                                                {p.items.some(it => !it.listo) && p.items.some(it => it.listo) && (
-                                                    <div className="flex items-center gap-2 py-0.5">
-                                                        <div className="flex-1 h-px bg-red-200" />
-                                                        <span className="text-[10px] font-black uppercase tracking-wide text-red-400 px-1">Ya preparado · no repetir</span>
-                                                        <div className="flex-1 h-px bg-red-200" />
-                                                    </div>
-                                                )}
-
-                                                {/* Ya listos */}
-                                                {p.items.filter(it => it.listo).map(it => (
-                                                    <div key={it._id} className="flex items-center gap-3 rounded-xl px-3 py-2 bg-red-50">
-                                                        <span className="text-xl font-black min-w-[2rem] text-center text-red-300">{it.cantidad}</span>
-                                                        <p className="text-base font-semibold text-red-400 line-through flex-1">{it.nombre}</p>
-                                                        <span className="text-[10px] font-black text-red-500 uppercase tracking-wide bg-red-100 px-2 py-1 rounded-full whitespace-nowrap">Ya salió</span>
-                                                    </div>
-                                                ))}
-                                            </>
-                                        )}
-                                    </div>
-
-                                    {/* Botón "Todo listo" */}
-                                    <div className="px-4 pb-4 bg-white">
-                                        <button onClick={() => setConfirmarId(p._id)} disabled={isMarcando}
-                                            className="w-full flex items-center justify-center gap-2 bg-black hover:bg-gray-800 disabled:bg-gray-200 disabled:text-gray-400 text-white font-black text-base py-3 rounded-xl transition active:scale-[0.98]">
-                                            <CheckCircle size={18} />
-                                            {isMarcando ? "Marcando..." : "Todo listo"}
-                                        </button>
-                                    </div>
+                    {subTab === "finalizados" && (
+                        loadingListo ? (
+                            <div className="flex items-center justify-center py-32 text-gray-400 text-sm">Cargando...</div>
+                        ) : pasesListo.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-32 space-y-3">
+                                <CheckCircle size={48} className="text-gray-200" />
+                                <p className="text-base font-semibold text-gray-400">Sin órdenes finalizadas</p>
+                            </div>
+                        ) : (
+                            <div className="max-w-2xl mx-auto px-3 pt-4 space-y-4">
+                                <div className="flex items-center justify-between px-1 mb-2">
+                                    <p className="text-xs text-gray-400 font-medium">Últimas {pasesListo.length} finalizadas</p>
+                                    <button onClick={() => { listoLoadedRef.current = false; loadPasesListo(); }}
+                                        className="text-xs font-bold text-black underline underline-offset-2">Actualizar</button>
                                 </div>
-                            );
-                        })}
-                    </div>
-                )
+                                {pasesListo.map(p => renderPaseCard(p, { finalizado: true }))}
+                            </div>
+                        )
+                    )}
+                </>
             )}
 
             {/* ── MENÚ ── */}

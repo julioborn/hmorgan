@@ -103,6 +103,7 @@ type Pedido = {
     telefonoContacto?: string;
     direccion?: string;
     createdAt: string;
+    primeraComidaAt?: string;
     notaEmpleado?: string;
     notaCliente?: string;
     horarioPreferido?: string;
@@ -2646,7 +2647,8 @@ export default function CajaPage() {
                                                         : { label: "Bar", cls: "bg-white text-black" };
 
                                         const esAlerta = alertasPedidos.has(p._id) && (Date.now() - (alertasPedidos.get(p._id) ?? 0)) < 35000;
-                                        const tiempoMsDemora = Date.now() - new Date(p.createdAt).getTime();
+                                        const baseTimerCaja = p.primeraComidaAt || p.createdAt;
+                                        const tiempoMsDemora = Date.now() - new Date(baseTimerCaja).getTime();
                                         const algunoListoCaja = p.items.some(it => it.listo);
                                         const esDemorada = p.estado === "preparando" && !algunoListoCaja && tiempoMsDemora > DEMORA_MS;
                                         const minutosEsperaCaja = Math.floor(tiempoMsDemora / 60000);

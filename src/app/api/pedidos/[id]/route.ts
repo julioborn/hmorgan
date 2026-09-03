@@ -278,8 +278,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         pedido.estado = "preparando";
     }
 
-    // Si ahora está en "preparando" y se agregaron ítems de comida → registrar primera comida si falta
-    if (pedido.estado === "preparando" && tieneComidaNueva && !(pedido as any).primeraComidaAt) {
+    // Siempre resetear el contador cuando se agrega nueva comida
+    if (tieneComidaNueva) {
         (pedido as any).primeraComidaAt = new Date();
     }
 
