@@ -9,8 +9,6 @@ import jwt from "jsonwebtoken";
 import { sendPushToSubscriptions } from "@/lib/push-server";
 import { enviarNotificacionFCM, isFCMTokenInvalid } from "@/lib/firebase-admin";
 import { hoyArgentina } from "@/lib/argentina-time";
-import { crearPaseCocina } from "@/lib/crearPaseCocina";
-
 const SECRET = process.env.NEXTAUTH_SECRET!;
 
 const ROLES_EDITAN_PEDIDO = ["empleado", "cajero", "admin", "superadmin"];
@@ -284,16 +282,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     await pedido.save();
-
-    // Crear pase de cocina con los ítems de comida que se acaban de agregar
-    if (["empleado", "admin", "superadmin", "cajero"].includes(payload.role)) {
-        await crearPaseCocina({
-            pedidoId: pedido._id.toString(),
-            mesa: pedido.mesa,
-            nombreComanda: pedido.nombreComanda,
-            items: items,
-        });
-    }
 
     return NextResponse.json({ ok: true, pedido, estadoCambiado: pedido.estado });
 }

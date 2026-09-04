@@ -1,43 +1,54 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
-import { PaseCocina } from "@/models/PaseCocina";
+import { Pedido } from "@/models/Pedido";
+import { MenuItem } from "@/models/MenuItem";
 import jwt from "jsonwebtoken";
 
 const SECRET = process.env.NEXTAUTH_SECRET!;
+const BEBIDAS_CATS = new Set(["CERVEZAS","VINOS","GASEOSAS","JARROS","COCKTAILS","WHISKY","MEDIDAS"]);
 
 function authCocina(req: NextRequest) {
     const token = req.cookies.get("session")?.value;
     if (!token) return null;
     try {
         const p = jwt.verify(token, SECRET) as any;
-        if (!["cocina", "empleado", "admin", "superadmin"].includes(p.role)) return null;
+        if (!["cocina","empleado","admin","superadmin"].includes(p.role)) return null;
         return p;
     } catch { return null; }
 }
 
-// PATCH — marcar pase completo como listo, o un ítem individual
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
     const payload = authCocina(req);
     if (!payload) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     await connectMongoDB();
 
-    const pase = await PaseCocina.findById(params.id);
-    if (!pase) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
+    const pedido = await Pedido.findById(params.id);
+    if (!pedido) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
 
     const { accion, itemId } = await req.json();
 
+    // Determinar cuáles ítems son comida
+    const allItemIds = (pedido.items as any[]).map((it: any) => it.menuItemId?.toString()).filter(Boolean);
+    const menuItems = await MenuItem.find({ _id: { $in: allItemIds } }, "categoria").lean<any[]>();
+    const catMap = new Map(menuItems.map(m => [m._id.toString(), (m.categoria || "").toUpperCase()]));
+    const esComida = (menuItemId: string) => !BEBIDAS_CATS.has(catMap.get(menuItemId) || "");
+
     if (accion === "itemListo" && itemId) {
-        const item = (pase.items as any[]).find((i: any) => i._id.toString() === itemId);
+        const item = (pedido.items as any[]).find((i: any) => i._id.toString() === itemId);
         if (item) item.listo = true;
-        const todosListos = (pase.items as any[]).every((i: any) => i.listo);
-        if (todosListos) pase.estado = "listo";
-        await pase.save();
-        return NextResponse.json({ ok: true, todosListos, pase });
+        const todosListos = (pedido.items as any[])
+            .filter((i: any) => esComida(i.menuItemId?.toString()))
+            .every((i: any) => i.listo);
+        if (todosListos) pedido.estado = "listo";
+        await pedido.save();
+        return NextResponse.json({ ok: true, todosListos });
     }
 
-    // Marcar todo el pase como listo
-    pase.estado = "listo";
-    for (const it of pase.items as any[]) it.listo = true;
-    await pase.save();
-    return NextResponse.json({ ok: true, pase });
+    // Marcar todos los ítems de comida como listos
+    for (const it of pedido.items as any[]) {
+        if (esComida(it.menuItemId?.toString())) it.listo = true;
+    }
+    pedido.estado = "listo";
+    await pedido.save();
+    return NextResponse.json({ ok: true, todosListos: true });
 }

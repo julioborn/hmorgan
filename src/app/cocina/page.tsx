@@ -32,10 +32,8 @@ type ItemPase = {
 
 type Pase = {
     _id: string;
-    pedidoId: string;
     mesa?: string;
     nombreComanda?: string;
-    numeroPase: number;
     fuente: string;
     tipoEntrega?: string;
     deliveryNumero?: number;
@@ -43,8 +41,10 @@ type Pase = {
     direccion?: string;
     telefonoContacto?: string;
     eventoId?: string;
+    horarioPreferido?: string;
+    userId?: { _id: string; nombre: string; apellido: string };
     items: ItemPase[];
-    estado: "pendiente" | "listo";
+    estado: string;
     createdAt: string;
     updatedAt: string;
 };
@@ -296,19 +296,15 @@ export default function CocinaPage() {
         return p.mesa ? `Mesa ${p.mesa}` : (p.nombreComanda || "Sin mesa");
     }
 
-    function ordinalPedido(n: number) {
-        return `${n}° pedido`;
-    }
-
-    function renderPaseCard(p: Pase, opts: { finalizado?: boolean; mostrarNumero?: boolean } = {}) {
-        const { finalizado = false, mostrarNumero = false } = opts;
+    function renderPaseCard(p: Pase, opts: { finalizado?: boolean } = {}) {
+        const { finalizado = false } = opts;
         const isNuevo    = !finalizado && nuevosIds.has(p._id);
         const isMarcando = !finalizado && marcando === p._id;
         const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
         const esDelivery = p.tipoEntrega === "envio";
         const esApp      = p.fuente === "cliente";
         const esEvento   = !!p.eventoId;
-        const nPedido    = mostrarNumero ? ordinalPedido(p.numeroPase) : null;
+        const mozo       = p.fuente === "empleado" && p.userId ? `${p.userId.nombre} ${p.userId.apellido}` : null;
 
         const msDemora   = Date.now() - new Date(p.createdAt).getTime();
         const minDemora  = Math.floor(msDemora / 60000);
@@ -333,10 +329,10 @@ export default function CocinaPage() {
                         {isNuevo   && <span className="text-[10px] font-black uppercase tracking-widest bg-red-600 text-white px-2 py-0.5 rounded-full animate-pulse">Nuevo</span>}
                         {esDemorada && <span className="text-[10px] font-black uppercase tracking-widest bg-red-600 text-white px-2 py-0.5 rounded-full">Demorada · {minDemora} min</span>}
                         {finalizado && <span className="text-[10px] font-black uppercase tracking-wide bg-emerald-600 text-white px-2 py-0.5 rounded-full">Entregado</span>}
-                        {nPedido   && <span className="text-[10px] font-black uppercase tracking-widest bg-amber-500 text-white px-2 py-0.5 rounded-full">{nPedido}</span>}
                         {esDelivery && <span className="text-[10px] font-black uppercase tracking-wide bg-blue-600 text-white px-2 py-0.5 rounded-full">🛵 Delivery</span>}
                         {esEvento  && <span className="text-[10px] font-black uppercase tracking-wide bg-amber-400 text-black px-2 py-0.5 rounded-full">⭐ Evento</span>}
                         {esApp     && <span className="text-[10px] font-black uppercase tracking-wide bg-violet-600 text-white px-2 py-0.5 rounded-full">📱 App</span>}
+                        {mozo      && <span className="text-[10px] font-black uppercase tracking-wide bg-gray-700 text-white px-2 py-0.5 rounded-full">👤 {mozo}</span>}
                     </div>
                     <div className="flex items-center justify-between">
                         <span className={`text-xl font-black ${finalizado ? "text-gray-500" : "text-black"}`}>{mesaLabel(p)}</span>
@@ -352,6 +348,9 @@ export default function CocinaPage() {
                         <p className="text-xs font-semibold mt-0.5 flex items-center gap-1 text-emerald-700">
                             <Phone size={11} className="shrink-0" />{p.telefonoContacto}
                         </p>
+                    )}
+                    {esDelivery && p.horarioPreferido && (
+                        <p className="text-xs font-semibold mt-0.5 text-amber-700">🕐 Horario pedido: {p.horarioPreferido}</p>
                     )}
                 </div>
 
@@ -485,12 +484,7 @@ export default function CocinaPage() {
                             </div>
                         ) : (
                             <div className="max-w-2xl mx-auto px-3 pt-4 space-y-4">
-                                {(() => {
-                                    const pedidosConMultiples = new Set(
-                                        pases.filter(p => pases.some(q => q._id !== p._id && q.pedidoId === p.pedidoId)).map(p => p.pedidoId)
-                                    );
-                                    return pases.map(p => renderPaseCard(p, { mostrarNumero: pedidosConMultiples.has(p.pedidoId) }));
-                                })()}
+                                {pases.map(p => renderPaseCard(p))}
                             </div>
                         )
                     )}
@@ -510,12 +504,7 @@ export default function CocinaPage() {
                                     <button onClick={() => { listoLoadedRef.current = false; loadPasesListo(); }}
                                         className="text-xs font-bold text-black underline underline-offset-2">Actualizar</button>
                                 </div>
-                                {(() => {
-                                    const pedidosConMultiples = new Set(
-                                        pasesListo.filter(p => pasesListo.some(q => q._id !== p._id && q.pedidoId === p.pedidoId)).map(p => p.pedidoId)
-                                    );
-                                    return pasesListo.map(p => renderPaseCard(p, { finalizado: true, mostrarNumero: pedidosConMultiples.has(p.pedidoId) }));
-                                })()}
+                                {pasesListo.map(p => renderPaseCard(p, { finalizado: true }))}
                             </div>
                         )
                     )}
@@ -621,7 +610,7 @@ export default function CocinaPage() {
                         </div>
                         <div className="px-5 py-4">
                             <p className="text-base font-semibold text-gray-900">¿Todo listo para esta orden?</p>
-                            <p className="text-sm text-gray-500 mt-1">{mesaLabel(paseAConfirmar)}{paseAConfirmar.numeroPase > 1 ? ` · ${ordinalPedido(paseAConfirmar.numeroPase)}` : ""}</p>
+                            <p className="text-sm text-gray-500 mt-1">{mesaLabel(paseAConfirmar)}</p>
                         </div>
                         <div className="px-5 pb-5 flex gap-3">
                             <button onClick={() => setConfirmarId(null)} className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-semibold hover:bg-gray-50 transition">Cancelar</button>
