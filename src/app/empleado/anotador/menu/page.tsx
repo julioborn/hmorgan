@@ -132,7 +132,7 @@ function AnotadorMenuContent() {
 
     // Campos del panel
     const [mesas, setMesas]             = useState<string[]>([]);
-    const [comensales, setComensales]   = useState(2);
+    const [comensales, setComensales]   = useState(0);
     const [clienteNombre, setClienteNombre] = useState("");
     const [clienteSearch, setClienteSearch] = useState("");
     const [clienteResults, setClienteResults] = useState<{_id:string;nombre:string;apellido:string;username:string}[]>([]);
@@ -839,11 +839,14 @@ function AnotadorMenuContent() {
                                     </div>
                                 ) : (
                                     <div>
-                                        <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Personas</p>
+                                        <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Personas <span className="text-red-500">*</span></p>
+                                        <p className="text-[11px] text-gray-400 mb-3">Obligatorio · los puntos se dividen por este número</p>
                                         <div className="flex items-center gap-5">
-                                            <button onClick={() => setComensales(c => Math.max(1, c - 1))}
+                                            <button onClick={() => setComensales(c => Math.max(0, c - 1))}
                                                 className="w-12 h-12 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-2xl font-bold transition active:scale-95">−</button>
-                                            <span className="text-4xl font-black text-gray-900 w-12 text-center">{comensales}</span>
+                                            <span className={`text-4xl font-black w-12 text-center ${comensales === 0 ? "text-gray-300" : "text-gray-900"}`}>
+                                                {comensales === 0 ? "—" : comensales}
+                                            </span>
                                             <button onClick={() => setComensales(c => Math.min(20, c + 1))}
                                                 className="w-12 h-12 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-2xl font-bold transition active:scale-95">+</button>
                                         </div>
@@ -865,11 +868,16 @@ function AnotadorMenuContent() {
                                 />
 
                                 {/* Continuar */}
-                                <button onClick={() => setStep("menu")}
-                                    className="w-full bg-red-600 hover:bg-red-700 text-white font-extrabold py-4 rounded-2xl flex items-center justify-center gap-2 transition active:scale-[0.98] text-base shadow-lg shadow-red-600/20 mt-2">
+                                <button
+                                    onClick={() => { if (!solobanquetas && comensales === 0) return; setStep("menu"); }}
+                                    disabled={!solobanquetas && comensales === 0}
+                                    className="w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-extrabold py-4 rounded-2xl flex items-center justify-center gap-2 transition active:scale-[0.98] text-base shadow-lg shadow-red-600/20 mt-2">
                                     Continuar al menú →
                                 </button>
-                                {mesas.length === 0 && (
+                                {!solobanquetas && comensales === 0 && (
+                                    <p className="text-center text-xs text-red-500 font-semibold -mt-4">Indicá la cantidad de personas para continuar</p>
+                                )}
+                                {mesas.length === 0 && comensales > 0 && (
                                     <p className="text-center text-xs text-gray-400 -mt-4">Podés continuar sin elegir mesa</p>
                                 )}
                             </>

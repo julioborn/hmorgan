@@ -1288,6 +1288,7 @@ export default function CajaPage() {
 
     async function guardarComensalesCaja() {
         if (!comensalesModalCaja) return;
+        if (comensalesCountCaja < 1) return;
         await fetch(`/api/pedidos/${comensalesModalCaja._id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
@@ -5829,11 +5830,14 @@ export default function CajaPage() {
                         </div>
                         <div className="p-4 space-y-4">
                             <div>
-                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Cantidad de personas</p>
+                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-0.5">Cantidad de personas <span className="text-red-500">*</span></p>
+                                <p className="text-[11px] text-gray-400 mb-2">Obligatorio · los puntos se dividen por este número</p>
                                 <div className="flex items-center gap-4 justify-center">
                                     <button onClick={() => setComensalesCountCaja(n => Math.max(0, n - 1))}
                                         className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-black text-xl transition active:scale-95">−</button>
-                                    <span className="text-4xl font-black text-gray-900 w-12 text-center">{comensalesCountCaja}</span>
+                                    <span className={`text-4xl font-black w-12 text-center ${comensalesCountCaja === 0 ? "text-gray-300" : "text-gray-900"}`}>
+                                        {comensalesCountCaja === 0 ? "—" : comensalesCountCaja}
+                                    </span>
                                     <button onClick={() => setComensalesCountCaja(n => n + 1)}
                                         className="w-10 h-10 rounded-full bg-gray-900 hover:bg-gray-700 text-white font-black text-xl transition active:scale-95">+</button>
                                 </div>
@@ -5879,9 +5883,13 @@ export default function CajaPage() {
                                 )}
                             </div>
                         </div>
-                        <div className="px-4 pb-4">
+                        <div className="px-4 pb-4 space-y-2">
+                            {comensalesCountCaja === 0 && (
+                                <p className="text-center text-xs text-red-500 font-semibold">Ingresá la cantidad de personas para guardar</p>
+                            )}
                             <button onClick={guardarComensalesCaja}
-                                className="w-full py-3 bg-black hover:bg-gray-800 text-white font-black rounded-xl transition">
+                                disabled={comensalesCountCaja === 0}
+                                className="w-full py-3 bg-black hover:bg-gray-800 disabled:bg-gray-200 disabled:text-gray-400 text-white font-black rounded-xl transition">
                                 Guardar
                             </button>
                         </div>
