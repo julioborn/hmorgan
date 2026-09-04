@@ -296,20 +296,19 @@ export default function CocinaPage() {
         return p.mesa ? `Mesa ${p.mesa}` : (p.nombreComanda || "Sin mesa");
     }
 
-    function ordinalPase(n: number) {
-        if (n === 1) return null;
-        return `${n}° pase`;
+    function ordinalPedido(n: number) {
+        return `${n}° pedido`;
     }
 
-    function renderPaseCard(p: Pase, opts: { finalizado?: boolean } = {}) {
-        const { finalizado = false } = opts;
+    function renderPaseCard(p: Pase, opts: { finalizado?: boolean; mostrarNumero?: boolean } = {}) {
+        const { finalizado = false, mostrarNumero = false } = opts;
         const isNuevo    = !finalizado && nuevosIds.has(p._id);
         const isMarcando = !finalizado && marcando === p._id;
         const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
         const esDelivery = p.tipoEntrega === "envio";
         const esApp      = p.fuente === "cliente";
         const esEvento   = !!p.eventoId;
-        const nPase      = ordinalPase(p.numeroPase);
+        const nPedido    = mostrarNumero ? ordinalPedido(p.numeroPase) : null;
 
         const msDemora   = Date.now() - new Date(p.createdAt).getTime();
         const minDemora  = Math.floor(msDemora / 60000);
@@ -317,11 +316,11 @@ export default function CocinaPage() {
 
         return (
             <div key={p._id}
-                className={`rounded-2xl border shadow-sm overflow-hidden transition-all duration-500 ${
+                className={`rounded-2xl border shadow-md overflow-hidden transition-all duration-500 ${
                     finalizado ? "border-gray-200 opacity-75"
                     : isNuevo ? "border-red-300 ring-2 ring-red-200"
                     : esDemorada ? "border-red-500 ring-2 ring-red-400"
-                    : "border-gray-200"
+                    : "border-gray-300"
                 }`}>
 
                 {/* Header */}
@@ -334,7 +333,7 @@ export default function CocinaPage() {
                         {isNuevo   && <span className="text-[10px] font-black uppercase tracking-widest bg-red-600 text-white px-2 py-0.5 rounded-full animate-pulse">Nuevo</span>}
                         {esDemorada && <span className="text-[10px] font-black uppercase tracking-widest bg-red-600 text-white px-2 py-0.5 rounded-full">Demorada · {minDemora} min</span>}
                         {finalizado && <span className="text-[10px] font-black uppercase tracking-wide bg-emerald-600 text-white px-2 py-0.5 rounded-full">Entregado</span>}
-                        {nPase     && <span className="text-[10px] font-black uppercase tracking-widest bg-amber-500 text-white px-2 py-0.5 rounded-full">{nPase}</span>}
+                        {nPedido   && <span className="text-[10px] font-black uppercase tracking-widest bg-amber-500 text-white px-2 py-0.5 rounded-full">{nPedido}</span>}
                         {esDelivery && <span className="text-[10px] font-black uppercase tracking-wide bg-blue-600 text-white px-2 py-0.5 rounded-full">🛵 Delivery</span>}
                         {esEvento  && <span className="text-[10px] font-black uppercase tracking-wide bg-amber-400 text-black px-2 py-0.5 rounded-full">⭐ Evento</span>}
                         {esApp     && <span className="text-[10px] font-black uppercase tracking-wide bg-violet-600 text-white px-2 py-0.5 rounded-full">📱 App</span>}
@@ -450,26 +449,30 @@ export default function CocinaPage() {
             </div>
 
             {/* Tabs principales */}
-            <div className="flex border-b border-gray-100 bg-white">
-                {(["comandas", "menu"] as const).map(t => (
-                    <button key={t} onClick={() => { setTab(t); setCatActiva(null); }}
-                        className={`flex-1 py-3 text-sm font-black uppercase tracking-wide transition ${tab === t ? "text-black border-b-2 border-black" : "text-gray-400"}`}>
-                        {t === "comandas" ? "Órdenes" : "Menú"}
-                    </button>
-                ))}
+            <div className="px-4 pt-3 pb-3 bg-white border-b border-gray-200">
+                <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+                    {(["comandas", "menu"] as const).map(t => (
+                        <button key={t} onClick={() => { setTab(t); setCatActiva(null); }}
+                            className={`flex-1 py-2.5 text-sm font-black rounded-lg transition ${tab === t ? "bg-white text-black shadow-sm" : "text-gray-400 hover:text-gray-600"}`}>
+                            {t === "comandas" ? "Órdenes" : "Menú"}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {/* ── ÓRDENES ── */}
             {tab === "comandas" && (
                 <>
                     {/* Sub-tabs */}
-                    <div className="flex bg-gray-50 border-b border-gray-100">
-                        {(["pendientes", "finalizados"] as const).map(t => (
-                            <button key={t} onClick={() => handleSubTab(t)}
-                                className={`flex-1 py-2.5 text-xs font-black uppercase tracking-widest transition ${subTab === t ? "text-black border-b-2 border-black bg-white" : "text-gray-400 hover:text-gray-600"}`}>
-                                {t}
-                            </button>
-                        ))}
+                    <div className="px-4 pt-2.5 pb-2.5 bg-white border-b border-gray-100">
+                        <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+                            {(["pendientes", "finalizados"] as const).map(t => (
+                                <button key={t} onClick={() => handleSubTab(t)}
+                                    className={`flex-1 py-2 text-xs font-black uppercase tracking-widest rounded-lg transition ${subTab === t ? "bg-white text-black shadow-sm" : "text-gray-400 hover:text-gray-600"}`}>
+                                    {t}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     {subTab === "pendientes" && (
@@ -482,7 +485,12 @@ export default function CocinaPage() {
                             </div>
                         ) : (
                             <div className="max-w-2xl mx-auto px-3 pt-4 space-y-4">
-                                {pases.map(p => renderPaseCard(p))}
+                                {(() => {
+                                    const pedidosConMultiples = new Set(
+                                        pases.filter(p => pases.some(q => q._id !== p._id && q.pedidoId === p.pedidoId)).map(p => p.pedidoId)
+                                    );
+                                    return pases.map(p => renderPaseCard(p, { mostrarNumero: pedidosConMultiples.has(p.pedidoId) }));
+                                })()}
                             </div>
                         )
                     )}
@@ -502,7 +510,12 @@ export default function CocinaPage() {
                                     <button onClick={() => { listoLoadedRef.current = false; loadPasesListo(); }}
                                         className="text-xs font-bold text-black underline underline-offset-2">Actualizar</button>
                                 </div>
-                                {pasesListo.map(p => renderPaseCard(p, { finalizado: true }))}
+                                {(() => {
+                                    const pedidosConMultiples = new Set(
+                                        pasesListo.filter(p => pasesListo.some(q => q._id !== p._id && q.pedidoId === p.pedidoId)).map(p => p.pedidoId)
+                                    );
+                                    return pasesListo.map(p => renderPaseCard(p, { finalizado: true, mostrarNumero: pedidosConMultiples.has(p.pedidoId) }));
+                                })()}
                             </div>
                         )
                     )}
@@ -608,7 +621,7 @@ export default function CocinaPage() {
                         </div>
                         <div className="px-5 py-4">
                             <p className="text-base font-semibold text-gray-900">¿Todo listo para esta orden?</p>
-                            <p className="text-sm text-gray-500 mt-1">{mesaLabel(paseAConfirmar)}{paseAConfirmar.numeroPase > 1 ? ` · ${ordinalPase(paseAConfirmar.numeroPase)}` : ""}</p>
+                            <p className="text-sm text-gray-500 mt-1">{mesaLabel(paseAConfirmar)}{paseAConfirmar.numeroPase > 1 ? ` · ${ordinalPedido(paseAConfirmar.numeroPase)}` : ""}</p>
                         </div>
                         <div className="px-5 pb-5 flex gap-3">
                             <button onClick={() => setConfirmarId(null)} className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-semibold hover:bg-gray-50 transition">Cancelar</button>
