@@ -42,6 +42,8 @@ type Pase = {
     telefonoContacto?: string;
     eventoId?: string;
     horarioPreferido?: string;
+    notaEmpleado?: string;
+    notaCliente?: string;
     userId?: { _id: string; nombre: string; apellido: string };
     items: ItemPase[];
     estado: string;
@@ -304,7 +306,9 @@ export default function CocinaPage() {
         const esDelivery = p.tipoEntrega === "envio";
         const esApp      = p.fuente === "cliente";
         const esEvento   = !!p.eventoId;
-        const mozo       = p.fuente === "empleado" && p.userId ? `${p.userId.nombre} ${p.userId.apellido}` : null;
+        const nombrePersona = p.userId ? `${p.userId.nombre} ${p.userId.apellido}` : null;
+        const mozo       = p.fuente === "empleado" && nombrePersona ? nombrePersona : null;
+        const cliente    = p.fuente === "cliente"  && nombrePersona ? nombrePersona : null;
 
         const msDemora   = Date.now() - new Date(p.createdAt).getTime();
         const minDemora  = Math.floor(msDemora / 60000);
@@ -325,6 +329,7 @@ export default function CocinaPage() {
                     : isNuevo || esDemorada ? "bg-red-50 border-red-100"
                     : "bg-gray-50 border-gray-100"
                 }`}>
+                    {/* Badges */}
                     <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
                         {isNuevo   && <span className="text-[10px] font-black uppercase tracking-widest bg-red-600 text-white px-2 py-0.5 rounded-full animate-pulse">Nuevo</span>}
                         {esDemorada && <span className="text-[10px] font-black uppercase tracking-widest bg-red-600 text-white px-2 py-0.5 rounded-full">Demorada · {minDemora} min</span>}
@@ -332,15 +337,27 @@ export default function CocinaPage() {
                         {esDelivery && <span className="text-[10px] font-black uppercase tracking-wide bg-blue-600 text-white px-2 py-0.5 rounded-full">🛵 Delivery</span>}
                         {esEvento  && <span className="text-[10px] font-black uppercase tracking-wide bg-amber-400 text-black px-2 py-0.5 rounded-full">⭐ Evento</span>}
                         {esApp     && <span className="text-[10px] font-black uppercase tracking-wide bg-violet-600 text-white px-2 py-0.5 rounded-full">📱 App</span>}
-                        {mozo      && <span className="text-[10px] font-black uppercase tracking-wide bg-gray-700 text-white px-2 py-0.5 rounded-full">👤 {mozo}</span>}
                     </div>
+                    {/* Mesa + hora */}
                     <div className="flex items-center justify-between">
                         <span className={`text-xl font-black ${finalizado ? "text-gray-500" : "text-black"}`}>{mesaLabel(p)}</span>
                         <div className="flex items-center gap-1.5 text-gray-400">
                             <Clock size={13} />
-                            <span className="text-sm">{hora}</span>
+                            <span className="text-sm font-semibold">{hora}</span>
                         </div>
                     </div>
+                    {/* Nombre comanda si aplica */}
+                    {p.nombreComanda && p.fuente === "empleado" && (
+                        <p className="text-sm font-bold text-gray-700 mt-0.5">{p.nombreComanda}</p>
+                    )}
+                    {/* Mozo / Cliente */}
+                    {mozo && (
+                        <p className="text-xs font-semibold mt-1 text-gray-600">👤 Mozo: <span className="font-black text-gray-800">{mozo}</span></p>
+                    )}
+                    {cliente && (
+                        <p className="text-xs font-semibold mt-1 text-violet-700">📱 Cliente: <span className="font-black">{cliente}</span></p>
+                    )}
+                    {/* Delivery info */}
                     {esDelivery && p.direccion && (
                         <p className="text-xs font-semibold mt-1 text-blue-600">📍 {p.direccion}</p>
                     )}
@@ -350,7 +367,14 @@ export default function CocinaPage() {
                         </p>
                     )}
                     {esDelivery && p.horarioPreferido && (
-                        <p className="text-xs font-semibold mt-0.5 text-amber-700">🕐 Horario pedido: {p.horarioPreferido}</p>
+                        <p className="text-xs font-semibold mt-0.5 text-amber-700">🕐 Horario: {p.horarioPreferido}</p>
+                    )}
+                    {/* Notas */}
+                    {p.notaEmpleado && (
+                        <p className="text-xs font-semibold mt-1 text-orange-700 bg-orange-50 rounded-lg px-2 py-1">✏️ {p.notaEmpleado}</p>
+                    )}
+                    {p.notaCliente && (
+                        <p className="text-xs font-semibold mt-1 text-orange-700 bg-orange-50 rounded-lg px-2 py-1">✏️ {p.notaCliente}</p>
                     )}
                 </div>
 
