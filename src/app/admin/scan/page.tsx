@@ -24,6 +24,7 @@ export default function ScanPage() {
   const [errMsg, setErrMsg] = useState("");
   const [consumoStr, setConsumoStr] = useState<string>("");
   const [mesa, setMesa] = useState<string>("");
+  const [comensales, setComensales] = useState<number>(0);
   const [people, setPeople] = useState<Person[]>([]);
   const [ratio, setRatio] = useState<number>(0.001); // 👈 ahora dinámico
   const [mesasRegistradas, setMesasRegistradas] = useState<{ _id: string; nombre: string }[]>([]);
@@ -69,7 +70,7 @@ export default function ScanPage() {
   const [scanToast, setScanToast] = useState<string>("");
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [flash, setFlash] = useState(false);
-  const [finishToast, setFinishToast] = useState<{ totalPoints: number; repartidos: number; mesa?: string } | null>(null);
+  const [finishToast, setFinishToast] = useState<{ totalPoints: number; repartidos: number; mesa?: string; totalPersonas?: number } | null>(null);
   const finishTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   function sanitizeMesa(v: string) {
@@ -94,7 +95,7 @@ export default function ScanPage() {
   }
 
   const consumo = moneyToNumber(consumoStr);
-  const canStart = Boolean(mesa && consumo > 0);
+  const canStart = Boolean(mesa && consumo > 0 && comensales >= 1);
 
   function stopCamera() {
     const stream = videoRef.current?.srcObject as MediaStream | null;
@@ -295,24 +296,34 @@ export default function ScanPage() {
       return;
     }
 
+    if (comensales < 1) {
+      alert("Ingresá la cantidad total de personas en la mesa.");
+      return;
+    }
+    if (people.length > comensales) {
+      alert(`Hay más personas escaneadas (${people.length}) que comensales declarados (${comensales}). Corregí el número.`);
+      return;
+    }
+
     const userIds = people.map((p) => p.id);
     const res = await fetch("/api/scan/finalize", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ consumoARS: consumo, userIds, mesa: mesa || undefined }),
+      body: JSON.stringify({ consumoARS: consumo, userIds, mesa: mesa || undefined, comensales }),
     });
 
     const data = await res.json();
 
     if (res.ok) {
-      setStatus(`OK: ${data.totalPoints} puntos repartidos entre ${data.repartidos}.`);
-      setFinishToast({ totalPoints: data.totalPoints, repartidos: data.repartidos, mesa });
+      setStatus(`OK: ${data.puntosParaUsuario} puntos por persona (${data.conApp} con app de ${data.totalPersonas}).`);
+      setFinishToast({ totalPoints: data.puntosParaUsuario, repartidos: data.conApp, mesa, totalPersonas: data.totalPersonas });
       if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
-      finishTimerRef.current = setTimeout(() => setFinishToast(null), 3000);
+      finishTimerRef.current = setTimeout(() => setFinishToast(null), 4000);
 
       setPeople([]);
       setConsumoStr("");
       setMesa("");
+      setComensales(0);
       stopCamera();
       setCamState("idle");
       seenIdsRef.current.clear();
@@ -322,10 +333,11 @@ export default function ScanPage() {
     }
   }
 
-  // 👇 Cálculo dinámico según ratio
+  // Cálculo dinámico según ratio y comensales totales
   const totalPoints = Math.floor(Number(consumo || 0) * ratio);
-  const porCabeza = people.length ? Math.floor(totalPoints / people.length) : 0;
-  const resto = people.length ? totalPoints - porCabeza * people.length : 0;
+  const efectivoComensales = comensales >= 1 ? comensales : (people.length || 1);
+  const porCabeza = Math.floor(totalPoints / efectivoComensales);
+  const puntosNoAsignados = totalPoints - porCabeza * people.length;
 
   const camPill = {
     idle: { text: "Cámara inactiva", cls: "bg-white/10 text-white" },
@@ -440,7 +452,7 @@ export default function ScanPage() {
         {/* Panel de control */}
         <div className="space-y-6">
           {/* Inputs */}
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
             <div className="grid grid-cols-3 gap-4">
               {/* Nº de mesa */}
               <div className="flex flex-col gap-2 col-span-1">
@@ -476,7 +488,7 @@ export default function ScanPage() {
               <div className="flex flex-col gap-2 col-span-2">
                 <label className="text-sm font-semibold text-gray-700">Total $</label>
                 <input
-                  className="w-full rounded-xl border border-gray-300 bg-white text-red-600 text-2xl font-mono 
+                  className="w-full rounded-xl border border-gray-300 bg-white text-red-600 text-2xl font-mono
                      px-4 py-5 text-center tracking-wider shadow-sm
                      outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200 transition"
                   placeholder="0,00"
@@ -488,18 +500,46 @@ export default function ScanPage() {
                 />
               </div>
             </div>
+
+            {/* Personas en mesa (REQUERIDO para dividir puntos) */}
+            <div>
+              <label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+                Personas en la mesa
+                <span className="text-red-500 text-xs font-bold">*</span>
+                <span className="text-gray-400 text-xs font-normal ml-1">(los puntos se dividen por este total)</span>
+              </label>
+              <div className="flex items-center gap-4 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setComensales(c => Math.max(0, c - 1))}
+                  className="w-12 h-12 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-2xl font-bold transition active:scale-95 select-none"
+                >−</button>
+                <span className={`text-4xl font-black w-12 text-center tabular-nums ${comensales === 0 ? "text-gray-300" : "text-gray-900"}`}>
+                  {comensales === 0 ? "—" : comensales}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setComensales(c => Math.min(30, c + 1))}
+                  className="w-12 h-12 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-2xl font-bold transition active:scale-95 select-none"
+                >+</button>
+                {comensales === 0 && (
+                  <span className="text-xs text-red-500 font-semibold">Obligatorio antes de escanear</span>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Resumen puntos */}
           <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
             <div className="text-md font-bold mb-3 text-gray-800">Puntos</div>
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <Metric label="Total personas" value={people.length} />
-              <Metric label="Total puntos" value={totalPoints} />
+            <div className="grid grid-cols-4 gap-3 text-center">
+              <Metric label="Total mesa" value={comensales || "—"} />
+              <Metric label="Con app" value={people.length} />
+              <Metric label="Puntos totales" value={totalPoints} />
               <Metric
                 label="Por persona"
                 value={porCabeza}
-                suffix={resto > 0 ? `(+${resto} resto)` : undefined}
+                suffix={puntosNoAsignados > 0 ? `${puntosNoAsignados} sin asignar` : undefined}
               />
             </div>
           </div>
@@ -622,11 +662,12 @@ export default function ScanPage() {
                 <div className="font-semibold text-white">Mesa finalizada</div>
 
                 <div className="text-sm text-gray-300 mt-0.5">
-                  Se acreditaron <b className="text-white">{finishToast.totalPoints}</b> puntos entre{" "}
-                  <b className="text-white">{finishToast.repartidos}</b> persona
-                  {finishToast.repartidos !== 1 ? "s" : ""}.
+                  <b className="text-white">{finishToast.totalPoints}</b> puntos por persona
+                  {finishToast.repartidos != null && finishToast.totalPersonas != null && (
+                    <> · <b className="text-white">{finishToast.repartidos}</b> de <b className="text-white">{finishToast.totalPersonas}</b> con app</>
+                  )}
                   {finishToast.mesa && (
-                    <> Mesa <b className="text-white">{finishToast.mesa}</b>.</>
+                    <> · Mesa <b className="text-white">{finishToast.mesa}</b></>
                   )}
                 </div>
               </div>

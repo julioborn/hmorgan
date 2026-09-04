@@ -19,16 +19,19 @@ export async function POST(req: NextRequest) {
         if (!["admin", "empleado"].includes(payload.role)) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
         // --- Body ---
-        const { consumoARS, userIds, mesa } = await req.json();
+        const { consumoARS, userIds, mesa, comensales } = await req.json();
         if (!consumoARS || !Array.isArray(userIds) || userIds.length === 0) {
             return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
         }
+        const totalPersonas = Math.max(1, Number(comensales) || userIds.length);
 
         await connectMongoDB();
 
         const ratio = await getPointsRatio();
-        const puntos = Math.floor(consumoARS * ratio);
-        if (puntos <= 0) {
+        const puntosTotal = Math.floor(consumoARS * ratio);
+        // Cada comensal recibe su parte proporcional aunque no tenga la app
+        const puntosParaUsuario = Math.floor(puntosTotal / totalPersonas);
+        if (puntosParaUsuario <= 0) {
             return NextResponse.json({ ok: true, message: "Consumo bajo, 0 puntos" });
         }
 
@@ -38,23 +41,19 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Algunos usuarios no existen" }, { status: 400 });
         }
 
-        // --- Cada usuario recibe los puntos completos del consumo ---
+        // --- Cada usuario recibe su parte (puntosTotal / totalPersonas) ---
         for (const u of users) {
             await PointTransaction.create({
                 userId: u._id,
                 source: "consumo",
-                amount: puntos,
-                notes: `Mesa ${mesa || "-"}`,
-                meta: { consumoARS, mesa: mesa || null, mozoId: payload.sub },
-
-                pendingReview: true,   // 🔥 AGREGADO
+                amount: puntosParaUsuario,
+                notes: `Mesa ${mesa || "-"} · ${userIds.length}/${totalPersonas} con app`,
+                meta: { consumoARS, mesa: mesa || null, mozoId: payload.sub, totalPersonas, puntosTotal },
+                pendingReview: true,
             });
 
-            u.puntos += puntos;
-
-            // 🔥 Nuevo: cuando un usuario recibe puntos → pedimos reseña
+            u.puntos += puntosParaUsuario;
             u.needsReview = true;
-
             await u.save();
 
             // ---------- 🔔 PUSH WEB (VAPID) ----------
@@ -70,7 +69,7 @@ export async function POST(req: NextRequest) {
 
                     const invalid = await sendPushAndCollectInvalid(uniqueSubs, {
                         title: "¡Puntos sumados!",
-                        body: `Se acreditaron ${puntos} puntos por tu consumo 🍻`,
+                        body: `Se acreditaron ${puntosParaUsuario} puntos por tu consumo 🍻`,
                         url: "/cliente/qr",
                     });
 
@@ -94,7 +93,7 @@ export async function POST(req: NextRequest) {
                         await enviarNotificacionFCM(
                             fcmToken,
                             "¡Puntos sumados!",
-                            `Se acreditaron ${puntos} puntos. ¡Gracias por venir!`,
+                            `Se acreditaron ${puntosParaUsuario} puntos. ¡Gracias por venir!`,
                             "/cliente/qr"
                         );
                     } catch (err) {
@@ -107,8 +106,10 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({
             ok: true,
-            puntos,
-            usuarios: userIds.length,
+            puntosParaUsuario,
+            puntosTotal,
+            totalPersonas,
+            conApp: userIds.length,
         });
     } catch (e) {
         console.error(e);
