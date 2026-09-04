@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
         const puntosTotal = Math.floor(consumoARS * ratio);
         // Cada comensal recibe su parte proporcional aunque no tenga la app
         const puntosParaUsuario = Math.floor(puntosTotal / totalPersonas);
+        const consumoFormateado = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(consumoARS);
         if (puntosParaUsuario <= 0) {
             return NextResponse.json({ ok: true, message: "Consumo bajo, 0 puntos" });
         }
@@ -68,8 +69,8 @@ export async function POST(req: NextRequest) {
                     ) as { endpoint: string; keys?: { p256dh?: string; auth?: string } }[];
 
                     const invalid = await sendPushAndCollectInvalid(uniqueSubs, {
-                        title: "¡Puntos sumados!",
-                        body: `Se acreditaron ${puntosParaUsuario} puntos por tu consumo 🍻`,
+                        title: `¡Ganaste ${puntosParaUsuario} puntos! 🍻`,
+                        body: `Total de la mesa: ${consumoFormateado}. ¡Gracias por venir!`,
                         url: "/cliente/qr",
                     });
 
@@ -92,8 +93,8 @@ export async function POST(req: NextRequest) {
                     try {
                         await enviarNotificacionFCM(
                             fcmToken,
-                            "¡Puntos sumados!",
-                            `Se acreditaron ${puntosParaUsuario} puntos. ¡Gracias por venir!`,
+                            `¡Ganaste ${puntosParaUsuario} puntos! 🍻`,
+                            `Total de la mesa: ${consumoFormateado}. ¡Gracias por venir!`,
                             "/cliente/qr"
                         );
                     } catch (err) {
