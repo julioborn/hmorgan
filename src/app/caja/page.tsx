@@ -3756,6 +3756,12 @@ export default function CajaPage() {
                                                             <p className={`text-sm font-black mt-1 ${c.tipo === "cumpleanos" ? "text-pink-600" : "text-emerald-600"}`}>
                                                                 {c.tipo === "cumpleanos" ? "Regalo · sin costo de puntos" : `${c.puntosGastados} pts`}
                                                             </p>
+                                                            {c.tipo === "cumpleanos" && (
+                                                                <div className="flex gap-1.5 mt-1 flex-wrap">
+                                                                    <span className="text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full">Jueves · 20% off</span>
+                                                                    <span className="text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full">Domingo · 10% off</span>
+                                                                </div>
+                                                            )}
                                                             {c.tipo === "cumpleanos" && c.expiraEl && (
                                                                 <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
                                                                     <Clock size={11} />
