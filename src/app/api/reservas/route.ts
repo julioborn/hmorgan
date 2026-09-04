@@ -88,6 +88,15 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Las reservas se aceptan hasta las 22:00" }, { status: 400 });
     }
 
+    // Canjes de cumpleaños solo en jueves o domingo
+    if (canjeId) {
+        const [fy, fm, fd] = fechaStr.split("-").map(Number);
+        const dia = new Date(fy, fm - 1, fd).getDay();
+        if (dia !== 4 && dia !== 0) {
+            return NextResponse.json({ error: "Este canje solo es válido los jueves y domingos." }, { status: 400 });
+        }
+    }
+
     // Si la reserva es para hoy, el horario no puede haber pasado ya
     if (fechaStr === hoyStr) {
         const [h, m] = String(hora).split(":").map(Number);

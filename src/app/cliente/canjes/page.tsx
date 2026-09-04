@@ -41,6 +41,23 @@ export default function CanjesClientePage() {
     const [reservaNotas, setReservaNotas] = useState("");
     const [reservaSaving, setReservaSaving] = useState(false);
     const [reservaExistente, setReservaExistente] = useState<{ fecha: string; hora: string; comensales: number; estado: string } | null>(null);
+    const [reservaFechaError, setReservaFechaError] = useState("");
+
+    function diaCumple(dateStr: string): { valido: boolean; descuento: number } {
+        if (!dateStr) return { valido: false, descuento: 0 };
+        const [y, m, d] = dateStr.split("-").map(Number);
+        const dia = new Date(y, m - 1, d).getDay();
+        if (dia === 4) return { valido: true, descuento: 20 }; // jueves
+        if (dia === 0) return { valido: true, descuento: 10 }; // domingo
+        return { valido: false, descuento: 0 };
+    }
+
+    function handleFechaCumple(val: string) {
+        setReservaFecha(val);
+        if (!val) { setReservaFechaError(""); return; }
+        const { valido } = diaCumple(val);
+        setReservaFechaError(valido ? "" : "Este canje solo es válido los jueves y domingos.");
+    }
 
     useEffect(() => {
         (async () => {
@@ -116,6 +133,11 @@ export default function CanjesClientePage() {
             await swalBase.fire({ title: "Faltan datos", text: "Elegí fecha y horario.", icon: "warning", confirmButtonText: "OK" });
             return;
         }
+        const { valido, descuento } = diaCumple(reservaFecha);
+        if (!valido) {
+            await swalBase.fire({ title: "Día no válido", text: "Este canje solo puede usarse los jueves (20% off) o domingos (10% off).", icon: "warning", confirmButtonText: "OK" });
+            return;
+        }
         setReservaSaving(true);
         try {
             const res = await fetch("/api/reservas", {
@@ -126,7 +148,7 @@ export default function CanjesClientePage() {
                     fecha: reservaFecha,
                     hora: reservaHora,
                     comensales: reservaComensales,
-                    notas: reservaNotas.trim() || "Canje de cumpleaños 🎂",
+                    notas: reservaNotas.trim() || `Canje de cumpleaños 🎂 · ${descuento}% off`,
                     canjeId,
                 }),
             });
@@ -188,6 +210,10 @@ export default function CanjesClientePage() {
                                     <p className="text-sm text-gray-500">{canjeCumple.rewardId.descripcion}</p>
                                 )}
                                 <span className="text-sm font-bold text-pink-500">🎁 Regalo · sin puntos</span>
+                                <div className="flex gap-2 mt-1 flex-wrap">
+                                    <span className="text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full">📅 Jueves · 20% off</span>
+                                    <span className="text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full">📅 Domingo · 10% off</span>
+                                </div>
                                 {canjeCumple.expiraEl && (
                                     <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
                                         <Clock size={11} />
@@ -400,11 +426,20 @@ export default function CanjesClientePage() {
                         <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
                             <div>
                                 <label className="text-xs font-semibold text-gray-500 uppercase mb-1.5 block">Fecha</label>
+                                <p className="text-[11px] text-amber-700 font-semibold mb-1.5">Solo disponible jueves (20% off) o domingo (10% off)</p>
                                 <input type="date"
                                     min={new Date().toISOString().slice(0, 10)}
                                     value={reservaFecha}
-                                    onChange={e => setReservaFecha(e.target.value)}
-                                    className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-pink-400 focus:outline-none" />
+                                    onChange={e => handleFechaCumple(e.target.value)}
+                                    className={`w-full border-2 rounded-xl px-3 py-2.5 text-sm focus:outline-none ${reservaFechaError ? "border-red-400 focus:border-red-400" : "border-gray-200 focus:border-pink-400"}`} />
+                                {reservaFechaError && (
+                                    <p className="text-xs text-red-600 font-semibold mt-1">{reservaFechaError}</p>
+                                )}
+                                {reservaFecha && !reservaFechaError && (
+                                    <p className="text-xs text-emerald-700 font-bold mt-1">
+                                        ✓ {diaCumple(reservaFecha).descuento}% de descuento aplicado
+                                    </p>
+                                )}
                             </div>
                             <div>
                                 <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">Horario</label>
@@ -436,7 +471,7 @@ export default function CanjesClientePage() {
                             </div>
                         </div>
                         <div className="px-5 py-4 border-t border-gray-100">
-                            <button onClick={() => crearReservaCumple(canjeCumple._id)} disabled={reservaSaving || !reservaFecha || !reservaHora}
+                            <button onClick={() => crearReservaCumple(canjeCumple._id)} disabled={reservaSaving || !reservaFecha || !reservaHora || !!reservaFechaError}
                                 className="w-full flex items-center justify-center gap-2 bg-pink-500 hover:bg-pink-600 disabled:opacity-50 text-white font-black py-3.5 rounded-xl text-sm transition">
                                 {reservaSaving ? "Enviando..." : <><CalendarDays size={15} /> Confirmar reserva</>}
                             </button>
@@ -464,6 +499,10 @@ export default function CanjesClientePage() {
                                 <p className="text-sm text-gray-600">{canjeCumple.rewardId.descripcion}</p>
                             )}
                             <p className="text-pink-600 font-black text-sm mt-3">🎁 Sin costo — regalo de cumpleaños</p>
+                            <div className="flex gap-2 justify-center mt-1 flex-wrap">
+                                <span className="text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full">Jueves · 20% off</span>
+                                <span className="text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full">Domingo · 10% off</span>
+                            </div>
                             <p className="text-xs text-gray-400 mt-1">
                                 Generado el {new Date(canjeCumple.createdAt).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" })}
                             </p>
