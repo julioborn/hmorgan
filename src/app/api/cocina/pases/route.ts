@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { PaseCocina } from "@/models/PaseCocina";
+import { CajaSession } from "@/models/CajaSession";
 import jwt from "jsonwebtoken";
 
 const SECRET = process.env.NEXTAUTH_SECRET!;
@@ -15,7 +16,7 @@ function authCocina(req: NextRequest) {
     } catch { return null; }
 }
 
-// GET — pases pendientes (FIFO) o finalizados según ?estado=listo
+// GET — pases pendientes (FIFO) o finalizados de la caja activa
 export async function GET(req: NextRequest) {
     const payload = authCocina(req);
     if (!payload) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
@@ -23,10 +24,11 @@ export async function GET(req: NextRequest) {
 
     const estadoParam = req.nextUrl.searchParams.get("estado");
     if (estadoParam === "listo") {
-        // Últimos 50 finalizados, más reciente primero
-        const pases = await PaseCocina.find({ estado: "listo" })
+        // Solo los finalizados desde que abrió la caja activa
+        const sesion = await CajaSession.findOne({ estado: "abierta" }).lean<any>();
+        const desde = sesion?.fechaApertura ?? new Date(0);
+        const pases = await PaseCocina.find({ estado: "listo", updatedAt: { $gte: desde } })
             .sort({ updatedAt: -1 })
-            .limit(50)
             .lean();
         return NextResponse.json(pases);
     }
