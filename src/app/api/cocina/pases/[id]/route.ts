@@ -44,6 +44,21 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         return NextResponse.json({ ok: true, todosListos });
     }
 
+    if (accion === "itemDeshacer" && itemId) {
+        const item = (pedido.items as any[]).find((i: any) => i._id.toString() === itemId);
+        if (item) item.listo = false;
+        if (pedido.estado === "listo") pedido.estado = "preparando";
+        await pedido.save();
+        return NextResponse.json({ ok: true });
+    }
+
+    if (accion === "volverPreparando") {
+        for (const it of pedido.items as any[]) it.listo = false;
+        pedido.estado = "preparando";
+        await pedido.save();
+        return NextResponse.json({ ok: true });
+    }
+
     // Marcar todos los ítems de comida como listos
     for (const it of pedido.items as any[]) {
         if (esComida(it.menuItemId?.toString())) it.listo = true;

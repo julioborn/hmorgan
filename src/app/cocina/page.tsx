@@ -210,6 +210,44 @@ export default function CocinaPage() {
         }
     }
 
+    async function deshacerItem(paseId: string, itemId: string) {
+        const key = `${paseId}:${itemId}`;
+        if (marcandoItem === key) return;
+        setMarcandoItem(key);
+        setPases(prev => prev.map(p => {
+            if (p._id !== paseId) return p;
+            return { ...p, items: p.items.map(it => it._id === itemId ? { ...it, listo: false } : it) };
+        }));
+        try {
+            await fetch(`/api/cocina/pases/${paseId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ accion: "itemDeshacer", itemId }),
+            });
+        } catch {
+            setPases(prev => prev.map(p => {
+                if (p._id !== paseId) return p;
+                return { ...p, items: p.items.map(it => it._id === itemId ? { ...it, listo: true } : it) };
+            }));
+        } finally { setMarcandoItem(null); }
+    }
+
+    async function volverPreparando(paseId: string) {
+        if (marcando === paseId) return;
+        setMarcando(paseId);
+        try {
+            await fetch(`/api/cocina/pases/${paseId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ accion: "volverPreparando" }),
+            });
+            setPasesListo(prev => prev.filter(p => p._id !== paseId));
+            listoLoadedRef.current = false;
+        } finally { setMarcando(null); }
+    }
+
     async function marcarItemListo(paseId: string, itemId: string) {
         const key = `${paseId}:${itemId}`;
         if (marcandoItem === key) return;
@@ -448,19 +486,31 @@ export default function CocinaPage() {
                                 <div key={it._id} className="flex items-center gap-3 rounded-xl px-3 py-2 bg-red-50">
                                     <span className="text-xl font-black min-w-[2rem] text-center text-red-300">{it.cantidad}</span>
                                     <p className="text-base font-semibold text-red-400 line-through flex-1">{it.nombre}</p>
-                                    <span className="text-[10px] font-black text-red-500 uppercase tracking-wide bg-red-100 px-2 py-1 rounded-full whitespace-nowrap">Ya salió</span>
+                                    <button
+                                        onClick={() => deshacerItem(p._id, it._id)}
+                                        disabled={marcandoItem === `${p._id}:${it._id}`}
+                                        className="text-[10px] font-black text-orange-600 uppercase tracking-wide bg-orange-100 hover:bg-orange-200 px-2 py-1 rounded-full whitespace-nowrap transition active:scale-95 disabled:opacity-50">
+                                        Deshacer
+                                    </button>
                                 </div>
                             ))}
                         </>
                     )}
                 </div>
 
-                {!finalizado && (
+                {!finalizado ? (
                     <div className="px-4 pb-4 bg-white">
                         <button onClick={() => setConfirmarId(p._id)} disabled={isMarcando}
                             className="w-full flex items-center justify-center gap-2 bg-black hover:bg-gray-800 disabled:bg-gray-200 disabled:text-gray-400 text-white font-black text-base py-3 rounded-xl transition active:scale-[0.98]">
                             <CheckCircle size={18} />
                             {isMarcando ? "Marcando..." : "Todo listo"}
+                        </button>
+                    </div>
+                ) : (
+                    <div className="px-4 pb-4 bg-white">
+                        <button onClick={() => volverPreparando(p._id)} disabled={marcando === p._id}
+                            className="w-full flex items-center justify-center gap-2 border border-orange-300 text-orange-600 hover:bg-orange-50 disabled:opacity-50 font-bold text-sm py-2.5 rounded-xl transition active:scale-[0.98]">
+                            {marcando === p._id ? "..." : "↩ Volver a preparando"}
                         </button>
                     </div>
                 )}
