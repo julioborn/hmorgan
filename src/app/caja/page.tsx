@@ -2876,8 +2876,10 @@ export default function CajaPage() {
                                                                     if (isUpdating) return;
                                                                     setPrintingIds(prev => new Set([...prev, p._id]));
                                                                     try {
-                                                                        await printComanda(p);
-                                                                        await avanzarEstado(p, "preparando");
+                                                                        await Promise.all([
+                                                                            printComanda(p),
+                                                                            avanzarEstado(p, "preparando"),
+                                                                        ]);
                                                                     } finally {
                                                                         setPrintingIds(prev => { const s = new Set(prev); s.delete(p._id); return s; });
                                                                     }
