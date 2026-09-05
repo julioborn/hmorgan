@@ -390,7 +390,7 @@ export default function CocinaPage() {
                                     {it.opcionesSeleccionadas && Object.keys(it.opcionesSeleccionadas).length > 0 && (
                                         <div className="flex flex-wrap gap-1 mt-0.5">
                                             {Object.entries(it.opcionesSeleccionadas).map(([k, v]) => (
-                                                <span key={k} className="text-[10px] font-bold bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded-full">{k}: {v}</span>
+                                                <span key={k} className="text-[10px] font-bold bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded-full">{v}</span>
                                             ))}
                                         </div>
                                     )}
@@ -419,7 +419,7 @@ export default function CocinaPage() {
                                             {it.opcionesSeleccionadas && Object.keys(it.opcionesSeleccionadas).length > 0 && (
                                                 <div className="mt-0.5 flex flex-wrap gap-1">
                                                     {Object.entries(it.opcionesSeleccionadas).map(([k, v]) => (
-                                                        <span key={k} className="text-xs font-bold bg-indigo-100 text-indigo-800 border border-indigo-200 px-2 py-0.5 rounded-full">{k}: {v}</span>
+                                                        <span key={k} className="text-xs font-bold bg-indigo-100 text-indigo-800 border border-indigo-200 px-2 py-0.5 rounded-full">{v}</span>
                                                     ))}
                                                 </div>
                                             )}
