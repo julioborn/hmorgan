@@ -1567,7 +1567,7 @@ export default function CajaPage() {
         // Intentar servidor local de impresión
         try {
             const ctrl = new AbortController();
-            const tid = setTimeout(() => ctrl.abort(), 1500);
+            const tid = setTimeout(() => ctrl.abort(), 4000);
             const promesas: Promise<Response>[] = [];
             const costoEnvioEfectivoPrint = p.tipoEntrega === "envio" ? (p.costoEnvio || costoDelivery) : 0;
             const recargoItem = costoEnvioEfectivoPrint > 0
@@ -1611,7 +1611,11 @@ export default function CajaPage() {
                 return; // impresión exitosa
             }
             clearTimeout(tid);
-        } catch { /* servidor local no disponible → cloud polling */ }
+        } catch (err: any) {
+            // AbortError = timeout propio: el servidor local recibió la solicitud, no usar cloud
+            if (err?.name === "AbortError") return;
+            /* red no disponible → cloud polling */
+        }
 
         // Fallback: encolar via cloud polling
         const costoEnvioEfectivoPrint2 = p.tipoEntrega === "envio" ? (p.costoEnvio || costoDelivery) : 0;
@@ -1653,7 +1657,7 @@ export default function CajaPage() {
 
         try {
             const ctrl = new AbortController();
-            const tid = setTimeout(() => ctrl.abort(), 1500);
+            const tid = setTimeout(() => ctrl.abort(), 4000);
             const promesas: Promise<Response>[] = [];
             if (comida.length > 0) promesas.push(fetch(`${PRINT_SERVER}/imprimir/comanda`, { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal, body: JSON.stringify(payloadCocina) }));
             if (bebidas.length > 0) promesas.push(fetch(`${PRINT_SERVER}/imprimir/comanda`, { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal, body: JSON.stringify(payloadBarra) }));
@@ -1662,7 +1666,11 @@ export default function CajaPage() {
                 clearTimeout(tid);
                 return; // servidor local OK
             }
-        } catch { /* servidor local no disponible → cloud polling */ }
+        } catch (err: any) {
+            // AbortError = timeout propio: el servidor local recibió la solicitud, no usar cloud
+            if (err?.name === "AbortError") return;
+            /* red no disponible → cloud polling */
+        }
 
         // Fallback: encolar via cloud polling (el print server lo levanta en ~3s)
         if (comida.length > 0) await crearPrintJobComanda("Cocina", payloadCocina);
