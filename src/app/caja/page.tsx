@@ -1611,11 +1611,7 @@ export default function CajaPage() {
                 return; // impresión exitosa
             }
             clearTimeout(tid);
-        } catch (err: any) {
-            // AbortError = timeout propio: el servidor local recibió la solicitud, no usar cloud
-            if (err?.name === "AbortError") return;
-            /* red no disponible → cloud polling */
-        }
+        } catch { /* servidor local no disponible → cloud polling */ }
 
         // Fallback: encolar via cloud polling
         const costoEnvioEfectivoPrint2 = p.tipoEntrega === "envio" ? (p.costoEnvio || costoDelivery) : 0;
@@ -1666,11 +1662,7 @@ export default function CajaPage() {
                 clearTimeout(tid);
                 return; // servidor local OK
             }
-        } catch (err: any) {
-            // AbortError = timeout propio: el servidor local recibió la solicitud, no usar cloud
-            if (err?.name === "AbortError") return;
-            /* red no disponible → cloud polling */
-        }
+        } catch { /* servidor local no disponible → cloud polling */ }
 
         // Fallback: encolar via cloud polling (el print server lo levanta en ~3s)
         if (comida.length > 0) await crearPrintJobComanda("Cocina", payloadCocina);
