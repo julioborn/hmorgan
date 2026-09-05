@@ -28,6 +28,7 @@ type ItemPase = {
     cantidad: number;
     nota?: string;
     listo: boolean;
+    opcionesSeleccionadas?: Record<string, string>;
 };
 
 type Pase = {
@@ -384,7 +385,16 @@ export default function CocinaPage() {
                         p.items.map(it => (
                             <div key={it._id} className="flex items-center gap-3 rounded-xl px-3 py-2 bg-emerald-50">
                                 <span className="text-xl font-black min-w-[2rem] text-center text-emerald-500">{it.cantidad}</span>
-                                <p className="text-base font-semibold text-emerald-700 flex-1">{it.nombre}</p>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-base font-semibold text-emerald-700">{it.nombre}</p>
+                                    {it.opcionesSeleccionadas && Object.keys(it.opcionesSeleccionadas).length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mt-0.5">
+                                            {Object.entries(it.opcionesSeleccionadas).map(([k, v]) => (
+                                                <span key={k} className="text-[10px] font-bold bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded-full">{k}: {v}</span>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                                 <CheckCircle size={16} className="text-emerald-500 shrink-0" />
                             </div>
                         ))
@@ -406,6 +416,13 @@ export default function CocinaPage() {
                                         <span className="text-2xl font-black min-w-[2rem] text-center text-black">{it.cantidad}</span>
                                         <div className="flex-1 min-w-0">
                                             <p className="text-lg font-bold text-black">{it.nombre}</p>
+                                            {it.opcionesSeleccionadas && Object.keys(it.opcionesSeleccionadas).length > 0 && (
+                                                <div className="mt-0.5 flex flex-wrap gap-1">
+                                                    {Object.entries(it.opcionesSeleccionadas).map(([k, v]) => (
+                                                        <span key={k} className="text-xs font-bold bg-indigo-100 text-indigo-800 border border-indigo-200 px-2 py-0.5 rounded-full">{k}: {v}</span>
+                                                    ))}
+                                                </div>
+                                            )}
                                             {it.nota && <p className="text-sm text-amber-600 mt-0.5 italic">✏ {it.nota}</p>}
                                         </div>
                                         <button
