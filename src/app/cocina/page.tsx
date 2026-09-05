@@ -450,26 +450,32 @@ export default function CocinaPage() {
                                 const itemKey = `${p._id}:${it._id}`;
                                 const isMarcandoEste = marcandoItem === itemKey;
                                 return (
-                                    <div key={it._id} className="flex items-center gap-3 rounded-xl px-3 py-2.5 bg-white border border-gray-200 shadow-sm">
-                                        <span className="text-2xl font-black min-w-[2rem] text-center text-black">{it.cantidad}</span>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-lg font-bold text-black">{it.nombre}</p>
-                                            {it.opcionesSeleccionadas && Object.keys(it.opcionesSeleccionadas).length > 0 && (
-                                                <div className="mt-0.5 flex flex-wrap gap-1">
-                                                    {Object.entries(it.opcionesSeleccionadas).map(([k, v]) => (
-                                                        <span key={k} className="text-xs font-bold bg-indigo-100 text-indigo-800 border border-indigo-200 px-2 py-0.5 rounded-full">{v}</span>
-                                                    ))}
-                                                </div>
-                                            )}
-                                            {it.nota && <p className="text-sm text-amber-600 mt-0.5 italic">✏ {it.nota}</p>}
+                                    <div key={it._id} className="rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden">
+                                        <div className="flex items-center gap-3 px-3 py-2.5">
+                                            <span className="text-2xl font-black min-w-[2rem] text-center text-black">{it.cantidad}</span>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-lg font-bold text-black">{it.nombre}</p>
+                                                {it.opcionesSeleccionadas && Object.keys(it.opcionesSeleccionadas).length > 0 && (
+                                                    <div className="mt-0.5 flex flex-wrap gap-1">
+                                                        {Object.entries(it.opcionesSeleccionadas).map(([k, v]) => (
+                                                            <span key={k} className="text-xs font-bold bg-indigo-100 text-indigo-800 border border-indigo-200 px-2 py-0.5 rounded-full">{v}</span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                {it.nota && <p className="text-sm text-amber-600 mt-0.5 italic">✏ {it.nota}</p>}
+                                            </div>
+                                            <button
+                                                onClick={() => setConfirmarItem({ paseId: p._id, itemId: it._id, nombre: it.nombre })}
+                                                disabled={isMarcandoEste}
+                                                className={`shrink-0 w-9 h-9 rounded-full border-2 flex items-center justify-center transition active:scale-95 ${isMarcandoEste ? "border-gray-300 bg-gray-100 text-gray-400" : "border-gray-300 bg-white hover:border-emerald-500 hover:bg-emerald-50"}`}
+                                            >
+                                                <CheckCircle size={18} />
+                                            </button>
                                         </div>
-                                        <button
-                                            onClick={() => setConfirmarItem({ paseId: p._id, itemId: it._id, nombre: it.nombre })}
-                                            disabled={isMarcandoEste}
-                                            className={`shrink-0 w-9 h-9 rounded-full border-2 flex items-center justify-center transition active:scale-95 ${isMarcandoEste ? "border-gray-300 bg-gray-100 text-gray-400" : "border-gray-300 bg-white hover:border-emerald-500 hover:bg-emerald-50"}`}
-                                        >
-                                            <CheckCircle size={18} />
-                                        </button>
+                                        <div className="bg-gray-800 px-3 py-1 flex items-center gap-1.5">
+                                            <Clock size={11} className="text-gray-300 shrink-0" />
+                                            <span className="text-xs font-black text-white tracking-wide">Pedido a las {hora}</span>
+                                        </div>
                                     </div>
                                 );
                             })}
