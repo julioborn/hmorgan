@@ -1566,47 +1566,42 @@ export default function CajaPage() {
         const itemIds = p.items.map(it => it._id).filter((id): id is string => !!id);
         await marcarItemsImpresos(p._id, itemIds);
 
-        // Intentar servidor local de impresión (sin timeout: en red local falla instantáneo si está caído)
+        // Verificar si el servidor local está vivo (timeout 600ms) y si es así enviar fire-and-forget
         try {
-            const promesas: Promise<Response>[] = [];
+            const ctrl = new AbortController();
+            setTimeout(() => ctrl.abort(), 600);
+            await fetch(`${PRINT_SERVER}/estado`, { signal: ctrl.signal });
+
+            // Servidor disponible: enviar trabajos sin esperar respuesta (la impresora imprime sola)
             const costoEnvioEfectivoPrint = p.tipoEntrega === "envio" ? (p.costoEnvio || costoDelivery) : 0;
             const recargoItem = costoEnvioEfectivoPrint > 0
                 ? [{ cantidad: 1, nombre: `🛵 Recargo delivery: ${formatMoney(costoEnvioEfectivoPrint)}` }]
                 : [];
-            if (comida.length > 0) promesas.push(
-                fetch(`${PRINT_SERVER}/imprimir/comanda`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        impresora: "Cocina",
-                        mesa, cliente, mozo, direccion, hora, nota,
-                        horarioPreferido: p.horarioPreferido || undefined,
-                        items: [
-                            ...comida.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined, opcionesSeleccionadas: it.opcionesSeleccionadas })),
-                            ...recargoItem,
-                        ],
-                    }),
-                })
-            );
-            if (bebidas.length > 0) promesas.push(
-                fetch(`${PRINT_SERVER}/imprimir/comanda`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        impresora: "Barra",
-                        mesa, cliente, mozo, direccion, hora,
-                        horarioPreferido: p.horarioPreferido || undefined,
-                        items: [
-                            ...bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined, opcionesSeleccionadas: it.opcionesSeleccionadas })),
-                            ...recargoItem,
-                        ],
-                    }),
-                })
-            );
-            if (promesas.length > 0) {
-                await Promise.all(promesas);
-                return; // impresión exitosa → no usar cloud
-            }
+            if (comida.length > 0) fetch(`${PRINT_SERVER}/imprimir/comanda`, {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    impresora: "Cocina",
+                    mesa, cliente, mozo, direccion, hora, nota,
+                    horarioPreferido: p.horarioPreferido || undefined,
+                    items: [
+                        ...comida.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined, opcionesSeleccionadas: it.opcionesSeleccionadas })),
+                        ...recargoItem,
+                    ],
+                }),
+            }).catch(() => {});
+            if (bebidas.length > 0) fetch(`${PRINT_SERVER}/imprimir/comanda`, {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    impresora: "Barra",
+                    mesa, cliente, mozo, direccion, hora,
+                    horarioPreferido: p.horarioPreferido || undefined,
+                    items: [
+                        ...bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.menuItemId?.nombre || "Ítem", nota: it.nota || undefined, opcionesSeleccionadas: it.opcionesSeleccionadas })),
+                        ...recargoItem,
+                    ],
+                }),
+            }).catch(() => {});
+            return; // servidor local activo → no usar cloud
         } catch { /* servidor local no disponible → cloud polling */ }
 
         // Fallback: encolar via cloud polling
@@ -1648,13 +1643,14 @@ export default function CajaPage() {
         };
 
         try {
-            const promesas: Promise<Response>[] = [];
-            if (comida.length > 0) promesas.push(fetch(`${PRINT_SERVER}/imprimir/comanda`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payloadCocina) }));
-            if (bebidas.length > 0) promesas.push(fetch(`${PRINT_SERVER}/imprimir/comanda`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payloadBarra) }));
-            if (promesas.length > 0) {
-                await Promise.all(promesas);
-                return; // servidor local OK → no usar cloud
-            }
+            const ctrl = new AbortController();
+            setTimeout(() => ctrl.abort(), 600);
+            await fetch(`${PRINT_SERVER}/estado`, { signal: ctrl.signal });
+
+            // Servidor disponible: fire-and-forget
+            if (comida.length > 0) fetch(`${PRINT_SERVER}/imprimir/comanda`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payloadCocina) }).catch(() => {});
+            if (bebidas.length > 0) fetch(`${PRINT_SERVER}/imprimir/comanda`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payloadBarra) }).catch(() => {});
+            return; // servidor local activo → no usar cloud
         } catch { /* servidor local no disponible → cloud polling */ }
 
         // Fallback: encolar via cloud polling (el print server lo levanta en ~3s)
