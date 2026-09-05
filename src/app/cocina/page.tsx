@@ -50,6 +50,7 @@ type Pase = {
     estado: string;
     createdAt: string;
     updatedAt: string;
+    primeraComidaAt?: string;
 };
 
 type MenuItemLite = {
@@ -349,7 +350,7 @@ export default function CocinaPage() {
         const mozo       = p.fuente === "empleado" && nombrePersona ? nombrePersona : null;
         const cliente    = p.fuente === "cliente"  && nombrePersona ? nombrePersona : null;
 
-        const msDemora   = Date.now() - new Date(p.createdAt).getTime();
+        const msDemora   = Date.now() - new Date(p.primeraComidaAt ?? p.createdAt).getTime();
         const minDemora  = Math.floor(msDemora / 60000);
         const esDemorada = !finalizado && msDemora > DEMORA_MS;
 
