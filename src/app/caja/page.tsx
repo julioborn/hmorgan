@@ -1566,19 +1566,18 @@ export default function CajaPage() {
         const itemIds = p.items.map(it => it._id).filter((id): id is string => !!id);
         await marcarItemsImpresos(p._id, itemIds);
 
-        // Verificar si el servidor local está vivo (timeout 600ms) y si es así enviar fire-and-forget
+        // Servidor local: timeout de 3s. Si responde → ok. Si timeout (AbortError) → el servidor
+        // ya recibió el request y lo procesa, no usar cloud. Si error de red → cloud.
         try {
             const ctrl = new AbortController();
-            setTimeout(() => ctrl.abort(), 600);
-            await fetch(`${PRINT_SERVER}/estado`, { signal: ctrl.signal });
-
-            // Servidor disponible: enviar trabajos sin esperar respuesta (la impresora imprime sola)
+            setTimeout(() => ctrl.abort(), 3000);
             const costoEnvioEfectivoPrint = p.tipoEntrega === "envio" ? (p.costoEnvio || costoDelivery) : 0;
             const recargoItem = costoEnvioEfectivoPrint > 0
                 ? [{ cantidad: 1, nombre: `🛵 Recargo delivery: ${formatMoney(costoEnvioEfectivoPrint)}` }]
                 : [];
-            if (comida.length > 0) fetch(`${PRINT_SERVER}/imprimir/comanda`, {
-                method: "POST", headers: { "Content-Type": "application/json" },
+            const promesas: Promise<Response>[] = [];
+            if (comida.length > 0) promesas.push(fetch(`${PRINT_SERVER}/imprimir/comanda`, {
+                method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal,
                 body: JSON.stringify({
                     impresora: "Cocina",
                     mesa, cliente, mozo, direccion, hora, nota,
@@ -1588,9 +1587,9 @@ export default function CajaPage() {
                         ...recargoItem,
                     ],
                 }),
-            }).catch(() => {});
-            if (bebidas.length > 0) fetch(`${PRINT_SERVER}/imprimir/comanda`, {
-                method: "POST", headers: { "Content-Type": "application/json" },
+            }));
+            if (bebidas.length > 0) promesas.push(fetch(`${PRINT_SERVER}/imprimir/comanda`, {
+                method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal,
                 body: JSON.stringify({
                     impresora: "Barra",
                     mesa, cliente, mozo, direccion, hora,
@@ -1600,9 +1599,13 @@ export default function CajaPage() {
                         ...recargoItem,
                     ],
                 }),
-            }).catch(() => {});
-            return; // servidor local activo → no usar cloud
-        } catch { /* servidor local no disponible → cloud polling */ }
+            }));
+            if (promesas.length > 0) await Promise.all(promesas);
+            return; // éxito → no usar cloud
+        } catch (err: any) {
+            if (err?.name === "AbortError") return; // timeout: servidor recibió el request, imprime solo
+            /* error de red real → cloud polling */
+        }
 
         // Fallback: encolar via cloud polling
         const costoEnvioEfectivoPrint2 = p.tipoEntrega === "envio" ? (p.costoEnvio || costoDelivery) : 0;
@@ -1644,14 +1647,16 @@ export default function CajaPage() {
 
         try {
             const ctrl = new AbortController();
-            setTimeout(() => ctrl.abort(), 600);
-            await fetch(`${PRINT_SERVER}/estado`, { signal: ctrl.signal });
-
-            // Servidor disponible: fire-and-forget
-            if (comida.length > 0) fetch(`${PRINT_SERVER}/imprimir/comanda`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payloadCocina) }).catch(() => {});
-            if (bebidas.length > 0) fetch(`${PRINT_SERVER}/imprimir/comanda`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payloadBarra) }).catch(() => {});
-            return; // servidor local activo → no usar cloud
-        } catch { /* servidor local no disponible → cloud polling */ }
+            setTimeout(() => ctrl.abort(), 3000);
+            const promesas: Promise<Response>[] = [];
+            if (comida.length > 0) promesas.push(fetch(`${PRINT_SERVER}/imprimir/comanda`, { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal, body: JSON.stringify(payloadCocina) }));
+            if (bebidas.length > 0) promesas.push(fetch(`${PRINT_SERVER}/imprimir/comanda`, { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal, body: JSON.stringify(payloadBarra) }));
+            if (promesas.length > 0) await Promise.all(promesas);
+            return; // éxito → no usar cloud
+        } catch (err: any) {
+            if (err?.name === "AbortError") return; // timeout: servidor recibió el request, imprime solo
+            /* error de red real → cloud polling */
+        }
 
         // Fallback: encolar via cloud polling (el print server lo levanta en ~3s)
         if (comida.length > 0) await crearPrintJobComanda("Cocina", payloadCocina);
