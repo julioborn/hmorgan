@@ -1564,10 +1564,8 @@ export default function CajaPage() {
         const itemIds = p.items.map(it => it._id).filter((id): id is string => !!id);
         await marcarItemsImpresos(p._id, itemIds);
 
-        // Intentar servidor local de impresión
+        // Intentar servidor local de impresión (sin timeout: en red local falla instantáneo si está caído)
         try {
-            const ctrl = new AbortController();
-            const tid = setTimeout(() => ctrl.abort(), 4000);
             const promesas: Promise<Response>[] = [];
             const costoEnvioEfectivoPrint = p.tipoEntrega === "envio" ? (p.costoEnvio || costoDelivery) : 0;
             const recargoItem = costoEnvioEfectivoPrint > 0
@@ -1577,7 +1575,6 @@ export default function CajaPage() {
                 fetch(`${PRINT_SERVER}/imprimir/comanda`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    signal: ctrl.signal,
                     body: JSON.stringify({
                         impresora: "Cocina",
                         mesa, cliente, mozo, direccion, hora, nota,
@@ -1593,7 +1590,6 @@ export default function CajaPage() {
                 fetch(`${PRINT_SERVER}/imprimir/comanda`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    signal: ctrl.signal,
                     body: JSON.stringify({
                         impresora: "Barra",
                         mesa, cliente, mozo, direccion, hora,
@@ -1607,10 +1603,8 @@ export default function CajaPage() {
             );
             if (promesas.length > 0) {
                 await Promise.all(promesas);
-                clearTimeout(tid);
-                return; // impresión exitosa
+                return; // impresión exitosa → no usar cloud
             }
-            clearTimeout(tid);
         } catch { /* servidor local no disponible → cloud polling */ }
 
         // Fallback: encolar via cloud polling
@@ -1652,15 +1646,12 @@ export default function CajaPage() {
         };
 
         try {
-            const ctrl = new AbortController();
-            const tid = setTimeout(() => ctrl.abort(), 4000);
             const promesas: Promise<Response>[] = [];
-            if (comida.length > 0) promesas.push(fetch(`${PRINT_SERVER}/imprimir/comanda`, { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal, body: JSON.stringify(payloadCocina) }));
-            if (bebidas.length > 0) promesas.push(fetch(`${PRINT_SERVER}/imprimir/comanda`, { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal, body: JSON.stringify(payloadBarra) }));
+            if (comida.length > 0) promesas.push(fetch(`${PRINT_SERVER}/imprimir/comanda`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payloadCocina) }));
+            if (bebidas.length > 0) promesas.push(fetch(`${PRINT_SERVER}/imprimir/comanda`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payloadBarra) }));
             if (promesas.length > 0) {
                 await Promise.all(promesas);
-                clearTimeout(tid);
-                return; // servidor local OK
+                return; // servidor local OK → no usar cloud
             }
         } catch { /* servidor local no disponible → cloud polling */ }
 
