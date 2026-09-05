@@ -588,8 +588,10 @@ export default function CajaPage() {
             if (pendientes.length === 0) continue;
             const ids = pendientes.map(it => it._id!);
             ids.forEach(id => itemsImprimiendoRef.current.add(id));
-            printItemsAgregados(p, pendientes)
-                .then(() => marcarItemsImpresos(p._id, ids))
+            // Marcar ANTES de imprimir: si hay otro dispositivo con la caja abierta,
+            // ya verá impreso:true y no volverá a imprimir los mismos ítems.
+            marcarItemsImpresos(p._id, ids)
+                .then(() => printItemsAgregados(p, pendientes))
                 .finally(() => ids.forEach(id => itemsImprimiendoRef.current.delete(id)));
         }
     }
