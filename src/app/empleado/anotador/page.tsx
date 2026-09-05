@@ -16,7 +16,7 @@ type Comanda = {
     comensalesIds?: { _id: string; nombre: string; apellido: string }[];
     nombreComanda?: string;
     eventoId?: string;
-    items: { _id?: string; menuItemId: { _id: string; nombre: string; precio: number }; cantidad: number; nota?: string; listo?: boolean }[];
+    items: { _id?: string; menuItemId: { _id: string; nombre: string; precio: number }; cantidad: number; nota?: string; listo?: boolean; opcionesSeleccionadas?: Record<string, string> }[];
     total: number;
     estado: string;
     createdAt: string;
@@ -582,6 +582,13 @@ export default function AnotadorPage() {
                                                         )}
                                                     </div>
                                                 </div>
+                                                {it.opcionesSeleccionadas && Object.keys(it.opcionesSeleccionadas).length > 0 && (
+                                                    <div className="flex flex-wrap gap-1 mt-0.5 ml-5">
+                                                        {Object.values(it.opcionesSeleccionadas).map((v, idx) => (
+                                                            <span key={idx} className="text-[10px] font-bold bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full">{v}</span>
+                                                        ))}
+                                                    </div>
+                                                )}
                                                 {it.nota && !isEditingThis && (
                                                     <p className="text-[11px] text-amber-700 italic mt-0.5 ml-5 break-words">✏ {it.nota}</p>
                                                 )}

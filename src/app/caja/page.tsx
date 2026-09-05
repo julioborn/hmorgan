@@ -6060,7 +6060,7 @@ export default function CajaPage() {
                                             const rot = m.rotacion ?? 0;
                                             const w = m.ancho || (m.forma === "oval" ? 11 : m.forma === "round" ? 5.5 : 7);
                                             const h = m.alto || (m.forma === "oval" ? 5 : m.forma === "round" ? 5.5 : 5);
-                                            const bloqueada = isBanq || ocupada || reservada || tieneAutoservicio;
+                                            const bloqueada = ocupada || reservada || tieneAutoservicio;
                                             const bg = esActual ? "bg-blue-500 border-blue-600 text-white ring-2 ring-blue-300"
                                                 : isBanq ? "bg-amber-700 border-amber-800 text-amber-100"
                                                     : tieneAutoservicio ? "bg-purple-600 border-purple-700 text-white opacity-80"
