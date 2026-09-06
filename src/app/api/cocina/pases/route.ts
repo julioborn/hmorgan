@@ -58,8 +58,8 @@ export async function GET(req: NextRequest) {
         return NextResponse.json(result);
     }
 
-    // Pendientes FIFO
-    const pedidos = await Pedido.find({ estado: { $in: ["pendiente", "preparando"] } })
+    // Solo preparando: la caja ya los aceptó
+    const pedidos = await Pedido.find({ estado: "preparando" })
         .populate("userId", "nombre apellido")
         .sort({ createdAt: 1 })
         .lean<any[]>();
