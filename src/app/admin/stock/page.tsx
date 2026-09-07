@@ -4,10 +4,12 @@ import { useRouter } from "next/navigation";
 import { swalBase } from "@/lib/swalConfig";
 import {
     Plus, TrendingUp, TrendingDown, AlertTriangle,
-    X, History, Edit2, Trash2, Loader2, ChevronLeft, ClipboardList,
+    X, History, Edit2, Trash2, Loader2, ChevronLeft, ClipboardList, Settings, Package,
 } from "lucide-react";
 
 type Tipo = "cocina" | "bebida";
+
+type StockSubcategoria = { _id: string; tipo: Tipo; nombre: string };
 
 type StockItem = {
     _id: string;
@@ -19,6 +21,7 @@ type StockItem = {
     stockActual: number;
     stockMinimo: number;
     activo: boolean;
+    unidadesPorCaja?: number;
 };
 
 type StockMovimiento = {
@@ -31,34 +34,17 @@ type StockMovimiento = {
     createdAt: string;
 };
 
-const SUBCATS: Record<Tipo, string[]> = {
-    cocina: ["Carnes", "Verduras", "Lácteos", "Panificados", "Condimentos", "Pastas & Arroces", "Snacks", "Otros"],
-    bebida: ["Gin", "Licores", "Ron", "Tequila", "Vermu", "Vodka", "Whisky's", "Otros"],
-};
-
 const TIPO_META: Record<Tipo, { label: string; emoji: string; color: string; bg: string; border: string; pill: string }> = {
-    cocina: {
-        label: "Cocina",
-        emoji: "🍳",
-        color: "text-orange-700",
-        bg: "bg-orange-50",
-        border: "border-orange-200",
-        pill: "bg-orange-600",
-    },
-    bebida: {
-        label: "Bebida",
-        emoji: "🍺",
-        color: "text-blue-700",
-        bg: "bg-blue-50",
-        border: "border-blue-200",
-        pill: "bg-blue-600",
-    },
+    cocina: { label: "Cocina", emoji: "🍳", color: "text-orange-700", bg: "bg-orange-50", border: "border-orange-200", pill: "bg-orange-600" },
+    bebida: { label: "Bebida", emoji: "🍺", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-200", pill: "bg-blue-600" },
 };
 
 const EMPTY_ITEM = (tipo: Tipo): Omit<StockItem, "_id"> => ({
-    nombre: "", descripcion: "", tipo, categoria: SUBCATS[tipo][0],
-    unidad: "unidades", stockActual: 0, stockMinimo: 0, activo: true,
+    nombre: "", descripcion: "", tipo, categoria: "",
+    unidad: "unidades", stockActual: 0, stockMinimo: 0, activo: true, unidadesPorCaja: undefined,
 });
+
+const EMPTY_MOV = { tipo: "entrada" as "entrada" | "salida", cantidad: "", motivo: "", precioUnitario: "", notas: "", modo: "suelto" as "suelto" | "caja", cantidadCajas: "" };
 
 const formatNum = (n: number) =>
     new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n);
@@ -66,23 +52,26 @@ const formatNum = (n: number) =>
 export default function StockPage() {
     const [items, setItems] = useState<StockItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [subcats, setSubcats] = useState<StockSubcategoria[]>([]);
 
     const router = useRouter();
 
-    // navegación
     const [vista, setVista] = useState<Tipo | null>(null);
     const [subcat, setSubcat] = useState<string>("Todos");
 
-    // modals
     const [editModal, setEditModal] = useState<{ open: boolean; item: Partial<StockItem> & { _id?: string } }>({ open: false, item: EMPTY_ITEM("cocina") });
     const [movModal, setMovModal] = useState<{ open: boolean; item: StockItem | null }>({ open: false, item: null });
     const [histModal, setHistModal] = useState<{ open: boolean; item: StockItem | null; movs: StockMovimiento[] }>({ open: false, item: null, movs: [] });
+    const [subcatModal, setSubcatModal] = useState(false);
     const [histLoading, setHistLoading] = useState(false);
 
-    const [movForm, setMovForm] = useState({ tipo: "entrada" as "entrada" | "salida", cantidad: "", motivo: "", precioUnitario: "", notas: "" });
+    const [movForm, setMovForm] = useState(EMPTY_MOV);
     const [movSaving, setMovSaving] = useState(false);
     const [editSaving, setEditSaving] = useState(false);
     const [search, setSearch] = useState("");
+
+    const [newSubcat, setNewSubcat] = useState({ tipo: "cocina" as Tipo, nombre: "" });
+    const [subcatSaving, setSubcatSaving] = useState(false);
 
     const loadItems = useCallback(() => {
         setLoading(true);
@@ -93,19 +82,19 @@ export default function StockPage() {
             .finally(() => setLoading(false));
     }, []);
 
-    useEffect(() => { loadItems(); }, [loadItems]);
+    const loadSubcats = useCallback(() => {
+        fetch("/api/superadmin/stock/subcategorias", { credentials: "include" })
+            .then(r => r.json())
+            .then(data => { if (Array.isArray(data)) setSubcats(data); })
+            .catch(() => {});
+    }, []);
 
-    function abrirVista(t: Tipo) {
-        setVista(t);
-        setSubcat("Todos");
-        setSearch("");
-    }
+    useEffect(() => { loadItems(); loadSubcats(); }, [loadItems, loadSubcats]);
 
-    function volver() {
-        setVista(null);
-        setSubcat("Todos");
-        setSearch("");
-    }
+    const getSubcats = (tipo: Tipo) => subcats.filter(s => s.tipo === tipo).map(s => s.nombre);
+
+    function abrirVista(t: Tipo) { setVista(t); setSubcat("Todos"); setSearch(""); }
+    function volver() { setVista(null); setSubcat("Todos"); setSearch(""); }
 
     async function saveItem() {
         const { _id, ...body } = editModal.item as any;
@@ -128,21 +117,22 @@ export default function StockPage() {
 
     async function registrarMovimiento() {
         if (!movModal.item) return;
-        if (!movForm.cantidad || !movForm.motivo) return;
+        const cantFinal = Number(movForm.cantidad);
+        if (!cantFinal || !movForm.motivo) return;
         setMovSaving(true);
         try {
             const res = await fetch("/api/superadmin/stock/movimientos", {
                 method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
                 body: JSON.stringify({
                     stockId: movModal.item._id, tipo: movForm.tipo,
-                    cantidad: Number(movForm.cantidad), motivo: movForm.motivo,
+                    cantidad: cantFinal, motivo: movForm.motivo,
                     precioUnitario: movForm.precioUnitario ? Number(movForm.precioUnitario) : undefined,
                     notas: movForm.notas || undefined,
                 }),
             });
             if (res.ok) {
                 setMovModal({ open: false, item: null });
-                setMovForm({ tipo: "entrada", cantidad: "", motivo: "", precioUnitario: "", notas: "" });
+                setMovForm(EMPTY_MOV);
                 loadItems();
             }
         } finally { setMovSaving(false); }
@@ -158,13 +148,27 @@ export default function StockPage() {
         } finally { setHistLoading(false); }
     }
 
-    // alertas globales
-    const alertas = items.filter(i => i.activo && i.stockMinimo > 0 && i.stockActual <= i.stockMinimo);
+    async function crearSubcat() {
+        if (!newSubcat.nombre.trim()) return;
+        setSubcatSaving(true);
+        try {
+            const res = await fetch("/api/superadmin/stock/subcategorias", {
+                method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
+                body: JSON.stringify({ tipo: newSubcat.tipo, nombre: newSubcat.nombre.trim() }),
+            });
+            if (res.ok) { setNewSubcat(p => ({ ...p, nombre: "" })); loadSubcats(); }
+        } finally { setSubcatSaving(false); }
+    }
 
-    // items filtrados para la vista actual
-    const itemsVista = vista
-        ? items.filter(i => (i.tipo ?? "cocina") === vista)
-        : [];
+    async function eliminarSubcat(id: string) {
+        await fetch("/api/superadmin/stock/subcategorias", {
+            method: "DELETE", headers: { "Content-Type": "application/json" }, credentials: "include",
+            body: JSON.stringify({ id }),
+        });
+        loadSubcats();
+    }
+
+    const itemsVista = vista ? items.filter(i => (i.tipo ?? "cocina") === vista) : [];
 
     const itemsFiltrados = itemsVista.filter(i => {
         const matchSub = subcat === "Todos" || i.categoria === subcat;
@@ -178,16 +182,28 @@ export default function StockPage() {
         return acc;
     }, {} as Record<string, StockItem[]>);
 
-    // subcats que realmente tienen ítems en esta vista
     const subcatsConItems = Array.from(new Set(itemsVista.map(i => i.categoria || "Otros")));
 
-    // ── PANTALLA PRINCIPAL (selector de tipo) ──
+    const openMov = (item: StockItem) => {
+        setMovModal({ open: true, item });
+        setMovForm(EMPTY_MOV);
+    };
+
+    // ── PANTALLA PRINCIPAL ──
     if (!vista) {
         return (
             <div className="min-h-screen pb-20 px-4 max-w-3xl mx-auto">
-                <div className="py-8">
-                    <h1 className="text-3xl font-extrabold text-black">Stock</h1>
-                    <p className="text-sm text-gray-400 mt-1">Seleccioná una sección para gestionar</p>
+                <div className="py-8 flex items-center justify-between">
+                    <div>
+                        <h1 className="text-3xl font-extrabold text-black">Stock</h1>
+                        <p className="text-sm text-gray-400 mt-1">Seleccioná una sección para gestionar</p>
+                    </div>
+                    <button
+                        onClick={() => setSubcatModal(true)}
+                        className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 border border-gray-200 hover:border-gray-400 rounded-xl px-3 py-2 transition"
+                    >
+                        <Settings size={14} /> Subcategorías
+                    </button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -195,11 +211,8 @@ export default function StockPage() {
                         const m = TIPO_META[t];
                         const total = items.filter(i => (i.tipo ?? "cocina") === t).length;
                         return (
-                            <button
-                                key={t}
-                                onClick={() => abrirVista(t)}
-                                className={`relative flex flex-col items-center justify-center gap-3 rounded-2xl border-2 ${m.border} ${m.bg} py-10 px-4 shadow-sm active:scale-[0.97] transition-transform`}
-                            >
+                            <button key={t} onClick={() => abrirVista(t)}
+                                className={`relative flex flex-col items-center justify-center gap-3 rounded-2xl border-2 ${m.border} ${m.bg} py-10 px-4 shadow-sm active:scale-[0.97] transition-transform`}>
                                 <span className="text-5xl">{m.emoji}</span>
                                 <div className="text-center">
                                     <p className={`text-xl font-black ${m.color}`}>{m.label}</p>
@@ -210,19 +223,82 @@ export default function StockPage() {
                     })}
                 </div>
 
-                {/* Botón Cargar Stock */}
                 <button
                     onClick={() => router.push("/admin/stock/cargar")}
                     className="w-full mt-4 flex items-center justify-center gap-2 py-3.5 bg-gray-900 hover:bg-gray-700 text-white rounded-2xl font-bold text-sm transition"
                 >
                     <ClipboardList size={17} /> Cargar Stock Semanal
                 </button>
+
+                {/* ── MODAL SUBCATEGORÍAS ── */}
+                {subcatModal && (
+                    <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-4">
+                        <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl max-h-[85vh] flex flex-col">
+                            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
+                                <h2 className="font-black text-gray-900 flex-1">Gestionar Subcategorías</h2>
+                                <button onClick={() => setSubcatModal(false)} className="p-1 text-gray-400 hover:text-gray-700"><X size={18} /></button>
+                            </div>
+                            <div className="overflow-y-auto flex-1 px-5 py-4 space-y-5">
+                                {/* Agregar nueva */}
+                                <div>
+                                    <p className="text-xs font-bold text-gray-400 uppercase mb-2">Agregar subcategoría</p>
+                                    <div className="flex gap-2 mb-2">
+                                        {(["cocina", "bebida"] as Tipo[]).map(t => (
+                                            <button key={t} onClick={() => setNewSubcat(p => ({ ...p, tipo: t }))}
+                                                className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition ${newSubcat.tipo === t ? (t === "cocina" ? "bg-orange-600 text-white border-orange-600" : "bg-blue-600 text-white border-blue-600") : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
+                                                {TIPO_META[t].emoji} {TIPO_META[t].label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <input
+                                            value={newSubcat.nombre}
+                                            onChange={e => setNewSubcat(p => ({ ...p, nombre: e.target.value }))}
+                                            onKeyDown={e => e.key === "Enter" && crearSubcat()}
+                                            placeholder="Nombre de la subcategoría"
+                                            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                                        />
+                                        <button onClick={crearSubcat} disabled={subcatSaving || !newSubcat.nombre.trim()}
+                                            className="px-3 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg font-bold transition flex items-center">
+                                            {subcatSaving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Lista por tipo */}
+                                {(["cocina", "bebida"] as Tipo[]).map(t => {
+                                    const lista = subcats.filter(s => s.tipo === t);
+                                    return (
+                                        <div key={t}>
+                                            <p className="text-xs font-bold text-gray-400 uppercase mb-2">{TIPO_META[t].emoji} {TIPO_META[t].label}</p>
+                                            {lista.length === 0 ? (
+                                                <p className="text-xs text-gray-400 italic">Sin subcategorías</p>
+                                            ) : (
+                                                <div className="space-y-1">
+                                                    {lista.map(s => (
+                                                        <div key={s._id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                                                            <span className="text-sm text-gray-700">{s.nombre}</span>
+                                                            <button onClick={() => eliminarSubcat(s._id)} className="text-red-400 hover:text-red-600 transition p-1">
+                                                                <Trash2 size={14} />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }
 
-    // ── VISTA DE CATEGORÍA (lista de productos) ──
+    // ── VISTA DE CATEGORÍA ──
     const meta = TIPO_META[vista];
+    const subcatsVista = getSubcats(vista);
 
     return (
         <div className="min-h-screen pb-20">
@@ -238,43 +314,25 @@ export default function StockPage() {
                             {meta.emoji} {meta.label}
                         </h1>
                     </div>
-                    <button
-                        onClick={() => setEditModal({ open: true, item: { ...EMPTY_ITEM(vista) } })}
-                        className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition"
-                    >
+                    <button onClick={() => setEditModal({ open: true, item: { ...EMPTY_ITEM(vista) } })}
+                        className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition">
                         <Plus size={15} /> Nuevo
                     </button>
                 </div>
 
-                {/* Alertas de esta vista — desactivado por ahora
-                {alertas.filter(i => (i.tipo ?? "cocina") === vista).length > 0 && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4 flex items-start gap-2">
-                        <AlertTriangle size={16} className="text-yellow-600 mt-0.5 shrink-0" />
-                        <div>
-                            <p className="text-sm font-semibold text-yellow-800">Stock bajo mínimo</p>
-                            <p className="text-xs text-yellow-700 mt-0.5">
-                                {alertas.filter(i => (i.tipo ?? "cocina") === vista).map(i => `${i.nombre} (${i.stockActual} ${i.unidad})`).join(", ")}
-                            </p>
-                        </div>
-                    </div>
-                )} */}
-
                 {/* Tabs de subcategorías */}
                 <div className="flex gap-2 overflow-x-auto pb-1 mb-4 scrollbar-hide">
-                    {["Todos", ...SUBCATS[vista]].map(s => {
+                    {["Todos", ...subcatsVista].map(s => {
                         const tieneItems = s === "Todos" || subcatsConItems.includes(s);
                         return (
-                            <button
-                                key={s}
-                                onClick={() => setSubcat(s)}
+                            <button key={s} onClick={() => setSubcat(s)}
                                 className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
                                     subcat === s
                                         ? `${meta.pill} text-white`
                                         : tieneItems
                                             ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
                                             : "bg-gray-50 text-gray-300"
-                                }`}
-                            >
+                                }`}>
                                 {s}
                             </button>
                         );
@@ -297,10 +355,10 @@ export default function StockPage() {
                         ? Object.entries(bySubcat).map(([cat, catItems]) => (
                             <div key={cat} className="mb-5">
                                 <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">{cat}</p>
-                                <ItemList items={catItems} meta={meta} onMov={(item) => { setMovModal({ open: true, item }); setMovForm({ tipo: "entrada", cantidad: "", motivo: "", precioUnitario: "", notas: "" }); }} onHist={openHistorial} onEdit={(item) => setEditModal({ open: true, item: { ...item } })} onDelete={deleteItem} />
+                                <ItemList items={catItems} meta={meta} onMov={openMov} onHist={openHistorial} onEdit={(item) => setEditModal({ open: true, item: { ...item } })} onDelete={deleteItem} />
                             </div>
                         ))
-                        : <ItemList items={itemsFiltrados} meta={meta} onMov={(item) => { setMovModal({ open: true, item }); setMovForm({ tipo: "entrada", cantidad: "", motivo: "", precioUnitario: "", notas: "" }); }} onHist={openHistorial} onEdit={(item) => setEditModal({ open: true, item: { ...item } })} onDelete={deleteItem} />
+                        : <ItemList items={itemsFiltrados} meta={meta} onMov={openMov} onHist={openHistorial} onEdit={(item) => setEditModal({ open: true, item: { ...item } })} onDelete={deleteItem} />
                 )}
             </div>
 
@@ -319,7 +377,7 @@ export default function StockPage() {
                                 <div className="flex gap-2 mt-1">
                                     {(["cocina", "bebida"] as Tipo[]).map(t => (
                                         <button key={t}
-                                            onClick={() => setEditModal(p => ({ ...p, item: { ...p.item, tipo: t, categoria: SUBCATS[t][0] } }))}
+                                            onClick={() => setEditModal(p => ({ ...p, item: { ...p.item, tipo: t, categoria: getSubcats(t)[0] ?? "" } }))}
                                             className={`flex-1 py-2 rounded-xl text-sm font-bold border transition ${editModal.item.tipo === t ? (t === "cocina" ? "bg-orange-600 text-white border-orange-600" : "bg-blue-600 text-white border-blue-600") : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
                                             {TIPO_META[t].emoji} {TIPO_META[t].label}
                                         </button>
@@ -335,14 +393,16 @@ export default function StockPage() {
                             {/* Subcategoría */}
                             <div>
                                 <label className="text-xs font-semibold text-gray-500 uppercase">Subcategoría</label>
-                                <div className="flex flex-wrap gap-1.5 mt-1">
-                                    {SUBCATS[editModal.item.tipo ?? "cocina"].map(s => (
-                                        <button key={s} onClick={() => setEditModal(p => ({ ...p, item: { ...p.item, categoria: s } }))}
-                                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition border ${editModal.item.categoria === s ? (editModal.item.tipo === "bebida" ? "bg-blue-600 text-white border-blue-600" : "bg-orange-600 text-white border-orange-600") : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"}`}>
-                                            {s}
-                                        </button>
-                                    ))}
-                                </div>
+                                {getSubcats(editModal.item.tipo ?? "cocina").length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5 mt-1">
+                                        {getSubcats(editModal.item.tipo ?? "cocina").map(s => (
+                                            <button key={s} onClick={() => setEditModal(p => ({ ...p, item: { ...p.item, categoria: s } }))}
+                                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition border ${editModal.item.categoria === s ? (editModal.item.tipo === "bebida" ? "bg-blue-600 text-white border-blue-600" : "bg-orange-600 text-white border-orange-600") : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"}`}>
+                                                {s}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                                 <input value={editModal.item.categoria || ""} onChange={e => setEditModal(p => ({ ...p, item: { ...p.item, categoria: e.target.value } }))}
                                     placeholder="O escribí una personalizada" className="w-full mt-2 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
                             </div>
@@ -351,6 +411,15 @@ export default function StockPage() {
                                 <label className="text-xs font-semibold text-gray-500 uppercase">Unidad</label>
                                 <input value={editModal.item.unidad || ""} onChange={e => setEditModal(p => ({ ...p, item: { ...p.item, unidad: e.target.value } }))}
                                     placeholder="kg, lts, unidades, cajas…" className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
+                            </div>
+                            {/* Unidades por caja */}
+                            <div>
+                                <label className="text-xs font-semibold text-gray-500 uppercase">Unidades por caja</label>
+                                <input type="number" min="1" step="1"
+                                    value={editModal.item.unidadesPorCaja ?? ""}
+                                    onChange={e => setEditModal(p => ({ ...p, item: { ...p.item, unidadesPorCaja: e.target.value ? Number(e.target.value) : undefined } }))}
+                                    placeholder="Ej: 6 — opcional, habilita carga por cajas"
+                                    className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
                             </div>
                             {/* Stock */}
                             <div className="grid grid-cols-2 gap-3">
@@ -399,6 +468,7 @@ export default function StockPage() {
                             <button onClick={() => setMovModal({ open: false, item: null })} className="p-1 text-gray-400 hover:text-gray-700"><X size={18} /></button>
                         </div>
                         <div className="px-5 py-4 space-y-3">
+                            {/* Entrada / Salida */}
                             <div className="flex gap-2">
                                 <button onClick={() => setMovForm(p => ({ ...p, tipo: "entrada" }))}
                                     className={`flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition border ${movForm.tipo === "entrada" ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
@@ -409,22 +479,63 @@ export default function StockPage() {
                                     <TrendingDown size={15} /> Salida
                                 </button>
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
+
+                            {/* Modo carga — solo si el ítem tiene unidadesPorCaja */}
+                            {!!movModal.item.unidadesPorCaja && (
                                 <div>
-                                    <label className="text-xs font-semibold text-gray-500 uppercase">Cantidad *</label>
-                                    <input type="number" min="0.01" step="any" value={movForm.cantidad}
-                                        onChange={e => setMovForm(p => ({ ...p, cantidad: e.target.value }))}
-                                        placeholder={`en ${movModal.item.unidad}`}
-                                        className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
+                                    <label className="text-xs font-semibold text-gray-500 uppercase">Modo de carga</label>
+                                    <div className="flex gap-2 mt-1">
+                                        <button onClick={() => setMovForm(p => ({ ...p, modo: "suelto", cantidadCajas: "", cantidad: "" }))}
+                                            className={`flex-1 py-2 rounded-xl text-sm font-bold border transition ${movForm.modo === "suelto" ? "bg-gray-800 text-white border-gray-800" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
+                                            Suelto
+                                        </button>
+                                        <button onClick={() => setMovForm(p => ({ ...p, modo: "caja", cantidad: "", cantidadCajas: "" }))}
+                                            className={`flex-1 py-2 rounded-xl text-sm font-bold border transition flex items-center justify-center gap-1.5 ${movForm.modo === "caja" ? "bg-gray-800 text-white border-gray-800" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
+                                            <Package size={14} /> Por caja
+                                        </button>
+                                    </div>
                                 </div>
+                            )}
+
+                            {/* Campos de cantidad según modo */}
+                            {movForm.modo === "caja" && movModal.item.unidadesPorCaja ? (
                                 <div>
-                                    <label className="text-xs font-semibold text-gray-500 uppercase">Precio unit.</label>
-                                    <input type="number" min="0" value={movForm.precioUnitario}
-                                        onChange={e => setMovForm(p => ({ ...p, precioUnitario: e.target.value }))}
-                                        placeholder="$ opcional"
+                                    <label className="text-xs font-semibold text-gray-500 uppercase">Cantidad de cajas *</label>
+                                    <input type="number" min="1" step="1" value={movForm.cantidadCajas}
+                                        onChange={e => {
+                                            const cajas = e.target.value;
+                                            const unidades = cajas && movModal.item?.unidadesPorCaja
+                                                ? String(Number(cajas) * movModal.item.unidadesPorCaja) : "";
+                                            setMovForm(p => ({ ...p, cantidadCajas: cajas, cantidad: unidades }));
+                                        }}
+                                        placeholder="Ej: 2"
                                         className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
+                                    {movForm.cantidadCajas && movModal.item.unidadesPorCaja && (
+                                        <p className="text-xs text-gray-500 mt-1.5 bg-gray-50 rounded-lg px-3 py-2">
+                                            {movForm.cantidadCajas} caja{Number(movForm.cantidadCajas) !== 1 ? "s" : ""} × {movModal.item.unidadesPorCaja} = <strong>{movForm.cantidad} {movModal.item.unidad}</strong>
+                                        </p>
+                                    )}
                                 </div>
-                            </div>
+                            ) : (
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-xs font-semibold text-gray-500 uppercase">Cantidad *</label>
+                                        <input type="number" min="0.01" step="any" value={movForm.cantidad}
+                                            onChange={e => setMovForm(p => ({ ...p, cantidad: e.target.value }))}
+                                            placeholder={`en ${movModal.item.unidad}`}
+                                            className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-semibold text-gray-500 uppercase">Precio unit.</label>
+                                        <input type="number" min="0" value={movForm.precioUnitario}
+                                            onChange={e => setMovForm(p => ({ ...p, precioUnitario: e.target.value }))}
+                                            placeholder="$ opcional"
+                                            className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Motivo */}
                             <div>
                                 <label className="text-xs font-semibold text-gray-500 uppercase">Motivo *</label>
                                 <input value={movForm.motivo} onChange={e => setMovForm(p => ({ ...p, motivo: e.target.value }))}
@@ -530,6 +641,7 @@ function ItemList({ items, meta, onMov, onHist, onEdit, onDelete }: {
                                 <p className="text-xs text-gray-500 mt-0.5">
                                     Stock: <span className={`font-bold ${isLow ? "text-yellow-600" : "text-gray-700"}`}>{formatNum(item.stockActual)}</span> {item.unidad}
                                     {item.stockMinimo > 0 && <span className="text-gray-400"> · mín {formatNum(item.stockMinimo)}</span>}
+                                    {item.unidadesPorCaja && <span className="text-gray-400"> · {item.unidadesPorCaja} un/caja</span>}
                                 </p>
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">
