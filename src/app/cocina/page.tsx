@@ -406,7 +406,7 @@ export default function CocinaPage() {
                             <Phone size={11} className="shrink-0" />{p.telefonoContacto}
                         </p>
                     )}
-                    {esDelivery && p.horarioPreferido && (
+                    {p.horarioPreferido && (
                         <p className="text-xs font-semibold mt-0.5 text-amber-700">🕐 Horario: {p.horarioPreferido}</p>
                     )}
                     {/* Notas */}
