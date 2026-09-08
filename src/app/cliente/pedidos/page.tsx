@@ -279,7 +279,7 @@ function CartDrawer({
 
                 <div className="mt-5 space-y-3">
                     <div className="flex gap-3">
-                        <button onClick={() => setTipoEntrega("retira")}
+                        <button onClick={() => { setTipoEntrega("retira"); if (metodoPago === "mercadopago") setMetodoPago("efectivo"); }}
                             className={`flex-1 py-2 rounded-xl font-semibold text-sm border transition ${tipoEntrega === "retira" ? "bg-red-600 text-white border-red-600" : "bg-white text-gray-700 border-gray-300"}`}>
                             Retira en el bar
                         </button>
@@ -396,7 +396,7 @@ function CartDrawer({
                             Alias: <span className="font-black tracking-wide">morgan.bar</span>
                         </p>
                     )}
-                    {MERCADOPAGO_ACTIVO && (
+                    {MERCADOPAGO_ACTIVO && tipoEntrega === "envio" && (
                         <button onClick={() => setMetodoPago("mercadopago")}
                             className={`w-full mt-2 py-2.5 rounded-xl font-semibold text-sm border transition flex items-center justify-center gap-2 ${metodoPago === "mercadopago" ? "bg-[#009EE3] text-white border-[#009EE3]" : "bg-white text-gray-700 border-gray-300"}`}>
                             <svg viewBox="0 0 32 32" width="16" height="16" fill="currentColor" className="shrink-0">
@@ -427,7 +427,7 @@ function CartDrawer({
     );
 }
 
-const MERCADOPAGO_ACTIVO = false;
+const MERCADOPAGO_ACTIVO = true;
 
 const CART_DRAFT_KEY = "cliente_cart_draft_v2";
 
