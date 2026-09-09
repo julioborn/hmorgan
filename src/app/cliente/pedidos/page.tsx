@@ -381,23 +381,24 @@ function CartDrawer({
                 {/* Método de pago preferido */}
                 <div className="mt-4">
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">¿Cómo vas a pagar?</p>
-                    <button onClick={() => setMetodoPago("efectivo")}
-                        className={`w-full py-2.5 rounded-xl font-semibold text-sm border transition flex items-center justify-center gap-1.5 ${metodoPago === "efectivo" ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-gray-700 border-gray-300"}`}>
-                        💵 Efectivo
-                    </button>
-                    {MERCADOPAGO_ACTIVO && (
-                        <button onClick={() => setMetodoPago("mercadopago")}
-                            className={`w-full mt-2 py-3 rounded-xl font-bold text-sm border-2 transition flex items-center justify-center gap-2 ${metodoPago === "mercadopago" ? "bg-[#009EE3] border-[#009EE3]" : "bg-white border-[#009EE3]"}`}>
-                            <img
-                                src="/MP_RGB_HANDSHAKE_color_horizontal.svg"
-                                width="90"
-                                height="34"
-                                className="shrink-0"
-                                style={metodoPago === "mercadopago" ? { filter: "brightness(0) invert(1)" } : {}}
-                                alt="Mercado Pago"
-                            />
+                    <div className="flex gap-2">
+                        <button onClick={() => setMetodoPago("efectivo")}
+                            className={`flex-1 py-4 rounded-xl border-2 transition flex flex-col items-center justify-center gap-1.5 ${metodoPago === "efectivo" ? "bg-emerald-600 border-emerald-600" : "bg-white border-emerald-500"}`}>
+                            <span className="text-2xl">💵</span>
+                            <span className={`text-xs font-bold ${metodoPago === "efectivo" ? "text-white" : "text-emerald-600"}`}>Efectivo</span>
                         </button>
-                    )}
+                        {MERCADOPAGO_ACTIVO && (
+                            <button onClick={() => setMetodoPago("mercadopago")}
+                                className={`flex-1 py-4 rounded-xl border-2 transition flex flex-col items-center justify-center gap-1 ${metodoPago === "mercadopago" ? "bg-[#009EE3] border-[#009EE3]" : "bg-white border-[#009EE3]"}`}>
+                                <img
+                                    src="/MP_RGB_HANDSHAKE_color_horizontal.svg"
+                                    className="shrink-0 w-[80%] max-w-[120px]"
+                                    style={metodoPago === "mercadopago" ? { filter: "brightness(0) invert(1)" } : {}}
+                                    alt="Mercado Pago"
+                                />
+                            </button>
+                        )}
+                    </div>
                     <p className="mt-2 text-center text-xs text-gray-400">
                         O transferí al alias <span className="font-semibold text-gray-500">morgan.bar</span>
                     </p>
