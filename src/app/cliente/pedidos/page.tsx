@@ -279,7 +279,7 @@ function CartDrawer({
 
                 <div className="mt-5 space-y-3">
                     <div className="flex gap-3">
-                        <button onClick={() => { setTipoEntrega("retira"); if (metodoPago === "mercadopago") setMetodoPago("efectivo"); }}
+                        <button onClick={() => setTipoEntrega("retira")}
                             className={`flex-1 py-2 rounded-xl font-semibold text-sm border transition ${tipoEntrega === "retira" ? "bg-red-600 text-white border-red-600" : "bg-white text-gray-700 border-gray-300"}`}>
                             Retira en el bar
                         </button>
@@ -396,11 +396,11 @@ function CartDrawer({
                             Alias: <span className="font-black tracking-wide">morgan.bar</span>
                         </p>
                     )}
-                    {MERCADOPAGO_ACTIVO && tipoEntrega === "envio" && (
+                    {MERCADOPAGO_ACTIVO && (
                         <button onClick={() => setMetodoPago("mercadopago")}
-                            className={`w-full mt-2 py-2.5 rounded-xl font-semibold text-sm border transition flex items-center justify-center gap-2 ${metodoPago === "mercadopago" ? "bg-[#009EE3] text-white border-[#009EE3]" : "bg-white text-gray-700 border-gray-300"}`}>
-                            <svg viewBox="0 0 32 32" width="16" height="16" fill="currentColor" className="shrink-0">
-                                <path d="M16 2l2.47 7.6L26.5 7.06l-5.56 5.56L28 16l-7.06 2.06 2.94 8.4-6.44-4.94L16 30l-1.44-8.48-6.44 4.94 2.94-8.4L4 16l7.06-3.38-5.56-5.56 8.03 2.54z"/>
+                            className={`w-full mt-2 py-3 rounded-xl font-bold text-sm border-2 transition flex items-center justify-center gap-2.5 ${metodoPago === "mercadopago" ? "bg-[#009EE3] text-white border-[#009EE3]" : "bg-white text-[#009EE3] border-[#009EE3]"}`}>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="20" height="20" fill="currentColor" className="shrink-0">
+                                <path d="M32 4C16.536 4 4 16.536 4 32s12.536 28 28 28 28-12.536 28-28S47.464 4 32 4zm0 6c5.385 0 10.37 1.64 14.5 4.44L14.44 46.5A21.88 21.88 0 0 1 10 32c0-12.15 9.85-22 22-22zm0 44c-5.385 0-10.37-1.64-14.5-4.44l32.06-32.06A21.88 21.88 0 0 1 54 32c0 12.15-9.85 22-22 22z"/>
                             </svg>
                             Mercado Pago
                         </button>
