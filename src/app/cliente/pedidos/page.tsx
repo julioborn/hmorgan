@@ -469,21 +469,6 @@ export default function PedidosClientePage() {
     const router = useRouter();
 
     // Manejo de regreso desde Mercado Pago
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const pago = params.get("pago");
-        if (!pago) return;
-        window.history.replaceState({}, "", "/cliente/pedidos");
-        if (pago === "ok") {
-            setCartLines([]);
-            try { localStorage.removeItem(CART_DRAFT_KEY); } catch {}
-            swalBase.fire({ icon: "success", title: "¡Pago exitoso!", text: "Tu pedido fue pagado con Mercado Pago.", timer: 3000, showConfirmButton: false });
-        } else if (pago === "error") {
-            swalBase.fire({ icon: "error", title: "Pago rechazado", text: "Hubo un problema con el pago. Podés intentar de nuevo." });
-        } else if (pago === "pendiente") {
-            swalBase.fire({ icon: "warning", title: "Pago pendiente", text: "Tu pago está siendo procesado. Te avisaremos cuando esté confirmado." });
-        }
-    }, []);
 
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });

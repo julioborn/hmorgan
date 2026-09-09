@@ -50,9 +50,9 @@ export async function POST(req: NextRequest) {
             items: mpItems,
             statement_descriptor: "HMorgan Bar",
             back_urls: {
-                success: `${baseUrl}/cliente/pedidos?pago=ok`,
-                failure: `${baseUrl}/cliente/pedidos?pago=error`,
-                pending: `${baseUrl}/cliente/pedidos?pago=pendiente`,
+                success: `${baseUrl}/pago/exitoso`,
+                failure: `${baseUrl}/pago/rechazado`,
+                pending: `${baseUrl}/pago/rechazado`,
             },
             auto_return: "approved",
             external_reference: pedidoId,
