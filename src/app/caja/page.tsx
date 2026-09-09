@@ -2706,11 +2706,14 @@ export default function CajaPage() {
                                                 {/* ── Cuerpo ── */}
                                                 <div className="p-3 flex flex-col flex-1 min-h-0 bg-white">
 
-                                                    {/* Badge MP pagado */}
-                                                    {esMpPagado && (
+                                                    {/* Badge MP */}
+                                                    {p.metodoPago === "mercadopago" && (
                                                         <div className="shrink-0 mb-2 self-start flex items-center gap-1.5 bg-sky-50 border border-sky-200 rounded-lg px-2 py-1">
                                                             <img src="/MP_RGB_HANDSHAKE_color_horizontal.svg" width="68" alt="Mercado Pago" />
-                                                            <span className="text-[10px] font-black text-sky-700 uppercase tracking-wide">✓</span>
+                                                            {p.mpEstadoPago === "aprobado"
+                                                                ? <span className="text-sm font-black text-green-600">✓</span>
+                                                                : <span className="text-sm font-black text-red-500">✗</span>
+                                                            }
                                                         </div>
                                                     )}
 
@@ -2752,15 +2755,6 @@ export default function CajaPage() {
                                                                 <div className="flex items-center gap-1 text-xs font-bold text-gray-800">
                                                                     <Clock size={11} className="shrink-0 text-gray-500" /><span>{p.horarioPreferido}</span>
                                                                 </div>
-                                                            )}
-                                                            {p.metodoPago === "mercadopago" && (
-                                                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wide ${p.mpEstadoPago === "aprobado" ? "bg-green-100 text-green-700"
-                                                                    : p.mpEstadoPago === "rechazado" ? "bg-red-100 text-red-700"
-                                                                        : p.mpEstadoPago === "en_proceso" ? "bg-amber-100 text-amber-700"
-                                                                            : "bg-blue-100 text-blue-700"
-                                                                    }`}>
-                                                                    💳 MP {p.mpEstadoPago === "aprobado" ? "Pagado" : p.mpEstadoPago === "rechazado" ? "Rechazado" : p.mpEstadoPago === "en_proceso" ? "En proceso" : "Pendiente"}
-                                                                </span>
                                                             )}
                                                             {p.metodoPago === "efectivo" && (
                                                                 <span className="text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wide bg-emerald-100 text-emerald-700">
