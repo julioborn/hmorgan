@@ -8,7 +8,7 @@ const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "W
 const fmt = (n: number) => "$" + new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0 }).format(Math.round(n));
 
 type Item    = { _id: string; menuItemId?: { nombre: string; precio: number; categoria: string }; cantidad: number; nota?: string; listo?: boolean };
-type Pedido  = { _id: string; mesa?: string; total: number; estado: string; fuente: string; tipoEntrega?: string; items: Item[]; userId?: { nombre: string; apellido: string; role: string; telefono?: string }; notaCliente?: string; notaEmpleado?: string; direccion?: string; costoEnvio?: number; createdAt: string; eventoId?: string; numeroDia?: number; horarioPreferido?: string; telefonoContacto?: string; nombreComanda?: string; deliveryNumero?: number };
+type Pedido  = { _id: string; mesa?: string; total: number; estado: string; fuente: string; tipoEntrega?: string; items: Item[]; userId?: { nombre: string; apellido: string; role: string; telefono?: string }; notaCliente?: string; notaEmpleado?: string; direccion?: string; costoEnvio?: number; createdAt: string; eventoId?: string; numeroDia?: number; horarioPreferido?: string; telefonoContacto?: string; nombreComanda?: string; deliveryNumero?: number; metodoPago?: string; mpEstadoPago?: string };
 type Pago    = { metodo: "efectivo" | "tarjeta" | "transferencia" | ""; monto: string };
 type CPItem  = { itemId: string; nombre: string; precio: number; max: number; selected: number };
 type Tab     = "pendiente" | "preparando" | "listo" | "entregado";
@@ -356,6 +356,7 @@ export default function AdminPedidosPage() {
                         const esMozo = p.fuente === "empleado";
                         const esEvento = !!p.eventoId;
                         const esCajaDelivery = !esApp && !esMozo && !esAutoservicio && p.tipoEntrega === "envio";
+                        const esMpDelivery = p.metodoPago === "mercadopago" && p.tipoEntrega === "envio";
 
                         const titulo = esApp
                             ? (p.userId ? `${p.userId.nombre} ${p.userId.apellido || ""}`.trim() : "Cliente")
@@ -373,11 +374,13 @@ export default function AdminPedidosPage() {
                             ? { label: "Evento",       cls: "bg-amber-400 text-black"  }
                             : esAutoservicio
                                 ? { label: "Autoservicio", cls: "bg-purple-600 text-white" }
-                                : esCajaDelivery
-                                    ? { label: "Delivery",     cls: "bg-blue-600 text-white"  }
-                                    : esApp
-                                        ? { label: "Pedido",       cls: "bg-red-500 text-white"   }
-                                        : { label: "Bar",          cls: "bg-white text-black"     };
+                                : esMpDelivery
+                                    ? { label: "MP · Delivery", cls: "bg-white text-sky-600"  }
+                                    : esCajaDelivery
+                                        ? { label: "Delivery",     cls: "bg-blue-600 text-white"  }
+                                        : esApp
+                                            ? { label: "Pedido",       cls: "bg-red-500 text-white"   }
+                                            : { label: "Bar",          cls: "bg-white text-black"     };
 
                         const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
                         const isBusy = updatingId === p._id || imprimiendoId === p._id;
@@ -386,8 +389,8 @@ export default function AdminPedidosPage() {
 
                         return (
                             <div key={p._id} className={`rounded-2xl border-2 shadow-md overflow-hidden bg-white ${esAlerta ? "blink-alerta" : "border-black"}`}>
-                                {/* Header negro */}
-                                <div className="px-4 py-3 bg-black flex items-start justify-between gap-3">
+                                {/* Header */}
+                                <div className={`px-4 py-3 flex items-start justify-between gap-3 ${esMpDelivery ? "bg-sky-500" : "bg-black"}`}>
                                     <div className="flex-1 min-w-0">
                                         <p className="font-black text-white text-lg leading-tight break-words">{titulo}</p>
                                         <p className="text-xs text-white/60 mt-0.5">{subtitulo}</p>

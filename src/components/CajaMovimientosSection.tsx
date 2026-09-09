@@ -3,7 +3,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import {
     ChevronDown, ChevronUp, X,
-    Banknote, CreditCard, Send,
+    Banknote, CreditCard, Send, Smartphone,
     ArrowDownCircle, ArrowUpCircle, UtensilsCrossed,
     Star, Clock, Receipt, Pencil, Check,
 } from "lucide-react";
@@ -74,21 +74,24 @@ export type MovGroup = {
 // ── Constants ──────────────────────────────────────────────────────────────────
 
 export const METODO_LABEL: Record<string, string> = {
-    efectivo: "Efectivo",
-    tarjeta: "Tarjeta",
+    efectivo:      "Efectivo",
+    tarjeta:       "Tarjeta",
     transferencia: "Transferencia",
+    mercadopago:   "Mercado Pago",
 };
 
 export const METODO_ICON: Record<string, React.ElementType> = {
-    efectivo: Banknote,
-    tarjeta: CreditCard,
+    efectivo:      Banknote,
+    tarjeta:       CreditCard,
     transferencia: Send,
+    mercadopago:   Smartphone,
 };
 
 export const METODO_COLOR: Record<string, string> = {
     efectivo:      "bg-emerald-50 text-emerald-700 border-emerald-200",
     tarjeta:       "bg-blue-50 text-blue-700 border-blue-200",
     transferencia: "bg-violet-50 text-violet-700 border-violet-200",
+    mercadopago:   "bg-sky-50 text-sky-700 border-sky-200",
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

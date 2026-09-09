@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import { connectMongoDB } from "@/lib/mongodb";
 import { Pedido } from "@/models/Pedido";
+import { CajaSession } from "@/models/CajaSession";
+import { CajaMovement } from "@/models/CajaMovement";
 
 export async function POST(req: NextRequest) {
     try {
@@ -26,12 +28,37 @@ export async function POST(req: NextRequest) {
             : paymentData.status === "rejected" ? "rechazado"
             : "en_proceso";
 
+        const monto = paymentData.transaction_amount ?? 0;
+
         await connectMongoDB();
-        await Pedido.findByIdAndUpdate(pedidoId, {
-            mpPaymentId: paymentId.toString(),
-            mpEstadoPago,
-            montoPagado: paymentData.transaction_amount ?? 0,
-        });
+
+        const pedido = await Pedido.findByIdAndUpdate(
+            pedidoId,
+            { mpPaymentId: paymentId.toString(), mpEstadoPago, montoPagado: monto },
+            { new: true }
+        );
+
+        // Registrar en caja si el pago fue aprobado y hay sesión abierta
+        if (mpEstadoPago === "aprobado" && pedido) {
+            const sesionAbierta = await CajaSession.findOne({ estado: "abierta" });
+            if (sesionAbierta) {
+                const numero = pedido.numeroDia ? ` #${pedido.numeroDia}` : "";
+                await CajaMovement.create({
+                    sesionId:   sesionAbierta._id,
+                    tipo:       "ingreso",
+                    concepto:   `Pago Mercado Pago - Delivery${numero}`,
+                    monto,
+                    metodoPago: "mercadopago",
+                    pedidoId:   pedido._id,
+                    userId:     pedido.userId,
+                    items:      pedido.items?.map((it: any) => ({
+                        nombre:   it.menuItemId?.nombre ?? "Ítem",
+                        cantidad: it.cantidad,
+                        precio:   it.menuItemId?.precio ?? 0,
+                    })) ?? [],
+                });
+            }
+        }
 
         return NextResponse.json({ ok: true });
     } catch (err) {
