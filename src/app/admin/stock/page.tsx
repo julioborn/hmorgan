@@ -213,7 +213,7 @@ export default function StockPage() {
 
                 {/* ── MODAL SUBCATEGORÍAS ── */}
                 {subcatModal && (
-                    <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-4">
+                    <div className="fixed inset-0 z-[9999] bg-black/50 flex items-end sm:items-center justify-center p-4">
                         <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl max-h-[85vh] flex flex-col">
                             <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
                                 <h2 className="font-black text-gray-900 flex-1">Gestionar Subcategorías</h2>
@@ -251,9 +251,14 @@ export default function StockPage() {
                                             ) : (
                                                 <div className="space-y-1">
                                                     {lista.map(s => (
-                                                        <div key={s._id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
-                                                            <span className="text-sm text-gray-700">{s.nombre}</span>
-                                                            <button onClick={() => eliminarSubcat(s._id)} className="text-red-400 hover:text-red-600 transition p-1">
+                                                        <div key={s._id} className="flex items-center justify-between bg-gray-50 hover:bg-gray-100 rounded-lg px-3 py-2 transition">
+                                                            <button
+                                                                onClick={() => { setSubcatModal(false); setVista(s.tipo); setSubcatVista(s.nombre); setSearch(""); }}
+                                                                className="flex-1 text-left text-sm font-medium text-gray-800"
+                                                            >
+                                                                {s.nombre}
+                                                            </button>
+                                                            <button onClick={() => eliminarSubcat(s._id)} className="text-red-400 hover:text-red-600 transition p-1 shrink-0">
                                                                 <Trash2 size={14} />
                                                             </button>
                                                         </div>
