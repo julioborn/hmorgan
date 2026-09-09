@@ -390,7 +390,7 @@ export default function AdminPedidosPage() {
                         return (
                             <div key={p._id} className={`rounded-2xl border-2 shadow-md overflow-hidden bg-white ${esAlerta ? "blink-alerta" : "border-black"}`}>
                                 {/* Header */}
-                                <div className={`px-4 py-3 flex items-start justify-between gap-3 ${esMpDelivery ? "bg-sky-500" : "bg-black"}`}>
+                                <div className="px-4 py-3 bg-black flex items-start justify-between gap-3">
                                     <div className="flex-1 min-w-0">
                                         <p className="font-black text-white text-lg leading-tight break-words">{titulo}</p>
                                         <p className="text-xs text-white/60 mt-0.5">{subtitulo}</p>
