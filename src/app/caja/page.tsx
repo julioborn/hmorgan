@@ -2617,15 +2617,19 @@ export default function CajaPage() {
                                                         ? `Mozo: ${[p.userId?.nombre, p.userId?.apellido].filter(Boolean).join(" ")}`
                                                         : "Caja";
 
+                                        const esMpPagado = p.metodoPago === "mercadopago" && p.mpEstadoPago === "aprobado";
+
                                         const tipoBadge = esEvento
                                             ? { label: "Evento", cls: "bg-amber-400 text-black" }
                                             : esAutoservicio
                                                 ? { label: "Autoservicio", cls: "bg-purple-600 text-white" }
-                                                : esCajaDelivery
-                                                    ? { label: "Delivery", cls: "bg-blue-600 text-white" }
-                                                    : esApp
-                                                        ? { label: "Pedido", cls: "bg-red-500 text-white" }
-                                                        : { label: "Bar", cls: "bg-white text-black" };
+                                                : esMpPagado
+                                                    ? { label: "MP Pagado", cls: "bg-white text-sky-600" }
+                                                    : esCajaDelivery
+                                                        ? { label: "Delivery", cls: "bg-blue-600 text-white" }
+                                                        : esApp
+                                                            ? { label: "Pedido", cls: "bg-red-500 text-white" }
+                                                            : { label: "Bar", cls: "bg-white text-black" };
 
                                         const esAlerta = alertasPedidos.has(p._id) && (Date.now() - (alertasPedidos.get(p._id) ?? 0)) < 35000;
                                         const baseTimerCaja = p.primeraComidaAt || p.createdAt;
@@ -2639,7 +2643,7 @@ export default function CajaPage() {
                                                 className={`rounded-2xl border-2 shadow-sm overflow-hidden flex flex-col h-[600px] bg-white ${esAlerta ? "blink-alerta" : esDemorada ? "border-red-500" : "border-black"}`}>
 
                                                 {/* ── Cabecera ── */}
-                                                <div className={`shrink-0 px-4 py-3 ${esDemorada ? "bg-red-700" : "bg-black"}`}>
+                                                <div className={`shrink-0 px-4 py-3 ${esDemorada ? "bg-red-700" : esMpPagado ? "bg-sky-500" : "bg-black"}`}>
                                                     <div className="flex items-start justify-between gap-3">
                                                         <div className="flex-1 min-w-0">
                                                             <p className="font-black text-white text-xl leading-tight tracking-tight break-words">{titulo}</p>
