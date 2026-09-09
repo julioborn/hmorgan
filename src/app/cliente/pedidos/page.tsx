@@ -389,11 +389,10 @@ function CartDrawer({
                         </button>
                         {MERCADOPAGO_ACTIVO && (
                             <button onClick={() => setMetodoPago("mercadopago")}
-                                className={`flex-1 py-4 rounded-xl border-2 transition flex flex-col items-center justify-center gap-1 ${metodoPago === "mercadopago" ? "bg-[#009EE3] border-[#009EE3]" : "bg-white border-[#009EE3]"}`}>
+                                className={`flex-1 py-4 rounded-xl transition flex flex-col items-center justify-center gap-1 bg-white ${metodoPago === "mercadopago" ? "border-[3px] border-[#009EE3] shadow-[0_0_0_1px_#009EE3]" : "border-2 border-[#009EE3]"}`}>
                                 <img
                                     src="/MP_RGB_HANDSHAKE_color_horizontal.svg"
                                     className="shrink-0 w-[80%] max-w-[120px]"
-                                    style={metodoPago === "mercadopago" ? { filter: "brightness(0) invert(1)" } : {}}
                                     alt="Mercado Pago"
                                 />
                             </button>
