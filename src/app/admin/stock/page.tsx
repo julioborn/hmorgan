@@ -34,13 +34,13 @@ type StockMovimiento = {
     createdAt: string;
 };
 
-const TIPO_META: Record<Tipo, { label: string; emoji: string; color: string; bg: string; border: string; pill: string }> = {
-    cocina: { label: "Cocina", emoji: "🍳", color: "text-orange-700", bg: "bg-orange-50", border: "border-orange-200", pill: "bg-orange-600" },
-    bebida: { label: "Bebida", emoji: "🍺", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-200", pill: "bg-blue-600" },
+const TIPO_META: Record<Tipo, { label: string; emoji: string; color: string; bg: string; border: string; pill: string; pillHover: string }> = {
+    cocina: { label: "Cocina", emoji: "🍳", color: "text-orange-700", bg: "bg-orange-50", border: "border-orange-200", pill: "bg-orange-600", pillHover: "hover:bg-orange-700" },
+    bebida: { label: "Bebida", emoji: "🍺", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-200", pill: "bg-blue-600", pillHover: "hover:bg-blue-700" },
 };
 
-const EMPTY_ITEM = (tipo: Tipo): Omit<StockItem, "_id"> => ({
-    nombre: "", descripcion: "", tipo, categoria: "",
+const EMPTY_ITEM = (tipo: Tipo, categoria = ""): Omit<StockItem, "_id"> => ({
+    nombre: "", descripcion: "", tipo, categoria,
     unidad: "unidades", stockActual: 0, stockMinimo: 0, activo: true, unidadesPorCaja: undefined,
 });
 
@@ -56,9 +56,11 @@ export default function StockPage() {
 
     const router = useRouter();
 
+    // navegación: tipo → subcategoría → ítems
     const [vista, setVista] = useState<Tipo | null>(null);
-    const [subcat, setSubcat] = useState<string>("Todos");
+    const [subcatVista, setSubcatVista] = useState<string | null>(null);
 
+    // modales
     const [editModal, setEditModal] = useState<{ open: boolean; item: Partial<StockItem> & { _id?: string } }>({ open: false, item: EMPTY_ITEM("cocina") });
     const [movModal, setMovModal] = useState<{ open: boolean; item: StockItem | null }>({ open: false, item: null });
     const [histModal, setHistModal] = useState<{ open: boolean; item: StockItem | null; movs: StockMovimiento[] }>({ open: false, item: null, movs: [] });
@@ -91,10 +93,12 @@ export default function StockPage() {
 
     useEffect(() => { loadItems(); loadSubcats(); }, [loadItems, loadSubcats]);
 
-    const getSubcats = (tipo: Tipo) => subcats.filter(s => s.tipo === tipo).map(s => s.nombre);
+    const getSubcats = (tipo: Tipo) => subcats.filter(s => s.tipo === tipo);
 
-    function abrirVista(t: Tipo) { setVista(t); setSubcat("Todos"); setSearch(""); }
-    function volver() { setVista(null); setSubcat("Todos"); setSearch(""); }
+    function irATipo(t: Tipo) { setVista(t); setSubcatVista(null); setSearch(""); }
+    function irASubcat(nombre: string) { setSubcatVista(nombre); setSearch(""); }
+    function volverATipo() { setSubcatVista(null); setSearch(""); }
+    function volverAMain() { setVista(null); setSubcatVista(null); setSearch(""); }
 
     async function saveItem() {
         const { _id, ...body } = editModal.item as any;
@@ -168,26 +172,7 @@ export default function StockPage() {
         loadSubcats();
     }
 
-    const itemsVista = vista ? items.filter(i => (i.tipo ?? "cocina") === vista) : [];
-
-    const itemsFiltrados = itemsVista.filter(i => {
-        const matchSub = subcat === "Todos" || i.categoria === subcat;
-        const matchSearch = !search || i.nombre.toLowerCase().includes(search.toLowerCase());
-        return matchSub && matchSearch;
-    });
-
-    const bySubcat = itemsFiltrados.reduce((acc, item) => {
-        const key = item.categoria || "Otros";
-        (acc[key] = acc[key] || []).push(item);
-        return acc;
-    }, {} as Record<string, StockItem[]>);
-
-    const subcatsConItems = Array.from(new Set(itemsVista.map(i => i.categoria || "Otros")));
-
-    const openMov = (item: StockItem) => {
-        setMovModal({ open: true, item });
-        setMovForm(EMPTY_MOV);
-    };
+    const openMov = (item: StockItem) => { setMovModal({ open: true, item }); setMovForm(EMPTY_MOV); };
 
     // ── PANTALLA PRINCIPAL ──
     if (!vista) {
@@ -196,12 +181,10 @@ export default function StockPage() {
                 <div className="py-8 flex items-center justify-between">
                     <div>
                         <h1 className="text-3xl font-extrabold text-black">Stock</h1>
-                        <p className="text-sm text-gray-400 mt-1">Seleccioná una sección para gestionar</p>
+                        <p className="text-sm text-gray-400 mt-1">Seleccioná una sección</p>
                     </div>
-                    <button
-                        onClick={() => setSubcatModal(true)}
-                        className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 border border-gray-200 hover:border-gray-400 rounded-xl px-3 py-2 transition"
-                    >
+                    <button onClick={() => setSubcatModal(true)}
+                        className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 border border-gray-200 hover:border-gray-400 rounded-xl px-3 py-2 transition">
                         <Settings size={14} /> Subcategorías
                     </button>
                 </div>
@@ -211,7 +194,7 @@ export default function StockPage() {
                         const m = TIPO_META[t];
                         const total = items.filter(i => (i.tipo ?? "cocina") === t).length;
                         return (
-                            <button key={t} onClick={() => abrirVista(t)}
+                            <button key={t} onClick={() => irATipo(t)}
                                 className={`relative flex flex-col items-center justify-center gap-3 rounded-2xl border-2 ${m.border} ${m.bg} py-10 px-4 shadow-sm active:scale-[0.97] transition-transform`}>
                                 <span className="text-5xl">{m.emoji}</span>
                                 <div className="text-center">
@@ -223,10 +206,8 @@ export default function StockPage() {
                     })}
                 </div>
 
-                <button
-                    onClick={() => router.push("/admin/stock/cargar")}
-                    className="w-full mt-4 flex items-center justify-center gap-2 py-3.5 bg-gray-900 hover:bg-gray-700 text-white rounded-2xl font-bold text-sm transition"
-                >
+                <button onClick={() => router.push("/admin/stock/cargar")}
+                    className="w-full mt-4 flex items-center justify-center gap-2 py-3.5 bg-gray-900 hover:bg-gray-700 text-white rounded-2xl font-bold text-sm transition">
                     <ClipboardList size={17} /> Cargar Stock Semanal
                 </button>
 
@@ -239,7 +220,6 @@ export default function StockPage() {
                                 <button onClick={() => setSubcatModal(false)} className="p-1 text-gray-400 hover:text-gray-700"><X size={18} /></button>
                             </div>
                             <div className="overflow-y-auto flex-1 px-5 py-4 space-y-5">
-                                {/* Agregar nueva */}
                                 <div>
                                     <p className="text-xs font-bold text-gray-400 uppercase mb-2">Agregar subcategoría</p>
                                     <div className="flex gap-2 mb-2">
@@ -251,21 +231,16 @@ export default function StockPage() {
                                         ))}
                                     </div>
                                     <div className="flex gap-2">
-                                        <input
-                                            value={newSubcat.nombre}
-                                            onChange={e => setNewSubcat(p => ({ ...p, nombre: e.target.value }))}
+                                        <input value={newSubcat.nombre} onChange={e => setNewSubcat(p => ({ ...p, nombre: e.target.value }))}
                                             onKeyDown={e => e.key === "Enter" && crearSubcat()}
                                             placeholder="Nombre de la subcategoría"
-                                            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
-                                        />
+                                            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
                                         <button onClick={crearSubcat} disabled={subcatSaving || !newSubcat.nombre.trim()}
                                             className="px-3 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg font-bold transition flex items-center">
                                             {subcatSaving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
                                         </button>
                                     </div>
                                 </div>
-
-                                {/* Lista por tipo */}
                                 {(["cocina", "bebida"] as Tipo[]).map(t => {
                                     const lista = subcats.filter(s => s.tipo === t);
                                     return (
@@ -296,9 +271,57 @@ export default function StockPage() {
         );
     }
 
-    // ── VISTA DE CATEGORÍA ──
     const meta = TIPO_META[vista];
-    const subcatsVista = getSubcats(vista);
+    const subcatsDeVista = getSubcats(vista);
+
+    // ── GRID DE SUBCATEGORÍAS ──
+    if (!subcatVista) {
+        const itemsDelTipo = items.filter(i => (i.tipo ?? "cocina") === vista);
+        return (
+            <div className="min-h-screen pb-20">
+                <div className="px-4 max-w-3xl mx-auto">
+                    <div className="flex items-center gap-3 py-5">
+                        <button onClick={volverAMain} className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition">
+                            <ChevronLeft size={18} className="text-gray-600" />
+                        </button>
+                        <h1 className="text-2xl font-extrabold text-black flex-1 flex items-center gap-2">
+                            {meta.emoji} {meta.label}
+                        </h1>
+                    </div>
+
+                    {subcatsDeVista.length === 0 ? (
+                        <p className="text-center text-gray-400 py-16 text-sm">
+                            Sin subcategorías. Creá una desde el botón "Subcategorías" en la pantalla principal.
+                        </p>
+                    ) : (
+                        <div className="grid grid-cols-2 gap-3">
+                            {subcatsDeVista.map(s => {
+                                const count = itemsDelTipo.filter(i => i.categoria === s.nombre).length;
+                                const hayBajoMinimo = itemsDelTipo.some(i => i.categoria === s.nombre && i.activo && i.stockMinimo > 0 && i.stockActual <= i.stockMinimo);
+                                return (
+                                    <button key={s._id} onClick={() => irASubcat(s.nombre)}
+                                        className={`relative flex flex-col items-start gap-2 rounded-2xl border-2 ${meta.border} bg-white px-4 py-5 shadow-sm active:scale-[0.97] transition-transform text-left`}>
+                                        {hayBajoMinimo && (
+                                            <span className="absolute top-2 right-2">
+                                                <AlertTriangle size={14} className="text-yellow-500" />
+                                            </span>
+                                        )}
+                                        <p className={`text-base font-black ${meta.color}`}>{s.nombre}</p>
+                                        <p className="text-xs text-gray-400">{count} producto{count !== 1 ? "s" : ""}</p>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    }
+
+    // ── LISTA DE PRODUCTOS DE LA SUBCATEGORÍA ──
+    const itemsSubcat = items
+        .filter(i => (i.tipo ?? "cocina") === vista && i.categoria === subcatVista)
+        .filter(i => !search || i.nombre.toLowerCase().includes(search.toLowerCase()));
 
     return (
         <div className="min-h-screen pb-20">
@@ -306,59 +329,31 @@ export default function StockPage() {
 
                 {/* Header */}
                 <div className="flex items-center gap-3 py-5">
-                    <button onClick={volver} className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition">
+                    <button onClick={volverATipo} className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition">
                         <ChevronLeft size={18} className="text-gray-600" />
                     </button>
-                    <div className="flex-1">
-                        <h1 className="text-2xl font-extrabold text-black flex items-center gap-2">
-                            {meta.emoji} {meta.label}
-                        </h1>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-xs text-gray-400 font-semibold">{meta.emoji} {meta.label}</p>
+                        <h1 className="text-xl font-extrabold text-black truncate">{subcatVista}</h1>
                     </div>
-                    <button onClick={() => setEditModal({ open: true, item: { ...EMPTY_ITEM(vista) } })}
-                        className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition">
+                    <button onClick={() => setEditModal({ open: true, item: { ...EMPTY_ITEM(vista, subcatVista) } })}
+                        className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition shrink-0">
                         <Plus size={15} /> Nuevo
                     </button>
                 </div>
 
-                {/* Tabs de subcategorías */}
-                <div className="flex gap-2 overflow-x-auto pb-1 mb-4 scrollbar-hide">
-                    {["Todos", ...subcatsVista].map(s => {
-                        const tieneItems = s === "Todos" || subcatsConItems.includes(s);
-                        return (
-                            <button key={s} onClick={() => setSubcat(s)}
-                                className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-                                    subcat === s
-                                        ? `${meta.pill} text-white`
-                                        : tieneItems
-                                            ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                                            : "bg-gray-50 text-gray-300"
-                                }`}>
-                                {s}
-                            </button>
-                        );
-                    })}
-                </div>
-
                 {/* Buscador */}
-                <input
-                    type="text" placeholder="Buscar producto..." value={search}
+                <input type="text" placeholder="Buscar producto..." value={search}
                     onChange={e => setSearch(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl border border-gray-200 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
-                />
+                    className="w-full px-4 py-2 rounded-xl border border-gray-200 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-red-400 bg-white" />
 
                 {loading ? (
                     <div className="flex justify-center py-16"><Loader2 className="animate-spin text-gray-400" size={32} /></div>
-                ) : itemsFiltrados.length === 0 ? (
-                    <p className="text-center text-gray-400 py-16 text-sm">Sin productos en esta sección.</p>
+                ) : itemsSubcat.length === 0 ? (
+                    <p className="text-center text-gray-400 py-16 text-sm">Sin productos en esta subcategoría.</p>
                 ) : (
-                    subcat === "Todos"
-                        ? Object.entries(bySubcat).map(([cat, catItems]) => (
-                            <div key={cat} className="mb-5">
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">{cat}</p>
-                                <ItemList items={catItems} meta={meta} onMov={openMov} onHist={openHistorial} onEdit={(item) => setEditModal({ open: true, item: { ...item } })} onDelete={deleteItem} />
-                            </div>
-                        ))
-                        : <ItemList items={itemsFiltrados} meta={meta} onMov={openMov} onHist={openHistorial} onEdit={(item) => setEditModal({ open: true, item: { ...item } })} onDelete={deleteItem} />
+                    <ItemList items={itemsSubcat} meta={meta} onMov={openMov} onHist={openHistorial}
+                        onEdit={(item) => setEditModal({ open: true, item: { ...item } })} onDelete={deleteItem} />
                 )}
             </div>
 
@@ -368,7 +363,7 @@ export default function StockPage() {
                     <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
                         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
                             <h2 className="font-black text-gray-900 flex-1">{editModal.item._id ? "Editar producto" : "Nuevo producto"}</h2>
-                            <button onClick={() => setEditModal({ open: false, item: EMPTY_ITEM(vista) })} className="p-1 text-gray-400 hover:text-gray-700"><X size={18} /></button>
+                            <button onClick={() => setEditModal({ open: false, item: EMPTY_ITEM(vista, subcatVista ?? "") })} className="p-1 text-gray-400 hover:text-gray-700"><X size={18} /></button>
                         </div>
                         <div className="px-5 py-4 space-y-3 max-h-[70vh] overflow-y-auto">
                             {/* Tipo */}
@@ -377,7 +372,7 @@ export default function StockPage() {
                                 <div className="flex gap-2 mt-1">
                                     {(["cocina", "bebida"] as Tipo[]).map(t => (
                                         <button key={t}
-                                            onClick={() => setEditModal(p => ({ ...p, item: { ...p.item, tipo: t, categoria: getSubcats(t)[0] ?? "" } }))}
+                                            onClick={() => setEditModal(p => ({ ...p, item: { ...p.item, tipo: t, categoria: "" } }))}
                                             className={`flex-1 py-2 rounded-xl text-sm font-bold border transition ${editModal.item.tipo === t ? (t === "cocina" ? "bg-orange-600 text-white border-orange-600" : "bg-blue-600 text-white border-blue-600") : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
                                             {TIPO_META[t].emoji} {TIPO_META[t].label}
                                         </button>
@@ -396,9 +391,9 @@ export default function StockPage() {
                                 {getSubcats(editModal.item.tipo ?? "cocina").length > 0 && (
                                     <div className="flex flex-wrap gap-1.5 mt-1">
                                         {getSubcats(editModal.item.tipo ?? "cocina").map(s => (
-                                            <button key={s} onClick={() => setEditModal(p => ({ ...p, item: { ...p.item, categoria: s } }))}
-                                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition border ${editModal.item.categoria === s ? (editModal.item.tipo === "bebida" ? "bg-blue-600 text-white border-blue-600" : "bg-orange-600 text-white border-orange-600") : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"}`}>
-                                                {s}
+                                            <button key={s._id} onClick={() => setEditModal(p => ({ ...p, item: { ...p.item, categoria: s.nombre } }))}
+                                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition border ${editModal.item.categoria === s.nombre ? (editModal.item.tipo === "bebida" ? "bg-blue-600 text-white border-blue-600" : "bg-orange-600 text-white border-orange-600") : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"}`}>
+                                                {s.nombre}
                                             </button>
                                         ))}
                                     </div>
@@ -449,7 +444,7 @@ export default function StockPage() {
                             )}
                         </div>
                         <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
-                            <button onClick={() => setEditModal({ open: false, item: EMPTY_ITEM(vista) })} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">Cancelar</button>
+                            <button onClick={() => setEditModal({ open: false, item: EMPTY_ITEM(vista, subcatVista ?? "") })} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">Cancelar</button>
                             <button onClick={saveItem} disabled={editSaving || !editModal.item.nombre?.trim()}
                                 className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
                                 {editSaving ? "Guardando..." : "Guardar"}
@@ -468,7 +463,6 @@ export default function StockPage() {
                             <button onClick={() => setMovModal({ open: false, item: null })} className="p-1 text-gray-400 hover:text-gray-700"><X size={18} /></button>
                         </div>
                         <div className="px-5 py-4 space-y-3">
-                            {/* Entrada / Salida */}
                             <div className="flex gap-2">
                                 <button onClick={() => setMovForm(p => ({ ...p, tipo: "entrada" }))}
                                     className={`flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition border ${movForm.tipo === "entrada" ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
@@ -480,7 +474,6 @@ export default function StockPage() {
                                 </button>
                             </div>
 
-                            {/* Modo carga — solo si el ítem tiene unidadesPorCaja */}
                             {!!movModal.item.unidadesPorCaja && (
                                 <div>
                                     <label className="text-xs font-semibold text-gray-500 uppercase">Modo de carga</label>
@@ -497,15 +490,13 @@ export default function StockPage() {
                                 </div>
                             )}
 
-                            {/* Campos de cantidad según modo */}
                             {movForm.modo === "caja" && movModal.item.unidadesPorCaja ? (
                                 <div>
                                     <label className="text-xs font-semibold text-gray-500 uppercase">Cantidad de cajas *</label>
                                     <input type="number" min="1" step="1" value={movForm.cantidadCajas}
                                         onChange={e => {
                                             const cajas = e.target.value;
-                                            const unidades = cajas && movModal.item?.unidadesPorCaja
-                                                ? String(Number(cajas) * movModal.item.unidadesPorCaja) : "";
+                                            const unidades = cajas && movModal.item?.unidadesPorCaja ? String(Number(cajas) * movModal.item.unidadesPorCaja) : "";
                                             setMovForm(p => ({ ...p, cantidadCajas: cajas, cantidad: unidades }));
                                         }}
                                         placeholder="Ej: 2"
@@ -535,7 +526,6 @@ export default function StockPage() {
                                 </div>
                             )}
 
-                            {/* Motivo */}
                             <div>
                                 <label className="text-xs font-semibold text-gray-500 uppercase">Motivo *</label>
                                 <input value={movForm.motivo} onChange={e => setMovForm(p => ({ ...p, motivo: e.target.value }))}
@@ -615,7 +605,6 @@ export default function StockPage() {
     );
 }
 
-// ── Componente auxiliar lista de ítems ──
 function ItemList({ items, meta, onMov, onHist, onEdit, onDelete }: {
     items: StockItem[];
     meta: typeof TIPO_META[Tipo];
