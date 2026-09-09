@@ -2708,9 +2708,9 @@ export default function CajaPage() {
 
                                                     {/* Badge MP pagado */}
                                                     {esMpPagado && (
-                                                        <div className="shrink-0 mb-2 flex items-center gap-2 bg-sky-50 border border-sky-200 rounded-lg px-2 py-1">
-                                                            <img src="/MP_RGB_HANDSHAKE_color_horizontal.svg" height="18" className="shrink-0" style={{ width: "auto" }} alt="Mercado Pago" />
-                                                            <span className="text-[10px] font-black text-sky-700 uppercase tracking-wide">Pagado</span>
+                                                        <div className="shrink-0 mb-2 flex items-center gap-1.5 bg-sky-50 border border-sky-200 rounded-lg px-2 py-1 self-start">
+                                                            <img src="/mp-icon.svg" width="18" height="13" className="shrink-0" alt="MP" />
+                                                            <span className="text-[10px] font-black text-sky-700 uppercase tracking-wide">MP Pagado</span>
                                                         </div>
                                                     )}
 
