@@ -2861,8 +2861,15 @@ export default function CajaPage() {
 
                                                     {/* Botones pendiente */}
                                                     {p.estado === "pendiente" ? (
-                                                        <div className="shrink-0 flex gap-2">
-                                                            <button disabled={isUpdating}
+                                                        <div className="shrink-0 flex gap-2 flex-col">
+                                                            {p.metodoPago === "mercadopago" && p.mpEstadoPago !== "aprobado" && (
+                                                                <p className="text-[11px] text-center text-amber-600 font-semibold bg-amber-50 border border-amber-200 rounded-lg py-1.5 px-2">
+                                                                    ⏳ Esperando confirmación de Mercado Pago...
+                                                                </p>
+                                                            )}
+                                                            <div className="flex gap-2">
+                                                            <button
+                                                                disabled={isUpdating || (p.metodoPago === "mercadopago" && p.mpEstadoPago !== "aprobado")}
                                                                 onClick={async () => {
                                                                     if (isUpdating) return;
                                                                     setPrintingIds(prev => new Set([...prev, p._id]));
@@ -2873,7 +2880,7 @@ export default function CajaPage() {
                                                                         setPrintingIds(prev => { const s = new Set(prev); s.delete(p._id); return s; });
                                                                     }
                                                                 }}
-                                                                className={`flex-1 disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1 bg-black`}>
+                                                                className="flex-1 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1 bg-black">
                                                                 {isUpdating ? <Loader2 size={14} className="animate-spin" /> : null}
                                                                 Aceptar
                                                             </button>
@@ -2881,6 +2888,7 @@ export default function CajaPage() {
                                                                 className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 rounded-xl transition">
                                                                 Rechazar
                                                             </button>
+                                                            </div>
                                                         </div>
                                                     ) : estadoIdx < estadosList.length - 1 ? (
                                                         <div className="shrink-0 mt-1 space-y-3">
