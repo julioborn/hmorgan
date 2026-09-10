@@ -111,15 +111,13 @@ function RechazadoContent() {
                     </div>
                 )}
 
-                <div className="px-6 pb-6 pt-2 flex flex-col gap-2">
-                    <a href="/cliente/pedidos"
-                        className="block w-full bg-red-600 text-white text-center py-3 rounded-xl font-bold text-sm">
-                        Intentar de nuevo
-                    </a>
-                    <a href="/cliente/pedidos"
-                        className="block w-full bg-gray-100 text-gray-600 text-center py-3 rounded-xl font-bold text-sm">
-                        Volver al menú
-                    </a>
+                <div className="px-6 pb-6 pt-2 text-center">
+                    <button
+                        onClick={() => window.close()}
+                        className="w-full bg-gray-800 text-white py-3 rounded-xl font-bold text-sm mb-3">
+                        Cerrar y volver a la app
+                    </button>
+                    <p className="text-xs text-gray-400">Si el botón no funciona, cerrá esta ventana manualmente y volvé a la app para intentar de nuevo.</p>
                 </div>
             </div>
         </div>

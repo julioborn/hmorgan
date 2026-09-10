@@ -119,11 +119,13 @@ function ExitosoContent() {
                     </div>
                 )}
 
-                <div className="px-6 pb-6 pt-2">
-                    <a href="/cliente/pedidos"
-                        className="block w-full bg-black text-white text-center py-3 rounded-xl font-bold text-sm">
-                        Volver al menú
-                    </a>
+                <div className="px-6 pb-6 pt-2 text-center">
+                    <button
+                        onClick={() => window.close()}
+                        className="w-full bg-black text-white py-3 rounded-xl font-bold text-sm mb-3">
+                        Cerrar y volver a la app
+                    </button>
+                    <p className="text-xs text-gray-400">Si el botón no funciona, cerrá esta ventana manualmente y volvé a la app.</p>
                 </div>
             </div>
         </div>
