@@ -812,8 +812,8 @@ export default function PedidosClientePage() {
         return (
             <div className="flex flex-col items-center justify-center py-20 text-center">
                 <UtensilsCrossed size={50} className="mb-4 text-red-600" />
-                <h2 className="text-xl font-semibold mb-2 text-black">Pedidos no disponibles</h2>
-                <p className="text-gray-500">En este momento no se están tomando pedidos.</p>
+                <h2 className="text-xl font-semibold mb-2 text-black">El bar está cerrado</h2>
+                <p className="text-gray-500">Los pedidos online están disponibles cuando el bar está abierto. ¡Volvé pronto!</p>
             </div>
         );
     }
