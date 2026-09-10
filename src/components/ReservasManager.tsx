@@ -163,20 +163,25 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
     const [editSaving, setEditSaving]       = useState(false);
     const [editError, setEditError]         = useState("");
 
-    const fetchReservas = useCallback(async () => {
-        try {
-            const r = await fetch("/api/reservas", { credentials: "include" });
-            if (!r.ok) return;
-            const d = await r.json();
-            if (Array.isArray(d)) {
-                setReservas(d);
-                const hoy = hoyArgentina();
-                setReservadasHoy(new Set(
-                    d.filter((r: any) => r.estado !== "cancelada" && r.mesaId && r.fecha?.slice(0, 10) === hoy)
-                     .map((r: any) => String(r.mesaId?._id || r.mesaId))
-                ));
+    const fetchReservas = useCallback(async (intentos = 3) => {
+        for (let i = 0; i < intentos; i++) {
+            try {
+                const r = await fetch("/api/reservas", { credentials: "include", cache: "no-store" });
+                if (!r.ok) { if (i < intentos - 1) { await new Promise(res => setTimeout(res, 1500)); continue; } return; }
+                const d = await r.json();
+                if (Array.isArray(d)) {
+                    setReservas(d);
+                    const hoy = hoyArgentina();
+                    setReservadasHoy(new Set(
+                        d.filter((r: any) => r.estado !== "cancelada" && r.mesaId && r.fecha?.slice(0, 10) === hoy)
+                         .map((r: any) => String(r.mesaId?._id || r.mesaId))
+                    ));
+                }
+                return;
+            } catch {
+                if (i < intentos - 1) await new Promise(res => setTimeout(res, 1500));
             }
-        } catch { }
+        }
     }, []);
 
     useEffect(() => {
@@ -201,7 +206,7 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
             finally { setLoading(false); }
         };
         init();
-        const iv = setInterval(fetchReservas, 8000);
+        const iv = setInterval(fetchReservas, 5000);
         return () => clearInterval(iv);
     }, [fetchReservas]);
 

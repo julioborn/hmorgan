@@ -382,19 +382,27 @@ function CartDrawer({
                 <div className="mt-4">
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">¿Cómo vas a pagar?</p>
                     <div className="flex gap-2">
+                        {/* Efectivo */}
                         <button onClick={() => setMetodoPago("efectivo")}
-                            className={`flex-1 py-4 rounded-xl border-2 transition flex flex-col items-center justify-center gap-1.5 ${metodoPago === "efectivo" ? "bg-emerald-600 border-emerald-600" : "bg-white border-emerald-500"}`}>
+                            className="relative flex-1 py-4 rounded-xl border-2 border-emerald-500 bg-white transition flex flex-col items-center justify-center gap-1.5">
+                            {metodoPago === "efectivo" && (
+                                <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
+                                    <svg viewBox="0 0 12 12" width="10" height="10" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="2 6 5 9 10 3"/></svg>
+                                </span>
+                            )}
                             <span className="text-2xl">💵</span>
-                            <span className={`text-xs font-bold ${metodoPago === "efectivo" ? "text-white" : "text-emerald-600"}`}>Efectivo</span>
+                            <span className="text-xs font-bold text-emerald-600">Efectivo</span>
                         </button>
+                        {/* Mercado Pago */}
                         {MERCADOPAGO_ACTIVO && (
                             <button onClick={() => setMetodoPago("mercadopago")}
-                                className={`flex-1 py-4 rounded-xl transition flex flex-col items-center justify-center gap-1 bg-white ${metodoPago === "mercadopago" ? "border-[3px] border-[#009EE3] shadow-[0_0_0_1px_#009EE3]" : "border-2 border-[#009EE3]"}`}>
-                                <img
-                                    src="/MP_RGB_HANDSHAKE_color_horizontal.svg"
-                                    className="shrink-0 w-[80%] max-w-[120px]"
-                                    alt="Mercado Pago"
-                                />
+                                className="relative flex-1 py-4 rounded-xl border-2 border-[#009EE3] bg-white transition flex flex-col items-center justify-center gap-1">
+                                {metodoPago === "mercadopago" && (
+                                    <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
+                                        <svg viewBox="0 0 12 12" width="10" height="10" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="2 6 5 9 10 3"/></svg>
+                                    </span>
+                                )}
+                                <img src="/MP_RGB_HANDSHAKE_color_horizontal.svg" className="shrink-0 w-[80%] max-w-[120px]" alt="Mercado Pago" />
                             </button>
                         )}
                     </div>
@@ -472,6 +480,17 @@ export default function PedidosClientePage() {
 
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+        if (categoriaSeleccionada) {
+            window.history.pushState({ cat: categoriaSeleccionada }, "");
+        }
+    }, [categoriaSeleccionada]);
+
+    useEffect(() => {
+        const handlePop = () => {
+            if (categoriaSeleccionada) setCategoriaSeleccionada(null);
+        };
+        window.addEventListener("popstate", handlePop);
+        return () => window.removeEventListener("popstate", handlePop);
     }, [categoriaSeleccionada]);
 
     useEffect(() => {
@@ -990,7 +1009,7 @@ export default function PedidosClientePage() {
 
             <AnimatePresence mode="wait">
                 <motion.div key={categoriaSeleccionada} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.22 }}
-                    className="px-5 py-5 pb-32">
+                    className="px-5 py-5 pb-[160px]">
                     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
                         {productos.map((item) => {
                             const count = getCartCount(item._id);
