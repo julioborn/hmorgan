@@ -3039,10 +3039,22 @@ export default function CajaPage() {
                                                                 </button>
                                                             )}
                                                             {(p.estado === "listo" || p.estado === "entregado") && (
-                                                                <button onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", pagos: [{ metodo: "", monto: "" }] }); }}
-                                                                    className="w-full flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-xl text-sm transition">
-                                                                    <Wallet size={13} /> Cobrar
-                                                                </button>
+                                                                p.metodoPago === "mercadopago" && p.mpEstadoPago === "aprobado" ? (
+                                                                    <button
+                                                                        disabled={isUpdating}
+                                                                        onClick={async () => {
+                                                                            const ok = await swalBase.fire({ title: "¿Marcar como entregado?", text: "El pedido ya fue cobrado por Mercado Pago.", icon: "question", showCancelButton: true, confirmButtonText: "Sí, cerrar", cancelButtonText: "Cancelar" });
+                                                                            if (ok.isConfirmed) await avanzarEstado(p, "cerrado");
+                                                                        }}
+                                                                        className="w-full flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold py-2 rounded-xl text-sm transition">
+                                                                        <CheckCircle size={13} /> Marcar como entregado
+                                                                    </button>
+                                                                ) : (
+                                                                    <button onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", pagos: [{ metodo: "", monto: "" }] }); }}
+                                                                        className="w-full flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-xl text-sm transition">
+                                                                        <Wallet size={13} /> Cobrar
+                                                                    </button>
+                                                                )
                                                             )}
                                                         </div>
                                                     )}
@@ -3260,11 +3272,22 @@ export default function CajaPage() {
                                                         <Printer size={14} /> Imprimir cuenta
                                                     </button>
                                                 )}
-                                                <button
-                                                    onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", pagos: [{ metodo: "", monto: "" }] }); }}
-                                                    className={`w-full text-white font-black py-3 rounded-xl text-base tracking-wide transition ${cobrarBg}`}>
-                                                    Cobrar todo
-                                                </button>
+                                                {p.metodoPago === "mercadopago" && p.mpEstadoPago === "aprobado" ? (
+                                                    <button
+                                                        onClick={async () => {
+                                                            const ok = await swalBase.fire({ title: "¿Marcar como entregado?", text: "El pedido ya fue cobrado por Mercado Pago.", icon: "question", showCancelButton: true, confirmButtonText: "Sí, cerrar", cancelButtonText: "Cancelar" });
+                                                            if (ok.isConfirmed) await avanzarEstado(p, "cerrado");
+                                                        }}
+                                                        className="w-full flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-xl text-base tracking-wide transition">
+                                                        <CheckCircle size={15} /> Marcar como entregado
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", pagos: [{ metodo: "", monto: "" }] }); }}
+                                                        className={`w-full text-white font-black py-3 rounded-xl text-base tracking-wide transition ${cobrarBg}`}>
+                                                        Cobrar todo
+                                                    </button>
+                                                )}
                                                 {!esApp && (
                                                     <button
                                                         onClick={() => abrirCobroParcial(p)}
