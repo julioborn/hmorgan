@@ -256,6 +256,7 @@ export default function CajaPage() {
     const [cpModal, setCpModal] = useState<Pedido | null>(null);
     const [cpItems, setCpItems] = useState<CPItem[]>([]);
     const [cpMetodo, setCpMetodo] = useState<typeof METODOS[number]>("efectivo");
+    const [cpPropina, setCpPropina] = useState("");
     const [cpSaving, setCpSaving] = useState(false);
     const [ventasExpandidas, setVentasExpandidas] = useState<Record<string, Set<string>>>({});
     const [ventasPagina, setVentasPagina] = useState<Record<string, number>>({});
@@ -978,6 +979,7 @@ export default function CajaPage() {
             }));
         setCpItems(items);
         setCpMetodo("efectivo");
+        setCpPropina("");
         setCpModal(p);
     }
 
@@ -995,7 +997,9 @@ export default function CajaPage() {
         if (selected.length === 0) {
             await swalBase.fire({ title: "Seleccioná al menos un ítem", icon: "warning" }); return;
         }
-        const total = selected.reduce((s, i) => s + i.precio * i.selected, 0);
+        const subtotal = selected.reduce((s, i) => s + i.precio * i.selected, 0);
+        const propinaNum = Math.max(0, Number(cpPropina) || 0);
+        const totalConPropina = subtotal + propinaNum;
         setCpSaving(true);
         try {
             const res = await fetch("/api/superadmin/caja/cobrar-parcial", {
@@ -1006,12 +1010,12 @@ export default function CajaPage() {
                     pedidoId: cpModal._id,
                     items: selected.map(i => ({ itemId: i.itemId, cantidad: i.selected })),
                     metodoPago: cpMetodo,
-                    montoPagado: total,
+                    montoPagado: totalConPropina,
                 }),
             });
             if (res.ok) {
                 const printItems = selected.map(i => ({ cantidad: i.selected, nombre: i.nombre, precio: i.precio }));
-                printTicket(cpModal, [{ metodo: cpMetodo, monto: total }], 0, total, 0, printItems);
+                printTicket(cpModal, [{ metodo: cpMetodo, monto: totalConPropina }], 0, totalConPropina, 0, printItems);
                 setCpModal(null);
                 loadData();
             } else {
@@ -5794,7 +5798,9 @@ export default function CajaPage() {
 
             {/* ── Modal cobro parcial ── */}
             {cpModal && (() => {
-                const cpTotal = cpItems.reduce((s, i) => s + i.precio * i.selected, 0);
+                const cpSubtotal = cpItems.reduce((s, i) => s + i.precio * i.selected, 0);
+                const cpPropinaNum = Math.max(0, Number(cpPropina) || 0);
+                const cpTotal = cpSubtotal + cpPropinaNum;
                 const titulo = cpModal.mesa ? mesaLabel(cpModal.mesa) : cpModal.nombreComanda || "Pedido";
                 return createPortal(
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
@@ -5850,12 +5856,26 @@ export default function CajaPage() {
                                         );
                                     })}
                                 </div>
-                                <div className="px-4 py-3 flex items-center justify-between">
+                                {/* Propina opcional */}
+                                <div className="flex items-center gap-3 px-4 py-2.5 border-t border-gray-100">
+                                    <span className="text-xs font-bold text-amber-600 shrink-0">Propina $</span>
+                                    <input
+                                        type="number" min="0" inputMode="decimal"
+                                        value={cpPropina}
+                                        onChange={e => setCpPropina(e.target.value)}
+                                        placeholder="0"
+                                        className="flex-1 text-sm font-bold focus:outline-none text-amber-700 bg-transparent text-right"
+                                    />
+                                    {cpPropinaNum > 0 && (
+                                        <span className="text-xs font-black text-amber-600 shrink-0">+{formatMoney(cpPropinaNum)}</span>
+                                    )}
+                                </div>
+                                <div className="px-4 py-3 flex items-center justify-between border-t border-gray-100">
                                     <span className="text-sm font-bold text-gray-600">Total a cobrar</span>
                                     <span className="text-2xl font-black text-gray-900">{formatMoney(cpTotal)}</span>
                                 </div>
                                 <div className="px-4 pb-5">
-                                    <button onClick={ejecutarCobroParcial} disabled={cpSaving || cpTotal === 0}
+                                    <button onClick={ejecutarCobroParcial} disabled={cpSaving || cpSubtotal === 0}
                                         className="w-full bg-black text-white font-black py-3 rounded-xl text-base transition disabled:opacity-40 flex items-center justify-center gap-2">
                                         {cpSaving ? <Loader2 size={18} className="animate-spin" /> : null}
                                         {cpSaving ? "Procesando…" : `Cobrar ${formatMoney(cpTotal)}`}
