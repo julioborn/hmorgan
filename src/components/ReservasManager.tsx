@@ -5,7 +5,109 @@ import { hoyArgentina, formatArgDate } from "@/lib/argentina-time";
 import {
     MapPin, Check, X,
     Loader2, Phone, ChevronDown, Plus, Search, Users, Pencil,
+    ChevronLeft, ChevronRight, Ban,
 } from "lucide-react";
+
+// ── Mini calendario de bloqueo ────────────────────────────────────
+const DIAS_SEMANA = ["Do", "Lu", "Ma", "Mi", "Ju", "Vi", "Sá"];
+const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+function CalendarioBloqueo({
+    fechasBloqueadas, onToggle, reservasFechas,
+}: {
+    fechasBloqueadas: string[];
+    onToggle: (iso: string) => void;
+    reservasFechas: Set<string>;
+}) {
+    const hoy = hoyArgentina();
+    const [anio, setAnio] = useState(() => new Date().getFullYear());
+    const [mes, setMes]   = useState(() => new Date().getMonth());
+
+    const primerDia = new Date(anio, mes, 1).getDay();
+    const diasEnMes = new Date(anio, mes + 1, 0).getDate();
+
+    function navMes(delta: number) {
+        setMes(m => {
+            let nm = m + delta;
+            if (nm < 0)  { setAnio(a => a - 1); return 11; }
+            if (nm > 11) { setAnio(a => a + 1); return 0; }
+            return nm;
+        });
+    }
+
+    const celdas: (number | null)[] = [
+        ...Array(primerDia).fill(null),
+        ...Array.from({ length: diasEnMes }, (_, i) => i + 1),
+    ];
+
+    return (
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-4">
+            {/* Header mes */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                    <Ban size={14} className="text-red-500" />
+                    <span className="text-sm font-black text-gray-800">Días bloqueados</span>
+                    {fechasBloqueadas.length > 0 && (
+                        <span className="text-xs font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded-full">{fechasBloqueadas.length}</span>
+                    )}
+                </div>
+                <div className="flex items-center gap-1">
+                    <button onClick={() => navMes(-1)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition">
+                        <ChevronLeft size={16} />
+                    </button>
+                    <span className="text-xs font-bold text-gray-700 w-28 text-center">{MESES[mes]} {anio}</span>
+                    <button onClick={() => navMes(1)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition">
+                        <ChevronRight size={16} />
+                    </button>
+                </div>
+            </div>
+
+            {/* Días de semana */}
+            <div className="grid grid-cols-7 border-b border-gray-100">
+                {DIAS_SEMANA.map(d => (
+                    <div key={d} className="py-1.5 text-center text-[10px] font-bold text-gray-400">{d}</div>
+                ))}
+            </div>
+
+            {/* Días */}
+            <div className="grid grid-cols-7 p-2 gap-1">
+                {celdas.map((dia, idx) => {
+                    if (!dia) return <div key={`empty-${idx}`} />;
+                    const mm = String(mes + 1).padStart(2, "0");
+                    const dd = String(dia).padStart(2, "0");
+                    const iso = `${anio}-${mm}-${dd}`;
+                    const esPassado = iso < hoy;
+                    const bloqueada = fechasBloqueadas.includes(iso);
+                    const tieneReserva = reservasFechas.has(iso);
+                    const esHoy = iso === hoy;
+
+                    return (
+                        <button
+                            key={iso}
+                            onClick={() => !esPassado && onToggle(iso)}
+                            disabled={esPassado}
+                            className={`relative flex flex-col items-center justify-center rounded-xl aspect-square text-xs font-bold transition
+                                ${esPassado ? "opacity-25 cursor-default" : "hover:scale-105 active:scale-95 cursor-pointer"}
+                                ${bloqueada ? "bg-red-500 text-white shadow-sm" : esHoy ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-700 hover:bg-gray-100"}`}
+                        >
+                            <span>{dia}</span>
+                            {tieneReserva && !bloqueada && (
+                                <span className="absolute bottom-1 w-1 h-1 rounded-full bg-amber-400" />
+                            )}
+                            {bloqueada && (
+                                <span className="text-[8px] font-black leading-none mt-0.5 opacity-80">BLOQ</span>
+                            )}
+                        </button>
+                    );
+                })}
+            </div>
+
+            <p className="text-[10px] text-gray-400 text-center pb-2">
+                Tocá un día para bloquearlo · <span className="text-amber-500">●</span> tiene reservas
+            </p>
+        </div>
+    );
+}
 
 type Reserva = {
     _id: string;
@@ -131,6 +233,10 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
     const [tab, setTab]                   = useState<"pendiente" | "confirmada">("pendiente");
     const [saving, setSaving]             = useState<string | null>(null);
 
+    // Fechas bloqueadas
+    const [fechasBloqueadas, setFechasBloqueadas] = useState<string[]>([]);
+    const [calSaving, setCalSaving]               = useState(false);
+
     // Mesa picker
     const [pickerReservaId, setPickerReservaId]   = useState<string | null>(null);
     const [pickerSelected, setPickerSelected]     = useState<Mesa | null>(null);
@@ -187,16 +293,19 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
     useEffect(() => {
         const init = async () => {
             try {
-                const [mRes, elRes] = await Promise.all([
+                const [mRes, elRes, cfgRes] = await Promise.all([
                     fetch("/api/admin/mesas?all=true", { credentials: "include" }),
                     fetch("/api/superadmin/salon", { credentials: "include" }),
+                    fetch("/api/config/reservas", { credentials: "include" }),
                 ]);
-                const [mData, elData] = await Promise.all([
+                const [mData, elData, cfgData] = await Promise.all([
                     mRes.ok ? mRes.json() : [],
                     elRes.ok ? elRes.json() : [],
+                    cfgRes.ok ? cfgRes.json() : {},
                 ]);
                 setMesas(Array.isArray(mData) ? mData.filter((m: Mesa) => m.activa) : []);
                 setElements(Array.isArray(elData) ? elData : []);
+                setFechasBloqueadas((cfgData as any).fechasBloqueadas ?? []);
 
                 const pData = await fetch("/api/pedidos?activos=true&fuente=empleado", { credentials: "include" }).then(r => r.json()).catch(() => []);
                 if (Array.isArray(pData)) setOcupadas(new Set(pData.filter((p: any) => p.mesa).map((p: any) => String(p.mesa))));
@@ -332,7 +441,30 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
         setEditModal(null);
     }
 
+    async function toggleFecha(iso: string) {
+        const nuevas = fechasBloqueadas.includes(iso)
+            ? fechasBloqueadas.filter(f => f !== iso)
+            : [...fechasBloqueadas, iso];
+        setFechasBloqueadas(nuevas);
+        setCalSaving(true);
+        try {
+            await fetch("/api/config/reservas", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ fechasBloqueadas: nuevas }),
+            });
+        } finally { setCalSaving(false); }
+    }
+
+    // Fechas que tienen reservas activas (para marcar el calendario)
     const hoy = hoyArgentina();
+    const reservasFechasSet = new Set(
+        reservas
+            .filter(r => r.estado !== "cancelada" && r.fecha?.slice(0, 10) >= hoy)
+            .map(r => r.fecha?.slice(0, 10))
+    );
+
     const filtered = reservas.filter(r => r.estado === tab && r.fecha?.slice(0, 10) >= hoy);
     const counts = {
         pendiente:  reservas.filter(r => r.estado === "pendiente" && r.fecha?.slice(0, 10) >= hoy).length,
@@ -347,6 +479,18 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
                 className="w-full mb-4 flex items-center justify-center gap-2 bg-black text-white font-bold py-3 rounded-xl text-sm tracking-wide hover:bg-gray-800 transition">
                 <Plus size={16} /> Nueva reserva
             </button>
+
+            {/* Calendario de fechas bloqueadas */}
+            <CalendarioBloqueo
+                fechasBloqueadas={fechasBloqueadas}
+                onToggle={toggleFecha}
+                reservasFechas={reservasFechasSet}
+            />
+            {calSaving && (
+                <p className="text-[11px] text-center text-gray-400 -mt-3 mb-3 flex items-center justify-center gap-1">
+                    <Loader2 size={10} className="animate-spin" /> Guardando...
+                </p>
+            )}
 
             {/* Tabs */}
             <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-4">

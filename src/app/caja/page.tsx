@@ -2340,28 +2340,6 @@ export default function CajaPage() {
                     </div>
                 </div>
 
-                {/* Fechas bloqueadas para reservas */}
-                {reservasActivas && (
-                    <div className="mt-3 pt-3 border-t border-white/10">
-                        <p className="text-[11px] font-semibold text-white/60 mb-2">Bloquear días sin reservas:</p>
-                        <div className="flex flex-wrap gap-1.5">
-                            {Array.from({ length: 14 }, (_, i) => {
-                                const d = new Date();
-                                d.setDate(d.getDate() + i);
-                                const iso = d.toISOString().slice(0, 10);
-                                const label = d.toLocaleDateString("es-AR", { weekday: "short", day: "numeric", month: "short" });
-                                const bloqueada = fechasBloqueadas.includes(iso);
-                                return (
-                                    <button key={iso} onClick={() => toggleFechaBloqueada(iso)}
-                                        className={`text-[11px] font-semibold px-2 py-1 rounded-full border transition-colors ${bloqueada ? "bg-red-500 border-red-400 text-white" : "bg-white/10 border-white/20 text-white/70 hover:bg-white/20"}`}>
-                                        {bloqueada && "🚫 "}{label}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-                )}
-
                 {/* Notificaciones en el header */}
                 {(llamadas.length > 0 || listosToast.length > 0) && (
                     <div className="mt-3 pt-3 border-t border-white/10 flex flex-wrap gap-2">
