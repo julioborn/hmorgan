@@ -257,6 +257,8 @@ export default function CajaPage() {
     const [cpItems, setCpItems] = useState<CPItem[]>([]);
     const [cpMetodo, setCpMetodo] = useState<typeof METODOS[number]>("efectivo");
     const [cpPropina, setCpPropina] = useState("");
+    const [cpExcedente, setCpExcedente] = useState(0);
+    const [cpIncluirExcedente, setCpIncluirExcedente] = useState(false);
     const [cpSaving, setCpSaving] = useState(false);
     const [ventasExpandidas, setVentasExpandidas] = useState<Record<string, Set<string>>>({});
     const [ventasPagina, setVentasPagina] = useState<Record<string, number>>({});
@@ -977,9 +979,13 @@ export default function CajaPage() {
                 max: it.cantidad,
                 selected: 0,
             }));
+        const itemsSum = p.items.reduce((s, it) => s + (it.menuItemId?.precio || 0) * it.cantidad, 0);
+        const excedente = Math.max(0, Math.round((p.total - itemsSum) * 100) / 100);
         setCpItems(items);
         setCpMetodo("efectivo");
         setCpPropina("");
+        setCpExcedente(excedente);
+        setCpIncluirExcedente(false);
         setCpModal(p);
     }
 
@@ -999,7 +1005,8 @@ export default function CajaPage() {
         }
         const subtotal = selected.reduce((s, i) => s + i.precio * i.selected, 0);
         const propinaNum = Math.max(0, Number(cpPropina) || 0);
-        const totalConPropina = subtotal + propinaNum;
+        const excedenteIncluido = cpIncluirExcedente ? cpExcedente : 0;
+        const totalConPropina = subtotal + propinaNum + excedenteIncluido;
         setCpSaving(true);
         try {
             const res = await fetch("/api/superadmin/caja/cobrar-parcial", {
@@ -1011,6 +1018,7 @@ export default function CajaPage() {
                     items: selected.map(i => ({ itemId: i.itemId, cantidad: i.selected })),
                     metodoPago: cpMetodo,
                     montoPagado: totalConPropina,
+                    excedenteIncluido,
                 }),
             });
             if (res.ok) {
@@ -5800,7 +5808,8 @@ export default function CajaPage() {
             {cpModal && (() => {
                 const cpSubtotal = cpItems.reduce((s, i) => s + i.precio * i.selected, 0);
                 const cpPropinaNum = Math.max(0, Number(cpPropina) || 0);
-                const cpTotal = cpSubtotal + cpPropinaNum;
+                const cpExcedenteIncluido = cpIncluirExcedente ? cpExcedente : 0;
+                const cpTotal = cpSubtotal + cpPropinaNum + cpExcedenteIncluido;
                 const titulo = cpModal.mesa ? mesaLabel(cpModal.mesa) : cpModal.nombreComanda || "Pedido";
                 return createPortal(
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
@@ -5856,20 +5865,37 @@ export default function CajaPage() {
                                         );
                                     })}
                                 </div>
-                                {/* Propina opcional */}
-                                <div className="flex items-center gap-3 px-4 py-2.5 border-t border-gray-100">
-                                    <span className="text-xs font-bold text-amber-600 shrink-0">Propina $</span>
-                                    <input
-                                        type="number" min="0" inputMode="decimal"
-                                        value={cpPropina}
-                                        onChange={e => setCpPropina(e.target.value)}
-                                        placeholder="0"
-                                        className="flex-1 text-sm font-bold focus:outline-none text-amber-700 bg-transparent text-right"
-                                    />
-                                    {cpPropinaNum > 0 && (
-                                        <span className="text-xs font-black text-amber-600 shrink-0">+{formatMoney(cpPropinaNum)}</span>
-                                    )}
-                                </div>
+                                {/* Excedente detectado automáticamente */}
+                                {cpExcedente > 0 && (
+                                    <div className="flex items-center gap-3 px-4 py-2.5 border-t border-gray-100 bg-amber-50">
+                                        <button
+                                            onClick={() => setCpIncluirExcedente(v => !v)}
+                                            className={`w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center transition ${cpIncluirExcedente ? "bg-amber-500 border-amber-500" : "border-gray-300 bg-white"}`}>
+                                            {cpIncluirExcedente && <svg viewBox="0 0 12 12" width="10" height="10" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="2 6 5 9 10 3"/></svg>}
+                                        </button>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-bold text-amber-700">Excedente / Propina</p>
+                                            <p className="text-[11px] text-amber-600">Ya está en el total del pedido</p>
+                                        </div>
+                                        <span className="text-sm font-black text-amber-700 shrink-0">+{formatMoney(cpExcedente)}</span>
+                                    </div>
+                                )}
+                                {/* Propina manual (si no hay excedente detectado) */}
+                                {cpExcedente === 0 && (
+                                    <div className="flex items-center gap-3 px-4 py-2.5 border-t border-gray-100">
+                                        <span className="text-xs font-bold text-amber-600 shrink-0">Propina $</span>
+                                        <input
+                                            type="number" min="0" inputMode="decimal"
+                                            value={cpPropina}
+                                            onChange={e => setCpPropina(e.target.value)}
+                                            placeholder="0"
+                                            className="flex-1 text-sm font-bold focus:outline-none text-amber-700 bg-transparent text-right"
+                                        />
+                                        {cpPropinaNum > 0 && (
+                                            <span className="text-xs font-black text-amber-600 shrink-0">+{formatMoney(cpPropinaNum)}</span>
+                                        )}
+                                    </div>
+                                )}
                                 <div className="px-4 py-3 flex items-center justify-between border-t border-gray-100">
                                     <span className="text-sm font-bold text-gray-600">Total a cobrar</span>
                                     <span className="text-2xl font-black text-gray-900">{formatMoney(cpTotal)}</span>

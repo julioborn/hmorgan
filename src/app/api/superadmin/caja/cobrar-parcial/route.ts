@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 
     await connectMongoDB();
 
-    const { pedidoId, items, metodoPago, montoPagado } = await req.json();
+    const { pedidoId, items, metodoPago, montoPagado, excedenteIncluido } = await req.json();
     if (!pedidoId || !items?.length || !metodoPago)
         return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
 
@@ -50,9 +50,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Recalculate total from remaining items (menuItemId is populated)
-    pedido.total = (pedido.items as any[]).reduce((acc: number, it: any) => {
+    // If excedente was included in this payment, don't carry it to remaining total
+    const excedenteNum = Math.max(0, Number(excedenteIncluido) || 0);
+    const itemsRestanteTotal = (pedido.items as any[]).reduce((acc: number, it: any) => {
         return acc + (it.menuItemId?.precio || 0) * it.cantidad;
     }, 0);
+    pedido.total = itemsRestanteTotal;
 
     // El cobro parcial nunca cierra la comanda — queda abierta para seguir agregando ítems
     await pedido.save();
@@ -74,6 +77,7 @@ export async function POST(req: NextRequest) {
             tipo: "ingreso",
             concepto: conceptoParcial,
             monto: Number(montoPagado) || 0,
+            excedente: excedenteNum,
             metodoPago,
             pedidoId: pedido._id,
             userId: payload.sub,
