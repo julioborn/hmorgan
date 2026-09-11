@@ -293,26 +293,29 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
     useEffect(() => {
         const init = async () => {
             try {
-                const [mRes, elRes, cfgRes] = await Promise.all([
-                    fetch("/api/admin/mesas?all=true", { credentials: "include" }),
-                    fetch("/api/superadmin/salon", { credentials: "include" }),
+                // Cargar reservas y config primero — son lo que el usuario ve
+                const [cfgRes] = await Promise.all([
                     fetch("/api/config/reservas", { credentials: "include" }),
                 ]);
-                const [mData, elData, cfgData] = await Promise.all([
-                    mRes.ok ? mRes.json() : [],
-                    elRes.ok ? elRes.json() : [],
-                    cfgRes.ok ? cfgRes.json() : {},
-                ]);
-                setMesas(Array.isArray(mData) ? mData.filter((m: Mesa) => m.activa) : []);
-                setElements(Array.isArray(elData) ? elData : []);
-                setFechasBloqueadas((cfgData as any).fechasBloqueadas ?? []);
-
-                const pData = await fetch("/api/pedidos?activos=true&fuente=empleado", { credentials: "include" }).then(r => r.json()).catch(() => []);
-                if (Array.isArray(pData)) setOcupadas(new Set(pData.filter((p: any) => p.mesa).map((p: any) => String(p.mesa))));
-
+                if (cfgRes.ok) {
+                    const cfgData = await cfgRes.json();
+                    setFechasBloqueadas((cfgData as any).fechasBloqueadas ?? []);
+                }
                 await fetchReservas();
             } catch { }
             finally { setLoading(false); }
+
+            // Cargar mesas/salón/pedidos en segundo plano (solo necesarios para el picker)
+            try {
+                const [mRes, elRes, pData] = await Promise.all([
+                    fetch("/api/admin/mesas?all=true", { credentials: "include" }).then(r => r.ok ? r.json() : []),
+                    fetch("/api/superadmin/salon", { credentials: "include" }).then(r => r.ok ? r.json() : []),
+                    fetch("/api/pedidos?activos=true&fuente=empleado", { credentials: "include" }).then(r => r.json()).catch(() => []),
+                ]);
+                setMesas(Array.isArray(mRes) ? mRes.filter((m: Mesa) => m.activa) : []);
+                setElements(Array.isArray(elRes) ? elRes : []);
+                if (Array.isArray(pData)) setOcupadas(new Set(pData.filter((p: any) => p.mesa).map((p: any) => String(p.mesa))));
+            } catch { }
         };
         init();
         const iv = setInterval(fetchReservas, 5000);
