@@ -35,6 +35,7 @@ const FORM_INIT = { fecha: hoyArgentina(), hora: "19:00", comensales: 2, notas: 
 export default function ClienteReservasPage() {
     const { user, loading } = useAuth();
     const [reservasActivas, setReservasActivas] = useState(true);
+    const [fechasBloqueadas, setFechasBloqueadas] = useState<string[]>([]);
     const [reservas, setReservas]               = useState<Reserva[]>([]);
     const [loadingData, setLoadingData]         = useState(true);
 
@@ -100,6 +101,7 @@ export default function ClienteReservasPage() {
             fetch("/api/reservas", { credentials: "include" }).then(r => r.json()),
         ]).then(([cfg, data]) => {
             setReservasActivas(cfg.activo ?? true);
+            setFechasBloqueadas(cfg.fechasBloqueadas ?? []);
             setReservas(Array.isArray(data) ? data : []);
         }).finally(() => setLoadingData(false));
 
@@ -235,9 +237,10 @@ export default function ClienteReservasPage() {
                             form={form} setForm={setForm}
                             horasDisponibles={horasDisponibles}
                             error={error}
+                            fechasBloqueadas={fechasBloqueadas}
                         />
                         <div className="px-5 py-4 border-t border-gray-100">
-                            <button type="submit" disabled={sending || horasDisponibles.length === 0}
+                            <button type="submit" disabled={sending || horasDisponibles.length === 0 || fechasBloqueadas.includes(form.fecha)}
                                 className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition">
                                 {sending ? <><Loader2 size={18} className="animate-spin" />Enviando...</> : <><CalendarDays size={18} />Solicitar reserva</>}
                             </button>
@@ -351,6 +354,7 @@ export default function ClienteReservasPage() {
                                 form={editForm} setForm={setEditForm}
                                 horasDisponibles={horasDisponiblesEdit}
                                 error={editError}
+                                fechasBloqueadas={fechasBloqueadas}
                             />
                         </div>
 
@@ -389,12 +393,13 @@ export default function ClienteReservasPage() {
 
 /* ── Campos del formulario (compartidos entre nueva y editar) ── */
 function ReservaFormFields({
-    form, setForm, horasDisponibles, error,
+    form, setForm, horasDisponibles, error, fechasBloqueadas = [],
 }: {
     form: { fecha: string; hora: string; comensales: number; notas: string };
     setForm: React.Dispatch<React.SetStateAction<any>>;
     horasDisponibles: string[];
     error: string;
+    fechasBloqueadas?: string[];
 }) {
     return (
         <div className="px-5 py-4 space-y-4">
@@ -413,9 +418,14 @@ function ReservaFormFields({
                         className="w-full appearance-none px-4 py-2.5 pl-11 border border-gray-200 rounded-xl font-semibold focus:outline-none focus:ring-2 focus:ring-red-400 bg-white box-border"
                     />
                 </div>
-                {form.fecha && (
+                {form.fecha && !fechasBloqueadas.includes(form.fecha) && (
                     <p className="text-xs text-gray-500 mt-1.5 ml-1 font-semibold capitalize">
                         {formatArgDate(form.fecha, { weekday: "long", day: "numeric", month: "long" })}
+                    </p>
+                )}
+                {form.fecha && fechasBloqueadas.includes(form.fecha) && (
+                    <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-1.5 font-semibold">
+                        No hay disponibilidad para ese día. Por favor elegí otra fecha.
                     </p>
                 )}
             </div>

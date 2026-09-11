@@ -66,9 +66,11 @@ export async function POST(req: NextRequest) {
     await connectMongoDB();
 
     // Verificar que reservas están activas (solo bloquear clientes)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let configCliente: any = null;
     if (payload.role === "cliente") {
-        const config = await Config.findOne({ _id: "global" });
-        if (config && config.reservasActivas === false) {
+        configCliente = await Config.findOne({ _id: "global" });
+        if (configCliente && configCliente.reservasActivas === false) {
             return NextResponse.json({ error: "Las reservas están desactivadas temporalmente" }, { status: 403 });
         }
     }
@@ -79,6 +81,14 @@ export async function POST(req: NextRequest) {
 
     // Validar que la fecha no sea pasada (se permite hoy), usando el huso horario de Argentina
     const fechaStr = String(fecha).slice(0, 10);
+
+    // Verificar si la fecha está bloqueada (solo clientes)
+    if (payload.role === "cliente" && configCliente) {
+        const bloqueadas: string[] = configCliente.reservasFechasBloqueadas ?? [];
+        if (bloqueadas.includes(fechaStr)) {
+            return NextResponse.json({ error: "No hay disponibilidad para esa fecha. Por favor elegí otro día." }, { status: 403 });
+        }
+    }
     const hoyStr = hoyArgentina();
     if (fechaStr < hoyStr) return NextResponse.json({ error: "No podés reservar en una fecha pasada" }, { status: 400 });
 

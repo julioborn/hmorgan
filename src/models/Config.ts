@@ -23,6 +23,10 @@ const ConfigSchema = new Schema(
             type: Boolean,
             default: true,
         },
+        reservasFechasBloqueadas: {
+            type: [String],
+            default: [],
+        },
     },
     {
         timestamps: true,

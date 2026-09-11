@@ -221,6 +221,7 @@ export default function CajaPage() {
     const [pedidosActivos, setPedidosActivos] = useState(true);
     const [reservasActivas, setReservasActivas] = useState(true);
     const [deliveryActivo, setDeliveryActivo] = useState(true);
+    const [fechasBloqueadas, setFechasBloqueadas] = useState<string[]>([]);
     const [reservasPendientes, setReservasPendientes] = useState(0);
     const [pedidos, setPedidos] = useState<Pedido[]>([]);
     const [loading, setLoading] = useState(true);
@@ -758,7 +759,10 @@ export default function CajaPage() {
 
     useEffect(() => {
         fetch("/api/config/pedidos").then(r => r.json()).then(d => setPedidosActivos(d.activo ?? true));
-        fetch("/api/config/reservas").then(r => r.json()).then(d => setReservasActivas(d.activo ?? true));
+        fetch("/api/config/reservas").then(r => r.json()).then(d => {
+            setReservasActivas(d.activo ?? true);
+            setFechasBloqueadas(d.fechasBloqueadas ?? []);
+        });
         fetch("/api/config/delivery").then(r => r.json()).then(d => setDeliveryActivo(d.activo ?? true));
     }, []);
 
@@ -910,6 +914,14 @@ export default function CajaPage() {
         const next = !reservasActivas;
         setReservasActivas(next);
         await fetch("/api/config/reservas", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activo: next }) });
+    }
+
+    async function toggleFechaBloqueada(fechaStr: string) {
+        const nuevas = fechasBloqueadas.includes(fechaStr)
+            ? fechasBloqueadas.filter(f => f !== fechaStr)
+            : [...fechasBloqueadas, fechaStr];
+        setFechasBloqueadas(nuevas);
+        await fetch("/api/config/reservas", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fechasBloqueadas: nuevas }) });
     }
 
     async function abrirCaja() {
@@ -1664,6 +1676,17 @@ export default function CajaPage() {
         } finally { setEditPrecioSaving(false); }
     }
 
+    async function toggleSoloBebidas(eventoId: string) {
+        const res = await fetch(`/api/eventos/${eventoId}`, {
+            method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
+            body: JSON.stringify({ accion: "toggleSoloBebidas" }),
+        });
+        if (res.ok) {
+            const { evento: updated } = await res.json();
+            setEventosActivos(prev => prev.map(e => e._id === eventoId ? updated : e));
+        }
+    }
+
     async function subirImagenEvento(file: File): Promise<string | null> {
         setNuevoEventoImagenUploading(true);
         try {
@@ -2304,6 +2327,28 @@ export default function CajaPage() {
                         </button>
                     </div>
                 </div>
+
+                {/* Fechas bloqueadas para reservas */}
+                {reservasActivas && (
+                    <div className="mt-3 pt-3 border-t border-white/10">
+                        <p className="text-[11px] font-semibold text-white/60 mb-2">Bloquear días sin reservas:</p>
+                        <div className="flex flex-wrap gap-1.5">
+                            {Array.from({ length: 14 }, (_, i) => {
+                                const d = new Date();
+                                d.setDate(d.getDate() + i);
+                                const iso = d.toISOString().slice(0, 10);
+                                const label = d.toLocaleDateString("es-AR", { weekday: "short", day: "numeric", month: "short" });
+                                const bloqueada = fechasBloqueadas.includes(iso);
+                                return (
+                                    <button key={iso} onClick={() => toggleFechaBloqueada(iso)}
+                                        className={`text-[11px] font-semibold px-2 py-1 rounded-full border transition-colors ${bloqueada ? "bg-red-500 border-red-400 text-white" : "bg-white/10 border-white/20 text-white/70 hover:bg-white/20"}`}>
+                                        {bloqueada && "🚫 "}{label}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
 
                 {/* Notificaciones en el header */}
                 {(llamadas.length > 0 || listosToast.length > 0) && (
@@ -3380,6 +3425,17 @@ export default function CajaPage() {
                                                 <button onClick={() => abrirCierreEvento(ev._id)}
                                                     className="shrink-0 text-sm font-bold text-white/70 hover:text-white border border-white/30 hover:border-white/60 px-4 py-2 rounded-xl transition">
                                                     Cerrar
+                                                </button>
+                                            </div>
+                                            {/* Toggle solo bebidas */}
+                                            <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/10">
+                                                <div>
+                                                    <p className="text-xs font-bold text-white/70">Solo bebidas</p>
+                                                    <p className="text-[11px] text-white/40">Las ventas solo muestran bebidas</p>
+                                                </div>
+                                                <button onClick={() => toggleSoloBebidas(ev._id)}
+                                                    className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${ev.soloBebidas ? "bg-amber-400" : "bg-white/20"}`}>
+                                                    <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${ev.soloBebidas ? "translate-x-6" : "translate-x-1"}`} />
                                                 </button>
                                             </div>
                                         </div>

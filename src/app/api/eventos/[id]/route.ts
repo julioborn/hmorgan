@@ -42,6 +42,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     const body = await req.json();
 
+    if (body.accion === "toggleSoloBebidas") {
+        evento.soloBebidas = !evento.soloBebidas;
+        await evento.save();
+        return NextResponse.json({ ok: true, evento });
+    }
+
     if (body.accion === "updateMesas") {
         evento.mesas = Array.isArray(body.mesas) ? body.mesas : [];
         await evento.save();

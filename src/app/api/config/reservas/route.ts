@@ -6,12 +6,18 @@ export const dynamic = "force-dynamic";
 export async function GET() {
     await connectMongoDB();
     const config = await Config.findOne({ _id: "global" });
-    return NextResponse.json({ activo: config?.reservasActivas ?? true });
+    return NextResponse.json({
+        activo: config?.reservasActivas ?? true,
+        fechasBloqueadas: config?.reservasFechasBloqueadas ?? [],
+    });
 }
 
 export async function PUT(req: Request) {
-    const { activo } = await req.json();
+    const body = await req.json();
     await connectMongoDB();
-    await Config.findOneAndUpdate({ _id: "global" }, { reservasActivas: activo }, { upsert: true });
+    const update: Record<string, unknown> = {};
+    if ("activo" in body) update.reservasActivas = body.activo;
+    if ("fechasBloqueadas" in body) update.reservasFechasBloqueadas = body.fechasBloqueadas;
+    await Config.findOneAndUpdate({ _id: "global" }, update, { upsert: true });
     return NextResponse.json({ ok: true });
 }
