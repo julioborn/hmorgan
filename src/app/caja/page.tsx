@@ -2899,12 +2899,12 @@ export default function CajaPage() {
                                                         <div className="shrink-0 flex gap-2 flex-col">
                                                             {p.metodoPago === "mercadopago" && p.mpEstadoPago !== "aprobado" && (
                                                                 <p className="text-[11px] text-center text-amber-600 font-semibold bg-amber-50 border border-amber-200 rounded-lg py-1.5 px-2">
-                                                                    ⏳ Esperando confirmación de Mercado Pago...
+                                                                    ⚠️ Pago MP aún no confirmado
                                                                 </p>
                                                             )}
                                                             <div className="flex gap-2">
                                                             <button
-                                                                disabled={isUpdating || (p.metodoPago === "mercadopago" && p.mpEstadoPago !== "aprobado")}
+                                                                disabled={isUpdating}
                                                                 onClick={async () => {
                                                                     if (isUpdating) return;
                                                                     setPrintingIds(prev => new Set([...prev, p._id]));
