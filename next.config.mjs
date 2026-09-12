@@ -13,6 +13,11 @@ const nextConfig = {
         source: "/sw.js",
         headers: [{ key: "Cache-Control", value: "no-cache, no-store, must-revalidate" }],
       },
+      // Forzar revalidación del HTML en WebViews de iOS para que siempre cargue el bundle nuevo
+      {
+        source: "/(.*)",
+        headers: [{ key: "Cache-Control", value: "no-cache, must-revalidate" }],
+      },
     ];
   },
 };
