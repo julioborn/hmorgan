@@ -3,6 +3,7 @@ import { connectMongoDB } from "@/lib/mongodb";
 import { LlamadaMozo } from "@/models/LlamadaMozo";
 import { Pedido } from "@/models/Pedido";
 import { User } from "@/models/User";
+import "@/models/MenuItem";
 import { sendPushAndCollectInvalid } from "@/lib/push-server";
 import { enviarNotificacionFCM, isFCMTokenInvalid } from "@/lib/firebase-admin";
 import jwt from "jsonwebtoken";

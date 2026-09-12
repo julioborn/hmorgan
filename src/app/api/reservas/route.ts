@@ -239,6 +239,15 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json({ error: "No podés editar una reserva cancelada" }, { status: 400 });
 
     const fechaStr = String(fecha).slice(0, 10);
+
+    // Verificar fecha bloqueada también al editar
+    const cfgEdit = await Config.findOne({ _id: "global" });
+    if (cfgEdit) {
+        const bloqueadas: string[] = (cfgEdit as any).reservasFechasBloqueadas ?? [];
+        if (bloqueadas.includes(fechaStr)) {
+            return NextResponse.json({ error: "No hay disponibilidad para esa fecha. Por favor elegí otro día." }, { status: 403 });
+        }
+    }
     const hoyStr = hoyArgentina();
     if (fechaStr < hoyStr)
         return NextResponse.json({ error: "No podés reservar en una fecha pasada" }, { status: 400 });

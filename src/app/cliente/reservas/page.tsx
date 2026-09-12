@@ -361,7 +361,7 @@ export default function ClienteReservasPage() {
                         <div className="px-5 py-4 border-t border-gray-100">
                             <button
                                 onClick={() => setEditConfirmando(true)}
-                                disabled={editSending || horasDisponiblesEdit.length === 0}
+                                disabled={editSending || horasDisponiblesEdit.length === 0 || fechasBloqueadas.includes(editForm.fecha)}
                                 className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition"
                             >
                                 {editSending

@@ -445,18 +445,22 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
     }
 
     async function toggleFecha(iso: string) {
+        const anteriores = fechasBloqueadas;
         const nuevas = fechasBloqueadas.includes(iso)
             ? fechasBloqueadas.filter(f => f !== iso)
             : [...fechasBloqueadas, iso];
         setFechasBloqueadas(nuevas);
         setCalSaving(true);
         try {
-            await fetch("/api/config/reservas", {
+            const res = await fetch("/api/config/reservas", {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
                 body: JSON.stringify({ fechasBloqueadas: nuevas }),
             });
+            if (!res.ok) setFechasBloqueadas(anteriores);
+        } catch {
+            setFechasBloqueadas(anteriores);
         } finally { setCalSaving(false); }
     }
 
