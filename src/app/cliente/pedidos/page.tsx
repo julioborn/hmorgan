@@ -21,6 +21,7 @@ type MenuItem = {
     descripcion?: string;
     precio: number;
     categoria: string;
+    categoriasExtra?: string[];
     imagen?: string;
     activo: boolean;
     opciones?: OpcionGrupo[];
@@ -40,11 +41,12 @@ const formatPrice = (value: number) =>
 
 const PRECIO_CARNE_EXTRA = 4000;
 const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
-const MAIN_ORDER = ["PARRILLA", "PIZZAS", "HAMBURGUESAS", "SANDWICHES", "PICADAS", "ENSALADAS", "FRITURAS", "BEBIDAS", "POSTRE Y CAFE"];
+const MAIN_ORDER = ["PARRILLA", "PIZZAS", "MILANESAS", "HAMBURGUESAS", "SANDWICHES", "PICADAS", "ENSALADAS", "FRITURAS", "BEBIDAS", "POSTRE Y CAFE"];
 
 const categoryImages: Record<string, string> = {
     PARRILLA: "/parrilla.jpg",
     PIZZAS: "/pizzas.jpg",
+    MILANESAS: "/milanesas.jpg",
     HAMBURGUESAS: "/hamburguesas.jpg",
     SANDWICHES: "/sandwiches.jpg",
     PICADAS: "/picada.jpg",
@@ -825,11 +827,12 @@ export default function PedidosClientePage() {
     };
     const getPosition = (cat: string) => categoryConfigMap[cat]?.imagePosition || "50% 50%";
 
+    const itemInCat = (i: MenuItem, cat: string) => i.categoria === cat || (i.categoriasExtra ?? []).includes(cat);
     const categoriasNavegacion = [
         ...(menu.some(i => i.categoria === "MENÚ DEL DÍA") ? ["MENÚ DEL DÍA"] : []),
         ...MAIN_ORDER.filter(cat => {
-            if (cat === "BEBIDAS") return BEBIDAS_CATS.some(bc => menu.some(i => i.categoria === bc));
-            return menu.some(i => i.categoria === cat);
+            if (cat === "BEBIDAS") return BEBIDAS_CATS.some(bc => menu.some(i => itemInCat(i, bc)));
+            return menu.some(i => itemInCat(i, cat));
         }),
     ];
 
@@ -883,7 +886,7 @@ export default function PedidosClientePage() {
         const isSpecial = cat === "MENÚ DEL DÍA";
         const count = cat === "BEBIDAS"
             ? menu.filter(i => BEBIDAS_CATS.includes(i.categoria)).length
-            : menu.filter(i => i.categoria === cat).length;
+            : menu.filter(i => itemInCat(i, cat)).length;
         return (
             <motion.button onClick={onClick} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.04 }}
                 className={`relative w-full rounded-2xl overflow-hidden shadow-md active:scale-[0.97] transition-transform ${isSpecial ? "col-span-2 h-56" : "h-36"}`}>
@@ -966,7 +969,7 @@ export default function PedidosClientePage() {
     const esBebida = BEBIDAS_CATS.includes(categoriaSeleccionada);
     const CatIcon = categoryIcons[categoriaSeleccionada] || UtensilsCrossed;
     let productos = menu
-        .filter((i) => i.categoria === categoriaSeleccionada)
+        .filter((i) => itemInCat(i, categoriaSeleccionada))
         .sort((a, b) => {
             const diff = ((a as any).order ?? 0) - ((b as any).order ?? 0);
             if (diff !== 0) return diff;
