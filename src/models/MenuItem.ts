@@ -11,6 +11,7 @@ const MenuItemSchema = new Schema(
         imagenZoom: { type: Number, default: 1 },
         activo: { type: Boolean, default: true },
         activoCliente: { type: Boolean, default: true },
+        categoriasExtra: { type: [String], default: [] },
         ruleta: { type: Boolean, default: false },
         order: { type: Number, default: 0 },
         opciones: [

@@ -17,6 +17,7 @@ type MenuItem = {
     descripcion?: string;
     precio: number;
     categoria: string;
+    categoriasExtra?: string[];
     imagen?: string;
     activo: boolean;
 };
@@ -28,11 +29,12 @@ const formatPrice = (v: number) =>
 
 const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
 const PICAR_CATS   = ["PICADAS", "FRITURAS"];
-const MAIN_ORDER   = ["PARRILLA", "PIZZAS", "HAMBURGUESAS", "SANDWICHES", "PICADAS Y FRITURAS", "ENSALADAS", "BEBIDAS", "POSTRE Y CAFE"];
+const MAIN_ORDER   = ["PARRILLA", "PIZZAS", "MILANESAS", "HAMBURGUESAS", "SANDWICHES", "PICADAS Y FRITURAS", "ENSALADAS", "BEBIDAS", "POSTRE Y CAFE"];
 
 const categoryImages: Record<string, string> = {
     PARRILLA: "/parrilla.jpg",
     PIZZAS: "/pizzas.jpg",
+    MILANESAS: "/milanesas.jpg",
     HAMBURGUESAS: "/hamburguesas.jpg",
     SANDWICHES: "/sandwiches.jpg",
     "PICADAS Y FRITURAS": "/picada.jpg",
@@ -89,13 +91,17 @@ export default function ClienteMenuPage() {
 
     if (!items) return <div className="p-12 flex justify-center"><Loader size={40} /></div>;
 
-    const todasCats = Array.from(new Set(items.map(i => i.categoria)));
+    const itemInCat = (i: MenuItem, cat: string) => i.categoria === cat || (i.categoriasExtra ?? []).includes(cat);
+    const todasCats = Array.from(new Set([
+        ...items.map(i => i.categoria),
+        ...items.flatMap(i => i.categoriasExtra ?? []),
+    ]));
     const categoriasNavegacion = [
         ...(items.some(i => i.categoria === "MENÚ DEL DÍA") ? ["MENÚ DEL DÍA"] : []),
         ...MAIN_ORDER.filter(cat =>
-            cat === "BEBIDAS"   ? BEBIDAS_CATS.some(bc => items.some(i => i.categoria === bc)) :
-            cat === "PICADAS Y FRITURAS" ? PICAR_CATS.some(pc => items.some(i => i.categoria === pc)) :
-            items.some(i => i.categoria === cat)),
+            cat === "BEBIDAS"   ? BEBIDAS_CATS.some(bc => items.some(i => itemInCat(i, bc))) :
+            cat === "PICADAS Y FRITURAS" ? PICAR_CATS.some(pc => items.some(i => itemInCat(i, pc))) :
+            items.some(i => itemInCat(i, cat))),
         ...todasCats.filter(cat => !MAIN_ORDER.includes(cat) && !BEBIDAS_CATS.includes(cat) && !PICAR_CATS.includes(cat) && cat !== "MENÚ DEL DÍA"),
     ];
 
@@ -112,7 +118,7 @@ export default function ClienteMenuPage() {
         const allItems = items ?? [];
         const count = cat === "BEBIDAS"    ? allItems.filter(i => BEBIDAS_CATS.includes(i.categoria)).length
             : cat === "PICADAS Y FRITURAS" ? allItems.filter(i => PICAR_CATS.includes(i.categoria)).length
-            : allItems.filter(i => i.categoria === cat).length;
+            : allItems.filter(i => itemInCat(i, cat)).length;
         const isSpecial = cat === "MENÚ DEL DÍA";
         return (
             <motion.button
@@ -179,7 +185,7 @@ export default function ClienteMenuPage() {
     const Icon = categoryIcons[categoriaActiva] || UtensilsCrossed;
     const esBebida = BEBIDAS_CATS.includes(categoriaActiva);
     const productos = items
-        .filter((i) => categoriaActiva === "PICADAS Y FRITURAS" ? PICAR_CATS.includes(i.categoria) : i.categoria === categoriaActiva)
+        .filter((i) => categoriaActiva === "PICADAS Y FRITURAS" ? PICAR_CATS.includes(i.categoria) : itemInCat(i, categoriaActiva))
         .sort((a, b) => {
             const diff = ((a as any).order ?? 0) - ((b as any).order ?? 0);
             if (diff !== 0) return diff;

@@ -15,7 +15,7 @@ import MenuImg from "@/components/MenuImg";
 import { useCategoryConfigs } from "@/hooks/useCategoryConfigs";
 import { swalBase } from "@/lib/swalConfig";
 
-type MenuItem = { _id: string; nombre: string; descripcion?: string; precio: number; categoria: string; imagen?: string; activo: boolean; order?: number };
+type MenuItem = { _id: string; nombre: string; descripcion?: string; precio: number; categoria: string; categoriasExtra?: string[]; imagen?: string; activo: boolean; order?: number };
 type CartItem  = { menuItemId: string; nombre: string; precio: number; cantidad: number; nota?: string };
 type ActiveOrder = {
     _id: string;
@@ -33,8 +33,8 @@ const formatPrice = (v: number) => new Intl.NumberFormat("es-AR", { minimumFract
 
 const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
 const PICAR_CATS   = ["PICADAS", "FRITURAS"];
-const MAIN_ORDER   = ["PARRILLA","PIZZAS","HAMBURGUESAS","SANDWICHES","PICADAS Y FRITURAS","ENSALADAS","BEBIDAS","POSTRE Y CAFE"];
-const categoryImages: Record<string, string> = { PARRILLA:"/parrilla.jpg", PIZZAS:"/pizzas.jpg", HAMBURGUESAS:"/hamburguesas.jpg", SANDWICHES:"/sandwiches.jpg", "PICADAS Y FRITURAS":"/picada.jpg", ENSALADAS:"/ensaladas.jpg", BEBIDAS:"/bebidas.jpeg","POSTRE Y CAFE":"/postreycafe.jpeg", "MENÚ DEL DÍA":"/menu-del-dia.jpeg", CERVEZAS:"/subcategoria-bebidas/cervezas.png", VINOS:"/subcategoria-bebidas/vinos.png", GASEOSAS:"/subcategoria-bebidas/gaseosas.png", JARROS:"/subcategoria-bebidas/jarros.png", COCKTAILS:"/subcategoria-bebidas/cocktails.png", WHISKY:"/subcategoria-bebidas/whisky.png", MEDIDAS:"/subcategoria-bebidas/medidas.png" };
+const MAIN_ORDER   = ["PARRILLA","PIZZAS","MILANESAS","HAMBURGUESAS","SANDWICHES","PICADAS Y FRITURAS","ENSALADAS","BEBIDAS","POSTRE Y CAFE"];
+const categoryImages: Record<string, string> = { PARRILLA:"/parrilla.jpg", PIZZAS:"/pizzas.jpg", MILANESAS:"/milanesas.jpg", HAMBURGUESAS:"/hamburguesas.jpg", SANDWICHES:"/sandwiches.jpg", "PICADAS Y FRITURAS":"/picada.jpg", ENSALADAS:"/ensaladas.jpg", BEBIDAS:"/bebidas.jpeg","POSTRE Y CAFE":"/postreycafe.jpeg", "MENÚ DEL DÍA":"/menu-del-dia.jpeg", CERVEZAS:"/subcategoria-bebidas/cervezas.png", VINOS:"/subcategoria-bebidas/vinos.png", GASEOSAS:"/subcategoria-bebidas/gaseosas.png", JARROS:"/subcategoria-bebidas/jarros.png", COCKTAILS:"/subcategoria-bebidas/cocktails.png", WHISKY:"/subcategoria-bebidas/whisky.png", MEDIDAS:"/subcategoria-bebidas/medidas.png" };
 const categoryIcons: Record<string, React.ElementType> = { PARRILLA:Beef, PIZZAS:Pizza, HAMBURGUESAS:Hamburger, SANDWICHES:Sandwich, PICADAS:UtensilsCrossed, ENSALADAS:Salad, FRITURAS:UtensilsCrossed, BEBIDAS:Beer, CERVEZAS:Beer, VINOS:BottleWine, GASEOSAS:Milk, JARROS:CupSoda, COCKTAILS:Martini, WHISKY:GlassWater, MEDIDAS:Beaker, "POSTRE Y CAFE":CakeSlice };
 
 type Comensal = { _id: string; nombre: string; apellido: string; username: string };
@@ -566,13 +566,17 @@ function AnotadorMenuContent() {
 
     const getImage    = (cat: string) => { const cfg = categoryConfigMap[cat]; return cfg?.imageUrl || categoryImages[cat] || null; };
     const getPosition = (cat: string) => categoryConfigMap[cat]?.imagePosition || "50% 50%";
-    const todasCats = Array.from(new Set(menuItems.map(i => i.categoria)));
+    const itemInCat = (i: MenuItem, cat: string) => i.categoria === cat || (i.categoriasExtra ?? []).includes(cat);
+    const todasCats = Array.from(new Set([
+        ...menuItems.map(i => i.categoria),
+        ...menuItems.flatMap(i => i.categoriasExtra ?? []),
+    ]));
     const categoriasNavCompleto = [
         ...(menuItems.some(i => i.categoria === "MENÚ DEL DÍA") ? ["MENÚ DEL DÍA"] : []),
         ...MAIN_ORDER.filter(cat =>
-            cat === "BEBIDAS"    ? BEBIDAS_CATS.some(bc => menuItems.some(i => i.categoria === bc)) :
-            cat === "PICADAS Y FRITURAS" ? PICAR_CATS.some(pc => menuItems.some(i => i.categoria === pc)) :
-            menuItems.some(i => i.categoria === cat)),
+            cat === "BEBIDAS"    ? BEBIDAS_CATS.some(bc => menuItems.some(i => itemInCat(i, bc))) :
+            cat === "PICADAS Y FRITURAS" ? PICAR_CATS.some(pc => menuItems.some(i => itemInCat(i, pc))) :
+            menuItems.some(i => itemInCat(i, cat))),
         ...todasCats.filter(cat => !MAIN_ORDER.includes(cat) && !BEBIDAS_CATS.includes(cat) && !PICAR_CATS.includes(cat) && cat !== "MENÚ DEL DÍA"),
     ];
     // En eventos solo bebidas, mostrar únicamente la categoría BEBIDAS
@@ -713,7 +717,7 @@ function AnotadorMenuContent() {
         const isSpecial = cat === "MENÚ DEL DÍA";
         const count = cat === "BEBIDAS"    ? menuItems.filter(i => BEBIDAS_CATS.includes(i.categoria)).length
             : cat === "PICADAS Y FRITURAS" ? menuItems.filter(i => PICAR_CATS.includes(i.categoria)).length
-            : menuItems.filter(i => i.categoria === cat).length;
+            : menuItems.filter(i => itemInCat(i, cat)).length;
         return (
             <motion.button onClick={onClick} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.04 }}
                 className={`relative w-full h-36 rounded-2xl overflow-hidden shadow-md active:scale-[0.97] transition-transform ${isSpecial ? "col-span-2" : ""}`}>
@@ -747,7 +751,7 @@ function AnotadorMenuContent() {
     const CatIcon   = categoriaActiva ? (categoryIcons[categoriaActiva] || UtensilsCrossed) : UtensilsCrossed;
     const subCats   = BEBIDAS_CATS.filter(bc => menuItems.some(i => i.categoria === bc));
     const itemsCat  = (categoriaActiva && categoriaActiva !== "BEBIDAS")
-        ? menuItems.filter(i => categoriaActiva === "PICADAS Y FRITURAS" ? PICAR_CATS.includes(i.categoria) : i.categoria === categoriaActiva).sort((a, b) => {
+        ? menuItems.filter(i => categoriaActiva === "PICADAS Y FRITURAS" ? PICAR_CATS.includes(i.categoria) : itemInCat(i, categoriaActiva)).sort((a, b) => {
             const d = ((a as any).order ?? 0) - ((b as any).order ?? 0);
             if (d !== 0) return d;
             if (categoriaActiva === "PIZZAS") { const aH = a.nombre.trim().startsWith("1/2"); const bH = b.nombre.trim().startsWith("1/2"); return aH === bH ? 0 : aH ? 1 : -1; }
