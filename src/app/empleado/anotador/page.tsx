@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
-import { Plus, UtensilsCrossed, ChevronRight, LockKeyhole, Star, X, ArrowLeftRight, User, Users, Search, Loader2, MessageCircle, Ticket, ScanLine } from "lucide-react";
+import { Plus, UtensilsCrossed, ChevronRight, ChevronLeft, LockKeyhole, Star, X, ArrowLeftRight, User, Users, Search, Loader2, MessageCircle, Ticket, ScanLine } from "lucide-react";
 import Link from "next/link";
 import Loader from "@/components/Loader";
 import { swalBase } from "@/lib/swalConfig";
@@ -77,6 +77,11 @@ export default function AnotadorPage() {
     const [mesaQrManual, setMesaQrManual] = useState("");
     const [mesaDesdeQr, setMesaDesdeQr] = useState<string | null>(null);
     const mesaQrVideoRef = useRef<HTMLVideoElement>(null);
+
+    // Flujo de 2 pasos: evento → mesa (para comandas de evento)
+    const [eventoPickerStep, setEventoPickerStep] = useState<"evento" | "mesa">("evento");
+    const [eventoSeleccionado, setEventoSeleccionado] = useState<string | undefined>(undefined);
+    const [loadingMesasPicker, setLoadingMesasPicker] = useState(false);
     const mesaQrStreamRef = useRef<MediaStream | null>(null);
 
     // Solo las terminadas cobradas dentro de la sesión de caja actual
@@ -356,20 +361,55 @@ export default function AnotadorPage() {
 
     function handleNuevaComanda() {
         if (eventosActivos.length > 0) {
+            setEventoPickerStep("evento");
+            setEventoSeleccionado(undefined);
             setEventoPickerModal(true);
         } else {
             router.push("/empleado/anotador/menu");
         }
     }
 
-    function irAMenu(eventoId?: string) {
+    function cerrarEventoPicker() {
         setEventoPickerModal(false);
-        const mesaQuery = mesaDesdeQr ? `&mesa=${encodeURIComponent(mesaDesdeQr)}` : "";
-        const url = eventoId
-            ? `/empleado/anotador/menu?eventoId=${eventoId}${mesaQuery}`
-            : `/empleado/anotador/menu${mesaQuery ? `?${mesaQuery.slice(1)}` : ""}`;
+        setEventoPickerStep("evento");
+        setEventoSeleccionado(undefined);
+    }
+
+    // Paso 1 → 2: el mozo eligió un evento, ahora le preguntamos la mesa (solo para eventos)
+    async function seleccionarEvento(eventoId: string) {
+        setEventoSeleccionado(eventoId);
+        // Si ya viene de QR, salteamos la selección de mesa
+        if (mesaDesdeQr) {
+            navegarAMenu(eventoId, mesaDesdeQr);
+            return;
+        }
+        setLoadingMesasPicker(true);
+        if (mesasDisponibles.length === 0) {
+            await fetch("/api/admin/mesas?all=true", { credentials: "include" })
+                .then(r => r.json()).then(d => setMesasDisponibles(Array.isArray(d) ? d : []))
+                .catch(() => {});
+        }
+        setLoadingMesasPicker(false);
+        setEventoPickerStep("mesa");
+    }
+
+    // Navega al menú con eventoId y mesa opcionales
+    function navegarAMenu(eventoId?: string, mesa?: string) {
+        setEventoPickerModal(false);
+        setEventoPickerStep("evento");
+        setEventoSeleccionado(undefined);
         setMesaDesdeQr(null);
-        router.push(url);
+        const params = new URLSearchParams();
+        if (eventoId) params.set("eventoId", eventoId);
+        if (mesa) params.set("mesa", mesa);
+        const qs = params.toString();
+        router.push(`/empleado/anotador/menu${qs ? `?${qs}` : ""}`);
+    }
+
+    // Para "cliente normal" (sin evento): va directo sin paso de mesa
+    function irAMenu(eventoId?: string) {
+        const mesa = mesaDesdeQr ?? undefined;
+        navegarAMenu(eventoId, mesa);
     }
 
     if (loading || loadingData) return <div className="flex justify-center py-20"><Loader size={64} /></div>;
@@ -657,43 +697,100 @@ export default function AnotadorPage() {
 
             </div>
 
-            {/* Modal selector de evento */}
+            {/* Modal selector de evento / mesa */}
             {eventoPickerModal && (
                 <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center px-4" style={{ paddingTop: "calc(env(safe-area-inset-top) + 20px)" }}>
                     <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl">
-                        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
-                            <h2 className="font-black text-gray-900 flex-1">¿Para quién es la comanda?</h2>
-                            <button onClick={() => setEventoPickerModal(false)} className="p-1 text-gray-400"><X size={18} /></button>
-                        </div>
-                        <div className="px-4 py-4 space-y-2.5">
-                            <button onClick={() => irAMenu()}
-                                className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border-2 border-gray-200 hover:border-gray-400 bg-white transition active:scale-95 text-left">
-                                <div>
-                                    <p className="font-black text-gray-900">Cliente normal</p>
-                                    <p className="text-xs text-gray-400 mt-0.5">Comanda estándar sin evento</p>
-                                </div>
-                                <ChevronRight size={18} className="text-gray-300 shrink-0" />
-                            </button>
-                            {eventosActivos.map(ev => (
-                                <button key={ev._id} onClick={() => irAMenu(ev._id)}
-                                    className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border-2 border-amber-300 hover:border-amber-500 bg-amber-50 transition active:scale-95 text-left">
+
+                        {/* ── PASO 1: elegir evento ── */}
+                        {eventoPickerStep === "evento" && (<>
+                            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+                                <h2 className="font-black text-gray-900 flex-1">¿Para quién es la comanda?</h2>
+                                <button onClick={cerrarEventoPicker} className="p-1 text-gray-400"><X size={18} /></button>
+                            </div>
+                            <div className="px-4 py-4 space-y-2.5">
+                                <button onClick={() => irAMenu()}
+                                    className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border-2 border-gray-200 hover:border-gray-400 bg-white transition active:scale-95 text-left">
                                     <div>
-                                        <div className="flex items-center gap-2 mb-0.5">
-                                            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse inline-block" />
-                                            <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wide">Evento</span>
-                                        </div>
-                                        <p className="font-black text-amber-900">{ev.nombre}</p>
+                                        <p className="font-black text-gray-900">Cliente normal</p>
+                                        <p className="text-xs text-gray-400 mt-0.5">Comanda estándar sin evento</p>
                                     </div>
-                                    <ChevronRight size={18} className="text-amber-400 shrink-0" />
+                                    <ChevronRight size={18} className="text-gray-300 shrink-0" />
                                 </button>
-                            ))}
-                        </div>
-                        <div className="px-4 pb-4">
-                            <button onClick={() => setEventoPickerModal(false)}
-                                className="w-full py-2.5 text-sm text-gray-500 font-semibold hover:text-gray-700 transition">
-                                Cancelar
-                            </button>
-                        </div>
+                                {eventosActivos.map(ev => (
+                                    <button key={ev._id} onClick={() => seleccionarEvento(ev._id)}
+                                        className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border-2 border-amber-300 hover:border-amber-500 bg-amber-50 transition active:scale-95 text-left">
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-0.5">
+                                                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse inline-block" />
+                                                <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wide">Evento</span>
+                                            </div>
+                                            <p className="font-black text-amber-900">{ev.nombre}</p>
+                                        </div>
+                                        <ChevronRight size={18} className="text-amber-400 shrink-0" />
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="px-4 pb-4">
+                                <button onClick={cerrarEventoPicker}
+                                    className="w-full py-2.5 text-sm text-gray-500 font-semibold hover:text-gray-700 transition">
+                                    Cancelar
+                                </button>
+                            </div>
+                        </>)}
+
+                        {/* ── PASO 2: elegir mesa (opcional) ── */}
+                        {eventoPickerStep === "mesa" && (<>
+                            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+                                <button onClick={() => setEventoPickerStep("evento")} className="p-1 text-gray-400 hover:text-gray-700">
+                                    <ChevronLeft size={18} />
+                                </button>
+                                <div className="flex-1">
+                                    <h2 className="font-black text-gray-900 leading-tight">¿En qué mesa?</h2>
+                                    <p className="text-xs text-gray-400">
+                                        {eventosActivos.find(e => e._id === eventoSeleccionado)?.nombre ?? "Evento"}
+                                    </p>
+                                </div>
+                                <button onClick={cerrarEventoPicker} className="p-1 text-gray-400"><X size={18} /></button>
+                            </div>
+
+                            <div className="px-4 pt-3 pb-1">
+                                <p className="text-xs text-gray-400">Tocá una mesa para asignarla, o saltá este paso.</p>
+                            </div>
+
+                            <div className="px-4 py-3 max-h-72 overflow-y-auto">
+                                {loadingMesasPicker ? (
+                                    <div className="flex justify-center py-8"><Loader2 size={28} className="animate-spin text-gray-300" /></div>
+                                ) : mesasDisponibles.filter(m => m.activa).length === 0 ? (
+                                    <p className="text-sm text-gray-400 text-center py-6">No hay mesas configuradas</p>
+                                ) : (
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {mesasDisponibles
+                                            .filter(m => m.activa && m.tipo !== "banqueta")
+                                            .sort((a, b) => {
+                                                const na = parseInt(a.nombre) || 0, nb = parseInt(b.nombre) || 0;
+                                                return na !== nb ? na - nb : a.nombre.localeCompare(b.nombre);
+                                            })
+                                            .map(m => (
+                                                <button key={m._id}
+                                                    onClick={() => navegarAMenu(eventoSeleccionado, m.nombre)}
+                                                    className="aspect-square flex flex-col items-center justify-center bg-amber-50 hover:bg-amber-100 border-2 border-amber-200 hover:border-amber-400 rounded-xl font-black text-amber-900 text-sm transition active:scale-95">
+                                                    {m.nombre}
+                                                </button>
+                                            ))
+                                        }
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="px-4 pb-4 pt-2">
+                                <button onClick={() => navegarAMenu(eventoSeleccionado)}
+                                    className="w-full py-3 bg-gray-900 hover:bg-gray-700 text-white font-black rounded-xl transition active:scale-95 text-sm">
+                                    Continuar sin mesa
+                                </button>
+                            </div>
+                        </>)}
+
                     </div>
                 </div>
             )}
