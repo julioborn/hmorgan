@@ -233,7 +233,7 @@ export default function CargarStockPage() {
 
     // Agrupación por tipo → subcat
     const porTipo = (["cocina", "bebida"] as Tipo[]).map(tipo => {
-        const prodsTipo = productos.filter(p => (p.tipo ?? "bebida") === tipo);
+        const prodsTipo = productos.filter(p => (p.tipo ?? "bebida").toLowerCase() === tipo);
         const subcats = prodsTipo.reduce((acc, p) => {
             const cat = p.categoria || "Otros";
             if (!acc[cat]) acc[cat] = [];
