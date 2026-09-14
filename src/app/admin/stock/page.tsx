@@ -207,7 +207,7 @@ export default function StockPage() {
                 <div className="grid grid-cols-2 gap-4">
                     {(["cocina", "bebida"] as Tipo[]).map(t => {
                         const m = TIPO_META[t];
-                        const total = items.filter(i => (i.tipo ?? "cocina") === t).length;
+                        const total = items.filter(i => (i.tipo ?? "cocina").toLowerCase() === t).length;
                         return (
                             <button key={t} onClick={() => irATipo(t)}
                                 className={`relative flex flex-col items-center justify-center gap-3 rounded-2xl border-2 ${m.border} ${m.bg} py-10 px-4 shadow-sm active:scale-[0.97] transition-transform`}>
@@ -296,7 +296,7 @@ export default function StockPage() {
 
     // ── GRID DE SUBCATEGORÍAS ──
     if (!subcatVista) {
-        const itemsDelTipo = items.filter(i => (i.tipo ?? "cocina") === vista);
+        const itemsDelTipo = items.filter(i => (i.tipo ?? "cocina").toLowerCase() === vista);
         return (
             <div className="min-h-screen pb-20">
                 <div className="px-4 max-w-3xl mx-auto">
@@ -340,7 +340,7 @@ export default function StockPage() {
 
     // ── LISTA DE PRODUCTOS DE LA SUBCATEGORÍA ──
     const itemsSubcat = items
-        .filter(i => (i.tipo ?? "cocina") === vista && i.categoria === subcatVista)
+        .filter(i => (i.tipo ?? "cocina").toLowerCase() === vista && i.categoria === subcatVista)
         .filter(i => !search || i.nombre.toLowerCase().includes(search.toLowerCase()));
 
     return (
