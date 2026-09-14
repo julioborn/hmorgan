@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { swalBase } from "@/lib/swalConfig";
 import {
     Plus, TrendingUp, TrendingDown, AlertTriangle,
-    X, History, Edit2, Trash2, Loader2, ChevronLeft, ClipboardList, Settings, DollarSign,
+    X, History, Edit2, Trash2, Loader2, ChevronLeft, ClipboardList, Settings, DollarSign, Package,
 } from "lucide-react";
 
 type Tipo = "cocina" | "bebida";
