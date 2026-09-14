@@ -316,8 +316,9 @@ export default function StockPage() {
                     ) : (
                         <div className="grid grid-cols-2 gap-3">
                             {subcatsDeVista.map(s => {
-                                const count = itemsDelTipo.filter(i => i.categoria === s.nombre).length;
-                                const hayBajoMinimo = itemsDelTipo.some(i => i.categoria === s.nombre && i.activo && i.stockMinimo > 0 && i.stockActual <= i.stockMinimo);
+                                const getCat = (i: StockItem) => i.categoria || "Otros";
+                                const count = itemsDelTipo.filter(i => getCat(i) === s.nombre).length;
+                                const hayBajoMinimo = itemsDelTipo.some(i => getCat(i) === s.nombre && i.activo && i.stockMinimo > 0 && i.stockActual <= i.stockMinimo);
                                 return (
                                     <button key={s._id} onClick={() => irASubcat(s.nombre)}
                                         className={`relative flex flex-col items-start gap-2 rounded-2xl border-2 ${meta.border} bg-white px-4 py-5 shadow-sm active:scale-[0.97] transition-transform text-left`}>
@@ -339,8 +340,9 @@ export default function StockPage() {
     }
 
     // ── LISTA DE PRODUCTOS DE LA SUBCATEGORÍA ──
+    const normCat = (i: StockItem) => i.categoria || "Otros";
     const itemsSubcat = items
-        .filter(i => (i.tipo ?? "cocina").toLowerCase() === vista && i.categoria === subcatVista)
+        .filter(i => (i.tipo ?? "cocina").toLowerCase() === vista && normCat(i) === subcatVista)
         .filter(i => !search || i.nombre.toLowerCase().includes(search.toLowerCase()));
 
     return (
