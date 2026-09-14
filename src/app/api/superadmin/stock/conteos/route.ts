@@ -33,6 +33,11 @@ export async function POST(req: NextRequest) {
     await connectMongoDB();
     const { items, notas } = await req.json();
     if (!items?.length) return NextResponse.json({ error: "Sin items" }, { status: 400 });
-    const conteo = await StockConteo.create({ items, notas, userId: payload.sub });
+    const totalValorizacion = items.reduce((sum: number, i: any) =>
+        sum + (Number(i.precioUnitario ?? 0) * Number(i.cantidad)), 0);
+    const conteo = await StockConteo.create({
+        items, notas, userId: payload.sub,
+        totalValorizacion: totalValorizacion > 0 ? totalValorizacion : undefined,
+    });
     return NextResponse.json(conteo, { status: 201 });
 }
