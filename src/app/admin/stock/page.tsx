@@ -479,8 +479,9 @@ export default function StockPage() {
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="text-xs font-semibold text-gray-500 uppercase">Stock actual</label>
-                                    <input type="number" min="0" value={editModal.item.stockActual ?? ""} onChange={e => setEditModal(p => ({ ...p, item: { ...p.item, stockActual: Number(e.target.value) } }))}
-                                        className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
+                                    <div className="w-full mt-1 px-3 py-2 border border-gray-100 bg-gray-50 rounded-lg text-sm text-gray-400 select-none">
+                                        {formatNum(editModal.item.stockActual ?? 0)} <span className="text-xs">(se actualiza desde Cargar Stock)</span>
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="text-xs font-semibold text-gray-500 uppercase">Stock mínimo</label>
