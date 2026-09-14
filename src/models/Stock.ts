@@ -10,6 +10,10 @@ const StockSchema = new Schema({
     stockMinimo: { type: Number, default: 0 },
     activo: { type: Boolean, default: true },
     unidadesPorCaja: { type: Number },
+    presentaciones: [{
+        nombre:   { type: String, required: true },
+        unidades: { type: Number, required: true },
+    }],
 }, { timestamps: true });
 
 export const Stock = models.Stock || model("Stock", StockSchema);

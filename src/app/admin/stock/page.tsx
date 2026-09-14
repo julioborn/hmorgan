@@ -11,6 +11,8 @@ type Tipo = "cocina" | "bebida";
 
 type StockSubcategoria = { _id: string; tipo: Tipo; nombre: string };
 
+type Presentacion = { nombre: string; unidades: number };
+
 type StockItem = {
     _id: string;
     nombre: string;
@@ -22,6 +24,7 @@ type StockItem = {
     stockMinimo: number;
     activo: boolean;
     unidadesPorCaja?: number;
+    presentaciones?: Presentacion[];
 };
 
 type StockMovimiento = {
@@ -41,10 +44,19 @@ const TIPO_META: Record<Tipo, { label: string; emoji: string; color: string; bg:
 
 const EMPTY_ITEM = (tipo: Tipo, categoria = ""): Omit<StockItem, "_id"> => ({
     nombre: "", descripcion: "", tipo, categoria,
-    unidad: "unidades", stockActual: 0, stockMinimo: 0, activo: true, unidadesPorCaja: undefined,
+    unidad: "unidades", stockActual: 0, stockMinimo: 0, activo: true,
+    unidadesPorCaja: undefined, presentaciones: [],
 });
 
-const EMPTY_MOV = { tipo: "entrada" as "entrada" | "salida", cantidad: "", motivo: "", precioUnitario: "", notas: "", modo: "suelto" as "suelto" | "caja", cantidadCajas: "" };
+const EMPTY_MOV = {
+    tipo: "entrada" as "entrada" | "salida",
+    cantidad: "",
+    motivo: "",
+    precioUnitario: "",
+    notas: "",
+    presentacionSel: null as Presentacion | null,
+    cantidadBultos: "",
+};
 
 const formatNum = (n: number) =>
     new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n);
@@ -121,7 +133,10 @@ export default function StockPage() {
 
     async function registrarMovimiento() {
         if (!movModal.item) return;
-        const cantFinal = Number(movForm.cantidad);
+        // Si hay presentación seleccionada, la cantidad final = bultos × unidades
+        const cantFinal = movForm.presentacionSel
+            ? Number(movForm.cantidadBultos) * movForm.presentacionSel.unidades
+            : Number(movForm.cantidad);
         if (!cantFinal || !movForm.motivo) return;
         setMovSaving(true);
         try {
@@ -412,14 +427,53 @@ export default function StockPage() {
                                 <input value={editModal.item.unidad || ""} onChange={e => setEditModal(p => ({ ...p, item: { ...p.item, unidad: e.target.value } }))}
                                     placeholder="kg, lts, unidades, cajas…" className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
                             </div>
-                            {/* Unidades por caja */}
+                            {/* Presentaciones */}
                             <div>
-                                <label className="text-xs font-semibold text-gray-500 uppercase">Unidades por caja</label>
-                                <input type="number" min="1" step="1"
-                                    value={editModal.item.unidadesPorCaja ?? ""}
-                                    onChange={e => setEditModal(p => ({ ...p, item: { ...p.item, unidadesPorCaja: e.target.value ? Number(e.target.value) : undefined } }))}
-                                    placeholder="Ej: 6 — opcional, habilita carga por cajas"
-                                    className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
+                                <label className="text-xs font-semibold text-gray-500 uppercase">Presentaciones (cajón, caja, etc.)</label>
+                                <p className="text-[11px] text-gray-400 mb-2">Definí los tipos de bulto y cuántas unidades tiene cada uno.</p>
+                                <div className="space-y-2">
+                                    {(editModal.item.presentaciones ?? []).map((p, idx) => (
+                                        <div key={idx} className="flex gap-2 items-center">
+                                            <input
+                                                value={p.nombre}
+                                                onChange={e => setEditModal(prev => {
+                                                    const arr = [...(prev.item.presentaciones ?? [])];
+                                                    arr[idx] = { ...arr[idx], nombre: e.target.value };
+                                                    return { ...prev, item: { ...prev.item, presentaciones: arr } };
+                                                })}
+                                                placeholder="Nombre (ej: Cajón)"
+                                                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                                            />
+                                            <input
+                                                type="number" min="1" step="1"
+                                                value={p.unidades}
+                                                onChange={e => setEditModal(prev => {
+                                                    const arr = [...(prev.item.presentaciones ?? [])];
+                                                    arr[idx] = { ...arr[idx], unidades: Number(e.target.value) };
+                                                    return { ...prev, item: { ...prev.item, presentaciones: arr } };
+                                                })}
+                                                placeholder="Unidades"
+                                                className="w-24 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                                            />
+                                            <button
+                                                onClick={() => setEditModal(prev => {
+                                                    const arr = (prev.item.presentaciones ?? []).filter((_, i) => i !== idx);
+                                                    return { ...prev, item: { ...prev.item, presentaciones: arr } };
+                                                })}
+                                                className="p-2 text-red-400 hover:text-red-600 transition">
+                                                <X size={14} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                    <button
+                                        onClick={() => setEditModal(prev => ({
+                                            ...prev,
+                                            item: { ...prev.item, presentaciones: [...(prev.item.presentaciones ?? []), { nombre: "", unidades: 1 }] }
+                                        }))}
+                                        className="flex items-center gap-1.5 text-xs text-red-600 hover:text-red-700 font-semibold py-1.5 px-2 rounded-lg hover:bg-red-50 transition">
+                                        <Plus size={13} /> Agregar presentación
+                                    </button>
+                                </div>
                             </div>
                             {/* Stock */}
                             <div className="grid grid-cols-2 gap-3">
@@ -479,36 +533,50 @@ export default function StockPage() {
                                 </button>
                             </div>
 
-                            {!!movModal.item.unidadesPorCaja && (
-                                <div>
-                                    <label className="text-xs font-semibold text-gray-500 uppercase">Modo de carga</label>
-                                    <div className="flex gap-2 mt-1">
-                                        <button onClick={() => setMovForm(p => ({ ...p, modo: "suelto", cantidadCajas: "", cantidad: "" }))}
-                                            className={`flex-1 py-2 rounded-xl text-sm font-bold border transition ${movForm.modo === "suelto" ? "bg-gray-800 text-white border-gray-800" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
-                                            Suelto
-                                        </button>
-                                        <button onClick={() => setMovForm(p => ({ ...p, modo: "caja", cantidad: "", cantidadCajas: "" }))}
-                                            className={`flex-1 py-2 rounded-xl text-sm font-bold border transition flex items-center justify-center gap-1.5 ${movForm.modo === "caja" ? "bg-gray-800 text-white border-gray-800" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
-                                            <Package size={14} /> Por caja
-                                        </button>
+                            {/* Selector de presentación */}
+                            {(() => {
+                                const pres: Presentacion[] = [
+                                    ...(movModal.item.presentaciones?.filter(p => p.nombre && p.unidades > 0) ?? []),
+                                    // backward compat: si tiene unidadesPorCaja y no tiene presentaciones nuevas
+                                    ...((!movModal.item.presentaciones?.length && movModal.item.unidadesPorCaja)
+                                        ? [{ nombre: "Caja", unidades: movModal.item.unidadesPorCaja }]
+                                        : []),
+                                ];
+                                if (pres.length === 0) return null;
+                                return (
+                                    <div>
+                                        <label className="text-xs font-semibold text-gray-500 uppercase">Presentación</label>
+                                        <div className="flex flex-wrap gap-2 mt-1">
+                                            <button
+                                                onClick={() => setMovForm(p => ({ ...p, presentacionSel: null, cantidadBultos: "", cantidad: "" }))}
+                                                className={`py-2 px-3 rounded-xl text-sm font-bold border transition ${!movForm.presentacionSel ? "bg-gray-800 text-white border-gray-800" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
+                                                Suelto
+                                            </button>
+                                            {pres.map((pr, idx) => (
+                                                <button key={idx}
+                                                    onClick={() => setMovForm(p => ({ ...p, presentacionSel: pr, cantidadBultos: "", cantidad: "" }))}
+                                                    className={`py-2 px-3 rounded-xl text-sm font-bold border transition flex items-center gap-1.5 ${movForm.presentacionSel?.nombre === pr.nombre ? "bg-gray-800 text-white border-gray-800" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
+                                                    <Package size={13} /> {pr.nombre} <span className="opacity-60 text-xs">({pr.unidades} un)</span>
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                );
+                            })()}
 
-                            {movForm.modo === "caja" && movModal.item.unidadesPorCaja ? (
+                            {movForm.presentacionSel ? (
                                 <div>
-                                    <label className="text-xs font-semibold text-gray-500 uppercase">Cantidad de cajas *</label>
-                                    <input type="number" min="1" step="1" value={movForm.cantidadCajas}
-                                        onChange={e => {
-                                            const cajas = e.target.value;
-                                            const unidades = cajas && movModal.item?.unidadesPorCaja ? String(Number(cajas) * movModal.item.unidadesPorCaja) : "";
-                                            setMovForm(p => ({ ...p, cantidadCajas: cajas, cantidad: unidades }));
-                                        }}
+                                    <label className="text-xs font-semibold text-gray-500 uppercase">
+                                        Cantidad de {movForm.presentacionSel.nombre.toLowerCase()}s *
+                                    </label>
+                                    <input type="number" min="1" step="1" value={movForm.cantidadBultos}
+                                        onChange={e => setMovForm(p => ({ ...p, cantidadBultos: e.target.value }))}
                                         placeholder="Ej: 2"
                                         className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
-                                    {movForm.cantidadCajas && movModal.item.unidadesPorCaja && (
+                                    {movForm.cantidadBultos && movForm.presentacionSel && (
                                         <p className="text-xs text-gray-500 mt-1.5 bg-gray-50 rounded-lg px-3 py-2">
-                                            {movForm.cantidadCajas} caja{Number(movForm.cantidadCajas) !== 1 ? "s" : ""} × {movModal.item.unidadesPorCaja} = <strong>{movForm.cantidad} {movModal.item.unidad}</strong>
+                                            {movForm.cantidadBultos} {movForm.presentacionSel.nombre.toLowerCase()}
+                                            {Number(movForm.cantidadBultos) !== 1 ? "s" : ""} × {movForm.presentacionSel.unidades} = <strong>{Number(movForm.cantidadBultos) * movForm.presentacionSel.unidades} {movModal.item.unidad}</strong>
                                         </p>
                                     )}
                                 </div>
@@ -543,20 +611,27 @@ export default function StockPage() {
                                     placeholder="Opcional"
                                     className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
                             </div>
-                            <p className="text-xs text-gray-400">
-                                Stock actual: <strong>{formatNum(movModal.item.stockActual)}</strong> {movModal.item.unidad}
-                                {movForm.cantidad && (
-                                    <> → <strong className={movForm.tipo === "entrada" ? "text-emerald-600" : "text-red-600"}>
-                                        {formatNum(movForm.tipo === "entrada"
-                                            ? movModal.item.stockActual + Number(movForm.cantidad)
-                                            : Math.max(0, movModal.item.stockActual - Number(movForm.cantidad)))}
-                                    </strong> {movModal.item.unidad}</>
-                                )}
-                            </p>
+                            {(() => {
+                                const cantCalc = movForm.presentacionSel
+                                    ? (movForm.cantidadBultos ? Number(movForm.cantidadBultos) * movForm.presentacionSel.unidades : 0)
+                                    : Number(movForm.cantidad);
+                                return (
+                                    <p className="text-xs text-gray-400">
+                                        Stock actual: <strong>{formatNum(movModal.item.stockActual)}</strong> {movModal.item.unidad}
+                                        {cantCalc > 0 && (
+                                            <> → <strong className={movForm.tipo === "entrada" ? "text-emerald-600" : "text-red-600"}>
+                                                {formatNum(movForm.tipo === "entrada"
+                                                    ? movModal.item.stockActual + cantCalc
+                                                    : Math.max(0, movModal.item.stockActual - cantCalc))}
+                                            </strong> {movModal.item.unidad}</>
+                                        )}
+                                    </p>
+                                );
+                            })()}
                         </div>
                         <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
                             <button onClick={() => setMovModal({ open: false, item: null })} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">Cancelar</button>
-                            <button onClick={registrarMovimiento} disabled={movSaving || !movForm.cantidad || !movForm.motivo}
+                            <button onClick={registrarMovimiento} disabled={movSaving || !(movForm.presentacionSel ? movForm.cantidadBultos : movForm.cantidad) || !movForm.motivo}
                                 className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition">
                                 {movSaving ? "Guardando..." : "Registrar"}
                             </button>
@@ -635,7 +710,14 @@ function ItemList({ items, meta, onMov, onHist, onEdit, onDelete }: {
                                 <p className="text-xs text-gray-500 mt-0.5">
                                     Stock: <span className={`font-bold ${isLow ? "text-yellow-600" : "text-gray-700"}`}>{formatNum(item.stockActual)}</span> {item.unidad}
                                     {item.stockMinimo > 0 && <span className="text-gray-400"> · mín {formatNum(item.stockMinimo)}</span>}
-                                    {item.unidadesPorCaja && <span className="text-gray-400"> · {item.unidadesPorCaja} un/caja</span>}
+                                    {item.presentaciones && item.presentaciones.length > 0
+                                        ? item.presentaciones.map((p, i) => (
+                                            <span key={i} className="text-gray-400"> · {p.nombre} {p.unidades} un</span>
+                                        ))
+                                        : item.unidadesPorCaja
+                                            ? <span className="text-gray-400"> · {item.unidadesPorCaja} un/caja</span>
+                                            : null
+                                    }
                                 </p>
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">
