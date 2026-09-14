@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { swalBase } from "@/lib/swalConfig";
 import {
     Plus, TrendingUp, TrendingDown, AlertTriangle,
-    X, History, Edit2, Trash2, Loader2, ChevronLeft, ClipboardList, Settings, DollarSign, Package,
+    X, History, Edit2, Trash2, Loader2, ChevronLeft, ClipboardList, Settings, DollarSign, Package, FileText,
 } from "lucide-react";
 
 type Tipo = "cocina" | "bebida";
@@ -244,10 +244,14 @@ export default function StockPage() {
                         <ClipboardList size={17} /> Cargar Stock
                     </button>
                     <button onClick={() => setSubcatModal(true)}
-                        className="flex items-center justify-center gap-2 px-5 py-3.5 border-2 border-gray-200 hover:border-gray-400 bg-white text-gray-700 hover:text-gray-900 rounded-2xl font-bold text-sm transition">
-                        <Settings size={17} /> Subcategorías
+                        className="flex items-center justify-center gap-2 px-4 py-3.5 border-2 border-gray-200 hover:border-gray-400 bg-white text-gray-700 hover:text-gray-900 rounded-2xl font-bold text-sm transition">
+                        <Settings size={17} />
                     </button>
                 </div>
+                <button onClick={() => router.push("/admin/stock/pedido")}
+                    className="w-full mt-3 flex items-center justify-center gap-2 py-3.5 border-2 border-gray-200 hover:border-gray-400 bg-white text-gray-700 hover:text-gray-900 rounded-2xl font-bold text-sm transition">
+                    <FileText size={17} /> Nota de Pedido
+                </button>
 
                 {/* Modal subcategorías */}
                 {subcatModal && (
