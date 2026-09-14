@@ -1,14 +1,29 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Printer, ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronLeft, Printer, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
+
+const DRAFT_KEY = "hmorgan_nota_pedido_draft";
 
 type StockItem = {
     _id: string; nombre: string; tipo: string;
     categoria: string; unidad: string; stockActual: number; activo: boolean;
 };
 
+type Draft = {
+    seleccionados: Record<string, boolean>;
+    cantidades: Record<string, string>;
+    notas: string;
+    savedAt: number;
+};
+
 const normCat = (i: StockItem) => i.categoria || "Otros";
+
+const formatHora = (ts: number) =>
+    new Date(ts).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+
+const formatNum = (n: number) =>
+    new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n);
 
 export default function NotaPedidoPage() {
     const router = useRouter();
@@ -18,6 +33,8 @@ export default function NotaPedidoPage() {
     const [cantidades, setCantidades] = useState<Record<string, string>>({});
     const [notas, setNotas] = useState("");
     const [expandidos, setExpandidos] = useState<Record<string, boolean>>({});
+    const [borrador, setBorrador] = useState<Draft | null>(null);
+    const [isDirty, setIsDirty] = useState(false);
 
     const loadProductos = useCallback(() => {
         setLoading(true);
@@ -27,6 +44,10 @@ export default function NotaPedidoPage() {
                 if (Array.isArray(data)) {
                     const activos = data.filter((p: StockItem) => p.activo !== false);
                     setProductos(activos);
+                    try {
+                        const raw = localStorage.getItem(DRAFT_KEY);
+                        if (raw) setBorrador(JSON.parse(raw) as Draft);
+                    } catch { /* ignore */ }
                 }
             })
             .finally(() => setLoading(false));
@@ -34,24 +55,53 @@ export default function NotaPedidoPage() {
 
     useEffect(() => { loadProductos(); }, [loadProductos]);
 
+    // Auto-guardar borrador solo si el usuario hizo algún cambio
+    useEffect(() => {
+        if (!isDirty) return;
+        const t = setTimeout(() => {
+            try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ seleccionados, cantidades, notas, savedAt: Date.now() })); }
+            catch { /* ignore */ }
+        }, 600);
+        return () => clearTimeout(t);
+    }, [seleccionados, cantidades, notas, isDirty]);
+
+    function restaurarBorrador() {
+        if (!borrador) return;
+        setSeleccionados(borrador.seleccionados ?? {});
+        setCantidades(borrador.cantidades ?? {});
+        setNotas(borrador.notas ?? "");
+        setBorrador(null);
+        setIsDirty(true);
+    }
+
+    function descartarBorrador() {
+        localStorage.removeItem(DRAFT_KEY);
+        setBorrador(null);
+        setIsDirty(false);
+    }
+
+    const markDirty = () => { if (!isDirty) setIsDirty(true); };
+
     const toggleProducto = (id: string) => {
+        markDirty();
         setSeleccionados(p => ({ ...p, [id]: !p[id] }));
-        if (!cantidades[id]) setCantidades(p => ({ ...p, [id]: "" }));
     };
 
-    const toggleGrupo = (key: string, ids: string[]) => {
-        const allSelected = ids.every(id => seleccionados[id]);
+    const toggleGrupo = (ids: string[], allSel: boolean) => {
+        markDirty();
         const next: Record<string, boolean> = { ...seleccionados };
-        ids.forEach(id => { next[id] = !allSelected; });
+        ids.forEach(id => { next[id] = !allSel; });
         setSeleccionados(next);
     };
 
     const toggleExpandido = (key: string) => setExpandidos(p => ({ ...p, [key]: !p[key] }));
 
+    const setCant = (id: string, val: string) => { markDirty(); setCantidades(p => ({ ...p, [id]: val })); };
+    const setNota = (v: string) => { markDirty(); setNotas(v); };
+
     // Agrupar: tipo → subcategoría
     const grupos: { key: string; tipo: string; cat: string; items: StockItem[] }[] = [];
-    const tipoOrder = ["cocina", "bebida"];
-    tipoOrder.forEach(tipo => {
+    ["cocina", "bebida"].forEach(tipo => {
         const del = productos.filter(p => (p.tipo ?? "bebida").toLowerCase() === tipo);
         const cats: Record<string, StockItem[]> = {};
         del.forEach(p => { const c = normCat(p); if (!cats[c]) cats[c] = []; cats[c].push(p); });
@@ -67,7 +117,7 @@ export default function NotaPedidoPage() {
         const fecha = new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
         const filas = itemsSeleccionados.map(p => {
             const cant = cantidades[p._id] ? `${cantidades[p._id]} ${p.unidad}` : `_____ ${p.unidad}`;
-            return `<tr><td>${p.nombre}</td><td>${normCat(p)}</td><td style="text-align:center">${cant}</td></tr>`;
+            return `<tr><td>${p.nombre}</td><td>${normCat(p)}</td><td style="text-align:right">${formatNum(p.stockActual)} ${p.unidad}</td><td style="text-align:center">${cant}</td></tr>`;
         }).join("");
 
         const html = `<!DOCTYPE html>
@@ -82,7 +132,7 @@ export default function NotaPedidoPage() {
   .fecha { color: #666; font-size: 12px; margin-bottom: 24px; }
   table { width: 100%; border-collapse: collapse; margin-top: 8px; }
   th { background: #111; color: #fff; padding: 8px 12px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
-  th:last-child { text-align: center; width: 140px; }
+  th.right { text-align: right; } th.center { text-align: center; }
   td { padding: 9px 12px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
   tr:nth-child(even) td { background: #f9fafb; }
   .notas { margin-top: 28px; border-top: 2px solid #111; padding-top: 14px; }
@@ -99,7 +149,7 @@ export default function NotaPedidoPage() {
   <h1>H. Morgan Bar</h1>
   <p class="fecha">Nota de pedido · ${fecha}</p>
   <table>
-    <thead><tr><th>Producto</th><th>Categoría</th><th>Cantidad pedida</th></tr></thead>
+    <thead><tr><th>Producto</th><th>Categoría</th><th class="right">Stock actual</th><th class="center">Cantidad pedida</th></tr></thead>
     <tbody>${filas}</tbody>
   </table>
   ${notas ? `<div class="notas"><div class="notas-label">Notas</div><div class="notas-text">${notas}</div></div>` : ""}
@@ -110,6 +160,10 @@ export default function NotaPedidoPage() {
   <script>window.onload=()=>window.print();</script>
 </body>
 </html>`;
+
+        // Borrar borrador al generar
+        localStorage.removeItem(DRAFT_KEY);
+        setBorrador(null); setIsDirty(false);
 
         const win = window.open("", "_blank");
         if (win) { win.document.write(html); win.document.close(); }
@@ -135,9 +189,30 @@ export default function NotaPedidoPage() {
                     </div>
                 </div>
 
-                {/* Notas opcionales */}
+                {/* Banner borrador */}
+                {borrador && (
+                    <div className="mb-4 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-start gap-3">
+                        <RotateCcw size={18} className="text-amber-600 shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-black text-amber-800">Hay un borrador guardado</p>
+                            <p className="text-xs text-amber-600 mt-0.5">Guardado el {formatHora(borrador.savedAt)}</p>
+                            <div className="flex gap-2 mt-2">
+                                <button onClick={restaurarBorrador}
+                                    className="flex-1 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg transition">
+                                    Restaurar borrador
+                                </button>
+                                <button onClick={descartarBorrador}
+                                    className="flex-1 py-1.5 bg-white border border-amber-300 text-amber-700 text-xs font-bold rounded-lg transition hover:bg-amber-50">
+                                    Descartar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Notas */}
                 <div className="mb-4">
-                    <textarea value={notas} onChange={e => setNotas(e.target.value)} rows={2}
+                    <textarea value={notas} onChange={e => setNota(e.target.value)} rows={2}
                         placeholder="Notas del pedido (opcional)…"
                         className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 resize-none bg-white" />
                 </div>
@@ -150,16 +225,16 @@ export default function NotaPedidoPage() {
                     <div className="space-y-2">
                         {grupos.map(({ key, tipo, cat, items }) => {
                             const tm = TIPO_LABEL[tipo] ?? { label: tipo, emoji: "", color: "text-gray-700" };
-                            const abierto = expandidos[key] !== false; // abierto por defecto
-                            const selCount = items.filter(i => seleccionados[i._id]).length;
-                            const allSel = selCount === items.length;
+                            const abierto = expandidos[key] !== false;
                             const ids = items.map(i => i._id);
+                            const selCount = ids.filter(id => seleccionados[id]).length;
+                            const allSel = selCount === items.length && items.length > 0;
 
                             return (
                                 <div key={key} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                                    {/* Cabecera del grupo */}
+                                    {/* Cabecera grupo */}
                                     <div className="flex items-center gap-3 px-4 py-3">
-                                        <input type="checkbox" checked={allSel} onChange={() => toggleGrupo(key, ids)}
+                                        <input type="checkbox" checked={allSel} onChange={() => toggleGrupo(ids, allSel)}
                                             className="w-4 h-4 accent-gray-700 shrink-0" />
                                         <button onClick={() => toggleExpandido(key)} className="flex-1 text-left flex items-center gap-2">
                                             <span className={`text-sm font-black ${tm.color}`}>{tm.emoji} {cat}</span>
@@ -174,16 +249,22 @@ export default function NotaPedidoPage() {
                                     {abierto && (
                                         <div className="border-t border-gray-50">
                                             {items.map(prod => (
-                                                <div key={prod._id} className={`flex items-center gap-3 px-4 py-2.5 border-b border-gray-50 last:border-0 ${seleccionados[prod._id] ? "bg-gray-50" : ""}`}>
+                                                <div key={prod._id}
+                                                    className={`flex items-center gap-3 px-4 py-2.5 border-b border-gray-50 last:border-0 ${seleccionados[prod._id] ? "bg-gray-50" : ""}`}>
                                                     <input type="checkbox" checked={!!seleccionados[prod._id]} onChange={() => toggleProducto(prod._id)}
                                                         className="w-4 h-4 accent-gray-700 shrink-0" />
-                                                    <p className="flex-1 text-sm text-gray-800 font-medium truncate">{prod.nombre}</p>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm text-gray-800 font-medium truncate">{prod.nombre}</p>
+                                                        <p className="text-xs text-gray-400 mt-0.5">
+                                                            Stock: <span className="font-bold text-gray-600">{formatNum(prod.stockActual)}</span> {prod.unidad}
+                                                        </p>
+                                                    </div>
                                                     {seleccionados[prod._id] && (
                                                         <div className="flex items-center gap-1.5 shrink-0">
                                                             <input
                                                                 type="number" min="0" step="any" inputMode="decimal"
                                                                 value={cantidades[prod._id] ?? ""}
-                                                                onChange={e => setCantidades(p => ({ ...p, [prod._id]: e.target.value }))}
+                                                                onChange={e => setCant(prod._id, e.target.value)}
                                                                 placeholder="Cant."
                                                                 className="w-20 text-center border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
                                                             />
@@ -201,7 +282,7 @@ export default function NotaPedidoPage() {
                 )}
             </div>
 
-            {/* Botón fijo al pie */}
+            {/* Botón fijo */}
             {totalSeleccionados > 0 && (
                 <div className="fixed bottom-0 left-0 right-0 px-4 pb-6 pt-3 bg-white/90 backdrop-blur border-t border-gray-100">
                     <button onClick={imprimir}

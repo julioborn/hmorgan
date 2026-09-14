@@ -83,6 +83,7 @@ export default function CargarStockPage() {
     const [mostrarPrecios, setMostrarPrecios] = useState(false);
     const [saving, setSaving] = useState(false);
     const [borrador, setBorrador] = useState<Draft | null>(null);
+    const [isDirty, setIsDirty] = useState(false);
 
     // ── Estado agregar ──
     const [conteoObjetivo, setConteoObjetivo] = useState<Conteo | null>(null);
@@ -128,15 +129,24 @@ export default function CargarStockPage() {
 
     useEffect(() => { loadProductos(); loadConteos(); }, [loadProductos, loadConteos]);
 
-    // Auto-guardar borrador
+    // Auto-guardar borrador (solo si el usuario hizo algún cambio)
     useEffect(() => {
-        if (!productosLoaded || vista !== "cargar") return;
+        if (!productosLoaded || vista !== "cargar" || !isDirty) return;
         const t = setTimeout(() => {
             try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ cantidades, notas, precios, savedAt: Date.now() })); }
             catch { /* ignore */ }
         }, 600);
         return () => clearTimeout(t);
-    }, [cantidades, notas, precios, productosLoaded, vista]);
+    }, [cantidades, notas, precios, productosLoaded, vista, isDirty]);
+
+    // Wrappers que marcan dirty solo cuando el usuario edita
+    const editCantidades = (fn: (p: Record<string, string>) => Record<string, string>) => {
+        setIsDirty(true); setCantidades(fn);
+    };
+    const editNotas = (v: string) => { setIsDirty(true); setNotas(v); };
+    const editPrecios = (fn: (p: Record<string, string>) => Record<string, string>) => {
+        setIsDirty(true); setPrecios(fn);
+    };
 
     function restaurarBorrador() {
         if (!borrador) return;
@@ -145,11 +155,13 @@ export default function CargarStockPage() {
         setPrecios(borrador.precios ?? {});
         if (Object.values(borrador.precios ?? {}).some(v => !!v)) setMostrarPrecios(true);
         setBorrador(null);
+        setIsDirty(true);
     }
 
     function descartarBorrador() {
         localStorage.removeItem(DRAFT_KEY);
         setBorrador(null);
+        setIsDirty(false);
     }
 
     function cambiarVista(v: "cargar" | "historial") {
@@ -182,7 +194,7 @@ export default function CargarStockPage() {
             });
             if (res.ok) {
                 localStorage.removeItem(DRAFT_KEY);
-                setBorrador(null); setNotas(""); setPrecios({});
+                setBorrador(null); setNotas(""); setPrecios({}); setIsDirty(false);
                 loadConteos(); setVista("historial"); setNavTipo(null); setNavSubcat(null);
             }
         } finally { setSaving(false); }
@@ -466,7 +478,7 @@ export default function CargarStockPage() {
                         {!enNav && (
                             <div className="mb-4">
                                 <label className="text-xs font-semibold text-gray-500 uppercase">Notas (opcional)</label>
-                                <textarea value={notas} onChange={e => setNotas(e.target.value)} rows={2}
+                                <textarea value={notas} onChange={e => editNotas(e.target.value)} rows={2}
                                     placeholder="Ej: semana del 2 al 8 de septiembre, post-evento..."
                                     className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 resize-none" />
                             </div>
@@ -474,7 +486,7 @@ export default function CargarStockPage() {
 
                         {loadingProd ? (
                             <div className="flex justify-center py-16"><Loader2 className="animate-spin text-gray-400" size={32} /></div>
-                        ) : renderForm(cantidades, setCantidades, precios, setPrecios, mostrarPrecios, setMostrarPrecios, guardar, saving, "Guardar carga de esta semana")}
+                        ) : renderForm(cantidades, editCantidades, precios, editPrecios, mostrarPrecios, setMostrarPrecios, guardar, saving, "Guardar carga de esta semana")}
                     </>
                 )}
 
