@@ -256,33 +256,28 @@ export default function StockPage() {
                                         </button>
                                     </div>
                                 </div>
-                                {(["cocina", "bebida"] as Tipo[]).map(t => {
-                                    const lista = subcats.filter(s => s.tipo === t);
-                                    return (
-                                        <div key={t}>
-                                            <p className="text-xs font-bold text-gray-400 uppercase mb-2">{TIPO_META[t].emoji} {TIPO_META[t].label}</p>
-                                            {lista.length === 0 ? (
-                                                <p className="text-xs text-gray-400 italic">Sin subcategorías</p>
-                                            ) : (
-                                                <div className="space-y-1">
-                                                    {lista.map(s => (
-                                                        <div key={s._id} className="flex items-center justify-between bg-gray-50 hover:bg-gray-100 rounded-lg px-3 py-2 transition">
-                                                            <button
-                                                                onClick={() => { setSubcatModal(false); setVista(s.tipo); setSubcatVista(s.nombre); setSearch(""); }}
-                                                                className="flex-1 text-left text-sm font-medium text-gray-800"
-                                                            >
-                                                                {s.nombre}
-                                                            </button>
-                                                            <button onClick={() => eliminarSubcat(s._id)} className="text-red-400 hover:text-red-600 transition p-1 shrink-0">
-                                                                <Trash2 size={14} />
-                                                            </button>
-                                                        </div>
-                                                    ))}
+                                {(() => {
+                                    const lista = subcats.filter(s => s.tipo === newSubcat.tipo);
+                                    return lista.length === 0 ? (
+                                        <p className="text-xs text-gray-400 italic">Sin subcategorías</p>
+                                    ) : (
+                                        <div className="space-y-1">
+                                            {lista.map(s => (
+                                                <div key={s._id} className="flex items-center justify-between bg-gray-50 hover:bg-gray-100 rounded-lg px-3 py-2 transition">
+                                                    <button
+                                                        onClick={() => { setSubcatModal(false); setVista(s.tipo); setSubcatVista(s.nombre); setSearch(""); }}
+                                                        className="flex-1 text-left text-sm font-medium text-gray-800"
+                                                    >
+                                                        {s.nombre}
+                                                    </button>
+                                                    <button onClick={() => eliminarSubcat(s._id)} className="text-red-400 hover:text-red-600 transition p-1 shrink-0">
+                                                        <Trash2 size={14} />
+                                                    </button>
                                                 </div>
-                                            )}
+                                            ))}
                                         </div>
                                     );
-                                })}
+                                })()}
                             </div>
                         </div>
                     </div>
