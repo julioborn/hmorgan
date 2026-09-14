@@ -39,6 +39,13 @@ type Draft = {
     savedAt: number;
 };
 
+type Tipo = "cocina" | "bebida";
+
+const TIPO_META: Record<Tipo, { label: string; emoji: string; color: string; bg: string; border: string }> = {
+    cocina: { label: "Cocina", emoji: "🍳", color: "text-orange-700", bg: "bg-orange-50", border: "border-orange-200" },
+    bebida: { label: "Bebida", emoji: "🍺", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-200" },
+};
+
 const TIPO_LABEL: Record<string, string> = { cocina: "🍳 Cocina", bebida: "🍺 Bebida" };
 
 const formatNum = (n: number) =>
@@ -62,8 +69,12 @@ export default function CargarStockPage() {
     const [loadingProd, setLoadingProd] = useState(true);
     const [productosLoaded, setProductosLoaded] = useState(false);
 
-    // vista: "cargar" | "historial" | "agregar"
+    // vista principal
     const [vista, setVista] = useState<"cargar" | "historial" | "agregar">("cargar");
+
+    // navegación dentro del formulario (compartida entre cargar y agregar)
+    const [navTipo, setNavTipo] = useState<Tipo | null>(null);
+    const [navSubcat, setNavSubcat] = useState<string | null>(null);
 
     // ── Estado carga nueva ──
     const [cantidades, setCantidades] = useState<Record<string, string>>({});
@@ -73,7 +84,7 @@ export default function CargarStockPage() {
     const [saving, setSaving] = useState(false);
     const [borrador, setBorrador] = useState<Draft | null>(null);
 
-    // ── Estado agregar a conteo existente ──
+    // ── Estado agregar ──
     const [conteoObjetivo, setConteoObjetivo] = useState<Conteo | null>(null);
     const [cantAgregar, setCantAgregar] = useState<Record<string, string>>({});
     const [preciosAgregar, setPreciosAgregar] = useState<Record<string, string>>({});
@@ -86,9 +97,6 @@ export default function CargarStockPage() {
     const [expandido, setExpandido] = useState<string | null>(null);
     const [comparandoCon, setComparandoCon] = useState<string | null>(null);
 
-    // grupos expandidos en los formularios
-    const [gruposAbiertos, setGruposAbiertos] = useState<Record<string, boolean>>({});
-
     const loadProductos = useCallback(() => {
         setLoadingProd(true);
         fetch("/api/superadmin/stock", { credentials: "include" })
@@ -100,9 +108,6 @@ export default function CargarStockPage() {
                     const init: Record<string, string> = {};
                     activos.forEach((i: StockItem) => { init[i._id] = String(i.stockActual); });
                     setCantidades(init);
-                    const grupos: Record<string, boolean> = {};
-                    activos.forEach((i: StockItem) => { grupos[`${i.tipo}-${i.categoria}`] = true; });
-                    setGruposAbiertos(grupos);
                     try {
                         const raw = localStorage.getItem(DRAFT_KEY);
                         if (raw) setBorrador(JSON.parse(raw) as Draft);
@@ -123,13 +128,12 @@ export default function CargarStockPage() {
 
     useEffect(() => { loadProductos(); loadConteos(); }, [loadProductos, loadConteos]);
 
-    // Auto-guardar borrador de la carga nueva
+    // Auto-guardar borrador
     useEffect(() => {
         if (!productosLoaded || vista !== "cargar") return;
         const t = setTimeout(() => {
-            try {
-                localStorage.setItem(DRAFT_KEY, JSON.stringify({ cantidades, notas, precios, savedAt: Date.now() }));
-            } catch { /* ignore */ }
+            try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ cantidades, notas, precios, savedAt: Date.now() })); }
+            catch { /* ignore */ }
         }, 600);
         return () => clearTimeout(t);
     }, [cantidades, notas, precios, productosLoaded, vista]);
@@ -148,15 +152,20 @@ export default function CargarStockPage() {
         setBorrador(null);
     }
 
-    // Total valorización carga nueva
-    const totalValorizacion = productos.reduce((sum, p) => {
-        return sum + Number(cantidades[p._id] ?? 0) * Number(precios[p._id] ?? 0);
-    }, 0);
+    function cambiarVista(v: "cargar" | "historial") {
+        setVista(v);
+        setNavTipo(null);
+        setNavSubcat(null);
+    }
 
-    // Total valorización modo agregar
-    const totalValorizacionAgregar = productos.reduce((sum, p) => {
-        return sum + Number(cantAgregar[p._id] ?? 0) * Number(preciosAgregar[p._id] ?? 0);
-    }, 0);
+    function volverEnNav() {
+        if (navSubcat !== null) { setNavSubcat(null); return; }
+        if (navTipo !== null) { setNavTipo(null); return; }
+    }
+
+    // Totales valorización
+    const totalVal = (cant: Record<string, string>, prec: Record<string, string>) =>
+        productos.reduce((s, p) => s + Number(cant[p._id] ?? 0) * Number(prec[p._id] ?? 0), 0);
 
     async function guardar() {
         const items: ConteoItem[] = productos.map(p => ({
@@ -168,18 +177,13 @@ export default function CargarStockPage() {
         setSaving(true);
         try {
             const res = await fetch("/api/superadmin/stock/conteos", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-                body: JSON.stringify({ items, notas }),
+                method: "POST", headers: { "Content-Type": "application/json" },
+                credentials: "include", body: JSON.stringify({ items, notas }),
             });
             if (res.ok) {
                 localStorage.removeItem(DRAFT_KEY);
-                setBorrador(null);
-                setNotas("");
-                setPrecios({});
-                loadConteos();
-                setVista("historial");
+                setBorrador(null); setNotas(""); setPrecios({});
+                loadConteos(); setVista("historial"); setNavTipo(null); setNavSubcat(null);
             }
         } finally { setSaving(false); }
     }
@@ -188,9 +192,9 @@ export default function CargarStockPage() {
         setConteoObjetivo(conteo);
         const init: Record<string, string> = {};
         productos.forEach(p => { init[p._id] = ""; });
-        setCantAgregar(init);
-        setPreciosAgregar({});
+        setCantAgregar(init); setPreciosAgregar({});
         setMostrarPreciosAgregar(false);
+        setNavTipo(null); setNavSubcat(null);
         setVista("agregar");
     }
 
@@ -208,16 +212,14 @@ export default function CargarStockPage() {
         setSavingAgregar(true);
         try {
             const res = await fetch(`/api/superadmin/stock/conteos/${conteoObjetivo._id}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-                body: JSON.stringify({ items }),
+                method: "PATCH", headers: { "Content-Type": "application/json" },
+                credentials: "include", body: JSON.stringify({ items }),
             });
             if (res.ok) {
-                setConteoObjetivo(null);
-                loadConteos();
-                setVista("historial");
-                setExpandido(conteoObjetivo._id);
+                const idPrev = conteoObjetivo._id;
+                setConteoObjetivo(null); loadConteos();
+                setVista("historial"); setExpandido(idPrev);
+                setNavTipo(null); setNavSubcat(null);
             }
         } finally { setSavingAgregar(false); }
     }
@@ -229,8 +231,8 @@ export default function CargarStockPage() {
         if (comparandoCon === id) setComparandoCon(null);
     }
 
-    // Agrupación por tipo → subcategorías
-    const porTipo = (["cocina", "bebida"] as const).map(tipo => {
+    // Agrupación por tipo → subcat
+    const porTipo = (["cocina", "bebida"] as Tipo[]).map(tipo => {
         const prodsTipo = productos.filter(p => (p.tipo ?? "bebida") === tipo);
         const subcats = prodsTipo.reduce((acc, p) => {
             const cat = p.categoria || "Otros";
@@ -241,116 +243,155 @@ export default function CargarStockPage() {
         return { tipo, subcats, total: prodsTipo.length };
     }).filter(t => t.total > 0);
 
-    // ── Formulario reutilizable (carga nueva y agregar) ──
-    function FormularioStock({
-        cantForm, setCantForm, preciosForm, setPreciosForm, mostrarPrecForm, setMostrarPrecForm, totalVal, onGuardar, guardando, labelGuardar,
-    }: {
-        cantForm: Record<string, string>;
-        setCantForm: (fn: (p: Record<string, string>) => Record<string, string>) => void;
-        preciosForm: Record<string, string>;
-        setPreciosForm: (fn: (p: Record<string, string>) => Record<string, string>) => void;
-        mostrarPrecForm: boolean;
-        setMostrarPrecForm: (v: boolean) => void;
-        totalVal: number;
-        onGuardar: () => void;
-        guardando: boolean;
-        labelGuardar: string;
-    }) {
+    // ── Render formulario según nivel de navegación ──
+    function renderForm(
+        cant: Record<string, string>,
+        setCant: (fn: (p: Record<string, string>) => Record<string, string>) => void,
+        prec: Record<string, string>,
+        setPrec: (fn: (p: Record<string, string>) => Record<string, string>) => void,
+        mostrarPrec: boolean,
+        setMostrarPrec: (v: boolean) => void,
+        onGuardar: () => void,
+        guardando: boolean,
+        labelGuardar: string,
+    ) {
+        // Nivel 0: tiles de tipo
+        if (navTipo === null) {
+            return (
+                <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        {porTipo.map(({ tipo }) => {
+                            const m = TIPO_META[tipo];
+                            // contar productos con valor distinto al default en este tipo
+                            const filled = productos.filter(p => p.tipo === tipo && Number(cant[p._id] ?? 0) > 0).length;
+                            return (
+                                <button key={tipo} onClick={() => setNavTipo(tipo)}
+                                    className={`relative flex flex-col items-center justify-center gap-3 rounded-2xl border-2 ${m.border} ${m.bg} py-10 px-4 shadow-sm active:scale-[0.97] transition-transform`}>
+                                    <span className="text-5xl">{m.emoji}</span>
+                                    <p className={`text-xl font-black ${m.color}`}>{m.label}</p>
+                                    {filled > 0 && (
+                                        <span className="absolute top-2 right-2 text-[10px] font-black bg-emerald-500 text-white px-1.5 py-0.5 rounded-full">
+                                            {filled} cargados
+                                        </span>
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {/* Valorización total */}
+                    {mostrarPrec && totalVal(cant, prec) > 0 && (
+                        <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-center justify-between">
+                            <p className="text-sm font-black text-emerald-800">Total valorización</p>
+                            <p className="text-lg font-black text-emerald-700">{formatMoney(totalVal(cant, prec))}</p>
+                        </div>
+                    )}
+
+                    <button onClick={onGuardar} disabled={guardando || loadingProd}
+                        className="w-full py-3.5 bg-gray-900 hover:bg-gray-700 disabled:opacity-50 text-white rounded-xl font-bold text-sm transition flex items-center justify-center gap-2">
+                        {guardando ? <><Loader2 size={16} className="animate-spin" /> Guardando...</> : <><Save size={16} /> {labelGuardar}</>}
+                    </button>
+                </div>
+            );
+        }
+
+        const tipoData = porTipo.find(t => t.tipo === navTipo);
+        const m = TIPO_META[navTipo];
+
+        // Nivel 1: tiles de subcategoría
+        if (navSubcat === null) {
+            const subcatEntries = Object.entries(tipoData?.subcats ?? {}).sort(([a], [b]) => a.localeCompare(b));
+            return (
+                <div className="grid grid-cols-2 gap-3">
+                    {subcatEntries.map(([cat, prods]) => {
+                        const filled = prods.filter(p => Number(cant[p._id] ?? 0) > 0).length;
+                        return (
+                            <button key={cat} onClick={() => setNavSubcat(cat)}
+                                className={`relative flex flex-col items-start gap-2 rounded-2xl border-2 ${m.border} bg-white px-4 py-5 shadow-sm active:scale-[0.97] transition-transform text-left`}>
+                                <p className={`text-base font-black ${m.color}`}>{cat}</p>
+                                <p className="text-xs text-gray-400">{prods.length} producto{prods.length !== 1 ? "s" : ""}</p>
+                                {filled > 0 && (
+                                    <span className="absolute top-2 right-2 text-[10px] font-black bg-emerald-500 text-white px-1.5 py-0.5 rounded-full">
+                                        {filled}✓
+                                    </span>
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
+            );
+        }
+
+        // Nivel 2: productos de la subcategoría
+        const prods = tipoData?.subcats[navSubcat] ?? [];
         return (
-            <>
-                <div className="flex items-center justify-between mb-4">
-                    <p className="text-xs text-gray-400">Ingresá las cantidades correspondientes.</p>
+            <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                    <p className="text-xs text-gray-400">{prods.length} producto{prods.length !== 1 ? "s" : ""}</p>
                     <button
-                        onClick={() => setMostrarPrecForm(!mostrarPrecForm)}
-                        className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl border transition ${mostrarPrecForm ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
+                        onClick={() => setMostrarPrec(!mostrarPrec)}
+                        className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl border transition ${mostrarPrec ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
                         <DollarSign size={13} /> Valorizar
                     </button>
                 </div>
-
-                {porTipo.map(({ tipo, subcats }) => {
-                    const tipoKey = `tipo-${tipo}`;
-                    const tipoAbierto = gruposAbiertos[tipoKey] !== false;
-                    return (
-                        <div key={tipo} className="mb-6">
-                            <button onClick={() => setGruposAbiertos(p => ({ ...p, [tipoKey]: !tipoAbierto }))}
-                                className="w-full flex items-center justify-between mb-3">
-                                <p className="text-base font-black text-gray-900">{TIPO_LABEL[tipo]}</p>
-                                {tipoAbierto ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
-                            </button>
-
-                            {tipoAbierto && Object.entries(subcats).sort(([a], [b]) => a.localeCompare(b)).map(([cat, prods]) => {
-                                const subKey = `${tipo}-${cat}`;
-                                const subAbierto = gruposAbiertos[subKey] !== false;
-                                return (
-                                    <div key={cat} className="mb-3 ml-1">
-                                        <button onClick={() => setGruposAbiertos(p => ({ ...p, [subKey]: !subAbierto }))}
-                                            className="w-full flex items-center justify-between px-1 mb-2">
-                                            <p className="text-xs font-black text-gray-500 uppercase tracking-widest">{cat}</p>
-                                            {subAbierto ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
-                                        </button>
-
-                                        {subAbierto && (
-                                            <div className="space-y-2">
-                                                {prods.map(prod => (
-                                                    <div key={prod._id} className="bg-white border border-gray-100 rounded-xl px-4 py-3 shadow-sm">
-                                                        <div className="flex items-center gap-3">
-                                                            <p className="flex-1 text-sm font-semibold text-gray-800">{prod.nombre}</p>
-                                                            <div className="flex items-center gap-2 shrink-0">
-                                                                <button onClick={() => setCantForm(p => ({ ...p, [prod._id]: String(Math.max(0, Number(p[prod._id] ?? 0) - 1)) }))}
-                                                                    className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold text-lg transition">−</button>
-                                                                <input
-                                                                    type="number" min="0" step="any" inputMode="numeric"
-                                                                    value={cantForm[prod._id] ?? ""}
-                                                                    onChange={e => setCantForm(p => ({ ...p, [prod._id]: e.target.value }))}
-                                                                    className="w-16 text-center border border-gray-200 rounded-lg py-1.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-gray-400"
-                                                                />
-                                                                <button onClick={() => setCantForm(p => ({ ...p, [prod._id]: String(Number(p[prod._id] ?? 0) + 1) }))}
-                                                                    className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold text-lg transition">+</button>
-                                                                <span className="text-xs text-gray-400 w-12">{prod.unidad}</span>
-                                                            </div>
-                                                        </div>
-                                                        {mostrarPrecForm && (
-                                                            <div className="mt-2 pt-2 border-t border-gray-50 flex items-center gap-2">
-                                                                <span className="text-xs text-gray-400">$ por {prod.unidad}</span>
-                                                                <input
-                                                                    type="number" min="0" step="any" inputMode="decimal"
-                                                                    value={preciosForm[prod._id] ?? ""}
-                                                                    onChange={e => setPreciosForm(p => ({ ...p, [prod._id]: e.target.value }))}
-                                                                    placeholder="Precio unit."
-                                                                    className="flex-1 border border-emerald-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-emerald-50 text-emerald-800"
-                                                                />
-                                                                {preciosForm[prod._id] && cantForm[prod._id] && Number(cantForm[prod._id]) > 0 && (
-                                                                    <span className="text-xs font-bold text-emerald-700 shrink-0">
-                                                                        = {formatMoney(Number(preciosForm[prod._id]) * Number(cantForm[prod._id]))}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
+                <div className="space-y-2">
+                    {prods.map(prod => (
+                        <div key={prod._id} className="bg-white border border-gray-100 rounded-xl px-4 py-3 shadow-sm">
+                            <div className="flex items-center gap-3">
+                                <p className="flex-1 text-sm font-semibold text-gray-800">{prod.nombre}</p>
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <button onClick={() => setCant(p => ({ ...p, [prod._id]: String(Math.max(0, Number(p[prod._id] ?? 0) - 1)) }))}
+                                        className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold text-lg transition">−</button>
+                                    <input
+                                        type="number" min="0" step="any" inputMode="numeric"
+                                        value={cant[prod._id] ?? ""}
+                                        onChange={e => setCant(p => ({ ...p, [prod._id]: e.target.value }))}
+                                        className="w-16 text-center border border-gray-200 rounded-lg py-1.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-gray-400"
+                                    />
+                                    <button onClick={() => setCant(p => ({ ...p, [prod._id]: String(Number(p[prod._id] ?? 0) + 1) }))}
+                                        className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold text-lg transition">+</button>
+                                    <span className="text-xs text-gray-400 w-12">{prod.unidad}</span>
+                                </div>
+                            </div>
+                            {mostrarPrec && (
+                                <div className="mt-2 pt-2 border-t border-gray-50 flex items-center gap-2">
+                                    <span className="text-xs text-gray-400">$ por {prod.unidad}</span>
+                                    <input
+                                        type="number" min="0" step="any" inputMode="decimal"
+                                        value={prec[prod._id] ?? ""}
+                                        onChange={e => setPrec(p => ({ ...p, [prod._id]: e.target.value }))}
+                                        placeholder="Precio unit."
+                                        className="flex-1 border border-emerald-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-emerald-50 text-emerald-800"
+                                    />
+                                    {prec[prod._id] && Number(cant[prod._id] ?? 0) > 0 && (
+                                        <span className="text-xs font-bold text-emerald-700 shrink-0">
+                                            = {formatMoney(Number(prec[prod._id]) * Number(cant[prod._id]))}
+                                        </span>
+                                    )}
+                                </div>
+                            )}
                         </div>
-                    );
-                })}
-
-                {mostrarPrecForm && totalVal > 0 && (
-                    <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-center justify-between">
-                        <p className="text-sm font-black text-emerald-800">Total valorización</p>
-                        <p className="text-lg font-black text-emerald-700">{formatMoney(totalVal)}</p>
-                    </div>
-                )}
-
-                <button onClick={onGuardar} disabled={guardando || loadingProd}
-                    className="w-full mt-4 py-3.5 bg-gray-900 hover:bg-gray-700 disabled:opacity-50 text-white rounded-xl font-bold text-sm transition flex items-center justify-center gap-2">
-                    {guardando ? <><Loader2 size={16} className="animate-spin" /> Guardando...</> : <><Save size={16} /> {labelGuardar}</>}
-                </button>
-            </>
+                    ))}
+                </div>
+            </div>
         );
     }
+
+    // ── Header de navegación del formulario ──
+    function navLabel() {
+        if (navSubcat) return navSubcat;
+        if (navTipo) return TIPO_META[navTipo].label;
+        return vista === "agregar" ? "Agregar compra" : "Cargar Stock";
+    }
+
+    function navSubtitle() {
+        if (vista === "agregar" && conteoObjetivo && !navTipo)
+            return `Sumando al stock del ${formatFechaCorta(conteoObjetivo.createdAt)}`;
+        if (navSubcat && navTipo) return `${TIPO_META[navTipo].emoji} ${TIPO_META[navTipo].label}`;
+        return null;
+    }
+
+    const enNav = navTipo !== null;
 
     return (
         <div className="min-h-screen pb-24">
@@ -359,30 +400,28 @@ export default function CargarStockPage() {
                 {/* Header */}
                 <div className="flex items-center gap-3 py-5">
                     <button
-                        onClick={() => vista === "agregar" ? setVista("historial") : router.push("/admin/stock")}
+                        onClick={() => {
+                            if (enNav) { volverEnNav(); return; }
+                            if (vista === "agregar") { setVista("historial"); return; }
+                            router.push("/admin/stock");
+                        }}
                         className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition">
                         <ChevronLeft size={18} className="text-gray-600" />
                     </button>
                     <div className="flex-1 min-w-0">
-                        <h1 className="text-2xl font-extrabold text-black">
-                            {vista === "agregar" ? "Agregar compra" : "Cargar Stock"}
-                        </h1>
-                        {vista === "agregar" && conteoObjetivo && (
-                            <p className="text-xs text-gray-400 mt-0.5 capitalize truncate">
-                                Sumando al stock del {formatFechaCorta(conteoObjetivo.createdAt)}
-                            </p>
-                        )}
+                        <h1 className="text-2xl font-extrabold text-black truncate">{navLabel()}</h1>
+                        {navSubtitle() && <p className="text-xs text-gray-400 mt-0.5">{navSubtitle()}</p>}
                     </div>
                 </div>
 
-                {/* Tabs (solo en cargar e historial) */}
-                {vista !== "agregar" && (
+                {/* Tabs (solo en nivel 0) */}
+                {vista !== "agregar" && !enNav && (
                     <div className="flex gap-2 mb-6">
-                        <button onClick={() => setVista("cargar")}
+                        <button onClick={() => cambiarVista("cargar")}
                             className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 ${vista === "cargar" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
                             <Save size={15} /> Nueva carga
                         </button>
-                        <button onClick={() => setVista("historial")}
+                        <button onClick={() => cambiarVista("historial")}
                             className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 ${vista === "historial" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
                             <ClipboardList size={15} /> Historial {conteos.length > 0 && <span className="bg-gray-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{conteos.length}</span>}
                         </button>
@@ -392,7 +431,8 @@ export default function CargarStockPage() {
                 {/* ── VISTA CARGAR ── */}
                 {vista === "cargar" && (
                     <>
-                        {borrador && (
+                        {/* Banner borrador (solo nivel 0) */}
+                        {!enNav && borrador && (
                             <div className="mb-4 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-start gap-3">
                                 <RotateCcw size={18} className="text-amber-600 shrink-0 mt-0.5" />
                                 <div className="flex-1 min-w-0">
@@ -412,45 +452,27 @@ export default function CargarStockPage() {
                             </div>
                         )}
 
+                        {/* Notas (solo nivel 0) */}
+                        {!enNav && (
+                            <div className="mb-4">
+                                <label className="text-xs font-semibold text-gray-500 uppercase">Notas (opcional)</label>
+                                <textarea value={notas} onChange={e => setNotas(e.target.value)} rows={2}
+                                    placeholder="Ej: semana del 2 al 8 de septiembre, post-evento..."
+                                    className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 resize-none" />
+                            </div>
+                        )}
+
                         {loadingProd ? (
                             <div className="flex justify-center py-16"><Loader2 className="animate-spin text-gray-400" size={32} /></div>
-                        ) : (
-                            <>
-                                <FormularioStock
-                                    cantForm={cantidades} setCantForm={setCantidades}
-                                    preciosForm={precios} setPreciosForm={setPrecios}
-                                    mostrarPrecForm={mostrarPrecios} setMostrarPrecForm={setMostrarPrecios}
-                                    totalVal={totalValorizacion}
-                                    onGuardar={guardar} guardando={saving}
-                                    labelGuardar="Guardar carga de esta semana"
-                                />
-                                <div className="mt-4">
-                                    <label className="text-xs font-semibold text-gray-500 uppercase">Notas (opcional)</label>
-                                    <textarea value={notas} onChange={e => setNotas(e.target.value)} rows={2}
-                                        placeholder="Ej: semana del 2 al 8 de septiembre, post-evento..."
-                                        className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 resize-none" />
-                                </div>
-                            </>
-                        )}
+                        ) : renderForm(cantidades, setCantidades, precios, setPrecios, mostrarPrecios, setMostrarPrecios, guardar, saving, "Guardar carga de esta semana")}
                     </>
                 )}
 
-                {/* ── VISTA AGREGAR A CONTEO EXISTENTE ── */}
+                {/* ── VISTA AGREGAR ── */}
                 {vista === "agregar" && (
-                    <>
-                        {loadingProd ? (
-                            <div className="flex justify-center py-16"><Loader2 className="animate-spin text-gray-400" size={32} /></div>
-                        ) : (
-                            <FormularioStock
-                                cantForm={cantAgregar} setCantForm={setCantAgregar}
-                                preciosForm={preciosAgregar} setPreciosForm={setPreciosAgregar}
-                                mostrarPrecForm={mostrarPreciosAgregar} setMostrarPrecForm={setMostrarPreciosAgregar}
-                                totalVal={totalValorizacionAgregar}
-                                onGuardar={guardarAgregar} guardando={savingAgregar}
-                                labelGuardar="Sumar al stock existente"
-                            />
-                        )}
-                    </>
+                    loadingProd
+                        ? <div className="flex justify-center py-16"><Loader2 className="animate-spin text-gray-400" size={32} /></div>
+                        : renderForm(cantAgregar, setCantAgregar, preciosAgregar, setPreciosAgregar, mostrarPreciosAgregar, setMostrarPreciosAgregar, guardarAgregar, savingAgregar, "Sumar al stock existente")
                 )}
 
                 {/* ── VISTA HISTORIAL ── */}
@@ -489,7 +511,6 @@ export default function CargarStockPage() {
                                         acc[key].items.push(it);
                                         return acc;
                                     }, {} as Record<string, { tipo: string; categoria: string; items: ConteoItem[] }>);
-
                                     const tienePrecios = conteo.items.some(i => (i.precioUnitario ?? 0) > 0);
 
                                     return (
@@ -508,9 +529,7 @@ export default function CargarStockPage() {
                                                     </div>
                                                 </button>
                                                 <div className="flex items-center gap-2 shrink-0">
-                                                    <button
-                                                        onClick={() => iniciarAgregar(conteo)}
-                                                        title="Agregar compra a este stock"
+                                                    <button onClick={() => iniciarAgregar(conteo)} title="Agregar compra"
                                                         className="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition">
                                                         <PlusCircle size={15} className="text-blue-600" />
                                                     </button>
@@ -542,9 +561,7 @@ export default function CargarStockPage() {
                                                                         <div key={idx} className="flex items-center justify-between py-1 border-b border-gray-50 gap-2">
                                                                             <p className="text-sm text-gray-700 flex-1">{it.nombre}</p>
                                                                             <div className="flex items-center gap-3 shrink-0">
-                                                                                {compItem !== undefined && (
-                                                                                    <span className="text-xs text-gray-400">{formatNum(compItem.cantidad)}</span>
-                                                                                )}
+                                                                                {compItem !== undefined && <span className="text-xs text-gray-400">{formatNum(compItem.cantidad)}</span>}
                                                                                 <span className="text-sm font-bold text-gray-900">{formatNum(it.cantidad)} <span className="text-xs font-normal text-gray-400">{it.unidad}</span></span>
                                                                                 {diff !== null && (
                                                                                     <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${diff > 0 ? "bg-emerald-100 text-emerald-700" : diff < 0 ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-500"}`}>
