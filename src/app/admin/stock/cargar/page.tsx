@@ -224,7 +224,10 @@ export default function CargarStockPage() {
         } finally { setSavingAgregar(false); }
     }
 
-    async function eliminarConteo(id: string) {
+    async function eliminarConteo(id: string, fecha: string) {
+        const fechaLabel = new Date(fecha).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+        const ok = window.confirm(`¿Seguro que querés eliminar la carga del ${fechaLabel}? Esta acción no se puede deshacer.`);
+        if (!ok) return;
         await fetch(`/api/superadmin/stock/conteos/${id}`, { method: "DELETE", credentials: "include" });
         setConteos(prev => prev.filter(c => c._id !== id));
         if (expandido === id) setExpandido(null);
@@ -537,7 +540,7 @@ export default function CargarStockPage() {
                                                         className="w-8 h-8 rounded-lg bg-gray-50 hover:bg-gray-100 flex items-center justify-center transition">
                                                         {abierto ? <ChevronUp size={15} className="text-gray-500" /> : <ChevronDown size={15} className="text-gray-500" />}
                                                     </button>
-                                                    <button onClick={() => eliminarConteo(conteo._id)}
+                                                    <button onClick={() => eliminarConteo(conteo._id, conteo.createdAt)}
                                                         className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center transition">
                                                         <Trash2 size={14} className="text-red-500" />
                                                     </button>
