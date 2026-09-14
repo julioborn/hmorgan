@@ -228,7 +228,7 @@ export default function StockPage() {
 
                 {/* ── MODAL SUBCATEGORÍAS ── */}
                 {subcatModal && (
-                    <div className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center p-4">
+                    <div className="fixed inset-0 z-[9999] bg-black/50 flex items-start justify-center p-4 pt-16">
                         <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl max-h-[85vh] flex flex-col">
                             <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
                                 <h2 className="font-black text-gray-900 flex-1">Gestionar Subcategorías</h2>
@@ -379,7 +379,7 @@ export default function StockPage() {
 
             {/* ── MODAL NUEVO / EDITAR ── */}
             {editModal.open && (
-                <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 pt-16">
                     <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
                         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
                             <h2 className="font-black text-gray-900 flex-1">{editModal.item._id ? "Editar producto" : "Nuevo producto"}</h2>
@@ -515,7 +515,7 @@ export default function StockPage() {
 
             {/* ── MODAL MOVIMIENTO ── */}
             {movModal.open && movModal.item && (
-                <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 pt-16">
                     <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
                         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
                             <h2 className="font-black text-gray-900 flex-1">Movimiento · {movModal.item.nombre}</h2>
@@ -642,7 +642,7 @@ export default function StockPage() {
 
             {/* ── MODAL HISTORIAL ── */}
             {histModal.open && histModal.item && (
-                <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 pt-16">
                     <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl max-h-[85vh] flex flex-col">
                         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
                             <h2 className="font-black text-gray-900 flex-1">Historial · {histModal.item.nombre}</h2>
