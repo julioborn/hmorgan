@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronDown, ChevronUp, Save, ClipboardList, Trash2, Loader2, DollarSign, RotateCcw } from "lucide-react";
+import { ChevronLeft, ChevronDown, ChevronUp, Save, ClipboardList, Trash2, Loader2, DollarSign, RotateCcw, PlusCircle } from "lucide-react";
 
 const DRAFT_KEY = "hmorgan_stock_cargar_draft";
 
@@ -50,31 +50,43 @@ const formatMoney = (n: number) =>
 const formatFecha = (iso: string) =>
     new Date(iso).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
+const formatFechaCorta = (iso: string) =>
+    new Date(iso).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+
 const formatHora = (ts: number) =>
     new Date(ts).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
 export default function CargarStockPage() {
     const router = useRouter();
     const [productos, setProductos] = useState<StockItem[]>([]);
+    const [loadingProd, setLoadingProd] = useState(true);
+    const [productosLoaded, setProductosLoaded] = useState(false);
+
+    // vista: "cargar" | "historial" | "agregar"
+    const [vista, setVista] = useState<"cargar" | "historial" | "agregar">("cargar");
+
+    // ── Estado carga nueva ──
     const [cantidades, setCantidades] = useState<Record<string, string>>({});
     const [notas, setNotas] = useState("");
     const [precios, setPrecios] = useState<Record<string, string>>({});
     const [mostrarPrecios, setMostrarPrecios] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [loadingProd, setLoadingProd] = useState(true);
-    const [productosLoaded, setProductosLoaded] = useState(false);
     const [borrador, setBorrador] = useState<Draft | null>(null);
 
-    // historial
+    // ── Estado agregar a conteo existente ──
+    const [conteoObjetivo, setConteoObjetivo] = useState<Conteo | null>(null);
+    const [cantAgregar, setCantAgregar] = useState<Record<string, string>>({});
+    const [preciosAgregar, setPreciosAgregar] = useState<Record<string, string>>({});
+    const [mostrarPreciosAgregar, setMostrarPreciosAgregar] = useState(false);
+    const [savingAgregar, setSavingAgregar] = useState(false);
+
+    // ── Historial ──
     const [conteos, setConteos] = useState<Conteo[]>([]);
     const [loadingConteos, setLoadingConteos] = useState(true);
     const [expandido, setExpandido] = useState<string | null>(null);
     const [comparandoCon, setComparandoCon] = useState<string | null>(null);
 
-    // vista: "cargar" | "historial"
-    const [vista, setVista] = useState<"cargar" | "historial">("cargar");
-
-    // grupos expandidos en la carga
+    // grupos expandidos en los formularios
     const [gruposAbiertos, setGruposAbiertos] = useState<Record<string, boolean>>({});
 
     const loadProductos = useCallback(() => {
@@ -85,15 +97,12 @@ export default function CargarStockPage() {
                 if (Array.isArray(data)) {
                     const activos = data.filter((i: StockItem) => i.stockActual >= 0);
                     setProductos(activos);
-                    // pre-rellenar con stock actual
                     const init: Record<string, string> = {};
                     activos.forEach((i: StockItem) => { init[i._id] = String(i.stockActual); });
                     setCantidades(init);
-                    // abrir todos los grupos por defecto
                     const grupos: Record<string, boolean> = {};
                     activos.forEach((i: StockItem) => { grupos[`${i.tipo}-${i.categoria}`] = true; });
                     setGruposAbiertos(grupos);
-                    // check borrador
                     try {
                         const raw = localStorage.getItem(DRAFT_KEY);
                         if (raw) setBorrador(JSON.parse(raw) as Draft);
@@ -114,16 +123,16 @@ export default function CargarStockPage() {
 
     useEffect(() => { loadProductos(); loadConteos(); }, [loadProductos, loadConteos]);
 
-    // Auto-guardar borrador con debounce
+    // Auto-guardar borrador de la carga nueva
     useEffect(() => {
-        if (!productosLoaded) return;
+        if (!productosLoaded || vista !== "cargar") return;
         const t = setTimeout(() => {
             try {
                 localStorage.setItem(DRAFT_KEY, JSON.stringify({ cantidades, notas, precios, savedAt: Date.now() }));
             } catch { /* ignore */ }
         }, 600);
         return () => clearTimeout(t);
-    }, [cantidades, notas, precios, productosLoaded]);
+    }, [cantidades, notas, precios, productosLoaded, vista]);
 
     function restaurarBorrador() {
         if (!borrador) return;
@@ -139,20 +148,20 @@ export default function CargarStockPage() {
         setBorrador(null);
     }
 
-    // Total valorización actual
+    // Total valorización carga nueva
     const totalValorizacion = productos.reduce((sum, p) => {
-        const cant = Number(cantidades[p._id] ?? 0);
-        const precio = Number(precios[p._id] ?? 0);
-        return sum + cant * precio;
+        return sum + Number(cantidades[p._id] ?? 0) * Number(precios[p._id] ?? 0);
+    }, 0);
+
+    // Total valorización modo agregar
+    const totalValorizacionAgregar = productos.reduce((sum, p) => {
+        return sum + Number(cantAgregar[p._id] ?? 0) * Number(preciosAgregar[p._id] ?? 0);
     }, 0);
 
     async function guardar() {
         const items: ConteoItem[] = productos.map(p => ({
-            stockId: p._id,
-            nombre: p.nombre,
-            tipo: p.tipo,
-            categoria: p.categoria,
-            unidad: p.unidad,
+            stockId: p._id, nombre: p.nombre, tipo: p.tipo,
+            categoria: p.categoria, unidad: p.unidad,
             cantidad: Number(cantidades[p._id] ?? 0),
             precioUnitario: precios[p._id] ? Number(precios[p._id]) : undefined,
         }));
@@ -175,6 +184,44 @@ export default function CargarStockPage() {
         } finally { setSaving(false); }
     }
 
+    function iniciarAgregar(conteo: Conteo) {
+        setConteoObjetivo(conteo);
+        const init: Record<string, string> = {};
+        productos.forEach(p => { init[p._id] = ""; });
+        setCantAgregar(init);
+        setPreciosAgregar({});
+        setMostrarPreciosAgregar(false);
+        setVista("agregar");
+    }
+
+    async function guardarAgregar() {
+        if (!conteoObjetivo) return;
+        const items = productos
+            .filter(p => Number(cantAgregar[p._id] ?? 0) > 0)
+            .map(p => ({
+                stockId: p._id, nombre: p.nombre, tipo: p.tipo,
+                categoria: p.categoria, unidad: p.unidad,
+                cantidad: Number(cantAgregar[p._id]),
+                precioUnitario: preciosAgregar[p._id] ? Number(preciosAgregar[p._id]) : undefined,
+            }));
+        if (!items.length) return;
+        setSavingAgregar(true);
+        try {
+            const res = await fetch(`/api/superadmin/stock/conteos/${conteoObjetivo._id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ items }),
+            });
+            if (res.ok) {
+                setConteoObjetivo(null);
+                loadConteos();
+                setVista("historial");
+                setExpandido(conteoObjetivo._id);
+            }
+        } finally { setSavingAgregar(false); }
+    }
+
     async function eliminarConteo(id: string) {
         await fetch(`/api/superadmin/stock/conteos/${id}`, { method: "DELETE", credentials: "include" });
         setConteos(prev => prev.filter(c => c._id !== id));
@@ -194,9 +241,116 @@ export default function CargarStockPage() {
         return { tipo, subcats, total: prodsTipo.length };
     }).filter(t => t.total > 0);
 
-    // Comparativa entre dos conteos
-    const conteoBase = conteos.find(c => c._id === expandido);
-    const conteoComp = conteos.find(c => c._id === comparandoCon);
+    // ── Formulario reutilizable (carga nueva y agregar) ──
+    function FormularioStock({
+        cantForm, setCantForm, preciosForm, setPreciosForm, mostrarPrecForm, setMostrarPrecForm, totalVal, onGuardar, guardando, labelGuardar,
+    }: {
+        cantForm: Record<string, string>;
+        setCantForm: (fn: (p: Record<string, string>) => Record<string, string>) => void;
+        preciosForm: Record<string, string>;
+        setPreciosForm: (fn: (p: Record<string, string>) => Record<string, string>) => void;
+        mostrarPrecForm: boolean;
+        setMostrarPrecForm: (v: boolean) => void;
+        totalVal: number;
+        onGuardar: () => void;
+        guardando: boolean;
+        labelGuardar: string;
+    }) {
+        return (
+            <>
+                <div className="flex items-center justify-between mb-4">
+                    <p className="text-xs text-gray-400">Ingresá las cantidades correspondientes.</p>
+                    <button
+                        onClick={() => setMostrarPrecForm(!mostrarPrecForm)}
+                        className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl border transition ${mostrarPrecForm ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
+                        <DollarSign size={13} /> Valorizar
+                    </button>
+                </div>
+
+                {porTipo.map(({ tipo, subcats }) => {
+                    const tipoKey = `tipo-${tipo}`;
+                    const tipoAbierto = gruposAbiertos[tipoKey] !== false;
+                    return (
+                        <div key={tipo} className="mb-6">
+                            <button onClick={() => setGruposAbiertos(p => ({ ...p, [tipoKey]: !tipoAbierto }))}
+                                className="w-full flex items-center justify-between mb-3">
+                                <p className="text-base font-black text-gray-900">{TIPO_LABEL[tipo]}</p>
+                                {tipoAbierto ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
+                            </button>
+
+                            {tipoAbierto && Object.entries(subcats).sort(([a], [b]) => a.localeCompare(b)).map(([cat, prods]) => {
+                                const subKey = `${tipo}-${cat}`;
+                                const subAbierto = gruposAbiertos[subKey] !== false;
+                                return (
+                                    <div key={cat} className="mb-3 ml-1">
+                                        <button onClick={() => setGruposAbiertos(p => ({ ...p, [subKey]: !subAbierto }))}
+                                            className="w-full flex items-center justify-between px-1 mb-2">
+                                            <p className="text-xs font-black text-gray-500 uppercase tracking-widest">{cat}</p>
+                                            {subAbierto ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
+                                        </button>
+
+                                        {subAbierto && (
+                                            <div className="space-y-2">
+                                                {prods.map(prod => (
+                                                    <div key={prod._id} className="bg-white border border-gray-100 rounded-xl px-4 py-3 shadow-sm">
+                                                        <div className="flex items-center gap-3">
+                                                            <p className="flex-1 text-sm font-semibold text-gray-800">{prod.nombre}</p>
+                                                            <div className="flex items-center gap-2 shrink-0">
+                                                                <button onClick={() => setCantForm(p => ({ ...p, [prod._id]: String(Math.max(0, Number(p[prod._id] ?? 0) - 1)) }))}
+                                                                    className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold text-lg transition">−</button>
+                                                                <input
+                                                                    type="number" min="0" step="any" inputMode="numeric"
+                                                                    value={cantForm[prod._id] ?? ""}
+                                                                    onChange={e => setCantForm(p => ({ ...p, [prod._id]: e.target.value }))}
+                                                                    className="w-16 text-center border border-gray-200 rounded-lg py-1.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-gray-400"
+                                                                />
+                                                                <button onClick={() => setCantForm(p => ({ ...p, [prod._id]: String(Number(p[prod._id] ?? 0) + 1) }))}
+                                                                    className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold text-lg transition">+</button>
+                                                                <span className="text-xs text-gray-400 w-12">{prod.unidad}</span>
+                                                            </div>
+                                                        </div>
+                                                        {mostrarPrecForm && (
+                                                            <div className="mt-2 pt-2 border-t border-gray-50 flex items-center gap-2">
+                                                                <span className="text-xs text-gray-400">$ por {prod.unidad}</span>
+                                                                <input
+                                                                    type="number" min="0" step="any" inputMode="decimal"
+                                                                    value={preciosForm[prod._id] ?? ""}
+                                                                    onChange={e => setPreciosForm(p => ({ ...p, [prod._id]: e.target.value }))}
+                                                                    placeholder="Precio unit."
+                                                                    className="flex-1 border border-emerald-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-emerald-50 text-emerald-800"
+                                                                />
+                                                                {preciosForm[prod._id] && cantForm[prod._id] && Number(cantForm[prod._id]) > 0 && (
+                                                                    <span className="text-xs font-bold text-emerald-700 shrink-0">
+                                                                        = {formatMoney(Number(preciosForm[prod._id]) * Number(cantForm[prod._id]))}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    );
+                })}
+
+                {mostrarPrecForm && totalVal > 0 && (
+                    <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-center justify-between">
+                        <p className="text-sm font-black text-emerald-800">Total valorización</p>
+                        <p className="text-lg font-black text-emerald-700">{formatMoney(totalVal)}</p>
+                    </div>
+                )}
+
+                <button onClick={onGuardar} disabled={guardando || loadingProd}
+                    className="w-full mt-4 py-3.5 bg-gray-900 hover:bg-gray-700 disabled:opacity-50 text-white rounded-xl font-bold text-sm transition flex items-center justify-center gap-2">
+                    {guardando ? <><Loader2 size={16} className="animate-spin" /> Guardando...</> : <><Save size={16} /> {labelGuardar}</>}
+                </button>
+            </>
+        );
+    }
 
     return (
         <div className="min-h-screen pb-24">
@@ -204,28 +358,40 @@ export default function CargarStockPage() {
 
                 {/* Header */}
                 <div className="flex items-center gap-3 py-5">
-                    <button onClick={() => router.push("/admin/stock")} className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition">
+                    <button
+                        onClick={() => vista === "agregar" ? setVista("historial") : router.push("/admin/stock")}
+                        className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition">
                         <ChevronLeft size={18} className="text-gray-600" />
                     </button>
-                    <h1 className="text-2xl font-extrabold text-black flex-1">Cargar Stock</h1>
+                    <div className="flex-1 min-w-0">
+                        <h1 className="text-2xl font-extrabold text-black">
+                            {vista === "agregar" ? "Agregar compra" : "Cargar Stock"}
+                        </h1>
+                        {vista === "agregar" && conteoObjetivo && (
+                            <p className="text-xs text-gray-400 mt-0.5 capitalize truncate">
+                                Sumando al stock del {formatFechaCorta(conteoObjetivo.createdAt)}
+                            </p>
+                        )}
+                    </div>
                 </div>
 
-                {/* Tabs */}
-                <div className="flex gap-2 mb-6">
-                    <button onClick={() => setVista("cargar")}
-                        className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 ${vista === "cargar" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
-                        <Save size={15} /> Nueva carga
-                    </button>
-                    <button onClick={() => setVista("historial")}
-                        className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 ${vista === "historial" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
-                        <ClipboardList size={15} /> Historial {conteos.length > 0 && <span className="bg-gray-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{conteos.length}</span>}
-                    </button>
-                </div>
+                {/* Tabs (solo en cargar e historial) */}
+                {vista !== "agregar" && (
+                    <div className="flex gap-2 mb-6">
+                        <button onClick={() => setVista("cargar")}
+                            className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 ${vista === "cargar" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                            <Save size={15} /> Nueva carga
+                        </button>
+                        <button onClick={() => setVista("historial")}
+                            className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 ${vista === "historial" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                            <ClipboardList size={15} /> Historial {conteos.length > 0 && <span className="bg-gray-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{conteos.length}</span>}
+                        </button>
+                    </div>
+                )}
 
                 {/* ── VISTA CARGAR ── */}
                 {vista === "cargar" && (
                     <>
-                        {/* Banner borrador */}
                         {borrador && (
                             <div className="mb-4 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-start gap-3">
                                 <RotateCcw size={18} className="text-amber-600 shrink-0 mt-0.5" />
@@ -246,111 +412,43 @@ export default function CargarStockPage() {
                             </div>
                         )}
 
-                        <div className="flex items-center justify-between mb-4">
-                            <p className="text-xs text-gray-400">Ingresá la cantidad actual de cada producto.</p>
-                            <button
-                                onClick={() => setMostrarPrecios(p => !p)}
-                                className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl border transition ${mostrarPrecios ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
-                                <DollarSign size={13} /> Valorizar
-                            </button>
-                        </div>
-
                         {loadingProd ? (
                             <div className="flex justify-center py-16"><Loader2 className="animate-spin text-gray-400" size={32} /></div>
                         ) : (
                             <>
-                                {porTipo.map(({ tipo, subcats }) => {
-                                    const tipoKey = `tipo-${tipo}`;
-                                    const tipoAbierto = gruposAbiertos[tipoKey] !== false;
-                                    return (
-                                        <div key={tipo} className="mb-6">
-                                            <button
-                                                onClick={() => setGruposAbiertos(p => ({ ...p, [tipoKey]: !tipoAbierto }))}
-                                                className="w-full flex items-center justify-between mb-3">
-                                                <p className="text-base font-black text-gray-900">{TIPO_LABEL[tipo]}</p>
-                                                {tipoAbierto ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
-                                            </button>
-
-                                            {tipoAbierto && Object.entries(subcats).sort(([a], [b]) => a.localeCompare(b)).map(([cat, prods]) => {
-                                                const subKey = `${tipo}-${cat}`;
-                                                const subAbierto = gruposAbiertos[subKey] !== false;
-                                                return (
-                                                    <div key={cat} className="mb-3 ml-1">
-                                                        <button
-                                                            onClick={() => setGruposAbiertos(p => ({ ...p, [subKey]: !subAbierto }))}
-                                                            className="w-full flex items-center justify-between px-1 mb-2">
-                                                            <p className="text-xs font-black text-gray-500 uppercase tracking-widest">{cat}</p>
-                                                            {subAbierto ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
-                                                        </button>
-
-                                                        {subAbierto && (
-                                                            <div className="space-y-2">
-                                                                {prods.map(prod => (
-                                                                    <div key={prod._id} className="bg-white border border-gray-100 rounded-xl px-4 py-3 shadow-sm">
-                                                                        <div className="flex items-center gap-3">
-                                                                            <p className="flex-1 text-sm font-semibold text-gray-800">{prod.nombre}</p>
-                                                                            <div className="flex items-center gap-2 shrink-0">
-                                                                                <button onClick={() => setCantidades(p => ({ ...p, [prod._id]: String(Math.max(0, Number(p[prod._id] ?? 0) - 1)) }))}
-                                                                                    className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold text-lg transition">−</button>
-                                                                                <input
-                                                                                    type="number" min="0" step="any" inputMode="numeric"
-                                                                                    value={cantidades[prod._id] ?? "0"}
-                                                                                    onChange={e => setCantidades(p => ({ ...p, [prod._id]: e.target.value }))}
-                                                                                    className="w-16 text-center border border-gray-200 rounded-lg py-1.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-gray-400"
-                                                                                />
-                                                                                <button onClick={() => setCantidades(p => ({ ...p, [prod._id]: String(Number(p[prod._id] ?? 0) + 1) }))}
-                                                                                    className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold text-lg transition">+</button>
-                                                                                <span className="text-xs text-gray-400 w-12">{prod.unidad}</span>
-                                                                            </div>
-                                                                        </div>
-                                                                        {mostrarPrecios && (
-                                                                            <div className="mt-2 pt-2 border-t border-gray-50 flex items-center gap-2">
-                                                                                <span className="text-xs text-gray-400">$ por {prod.unidad}</span>
-                                                                                <input
-                                                                                    type="number" min="0" step="any" inputMode="decimal"
-                                                                                    value={precios[prod._id] ?? ""}
-                                                                                    onChange={e => setPrecios(p => ({ ...p, [prod._id]: e.target.value }))}
-                                                                                    placeholder="Precio unit."
-                                                                                    className="flex-1 border border-emerald-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-emerald-50 text-emerald-800"
-                                                                                />
-                                                                                {precios[prod._id] && cantidades[prod._id] && (
-                                                                                    <span className="text-xs font-bold text-emerald-700 shrink-0">
-                                                                                        = {formatMoney(Number(precios[prod._id]) * Number(cantidades[prod._id]))}
-                                                                                    </span>
-                                                                                )}
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    );
-                                })}
-
+                                <FormularioStock
+                                    cantForm={cantidades} setCantForm={setCantidades}
+                                    preciosForm={precios} setPreciosForm={setPrecios}
+                                    mostrarPrecForm={mostrarPrecios} setMostrarPrecForm={setMostrarPrecios}
+                                    totalVal={totalValorizacion}
+                                    onGuardar={guardar} guardando={saving}
+                                    labelGuardar="Guardar carga de esta semana"
+                                />
                                 <div className="mt-4">
                                     <label className="text-xs font-semibold text-gray-500 uppercase">Notas (opcional)</label>
                                     <textarea value={notas} onChange={e => setNotas(e.target.value)} rows={2}
                                         placeholder="Ej: semana del 2 al 8 de septiembre, post-evento..."
                                         className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 resize-none" />
                                 </div>
-
-                                {/* Total valorización */}
-                                {mostrarPrecios && totalValorizacion > 0 && (
-                                    <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-center justify-between">
-                                        <p className="text-sm font-black text-emerald-800">Total valorización</p>
-                                        <p className="text-lg font-black text-emerald-700">{formatMoney(totalValorizacion)}</p>
-                                    </div>
-                                )}
-
-                                <button onClick={guardar} disabled={saving || loadingProd}
-                                    className="w-full mt-4 py-3.5 bg-gray-900 hover:bg-gray-700 disabled:opacity-50 text-white rounded-xl font-bold text-sm transition flex items-center justify-center gap-2">
-                                    {saving ? <><Loader2 size={16} className="animate-spin" /> Guardando...</> : <><Save size={16} /> Guardar carga de esta semana</>}
-                                </button>
                             </>
+                        )}
+                    </>
+                )}
+
+                {/* ── VISTA AGREGAR A CONTEO EXISTENTE ── */}
+                {vista === "agregar" && (
+                    <>
+                        {loadingProd ? (
+                            <div className="flex justify-center py-16"><Loader2 className="animate-spin text-gray-400" size={32} /></div>
+                        ) : (
+                            <FormularioStock
+                                cantForm={cantAgregar} setCantForm={setCantAgregar}
+                                preciosForm={preciosAgregar} setPreciosForm={setPreciosAgregar}
+                                mostrarPrecForm={mostrarPreciosAgregar} setMostrarPrecForm={setMostrarPreciosAgregar}
+                                totalVal={totalValorizacionAgregar}
+                                onGuardar={guardarAgregar} guardando={savingAgregar}
+                                labelGuardar="Sumar al stock existente"
+                            />
                         )}
                     </>
                 )}
@@ -364,7 +462,6 @@ export default function CargarStockPage() {
                             <p className="text-center text-gray-400 py-16 text-sm">Todavía no hay cargas registradas.</p>
                         ) : (
                             <div className="space-y-3">
-                                {/* Selector de comparativa */}
                                 {conteos.length >= 2 && expandido && (
                                     <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
                                         <p className="text-xs font-semibold text-blue-700 mb-2">Comparar con:</p>
@@ -385,6 +482,7 @@ export default function CargarStockPage() {
 
                                 {conteos.map(conteo => {
                                     const abierto = expandido === conteo._id;
+                                    const conteoComp = conteos.find(c => c._id === comparandoCon);
                                     const gruposConteo = conteo.items.reduce((acc, it) => {
                                         const key = `${it.tipo}-${it.categoria}`;
                                         if (!acc[key]) acc[key] = { tipo: it.tipo, categoria: it.categoria, items: [] };
@@ -402,14 +500,20 @@ export default function CargarStockPage() {
                                                     {conteo.notas && <p className="text-xs text-gray-400 mt-0.5 italic">{conteo.notas}</p>}
                                                     <div className="flex items-center gap-3 mt-0.5">
                                                         <p className="text-xs text-gray-400">{conteo.items.length} productos</p>
-                                                        {conteo.totalValorizacion != null && conteo.totalValorizacion > 0 && (
+                                                        {(conteo.totalValorizacion ?? 0) > 0 && (
                                                             <p className="text-xs font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full">
-                                                                {formatMoney(conteo.totalValorizacion)}
+                                                                {formatMoney(conteo.totalValorizacion!)}
                                                             </p>
                                                         )}
                                                     </div>
                                                 </button>
                                                 <div className="flex items-center gap-2 shrink-0">
+                                                    <button
+                                                        onClick={() => iniciarAgregar(conteo)}
+                                                        title="Agregar compra a este stock"
+                                                        className="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition">
+                                                        <PlusCircle size={15} className="text-blue-600" />
+                                                    </button>
                                                     <button onClick={() => { setExpandido(abierto ? null : conteo._id); setComparandoCon(null); }}
                                                         className="w-8 h-8 rounded-lg bg-gray-50 hover:bg-gray-100 flex items-center justify-center transition">
                                                         {abierto ? <ChevronUp size={15} className="text-gray-500" /> : <ChevronDown size={15} className="text-gray-500" />}
@@ -457,10 +561,10 @@ export default function CargarStockPage() {
                                                             </div>
                                                         </div>
                                                     ))}
-                                                    {conteo.totalValorizacion != null && conteo.totalValorizacion > 0 && (
+                                                    {(conteo.totalValorizacion ?? 0) > 0 && (
                                                         <div className="flex items-center justify-between pt-2 border-t border-gray-200">
                                                             <p className="text-sm font-black text-gray-700">Total valorización</p>
-                                                            <p className="text-base font-black text-emerald-700">{formatMoney(conteo.totalValorizacion)}</p>
+                                                            <p className="text-base font-black text-emerald-700">{formatMoney(conteo.totalValorizacion!)}</p>
                                                         </div>
                                                     )}
                                                 </div>
