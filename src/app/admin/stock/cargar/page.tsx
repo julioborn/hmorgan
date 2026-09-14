@@ -282,13 +282,20 @@ export default function CargarStockPage() {
                         })}
                     </div>
 
-                    {/* Valorización total */}
-                    {mostrarPrec && totalVal(cant, prec) > 0 && (
-                        <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-center justify-between">
-                            <p className="text-sm font-black text-emerald-800">Total valorización</p>
-                            <p className="text-lg font-black text-emerald-700">{formatMoney(totalVal(cant, prec))}</p>
-                        </div>
-                    )}
+                    {/* Valorizar toggle + total */}
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => setMostrarPrec(!mostrarPrec)}
+                            className={`flex items-center gap-1.5 text-sm font-bold px-4 py-2.5 rounded-xl border transition ${mostrarPrec ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
+                            <DollarSign size={15} /> Valorizar
+                        </button>
+                        {mostrarPrec && totalVal(cant, prec) > 0 && (
+                            <div className="flex-1 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5 flex items-center justify-between">
+                                <p className="text-xs font-bold text-emerald-700">Total</p>
+                                <p className="text-sm font-black text-emerald-700">{formatMoney(totalVal(cant, prec))}</p>
+                            </div>
+                        )}
+                    </div>
 
                     <button onClick={onGuardar} disabled={guardando || loadingProd}
                         className="w-full py-3.5 bg-gray-900 hover:bg-gray-700 disabled:opacity-50 text-white rounded-xl font-bold text-sm transition flex items-center justify-center gap-2">

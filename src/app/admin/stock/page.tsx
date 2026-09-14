@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { swalBase } from "@/lib/swalConfig";
 import {
     Plus, TrendingUp, TrendingDown, AlertTriangle,
-    X, History, Edit2, Trash2, Loader2, ChevronLeft, ClipboardList, Settings, Package,
+    X, History, Edit2, Trash2, Loader2, ChevronLeft, ClipboardList, Settings, Package, DollarSign,
 } from "lucide-react";
 
 type Tipo = "cocina" | "bebida";
@@ -112,6 +112,8 @@ export default function StockPage() {
     const [movSaving, setMovSaving] = useState(false);
     const [editSaving, setEditSaving] = useState(false);
     const [search, setSearch] = useState("");
+    const [mostrarValorizacion, setMostrarValorizacion] = useState(false);
+    const [precios, setPrecios] = useState<Record<string, string>>({});
     const [newSubcat, setNewSubcat] = useState({ tipo: "cocina" as Tipo, nombre: "" });
     const [subcatSaving, setSubcatSaving] = useState(false);
 
@@ -353,8 +355,24 @@ export default function StockPage() {
                     </button>
                 </div>
 
-                <input type="text" placeholder="Buscar producto..." value={search} onChange={e => setSearch(e.target.value)}
-                    className={inputCls + " mb-4"} />
+                <div className="flex items-center gap-2 mb-4">
+                    <input type="text" placeholder="Buscar producto..." value={search} onChange={e => setSearch(e.target.value)}
+                        className={inputCls + " flex-1"} />
+                    <button onClick={() => setMostrarValorizacion(v => !v)}
+                        className={`flex items-center gap-1.5 text-sm font-bold px-3 py-2.5 rounded-xl border transition shrink-0 ${mostrarValorizacion ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
+                        <DollarSign size={14} /> Valorizar
+                    </button>
+                </div>
+
+                {mostrarValorizacion && (() => {
+                    const total = itemsSubcat.reduce((s, i) => s + i.stockActual * Number(precios[i._id] ?? 0), 0);
+                    return total > 0 ? (
+                        <div className="mb-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5 flex items-center justify-between">
+                            <p className="text-xs font-bold text-emerald-700">Total valorización</p>
+                            <p className="text-sm font-black text-emerald-700">{new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", minimumFractionDigits: 0 }).format(total)}</p>
+                        </div>
+                    ) : null;
+                })()}
 
                 {loading ? (
                     <div className="flex justify-center py-16"><Loader2 className="animate-spin text-gray-400" size={32} /></div>
@@ -364,32 +382,51 @@ export default function StockPage() {
                     <div className="space-y-2">
                         {itemsSubcat.map(item => {
                             const isLow = item.activo && item.stockMinimo > 0 && item.stockActual <= item.stockMinimo;
+                            const subtotal = item.stockActual * Number(precios[item._id] ?? 0);
                             return (
                                 <div key={item._id}
-                                    className={`bg-white rounded-2xl border px-4 py-3.5 flex items-center gap-3 ${isLow ? "border-yellow-300" : "border-gray-100"} ${!item.activo ? "opacity-50" : ""} shadow-sm`}>
-                                    {/* Info */}
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2">
-                                            <p className="font-bold text-gray-900 text-sm truncate">{item.nombre}</p>
-                                            {!item.activo && <span className="text-[10px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full shrink-0">inactivo</span>}
+                                    className={`bg-white rounded-2xl border shadow-sm ${isLow ? "border-yellow-300" : "border-gray-100"} ${!item.activo ? "opacity-50" : ""}`}>
+                                    <div className="px-4 py-3.5 flex items-center gap-3">
+                                        {/* Info */}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2">
+                                                <p className="font-bold text-gray-900 text-sm truncate">{item.nombre}</p>
+                                                {!item.activo && <span className="text-[10px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full shrink-0">inactivo</span>}
+                                            </div>
+                                            <div className="flex items-baseline gap-1.5 mt-0.5">
+                                                <span className={`text-lg font-black ${isLow ? "text-yellow-600" : "text-gray-800"}`}>{formatNum(item.stockActual)}</span>
+                                                <span className="text-xs text-gray-400">{item.unidad}</span>
+                                                {isLow && <span className="text-[10px] bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full font-bold flex items-center gap-0.5 ml-1"><AlertTriangle size={9} />bajo mín</span>}
+                                                {mostrarValorizacion && subtotal > 0 && (
+                                                    <span className="text-xs font-bold text-emerald-600 ml-1">= {new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", minimumFractionDigits: 0 }).format(subtotal)}</span>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="flex items-baseline gap-1.5 mt-0.5">
-                                            <span className={`text-lg font-black ${isLow ? "text-yellow-600" : "text-gray-800"}`}>{formatNum(item.stockActual)}</span>
-                                            <span className="text-xs text-gray-400">{item.unidad}</span>
-                                            {isLow && <span className="text-[10px] bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full font-bold flex items-center gap-0.5 ml-1"><AlertTriangle size={9} />bajo mín</span>}
+                                        {/* Acciones */}
+                                        <div className="flex items-center gap-1.5 shrink-0">
+                                            <button onClick={() => openMov(item)}
+                                                className="w-9 h-9 rounded-xl bg-emerald-50 hover:bg-emerald-100 flex items-center justify-center transition" title="Movimiento">
+                                                <TrendingUp size={15} className="text-emerald-600" />
+                                            </button>
+                                            <button onClick={() => setEditModal({ open: true, item: { ...item } })}
+                                                className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition" title="Editar">
+                                                <Edit2 size={14} className="text-gray-600" />
+                                            </button>
                                         </div>
                                     </div>
-                                    {/* Acciones */}
-                                    <div className="flex items-center gap-1.5 shrink-0">
-                                        <button onClick={() => openMov(item)}
-                                            className="w-9 h-9 rounded-xl bg-emerald-50 hover:bg-emerald-100 flex items-center justify-center transition" title="Movimiento">
-                                            <TrendingUp size={15} className="text-emerald-600" />
-                                        </button>
-                                        <button onClick={() => setEditModal({ open: true, item: { ...item } })}
-                                            className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition" title="Editar">
-                                            <Edit2 size={14} className="text-gray-600" />
-                                        </button>
-                                    </div>
+                                    {/* Fila de precio (solo cuando valorizar está activo) */}
+                                    {mostrarValorizacion && (
+                                        <div className="px-4 pb-3 flex items-center gap-2 border-t border-gray-50 pt-2">
+                                            <span className="text-xs text-gray-400">$ por {item.unidad}</span>
+                                            <input
+                                                type="number" min="0" step="any" inputMode="decimal"
+                                                value={precios[item._id] ?? ""}
+                                                onChange={e => setPrecios(p => ({ ...p, [item._id]: e.target.value }))}
+                                                placeholder="Precio unitario"
+                                                className="flex-1 border border-emerald-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-emerald-50 text-emerald-800"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
