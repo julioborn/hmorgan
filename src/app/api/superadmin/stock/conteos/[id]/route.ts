@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { StockConteo } from "@/models/StockConteo";
+import { Stock } from "@/models/Stock";
 import jwt from "jsonwebtoken";
 
 const SECRET = process.env.NEXTAUTH_SECRET!;
@@ -49,6 +50,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const total = conteo.items.reduce((s: number, i: any) => s + (i.precioUnitario ?? 0) * i.cantidad, 0);
     conteo.totalValorizacion = total > 0 ? total : undefined;
     await conteo.save();
+
+    // Sincronizar stockActual con los totales actualizados del conteo
+    await Promise.all(conteo.items.map((i: any) =>
+        Stock.findByIdAndUpdate(i.stockId, { stockActual: Number(i.cantidad) })
+    ));
+
     return NextResponse.json(conteo);
 }
 

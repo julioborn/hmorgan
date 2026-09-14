@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { StockConteo } from "@/models/StockConteo";
+import { Stock } from "@/models/Stock";
 import jwt from "jsonwebtoken";
 
 const SECRET = process.env.NEXTAUTH_SECRET!;
@@ -39,5 +40,11 @@ export async function POST(req: NextRequest) {
         items, notas, userId: payload.sub,
         totalValorizacion: totalValorizacion > 0 ? totalValorizacion : undefined,
     });
+
+    // Sincronizar stockActual en cada producto
+    await Promise.all(items.map((i: any) =>
+        Stock.findByIdAndUpdate(i.stockId, { stockActual: Number(i.cantidad) })
+    ));
+
     return NextResponse.json(conteo, { status: 201 });
 }
