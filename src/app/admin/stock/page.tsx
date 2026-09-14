@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { swalBase } from "@/lib/swalConfig";
 import {
     Plus, TrendingUp, TrendingDown, AlertTriangle,
-    X, History, Edit2, Trash2, Loader2, ChevronLeft, ClipboardList, Settings, Package, DollarSign,
+    X, History, Edit2, Trash2, Loader2, ChevronLeft, ClipboardList, Settings, DollarSign,
 } from "lucide-react";
 
 type Tipo = "cocina" | "bebida";
@@ -244,7 +244,7 @@ export default function StockPage() {
 
                 <button onClick={() => router.push("/admin/stock/cargar")}
                     className="w-full mt-4 flex items-center justify-center gap-2 py-3.5 bg-gray-900 hover:bg-gray-700 text-white rounded-2xl font-bold text-sm transition">
-                    <ClipboardList size={17} /> Cargar Stock Semanal
+                    <ClipboardList size={17} /> Cargar Stock
                 </button>
 
                 {/* Modal subcategorías */}
@@ -404,10 +404,6 @@ export default function StockPage() {
                                         </div>
                                         {/* Acciones */}
                                         <div className="flex items-center gap-1.5 shrink-0">
-                                            <button onClick={() => openMov(item)}
-                                                className="w-9 h-9 rounded-xl bg-emerald-50 hover:bg-emerald-100 flex items-center justify-center transition" title="Movimiento">
-                                                <TrendingUp size={15} className="text-emerald-600" />
-                                            </button>
                                             <button onClick={() => setEditModal({ open: true, item: { ...item } })}
                                                 className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition" title="Editar">
                                                 <Edit2 size={14} className="text-gray-600" />
