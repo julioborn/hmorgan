@@ -87,6 +87,7 @@ export default function CargarStockPage() {
 
     // ── Estado carga nueva ──
     const [cantidades, setCantidades] = useState<Record<string, string>>({});
+    const [fracciones, setFracciones] = useState<Record<string, number>>({});
     const [notas, setNotas] = useState("");
     const [precios, setPrecios] = useState<Record<string, string>>({});
     const [mostrarPrecios, setMostrarPrecios] = useState(false);
@@ -97,6 +98,7 @@ export default function CargarStockPage() {
     // ── Estado agregar ──
     const [conteoObjetivo, setConteoObjetivo] = useState<Conteo | null>(null);
     const [cantAgregar, setCantAgregar] = useState<Record<string, string>>({});
+    const [fraccionesAgregar, setFraccionesAgregar] = useState<Record<string, number>>({});
     const [preciosAgregar, setPreciosAgregar] = useState<Record<string, string>>({});
     const [mostrarPreciosAgregar, setMostrarPreciosAgregar] = useState(false);
     const [savingAgregar, setSavingAgregar] = useState(false);
@@ -172,6 +174,12 @@ export default function CargarStockPage() {
     const editCantidades = (fn: (p: Record<string, string>) => Record<string, string>) => {
         setIsDirty(true); setCantidades(fn);
     };
+    const editFracciones = (fn: (p: Record<string, number>) => Record<string, number>) => {
+        setIsDirty(true); setFracciones(fn);
+    };
+    const editFraccionesAgregar = (fn: (p: Record<string, number>) => Record<string, number>) => {
+        setIsDirtyAgregar(true); setFraccionesAgregar(fn);
+    };
     const editNotas = (v: string) => { setIsDirty(true); setNotas(v); };
     const editPrecios = (fn: (p: Record<string, string>) => Record<string, string>) => {
         setIsDirty(true); setPrecios(fn);
@@ -212,7 +220,7 @@ export default function CargarStockPage() {
         const items: ConteoItem[] = productos.map(p => ({
             stockId: p._id, nombre: p.nombre, tipo: p.tipo,
             categoria: p.categoria, unidad: p.unidad,
-            cantidad: Number(cantidades[p._id] ?? 0),
+            cantidad: Number(cantidades[p._id] ?? 0) + (fracciones[p._id] ?? 0),
             precioUnitario: precios[p._id] ? Number(precios[p._id]) : undefined,
         }));
         setSaving(true);
@@ -223,7 +231,7 @@ export default function CargarStockPage() {
             });
             if (res.ok) {
                 localStorage.removeItem(DRAFT_KEY);
-                setBorrador(null); setNotas(""); setPrecios({}); setIsDirty(false);
+                setBorrador(null); setNotas(""); setPrecios({}); setFracciones({}); setIsDirty(false);
                 loadConteos(); setVista("historial"); setNavTipo(null); setNavSubcat(null);
             } else {
                 const err = await res.json().catch(() => ({}));
@@ -297,11 +305,11 @@ export default function CargarStockPage() {
     async function guardarAgregar() {
         if (!conteoObjetivo) return;
         const items = productos
-            .filter(p => Number(cantAgregar[p._id] ?? 0) > 0)
+            .filter(p => Number(cantAgregar[p._id] ?? 0) + (fraccionesAgregar[p._id] ?? 0) > 0)
             .map(p => ({
                 stockId: p._id, nombre: p.nombre, tipo: p.tipo,
                 categoria: p.categoria, unidad: p.unidad,
-                cantidad: Number(cantAgregar[p._id]),
+                cantidad: Number(cantAgregar[p._id] ?? 0) + (fraccionesAgregar[p._id] ?? 0),
                 precioUnitario: preciosAgregar[p._id] ? Number(preciosAgregar[p._id]) : undefined,
             }));
         if (!items.length) return;
@@ -345,9 +353,17 @@ export default function CargarStockPage() {
     }).filter(t => t.total > 0);
 
     // ── Render formulario según nivel de navegación ──
+    const FRACS: { val: number; label: string }[] = [
+        { val: 0.25, label: "¼" },
+        { val: 0.5,  label: "½" },
+        { val: 0.75, label: "¾" },
+    ];
+
     function renderForm(
         cant: Record<string, string>,
         setCant: (fn: (p: Record<string, string>) => Record<string, string>) => void,
+        frac: Record<string, number>,
+        setFrac: (fn: (p: Record<string, number>) => Record<string, number>) => void,
         prec: Record<string, string>,
         setPrec: (fn: (p: Record<string, string>) => Record<string, string>) => void,
         mostrarPrec: boolean,
@@ -461,6 +477,20 @@ export default function CargarStockPage() {
                                     <span className="text-xs text-gray-400 w-12">{prod.unidad}</span>
                                 </div>
                             </div>
+                            {/* Botones de fracción */}
+                            <div className="flex items-center gap-1.5 mt-2 justify-end">
+                                <span className="text-[11px] text-gray-400 mr-0.5">fracción:</span>
+                                {FRACS.map(({ val, label }) => {
+                                    const active = frac[prod._id] === val;
+                                    return (
+                                        <button key={val}
+                                            onClick={() => setFrac(p => ({ ...p, [prod._id]: active ? 0 : val }))}
+                                            className={`w-9 h-7 rounded-lg text-sm font-bold transition ${active ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+                                            {label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                             {mostrarPrec && (
                                 <div className="mt-2 pt-2 border-t border-gray-50 flex items-center gap-2">
                                     <span className="text-xs text-gray-400">$ por {prod.unidad}</span>
@@ -572,7 +602,7 @@ export default function CargarStockPage() {
 
                         {loadingProd ? (
                             <div className="flex justify-center py-16"><Loader2 className="animate-spin text-gray-400" size={32} /></div>
-                        ) : renderForm(cantidades, editCantidades, precios, editPrecios, mostrarPrecios, setMostrarPrecios, guardar, saving, "Guardar carga de esta semana")}
+                        ) : renderForm(cantidades, editCantidades, fracciones, editFracciones, precios, editPrecios, mostrarPrecios, setMostrarPrecios, guardar, saving, "Guardar carga de esta semana")}
                     </>
                 )}
 
@@ -600,7 +630,7 @@ export default function CargarStockPage() {
                                     </div>
                                 </div>
                             )}
-                            {renderForm(cantAgregar, editCantAgregar, preciosAgregar, editPreciosAgregar, mostrarPreciosAgregar, setMostrarPreciosAgregar, guardarAgregar, savingAgregar, "Sumar al stock existente")}
+                            {renderForm(cantAgregar, editCantAgregar, fraccionesAgregar, editFraccionesAgregar, preciosAgregar, editPreciosAgregar, mostrarPreciosAgregar, setMostrarPreciosAgregar, guardarAgregar, savingAgregar, "Sumar al stock existente")}
                         </>
                 )}
 
