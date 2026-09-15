@@ -50,7 +50,8 @@ export default function QrMesasPage() {
       // descargar ZIP automáticamente al terminar
       const zip = new JSZip();
       for (const { sector, numeros } of MESAS) {
-        const carpeta = zip.folder(sector)!;
+        const nombreCarpeta = sector.replace(/[/\\:*?"<>|]/g, "-");
+        const carpeta = zip.folder(nombreCarpeta)!;
         for (const num of numeros) {
           if (result[num]) carpeta.file(`mesa-${num}.svg`, result[num]);
         }
@@ -70,7 +71,8 @@ export default function QrMesasPage() {
     try {
       const zip = new JSZip();
       for (const { sector, numeros } of MESAS) {
-        const carpeta = zip.folder(sector)!;
+        const nombreCarpeta = sector.replace(/[/\\:*?"<>|]/g, "-");
+        const carpeta = zip.folder(nombreCarpeta)!;
         for (const num of numeros) {
           if (qrSvgs[num]) carpeta.file(`mesa-${num}.svg`, qrSvgs[num]);
         }
