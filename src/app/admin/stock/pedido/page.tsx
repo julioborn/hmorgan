@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Printer, ChevronDown, ChevronUp, RotateCcw, X } from "lucide-react";
+import { ChevronLeft, Printer, ChevronDown, RotateCcw, X } from "lucide-react";
 
 const DRAFT_KEY = "hmorgan_nota_pedido_draft";
 
@@ -235,32 +235,48 @@ export default function NotaPedidoPage() {
                     <div className="space-y-2">
                         {grupos.map(({ key, tipo, cat, items }) => {
                             const tm = TIPO_LABEL[tipo] ?? { label: tipo, emoji: "", color: "text-gray-700" };
-                            const abierto = expandidos[key] !== false;
+                            const abierto = expandidos[key] === true;
                             const ids = items.map(i => i._id);
                             const selCount = ids.filter(id => seleccionados[id]).length;
                             const allSel = selCount === items.length && items.length > 0;
 
                             return (
-                                <div key={key} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                                    {/* Cabecera grupo */}
-                                    <div className="flex items-center gap-3 px-4 py-3">
-                                        <input type="checkbox" checked={allSel} onChange={() => toggleGrupo(ids, allSel)}
-                                            className="w-4 h-4 accent-gray-700 shrink-0" />
-                                        <button onClick={() => toggleExpandido(key)} className="flex-1 text-left flex items-center gap-2">
-                                            <span className={`text-sm font-black ${tm.color}`}>{tm.emoji} {cat}</span>
-                                            <span className="text-xs text-gray-400">{selCount}/{items.length}</span>
-                                        </button>
-                                        <button onClick={() => toggleExpandido(key)} className="text-gray-400 hover:text-gray-700 transition">
-                                            {abierto ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                                        </button>
-                                    </div>
+                                <div key={key}>
+                                    {/* Botón de categoría */}
+                                    <button
+                                        onClick={() => toggleExpandido(key)}
+                                        className={`w-full flex items-center gap-3 px-4 py-4 rounded-2xl border-2 shadow-sm transition active:scale-[0.98] text-left
+                                            ${abierto
+                                                ? "bg-gray-900 border-gray-900 text-white"
+                                                : "bg-white border-gray-100 text-gray-800"}`}>
+                                        <input
+                                            type="checkbox"
+                                            checked={allSel}
+                                            onClick={e => e.stopPropagation()}
+                                            onChange={() => toggleGrupo(ids, allSel)}
+                                            className="w-4 h-4 accent-gray-500 shrink-0"
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <p className={`font-black text-base leading-tight ${abierto ? "text-white" : tm.color}`}>
+                                                {tm.emoji} {cat}
+                                            </p>
+                                            <p className={`text-xs mt-0.5 ${abierto ? "text-gray-300" : "text-gray-400"}`}>
+                                                {items.length} producto{items.length !== 1 ? "s" : ""}
+                                                {selCount > 0 && ` · ${selCount} seleccionado${selCount !== 1 ? "s" : ""}`}
+                                            </p>
+                                        </div>
+                                        <ChevronDown
+                                            size={18}
+                                            className={`shrink-0 transition-transform duration-200 ${abierto ? "rotate-180 text-gray-300" : "text-gray-400"}`}
+                                        />
+                                    </button>
 
-                                    {/* Productos */}
+                                    {/* Productos expandidos */}
                                     {abierto && (
-                                        <div className="border-t border-gray-50">
+                                        <div className="mt-1 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                                             {items.map(prod => (
                                                 <div key={prod._id}
-                                                    className={`flex items-center gap-3 px-4 py-2.5 border-b border-gray-50 last:border-0 ${seleccionados[prod._id] ? "bg-gray-50" : ""}`}>
+                                                    className={`flex items-center gap-3 px-4 py-3 border-b border-gray-50 last:border-0 ${seleccionados[prod._id] ? "bg-gray-50" : ""}`}>
                                                     <input type="checkbox" checked={!!seleccionados[prod._id]} onChange={() => toggleProducto(prod._id)}
                                                         className="w-4 h-4 accent-gray-700 shrink-0" />
                                                     <div className="flex-1 min-w-0">
