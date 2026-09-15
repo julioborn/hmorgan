@@ -145,9 +145,6 @@ export default function MesaLandingPage() {
           <p className="text-gray-600 text-sm leading-relaxed">
             Cuando el mozo abra tu comanda, podés unirte para ganar puntos automáticamente por todo lo que pedís.
           </p>
-          <Link href="/" className="block bg-gray-900 text-white font-black py-4 rounded-2xl text-base">
-            Abrir la app
-          </Link>
         </div>
       )}
 
