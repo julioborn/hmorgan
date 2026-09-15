@@ -1247,18 +1247,17 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
       </div>
 
       {/* ── Acciones principales ── */}
-      <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-3">
+
         <div className="relative">
-          <Link
-            href="/empleado/anotador"
-            className="w-full flex items-center gap-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl px-6 py-5 transition shadow-sm active:scale-[0.98] block"
-          >
-            <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-              <ClipboardList className="h-6 w-6" />
+          <Link href="/empleado/anotador"
+            className="flex flex-col items-center text-center gap-3 bg-red-600 hover:bg-red-700 text-white rounded-2xl px-4 py-6 transition shadow-sm active:scale-[0.98] block">
+            <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+              <ClipboardList className="h-7 w-7" />
             </div>
             <div>
-              <p className="font-extrabold text-lg leading-tight">Anotador de Pedidos</p>
-              <p className="text-red-200 text-sm">Tomá y gestioná las comandas</p>
+              <p className="font-extrabold text-base leading-tight">Anotador de Pedidos</p>
+              <p className="text-red-200 text-xs mt-0.5">Tomá y gestioná las comandas</p>
             </div>
           </Link>
           {comandasCount > 0 && (
@@ -1269,16 +1268,14 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
         </div>
 
         <div className="relative">
-          <Link
-            href="/empleado/entradas"
-            className="w-full flex items-center gap-4 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl px-6 py-5 transition shadow-sm active:scale-[0.98] block"
-          >
-            <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-              <Ticket className="h-6 w-6" />
+          <Link href="/empleado/entradas"
+            className="flex flex-col items-center text-center gap-3 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl px-4 py-6 transition shadow-sm active:scale-[0.98] block">
+            <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+              <Ticket className="h-7 w-7" />
             </div>
             <div>
-              <p className="font-extrabold text-lg leading-tight">Entradas</p>
-              <p className="text-amber-200 text-sm">
+              <p className="font-extrabold text-base leading-tight">Entradas</p>
+              <p className="text-amber-200 text-xs mt-0.5">
                 {eventosActivosCount > 0
                   ? `${eventosActivosCount} evento${eventosActivosCount !== 1 ? "s" : ""} activo${eventosActivosCount !== 1 ? "s" : ""}`
                   : "Sin eventos activos"}
@@ -1293,16 +1290,14 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
         </div>
 
         <div className="relative">
-          <Link
-            href="/empleado/autoservicio"
-            className="w-full flex items-center gap-4 bg-purple-700 hover:bg-purple-800 text-white rounded-2xl px-6 py-5 transition shadow-sm active:scale-[0.98] block"
-          >
-            <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-              <Tablet className="h-6 w-6" />
+          <Link href="/empleado/autoservicio"
+            className="flex flex-col items-center text-center gap-3 bg-purple-700 hover:bg-purple-800 text-white rounded-2xl px-4 py-6 transition shadow-sm active:scale-[0.98] block">
+            <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+              <Tablet className="h-7 w-7" />
             </div>
             <div>
-              <p className="font-extrabold text-lg leading-tight">Autoservicio</p>
-              <p className="text-purple-200 text-sm">Asignar mesas para autopedido</p>
+              <p className="font-extrabold text-base leading-tight">Autoservicio</p>
+              <p className="text-purple-200 text-xs mt-0.5">Asignar mesas para autopedido</p>
             </div>
           </Link>
           {autoservActivasCount > 0 && (
@@ -1313,16 +1308,14 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
         </div>
 
         <div className="relative">
-          <Link
-            href="/empleado/tareas"
-            className="w-full flex items-center gap-4 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl px-6 py-5 transition shadow-sm active:scale-[0.98] block"
-          >
-            <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-              <CheckSquare className="h-6 w-6" />
+          <Link href="/empleado/tareas"
+            className="flex flex-col items-center text-center gap-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl px-4 py-6 transition shadow-sm active:scale-[0.98] block">
+            <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+              <CheckSquare className="h-7 w-7" />
             </div>
             <div>
-              <p className="font-extrabold text-lg leading-tight">Lista de Tareas</p>
-              <p className="text-emerald-200 text-sm">Tareas del turno</p>
+              <p className="font-extrabold text-base leading-tight">Lista de Tareas</p>
+              <p className="text-emerald-200 text-xs mt-0.5">Tareas del turno</p>
             </div>
           </Link>
           {tareasPendientes > 0 && (
@@ -1333,16 +1326,14 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
         </div>
 
         <div className="relative">
-          <Link
-            href="/empleado/reservas"
-            className="w-full flex items-center gap-4 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl px-6 py-5 transition shadow-sm active:scale-[0.98] block"
-          >
-            <div className="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-              <CalendarDays className="h-6 w-6" />
+          <Link href="/empleado/reservas"
+            className="flex flex-col items-center text-center gap-3 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl px-4 py-6 transition shadow-sm active:scale-[0.98] block">
+            <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
+              <CalendarDays className="h-7 w-7" />
             </div>
             <div>
-              <p className="font-extrabold text-lg leading-tight">Reservas del día</p>
-              <p className="text-gray-400 text-sm">Ver las reservas de hoy</p>
+              <p className="font-extrabold text-base leading-tight">Reservas del día</p>
+              <p className="text-gray-400 text-xs mt-0.5">Ver las reservas de hoy</p>
             </div>
           </Link>
           {reservasHoyCount > 0 && (
@@ -1352,18 +1343,17 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
           )}
         </div>
 
-        <Link
-          href="/menu"
-          className="w-full flex items-center gap-4 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl px-6 py-5 transition shadow-sm active:scale-[0.98] block"
-        >
-          <div className="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-            <Utensils className="h-6 w-6" />
+        <Link href="/menu"
+          className="flex flex-col items-center text-center gap-3 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl px-4 py-6 transition shadow-sm active:scale-[0.98] block">
+          <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
+            <Utensils className="h-7 w-7" />
           </div>
           <div>
-            <p className="font-extrabold text-lg leading-tight">Menú</p>
-            <p className="text-gray-400 text-sm">Ver la carta del restaurante</p>
+            <p className="font-extrabold text-base leading-tight">Menú</p>
+            <p className="text-gray-400 text-xs mt-0.5">Ver la carta del restaurante</p>
           </div>
         </Link>
+
       </div>
 
     </div>
