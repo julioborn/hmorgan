@@ -187,7 +187,7 @@ export default function Header() {
               </div>
 
               <div className="flex-1 overflow-y-auto px-6 pb-6">
-                <nav className="flex flex-col gap-3">
+                <nav className={user?.role === "empleado" ? "grid grid-cols-2 gap-3" : "flex flex-col gap-3"}>
                   {links.map((link) => {
                     const Icon = link.icon;
                     const active = pathname === link.href;
@@ -198,13 +198,14 @@ export default function Header() {
                         href={link.href}
                         onClick={() => setOpen(false)}
                         className={`flex items-center gap-3 px-3 py-2 rounded-lg text-lg transition
+                          ${user?.role === "empleado" ? "flex-col justify-center text-center text-sm gap-1 py-4" : ""}
                           ${
                             active
                               ? "bg-red-600 text-white"
                               : "text-white hover:bg-red-600/20"
                           }`}
                       >
-                        <Icon size={20} />
+                        <Icon size={user?.role === "empleado" ? 26 : 20} />
                         {link.label}
                       </Link>
                     );
