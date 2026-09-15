@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Printer, ChevronDown, RotateCcw, X, Share2 } from "lucide-react";
 
@@ -37,6 +37,7 @@ export default function NotaPedidoPage() {
     const [isDirty, setIsDirty] = useState(false);
     const [imagenUrl, setImagenUrl] = useState<string | null>(null);
     const [generando, setGenerando] = useState(false);
+    const scrollRef = useRef<HTMLDivElement>(null);
 
     const loadProductos = useCallback(() => {
         setLoading(true);
@@ -306,6 +307,12 @@ export default function NotaPedidoPage() {
         setImagenUrl(null);
     }
 
+    useEffect(() => {
+        if (imagenUrl && scrollRef.current) {
+            scrollRef.current.scrollTop = 0;
+        }
+    }, [imagenUrl]);
+
     function imprimir() {
         localStorage.removeItem(DRAFT_KEY);
         setBorrador(null); setIsDirty(false);
@@ -484,7 +491,7 @@ export default function NotaPedidoPage() {
                             </div>
                         </div>
                     ) : (
-                        <div className="flex-1 overflow-auto bg-gray-100">
+                        <div ref={scrollRef} className="flex-1 overflow-auto bg-gray-100">
                             <img src={imagenUrl!} alt="Nota de pedido" className="w-full block" />
                         </div>
                     )}
