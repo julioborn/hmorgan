@@ -31,7 +31,7 @@ export default function QrMesasPage() {
   }, [user, loading, router]);
 
   useEffect(() => {
-    async function generateAndDownload() {
+    async function generateAll() {
       const result: Record<string, string> = {};
       for (const { numeros } of MESAS) {
         for (const num of numeros) {
@@ -46,24 +46,8 @@ export default function QrMesasPage() {
       }
       setQrSvgs(result);
       setGenerating(false);
-
-      // descargar ZIP automáticamente al terminar
-      const zip = new JSZip();
-      for (const { sector, numeros } of MESAS) {
-        const nombreCarpeta = sector.replace(/[/\\:*?"<>|]/g, "-");
-        const carpeta = zip.folder(nombreCarpeta)!;
-        for (const num of numeros) {
-          if (result[num]) carpeta.file(`mesa-${num}.svg`, result[num]);
-        }
-      }
-      const blob = await zip.generateAsync({ type: "blob" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "qr-mesas-hmorgan.zip";
-      a.click();
-      URL.revokeObjectURL(a.href);
     }
-    generateAndDownload();
+    generateAll();
   }, []);
 
   async function descargarZip() {
@@ -92,25 +76,52 @@ export default function QrMesasPage() {
   if (!user || !["admin", "superadmin"].includes(user.role)) return null;
 
   return (
-    <div className="max-w-md mx-auto px-4 py-16 flex flex-col items-center gap-6 text-center">
-      <h1 className="text-2xl font-black text-gray-900">QR de Mesas</h1>
-      {generating ? (
-        <>
-          <Loader size={48} />
-          <p className="text-gray-500 text-sm">Generando SVGs y preparando el ZIP…</p>
-        </>
-      ) : (
-        <>
-          <p className="text-gray-600 text-sm">El ZIP se descargó automáticamente.<br/>Si no, hacé clic en el botón.</p>
-          <button
-            onClick={descargarZip}
-            disabled={descargando}
-            className="bg-gray-900 text-white font-bold px-6 py-3 rounded-xl text-sm hover:bg-gray-700 transition disabled:opacity-50"
-          >
-            {descargando ? "Generando ZIP…" : "Descargar ZIP de nuevo"}
-          </button>
-        </>
+    <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-black text-gray-900">QR de Mesas</h1>
+          <p className="text-sm text-gray-400 mt-0.5">{MESAS.reduce((t, s) => t + s.numeros.length, 0)} mesas · {MESAS.length} sectores</p>
+        </div>
+        <button
+          onClick={descargarZip}
+          disabled={generating || descargando}
+          className="bg-gray-900 text-white font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-gray-700 transition disabled:opacity-50"
+        >
+          {descargando ? "Generando ZIP…" : "Descargar SVGs (.zip)"}
+        </button>
+      </div>
+
+      {generating && (
+        <div className="flex items-center gap-3 text-gray-500">
+          <Loader size={22} />
+          <span className="text-sm">Generando QR codes…</span>
+        </div>
       )}
+
+      <div className="space-y-8">
+        {MESAS.map(({ sector, numeros }) => (
+          <div key={sector}>
+            <h2 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">{sector}</h2>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
+              {numeros.map(num => (
+                <div key={num} className="flex flex-col items-center bg-white border border-gray-200 rounded-2xl p-3 gap-2 shadow-sm">
+                  {qrSvgs[num] ? (
+                    <div dangerouslySetInnerHTML={{ __html: qrSvgs[num] }} className="w-full max-w-[120px]" />
+                  ) : (
+                    <div className="w-24 h-24 flex items-center justify-center">
+                      <Loader size={20} />
+                    </div>
+                  )}
+                  <div className="text-center">
+                    <p className="font-black text-base text-gray-900">Mesa {num}</p>
+                    <p className="text-[10px] text-gray-400">H. Morgan Bar</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
