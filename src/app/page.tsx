@@ -1249,9 +1249,9 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
       {/* ── Acciones principales ── */}
       <div className="grid grid-cols-2 gap-3">
 
-        <div className="relative">
+        <div className="relative h-full">
           <Link href="/empleado/anotador"
-            className="flex flex-col items-center text-center gap-3 bg-red-600 hover:bg-red-700 text-white rounded-2xl px-4 py-6 transition shadow-sm active:scale-[0.98] block">
+            className="h-full flex flex-col items-center justify-center text-center gap-3 bg-red-600 hover:bg-red-700 text-white rounded-2xl px-4 py-6 transition shadow-sm active:scale-[0.98] block">
             <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
               <ClipboardList className="h-7 w-7" />
             </div>
@@ -1267,9 +1267,9 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
           )}
         </div>
 
-        <div className="relative">
+        <div className="relative h-full">
           <Link href="/empleado/entradas"
-            className="flex flex-col items-center text-center gap-3 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl px-4 py-6 transition shadow-sm active:scale-[0.98] block">
+            className="h-full flex flex-col items-center justify-center text-center gap-3 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl px-4 py-6 transition shadow-sm active:scale-[0.98] block">
             <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
               <Ticket className="h-7 w-7" />
             </div>
@@ -1289,9 +1289,9 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
           )}
         </div>
 
-        <div className="relative">
+        <div className="relative h-full">
           <Link href="/empleado/autoservicio"
-            className="flex flex-col items-center text-center gap-3 bg-purple-700 hover:bg-purple-800 text-white rounded-2xl px-4 py-6 transition shadow-sm active:scale-[0.98] block">
+            className="h-full flex flex-col items-center justify-center text-center gap-3 bg-purple-700 hover:bg-purple-800 text-white rounded-2xl px-4 py-6 transition shadow-sm active:scale-[0.98] block">
             <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
               <Tablet className="h-7 w-7" />
             </div>
@@ -1307,9 +1307,9 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
           )}
         </div>
 
-        <div className="relative">
+        <div className="relative h-full">
           <Link href="/empleado/tareas"
-            className="flex flex-col items-center text-center gap-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl px-4 py-6 transition shadow-sm active:scale-[0.98] block">
+            className="h-full flex flex-col items-center justify-center text-center gap-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl px-4 py-6 transition shadow-sm active:scale-[0.98] block">
             <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
               <CheckSquare className="h-7 w-7" />
             </div>
@@ -1325,9 +1325,9 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
           )}
         </div>
 
-        <div className="relative">
+        <div className="relative h-full">
           <Link href="/empleado/reservas"
-            className="flex flex-col items-center text-center gap-3 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl px-4 py-6 transition shadow-sm active:scale-[0.98] block">
+            className="h-full flex flex-col items-center justify-center text-center gap-3 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl px-4 py-6 transition shadow-sm active:scale-[0.98] block">
             <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
               <CalendarDays className="h-7 w-7" />
             </div>
@@ -1344,7 +1344,7 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
         </div>
 
         <Link href="/menu"
-          className="flex flex-col items-center text-center gap-3 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl px-4 py-6 transition shadow-sm active:scale-[0.98] block">
+          className="h-full flex flex-col items-center justify-center text-center gap-3 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl px-4 py-6 transition shadow-sm active:scale-[0.98] block">
           <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
             <Utensils className="h-7 w-7" />
           </div>
