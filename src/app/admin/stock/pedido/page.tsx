@@ -461,9 +461,9 @@ export default function NotaPedidoPage() {
 
             {/* Overlay iOS PWA: imagen generada con canvas */}
             {(generando || imagenUrl) && (
-                <div className="fixed inset-0 z-[9999] bg-gray-950 flex flex-col">
+                <div className="fixed bottom-0 left-0 right-0 z-[9999] bg-gray-950 flex flex-col" style={{ top: "calc(env(safe-area-inset-top) + 68px)" }}>
                     {/* Botones arriba */}
-                    <div className="shrink-0 flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-100" style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}>
+                    <div className="shrink-0 flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-100">
                         <button onClick={cerrarImagen}
                             className="flex items-center justify-center gap-1.5 px-4 py-3 border border-gray-200 rounded-2xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition flex-1">
                             <X size={16} /> Cerrar
