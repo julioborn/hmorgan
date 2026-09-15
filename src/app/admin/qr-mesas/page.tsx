@@ -1,9 +1,10 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 import Loader from "@/components/Loader";
 import QRCode from "qrcode";
+import JSZip from "jszip";
 
 const BASE_URL = "https://hmorgan.vercel.app";
 
@@ -19,10 +20,9 @@ const MESAS: { sector: string; numeros: string[] }[] = [
 export default function QrMesasPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const [qrDataUrls, setQrDataUrls] = useState<Record<string, string>>({});
+  const [qrSvgs, setQrSvgs] = useState<Record<string, string>>({});
   const [generating, setGenerating] = useState(true);
-  const [filtroSector, setFiltroSector] = useState<string>("Todos");
-  const printRef = useRef<HTMLDivElement>(null);
+  const [descargando, setDescargando] = useState(false);
 
   useEffect(() => {
     if (!loading && user && !["admin", "superadmin"].includes(user.role)) {
@@ -31,101 +31,84 @@ export default function QrMesasPage() {
   }, [user, loading, router]);
 
   useEffect(() => {
-    async function generateAll() {
+    async function generateAndDownload() {
       const result: Record<string, string> = {};
       for (const { numeros } of MESAS) {
         for (const num of numeros) {
           const url = `${BASE_URL}/mesa/${num}`;
-          result[num] = await QRCode.toDataURL(url, {
-            width: 300,
+          const svg = await QRCode.toString(url, {
+            type: "svg",
             margin: 2,
             color: { dark: "#000000", light: "#ffffff" },
           });
+          result[num] = svg;
         }
       }
-      setQrDataUrls(result);
+      setQrSvgs(result);
       setGenerating(false);
+
+      // descargar ZIP automáticamente al terminar
+      const zip = new JSZip();
+      for (const { sector, numeros } of MESAS) {
+        const carpeta = zip.folder(sector)!;
+        for (const num of numeros) {
+          if (result[num]) carpeta.file(`mesa-${num}.svg`, result[num]);
+        }
+      }
+      const blob = await zip.generateAsync({ type: "blob" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "qr-mesas-hmorgan.zip";
+      a.click();
+      URL.revokeObjectURL(a.href);
     }
-    generateAll();
+    generateAndDownload();
   }, []);
+
+  async function descargarZip() {
+    setDescargando(true);
+    try {
+      const zip = new JSZip();
+      for (const { sector, numeros } of MESAS) {
+        const carpeta = zip.folder(sector)!;
+        for (const num of numeros) {
+          if (qrSvgs[num]) carpeta.file(`mesa-${num}.svg`, qrSvgs[num]);
+        }
+      }
+      const blob = await zip.generateAsync({ type: "blob" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "qr-mesas-hmorgan.zip";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } finally {
+      setDescargando(false);
+    }
+  }
 
   if (loading) return <div className="flex justify-center py-20"><Loader size={56} /></div>;
   if (!user || !["admin", "superadmin"].includes(user.role)) return null;
 
-  const sectoresVisibles = filtroSector === "Todos" ? MESAS : MESAS.filter(s => s.sector === filtroSector);
-
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-black text-gray-900">QR de Mesas</h1>
-          <p className="text-sm text-gray-400 mt-0.5">70 mesas · imprimí y pegá en cada mesa</p>
-        </div>
-        <button
-          onClick={() => window.print()}
-          className="bg-gray-900 text-white font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-gray-700 transition"
-        >
-          Imprimir / Guardar PDF
-        </button>
-      </div>
-
-      {/* Filtro por sector */}
-      <div className="flex flex-wrap gap-2">
-        {["Todos", ...MESAS.map(s => s.sector)].map(s => (
+    <div className="max-w-md mx-auto px-4 py-16 flex flex-col items-center gap-6 text-center">
+      <h1 className="text-2xl font-black text-gray-900">QR de Mesas</h1>
+      {generating ? (
+        <>
+          <Loader size={48} />
+          <p className="text-gray-500 text-sm">Generando SVGs y preparando el ZIP…</p>
+        </>
+      ) : (
+        <>
+          <p className="text-gray-600 text-sm">El ZIP se descargó automáticamente.<br/>Si no, hacé clic en el botón.</p>
           <button
-            key={s}
-            onClick={() => setFiltroSector(s)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
-              filtroSector === s
-                ? "bg-gray-900 text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-            }`}
+            onClick={descargarZip}
+            disabled={descargando}
+            className="bg-gray-900 text-white font-bold px-6 py-3 rounded-xl text-sm hover:bg-gray-700 transition disabled:opacity-50"
           >
-            {s}
+            {descargando ? "Generando ZIP…" : "Descargar ZIP de nuevo"}
           </button>
-        ))}
-      </div>
-
-      {generating && (
-        <div className="flex items-center gap-3 text-gray-500">
-          <Loader size={24} />
-          <span className="text-sm">Generando QR codes…</span>
-        </div>
+        </>
       )}
-
-      <div ref={printRef} className="space-y-8">
-        {sectoresVisibles.map(({ sector, numeros }) => (
-          <div key={sector}>
-            <h2 className="text-sm font-black uppercase tracking-widest text-gray-400 mb-3">{sector}</h2>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
-              {numeros.map(num => (
-                <div key={num} className="flex flex-col items-center bg-white border border-gray-200 rounded-2xl p-3 gap-2 print:break-inside-avoid shadow-sm">
-                  {qrDataUrls[num] ? (
-                    <img src={qrDataUrls[num]} alt={`QR Mesa ${num}`} className="w-full max-w-[120px]" />
-                  ) : (
-                    <div className="w-24 h-24 flex items-center justify-center">
-                      <Loader size={20} />
-                    </div>
-                  )}
-                  <div className="text-center">
-                    <p className="font-black text-base text-gray-900">Mesa {num}</p>
-                    <p className="text-[10px] text-gray-400">H. Morgan Bar</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <style>{`
-        @media print {
-          body * { visibility: hidden; }
-          #print-area, #print-area * { visibility: visible; }
-          #print-area { position: absolute; left: 0; top: 0; }
-          button { display: none !important; }
-        }
-      `}</style>
     </div>
   );
 }

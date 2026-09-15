@@ -1,7 +1,7 @@
 "use client";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Printer, ChevronDown, RotateCcw, X } from "lucide-react";
+import { ChevronLeft, Printer, ChevronDown, RotateCcw, X, Share2 } from "lucide-react";
 
 const DRAFT_KEY = "hmorgan_nota_pedido_draft";
 
@@ -35,8 +35,8 @@ export default function NotaPedidoPage() {
     const [expandidos, setExpandidos] = useState<Record<string, boolean>>({});
     const [borrador, setBorrador] = useState<Draft | null>(null);
     const [isDirty, setIsDirty] = useState(false);
-    const [printHtml, setPrintHtml] = useState<string | null>(null);
-    const iframeRef = useRef<HTMLIFrameElement>(null);
+    const [imagenUrl, setImagenUrl] = useState<string | null>(null);
+    const [generando, setGenerando] = useState(false);
 
     const loadProductos = useCallback(() => {
         setLoading(true);
@@ -164,18 +164,159 @@ export default function NotaPedidoPage() {
 </html>`;
     }
 
+    async function generarImagenNota() {
+        setGenerando(true);
+        try {
+            const SCALE = 2;
+            const W = 750;
+            const PAD = 36;
+            const filas = itemsSeleccionados;
+            const ROW_H = 46;
+            const TABLE_H = 42;
+            const fecha = new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
+            // altura de notas (multilinea)
+            const notaLines = notas ? notas.split("\n") : [];
+            const NOTAS_H = notas ? 16 + 18 + notaLines.length * 20 + 16 : 0;
+            const totalH = PAD + 38 + 30 + 12 + TABLE_H + filas.length * ROW_H + NOTAS_H + 24 + 80 + PAD;
+
+            const canvas = document.createElement("canvas");
+            canvas.width = W * SCALE;
+            canvas.height = totalH * SCALE;
+            const ctx = canvas.getContext("2d")!;
+            ctx.scale(SCALE, SCALE);
+
+            // fondo blanco
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, W, totalH);
+
+            let y = PAD;
+
+            // título
+            ctx.fillStyle = "#000000";
+            ctx.font = "bold 26px Arial";
+            ctx.fillText("H. Morgan Bar", PAD, y + 26);
+            y += 38;
+
+            ctx.fillStyle = "#777777";
+            ctx.font = "13px Arial";
+            ctx.fillText(`Nota de pedido · ${fecha}`, PAD, y + 13);
+            y += 30;
+
+            // línea separadora
+            ctx.strokeStyle = "#e5e7eb";
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(PAD, y); ctx.lineTo(W - PAD, y); ctx.stroke();
+            y += 12;
+
+            // columnas: Producto | Categoría | Stock | Pedido
+            const cW = W - PAD * 2; // 678
+            const c0 = PAD;
+            const c1 = PAD + Math.round(cW * 0.35); // ~273
+            const c2 = PAD + Math.round(cW * 0.58); // ~429
+            const c3 = PAD + Math.round(cW * 0.78); // ~564
+            const cEnd = W - PAD;
+
+            // encabezado tabla
+            ctx.fillStyle = "#111111";
+            ctx.fillRect(c0, y, cW, TABLE_H);
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 10px Arial";
+            const labels = ["PRODUCTO", "CATEGORÍA", "STOCK", "PEDIDO"];
+            const cols = [c0 + 10, c1 + 8, c2 + 8, c3 + 8];
+            labels.forEach((l, i) => ctx.fillText(l, cols[i], y + TABLE_H / 2 + 4));
+            y += TABLE_H;
+
+            // filas productos
+            filas.forEach((prod, idx) => {
+                if (idx % 2 === 1) {
+                    ctx.fillStyle = "#f9fafb";
+                    ctx.fillRect(c0, y, cW, ROW_H);
+                }
+                ctx.strokeStyle = "#e5e7eb";
+                ctx.lineWidth = 0.5;
+                ctx.beginPath(); ctx.moveTo(c0, y + ROW_H); ctx.lineTo(cEnd, y + ROW_H); ctx.stroke();
+
+                const midY = y + ROW_H / 2 + 4.5;
+                ctx.fillStyle = "#111111";
+                ctx.font = "13px Arial";
+                // truncar texto si es muy largo
+                const maxNombreW = c1 - c0 - 18;
+                let nombre = prod.nombre;
+                while (ctx.measureText(nombre).width > maxNombreW && nombre.length > 4)
+                    nombre = nombre.slice(0, -1);
+                if (nombre !== prod.nombre) nombre += "…";
+                ctx.fillText(nombre, c0 + 10, midY);
+                ctx.fillText(normCat(prod), c1 + 8, midY);
+                ctx.fillText(`${formatNum(prod.stockActual)} ${prod.unidad}`, c2 + 8, midY);
+                const cant = cantidades[prod._id] ? `${cantidades[prod._id]} ${prod.unidad}` : `___ ${prod.unidad}`;
+                ctx.fillText(cant, c3 + 8, midY);
+                y += ROW_H;
+            });
+
+            // notas
+            if (notas) {
+                y += 16;
+                ctx.strokeStyle = "#111111";
+                ctx.lineWidth = 1.5;
+                ctx.beginPath(); ctx.moveTo(PAD, y); ctx.lineTo(W - PAD, y); ctx.stroke();
+                y += 16;
+                ctx.fillStyle = "#111111";
+                ctx.font = "bold 10px Arial";
+                ctx.fillText("NOTAS", PAD, y + 10);
+                y += 18;
+                ctx.fillStyle = "#333333";
+                ctx.font = "13px Arial";
+                notaLines.forEach(line => { ctx.fillText(line || " ", PAD, y + 13); y += 20; });
+            }
+
+            // firma
+            y += 24;
+            const fw = Math.round((cW - 48) / 2);
+            [[c0, "Solicitado por"], [c0 + fw + 48, "Proveedor"]].forEach(([x, label]) => {
+                ctx.strokeStyle = "#aaaaaa"; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(Number(x), y); ctx.lineTo(Number(x) + fw, y); ctx.stroke();
+                ctx.fillStyle = "#777777"; ctx.font = "11px Arial";
+                ctx.fillText(String(label), Number(x), y + 16);
+            });
+
+            const blob = await new Promise<Blob>(res => canvas.toBlob(b => res(b!), "image/png"));
+            if (imagenUrl) URL.revokeObjectURL(imagenUrl);
+            setImagenUrl(URL.createObjectURL(blob));
+        } finally {
+            setGenerando(false);
+        }
+    }
+
+    async function compartirImagen() {
+        if (!imagenUrl) return;
+        try {
+            const blob = await fetch(imagenUrl).then(r => r.blob());
+            const file = new File([blob], "nota-pedido.png", { type: "image/png" });
+            if (navigator.share && navigator.canShare({ files: [file] })) {
+                await navigator.share({ files: [file], title: "Nota de Pedido H. Morgan Bar" });
+            } else {
+                window.open(imagenUrl, "_blank");
+            }
+        } catch { /* usuario canceló */ }
+    }
+
+    function cerrarImagen() {
+        if (imagenUrl) URL.revokeObjectURL(imagenUrl);
+        setImagenUrl(null);
+    }
+
     function imprimir() {
         localStorage.removeItem(DRAFT_KEY);
         setBorrador(null); setIsDirty(false);
 
-        // En browsers normales window.open abre una nueva pestaña
         const win = window.open("", "_blank");
         if (win) {
             win.document.write(buildHtml(true));
             win.document.close();
         } else {
-            // iOS PWA no permite window.open → mostrar en overlay con iframe
-            setPrintHtml(buildHtml(false));
+            // iOS PWA: genera imagen para guardar/compartir
+            generarImagenNota();
         }
     }
 
@@ -318,40 +459,34 @@ export default function NotaPedidoPage() {
                 </div>
             )}
 
-            {/* Overlay iOS PWA: muestra la nota en iframe cuando window.open falla */}
-            {printHtml && (
-                <>
-                    {/* CSS de impresión: oculta todo excepto el iframe */}
-                    <style dangerouslySetInnerHTML={{ __html: `
-                        @media print {
-                            body * { visibility: hidden !important; }
-                            #nota-pedido-iframe, #nota-pedido-iframe * { visibility: visible !important; }
-                            #nota-pedido-iframe { position: fixed !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; border: none !important; }
-                        }
-                    `}} />
-                    <div className="fixed inset-0 z-[9999] bg-white flex flex-col">
-                        {/* Contenido del iframe — ocupa todo el espacio */}
-                        <iframe
-                            id="nota-pedido-iframe"
-                            ref={iframeRef}
-                            srcDoc={printHtml}
-                            className="flex-1 w-full border-0"
-                            title="Nota de Pedido"
-                        />
-                        {/* Barra de acciones al fondo — más accesible en iPhone */}
-                        <div className="shrink-0 flex items-center gap-3 px-4 py-4 bg-white border-t border-gray-100 pb-safe">
-                            <button onClick={() => setPrintHtml(null)}
-                                className="flex items-center justify-center gap-1.5 px-4 py-3 border border-gray-200 rounded-2xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition flex-1">
-                                <X size={16} /> Cerrar
-                            </button>
-                            <button
-                                onClick={() => window.print()}
-                                className="flex items-center justify-center gap-2 px-4 py-3 bg-gray-900 hover:bg-gray-700 text-white text-sm font-bold rounded-2xl transition flex-[2]">
-                                <Printer size={16} /> Imprimir / Guardar PDF
-                            </button>
+            {/* Overlay iOS PWA: imagen generada con canvas */}
+            {(generando || imagenUrl) && (
+                <div className="fixed inset-0 z-[9999] bg-gray-950 flex flex-col">
+                    {generando ? (
+                        <div className="flex-1 flex items-center justify-center">
+                            <div className="text-center text-white">
+                                <div className="w-10 h-10 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4" />
+                                <p className="text-sm font-semibold">Generando imagen…</p>
+                            </div>
                         </div>
+                    ) : (
+                        <div className="flex-1 overflow-auto bg-gray-100">
+                            <img src={imagenUrl!} alt="Nota de pedido" className="w-full block" />
+                        </div>
+                    )}
+                    <div className="shrink-0 flex items-center gap-3 px-4 py-4 bg-white border-t border-gray-100">
+                        <button onClick={cerrarImagen}
+                            className="flex items-center justify-center gap-1.5 px-4 py-3 border border-gray-200 rounded-2xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition flex-1">
+                            <X size={16} /> Cerrar
+                        </button>
+                        {imagenUrl && (
+                            <button onClick={compartirImagen}
+                                className="flex items-center justify-center gap-2 px-4 py-3 bg-gray-900 hover:bg-gray-700 text-white text-sm font-bold rounded-2xl transition flex-[2]">
+                                <Share2 size={16} /> Compartir / Guardar
+                            </button>
+                        )}
                     </div>
-                </>
+                </div>
             )}
         </div>
     );
