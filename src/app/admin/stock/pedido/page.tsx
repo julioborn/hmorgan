@@ -304,25 +304,38 @@ export default function NotaPedidoPage() {
 
             {/* Overlay iOS PWA: muestra la nota en iframe cuando window.open falla */}
             {printHtml && (
-                <div className="fixed inset-0 z-50 bg-white flex flex-col">
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0 bg-white">
-                        <button onClick={() => setPrintHtml(null)}
-                            className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 transition">
-                            <X size={16} /> Cerrar
-                        </button>
-                        <button
-                            onClick={() => iframeRef.current?.contentWindow?.print()}
-                            className="flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-700 text-white text-sm font-bold rounded-xl transition">
-                            <Printer size={15} /> Imprimir / Compartir
-                        </button>
+                <>
+                    {/* CSS de impresión: oculta todo excepto el iframe */}
+                    <style dangerouslySetInnerHTML={{ __html: `
+                        @media print {
+                            body * { visibility: hidden !important; }
+                            #nota-pedido-iframe, #nota-pedido-iframe * { visibility: visible !important; }
+                            #nota-pedido-iframe { position: fixed !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; border: none !important; }
+                        }
+                    `}} />
+                    <div className="fixed inset-0 z-[9999] bg-white flex flex-col">
+                        {/* Contenido del iframe — ocupa todo el espacio */}
+                        <iframe
+                            id="nota-pedido-iframe"
+                            ref={iframeRef}
+                            srcDoc={printHtml}
+                            className="flex-1 w-full border-0"
+                            title="Nota de Pedido"
+                        />
+                        {/* Barra de acciones al fondo — más accesible en iPhone */}
+                        <div className="shrink-0 flex items-center gap-3 px-4 py-4 bg-white border-t border-gray-100 pb-safe">
+                            <button onClick={() => setPrintHtml(null)}
+                                className="flex items-center justify-center gap-1.5 px-4 py-3 border border-gray-200 rounded-2xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition flex-1">
+                                <X size={16} /> Cerrar
+                            </button>
+                            <button
+                                onClick={() => window.print()}
+                                className="flex items-center justify-center gap-2 px-4 py-3 bg-gray-900 hover:bg-gray-700 text-white text-sm font-bold rounded-2xl transition flex-[2]">
+                                <Printer size={16} /> Imprimir / Guardar PDF
+                            </button>
+                        </div>
                     </div>
-                    <iframe
-                        ref={iframeRef}
-                        srcDoc={printHtml}
-                        className="flex-1 w-full border-0"
-                        title="Nota de Pedido"
-                    />
-                </div>
+                </>
             )}
         </div>
     );
