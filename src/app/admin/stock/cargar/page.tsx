@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronDown, ChevronUp, Save, ClipboardList, Trash2, Loader2, DollarSign, RotateCcw, PlusCircle } from "lucide-react";
 
 const DRAFT_KEY = "hmorgan_stock_cargar_draft";
+const DRAFT_AGREGAR_KEY = "hmorgan_stock_agregar_draft";
 
 type StockItem = {
     _id: string;
@@ -35,6 +36,14 @@ type Conteo = {
 type Draft = {
     cantidades: Record<string, string>;
     notas: string;
+    precios: Record<string, string>;
+    savedAt: number;
+};
+
+type DraftAgregar = {
+    conteoId: string;
+    fechaConteo: string;
+    cantidades: Record<string, string>;
     precios: Record<string, string>;
     savedAt: number;
 };
@@ -91,12 +100,15 @@ export default function CargarStockPage() {
     const [preciosAgregar, setPreciosAgregar] = useState<Record<string, string>>({});
     const [mostrarPreciosAgregar, setMostrarPreciosAgregar] = useState(false);
     const [savingAgregar, setSavingAgregar] = useState(false);
+    const [borradorAgregar, setBorradorAgregar] = useState<DraftAgregar | null>(null);
+    const [isDirtyAgregar, setIsDirtyAgregar] = useState(false);
 
     // ── Historial ──
     const [conteos, setConteos] = useState<Conteo[]>([]);
     const [loadingConteos, setLoadingConteos] = useState(true);
     const [expandido, setExpandido] = useState<string | null>(null);
     const [comparandoCon, setComparandoCon] = useState<string | null>(null);
+    const [recuperando, setRecuperando] = useState(false);
 
     const loadProductos = useCallback(() => {
         setLoadingProd(true);
@@ -129,7 +141,7 @@ export default function CargarStockPage() {
 
     useEffect(() => { loadProductos(); loadConteos(); }, [loadProductos, loadConteos]);
 
-    // Auto-guardar borrador (solo si el usuario hizo algún cambio)
+    // Auto-guardar borrador cargar (solo si el usuario hizo algún cambio)
     useEffect(() => {
         if (!productosLoaded || vista !== "cargar" || !isDirty) return;
         const t = setTimeout(() => {
@@ -138,6 +150,23 @@ export default function CargarStockPage() {
         }, 600);
         return () => clearTimeout(t);
     }, [cantidades, notas, precios, productosLoaded, vista, isDirty]);
+
+    // Auto-guardar borrador agregar
+    useEffect(() => {
+        if (vista !== "agregar" || !conteoObjetivo || !isDirtyAgregar) return;
+        const t = setTimeout(() => {
+            try {
+                localStorage.setItem(DRAFT_AGREGAR_KEY, JSON.stringify({
+                    conteoId: conteoObjetivo._id,
+                    fechaConteo: conteoObjetivo.createdAt,
+                    cantidades: cantAgregar,
+                    precios: preciosAgregar,
+                    savedAt: Date.now(),
+                }));
+            } catch { /* ignore */ }
+        }, 600);
+        return () => clearTimeout(t);
+    }, [cantAgregar, preciosAgregar, vista, conteoObjetivo, isDirtyAgregar]);
 
     // Wrappers que marcan dirty solo cuando el usuario edita
     const editCantidades = (fn: (p: Record<string, string>) => Record<string, string>) => {
@@ -196,19 +225,74 @@ export default function CargarStockPage() {
                 localStorage.removeItem(DRAFT_KEY);
                 setBorrador(null); setNotas(""); setPrecios({}); setIsDirty(false);
                 loadConteos(); setVista("historial"); setNavTipo(null); setNavSubcat(null);
+            } else {
+                const err = await res.json().catch(() => ({}));
+                alert(`Error al guardar: ${err.error ?? res.status}`);
             }
         } finally { setSaving(false); }
     }
 
+    async function recuperarDesdeStock() {
+        if (!window.confirm("¿Crear un nuevo conteo con los valores actuales del stock? Esto genera una entrada en el historial con las cantidades que aparecen hoy en el stock general.")) return;
+        setRecuperando(true);
+        try {
+            const res = await fetch("/api/superadmin/stock/conteos/recuperar", {
+                method: "POST", credentials: "include",
+            });
+            if (res.ok) {
+                loadConteos();
+                alert("Conteo creado correctamente con los valores actuales del stock.");
+            } else {
+                alert("Error al recuperar. Intentá de nuevo.");
+            }
+        } finally { setRecuperando(false); }
+    }
+
     function iniciarAgregar(conteo: Conteo) {
         setConteoObjetivo(conteo);
+        setIsDirtyAgregar(false);
+        // Revisar si hay borrador para este conteo
+        try {
+            const raw = localStorage.getItem(DRAFT_AGREGAR_KEY);
+            if (raw) {
+                const d = JSON.parse(raw) as DraftAgregar;
+                if (d.conteoId === conteo._id) {
+                    setBorradorAgregar(d);
+                    setCantAgregar(d.cantidades ?? {});
+                    setPreciosAgregar(d.precios ?? {});
+                    setNavTipo(null); setNavSubcat(null);
+                    setVista("agregar");
+                    return;
+                } else {
+                    localStorage.removeItem(DRAFT_AGREGAR_KEY);
+                }
+            }
+        } catch { /* ignore */ }
         const init: Record<string, string> = {};
         productos.forEach(p => { init[p._id] = ""; });
         setCantAgregar(init); setPreciosAgregar({});
+        setBorradorAgregar(null);
         setMostrarPreciosAgregar(false);
         setNavTipo(null); setNavSubcat(null);
         setVista("agregar");
     }
+
+    function restaurarBorradorAgregar() { setBorradorAgregar(null); setIsDirtyAgregar(true); }
+    function descartarBorradorAgregar() {
+        localStorage.removeItem(DRAFT_AGREGAR_KEY);
+        setBorradorAgregar(null);
+        const init: Record<string, string> = {};
+        productos.forEach(p => { init[p._id] = ""; });
+        setCantAgregar(init); setPreciosAgregar({});
+        setIsDirtyAgregar(false);
+    }
+
+    const editCantAgregar = (fn: (p: Record<string, string>) => Record<string, string>) => {
+        setIsDirtyAgregar(true); setCantAgregar(fn);
+    };
+    const editPreciosAgregar = (fn: (p: Record<string, string>) => Record<string, string>) => {
+        setIsDirtyAgregar(true); setPreciosAgregar(fn);
+    };
 
     async function guardarAgregar() {
         if (!conteoObjetivo) return;
@@ -228,6 +312,8 @@ export default function CargarStockPage() {
                 credentials: "include", body: JSON.stringify({ items }),
             });
             if (res.ok) {
+                localStorage.removeItem(DRAFT_AGREGAR_KEY);
+                setBorradorAgregar(null); setIsDirtyAgregar(false);
                 const idPrev = conteoObjetivo._id;
                 setConteoObjetivo(null); loadConteos();
                 setVista("historial"); setExpandido(idPrev);
@@ -494,12 +580,41 @@ export default function CargarStockPage() {
                 {vista === "agregar" && (
                     loadingProd
                         ? <div className="flex justify-center py-16"><Loader2 className="animate-spin text-gray-400" size={32} /></div>
-                        : renderForm(cantAgregar, setCantAgregar, preciosAgregar, setPreciosAgregar, mostrarPreciosAgregar, setMostrarPreciosAgregar, guardarAgregar, savingAgregar, "Sumar al stock existente")
+                        : <>
+                            {!enNav && borradorAgregar && (
+                                <div className="mb-4 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-start gap-3">
+                                    <RotateCcw size={18} className="text-amber-600 shrink-0 mt-0.5" />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-black text-amber-800">Hay un borrador guardado</p>
+                                        <p className="text-xs text-amber-600 mt-0.5">Guardado el {formatHora(borradorAgregar.savedAt)}</p>
+                                        <div className="flex gap-2 mt-2">
+                                            <button onClick={restaurarBorradorAgregar}
+                                                className="flex-1 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg transition">
+                                                Restaurar borrador
+                                            </button>
+                                            <button onClick={descartarBorradorAgregar}
+                                                className="flex-1 py-1.5 bg-white border border-amber-300 text-amber-700 text-xs font-bold rounded-lg transition hover:bg-amber-50">
+                                                Descartar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            {renderForm(cantAgregar, editCantAgregar, preciosAgregar, editPreciosAgregar, mostrarPreciosAgregar, setMostrarPreciosAgregar, guardarAgregar, savingAgregar, "Sumar al stock existente")}
+                        </>
                 )}
 
                 {/* ── VISTA HISTORIAL ── */}
                 {vista === "historial" && (
                     <>
+                        {/* Botón sincronizar */}
+                        <div className="mb-3 flex justify-end">
+                            <button onClick={recuperarDesdeStock} disabled={recuperando}
+                                className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-gray-500 hover:text-gray-800 border border-gray-200 hover:border-gray-400 bg-white rounded-xl transition disabled:opacity-50">
+                                <RotateCcw size={13} className={recuperando ? "animate-spin" : ""} />
+                                {recuperando ? "Sincronizando..." : "Sincronizar con stock actual"}
+                            </button>
+                        </div>
                         {loadingConteos ? (
                             <div className="flex justify-center py-16"><Loader2 className="animate-spin text-gray-400" size={32} /></div>
                         ) : conteos.length === 0 ? (

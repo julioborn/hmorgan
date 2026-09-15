@@ -245,7 +245,7 @@ export default function StockPage() {
                     </button>
                     <button onClick={() => setSubcatModal(true)}
                         className="flex items-center justify-center gap-2 px-4 py-3.5 border-2 border-gray-200 hover:border-gray-400 bg-white text-gray-700 hover:text-gray-900 rounded-2xl font-bold text-sm transition">
-                        <Settings size={17} />
+                        <Settings size={17} /> Subcategorías
                     </button>
                 </div>
                 <button onClick={() => router.push("/admin/stock/pedido")}
