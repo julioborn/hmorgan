@@ -1,7 +1,7 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Printer, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
+import { ChevronLeft, Printer, ChevronDown, ChevronUp, RotateCcw, X } from "lucide-react";
 
 const DRAFT_KEY = "hmorgan_nota_pedido_draft";
 
@@ -35,6 +35,8 @@ export default function NotaPedidoPage() {
     const [expandidos, setExpandidos] = useState<Record<string, boolean>>({});
     const [borrador, setBorrador] = useState<Draft | null>(null);
     const [isDirty, setIsDirty] = useState(false);
+    const [printHtml, setPrintHtml] = useState<string | null>(null);
+    const iframeRef = useRef<HTMLIFrameElement>(null);
 
     const loadProductos = useCallback(() => {
         setLoading(true);
@@ -113,17 +115,17 @@ export default function NotaPedidoPage() {
     const itemsSeleccionados = productos.filter(p => seleccionados[p._id]);
     const totalSeleccionados = itemsSeleccionados.length;
 
-    function imprimir() {
+    function buildHtml(autoPrint: boolean) {
         const fecha = new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
         const filas = itemsSeleccionados.map(p => {
             const cant = cantidades[p._id] ? `${cantidades[p._id]} ${p.unidad}` : `_____ ${p.unidad}`;
             return `<tr><td>${p.nombre}</td><td>${normCat(p)}</td><td style="text-align:right">${formatNum(p.stockActual)} ${p.unidad}</td><td style="text-align:center">${cant}</td></tr>`;
         }).join("");
-
-        const html = `<!DOCTYPE html>
+        return `<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Nota de Pedido</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -157,16 +159,24 @@ export default function NotaPedidoPage() {
     <div class="firma-linea"><hr/><p>Solicitado por</p></div>
     <div class="firma-linea"><hr/><p>Proveedor</p></div>
   </div>
-  <script>window.onload=()=>window.print();</script>
+  ${autoPrint ? "<script>window.onload=()=>window.print();</script>" : ""}
 </body>
 </html>`;
+    }
 
-        // Borrar borrador al generar
+    function imprimir() {
         localStorage.removeItem(DRAFT_KEY);
         setBorrador(null); setIsDirty(false);
 
+        // En browsers normales window.open abre una nueva pestaña
         const win = window.open("", "_blank");
-        if (win) { win.document.write(html); win.document.close(); }
+        if (win) {
+            win.document.write(buildHtml(true));
+            win.document.close();
+        } else {
+            // iOS PWA no permite window.open → mostrar en overlay con iframe
+            setPrintHtml(buildHtml(false));
+        }
     }
 
     const TIPO_LABEL: Record<string, { label: string; emoji: string; color: string }> = {
@@ -289,6 +299,29 @@ export default function NotaPedidoPage() {
                         className="w-full max-w-3xl mx-auto flex items-center justify-center gap-2 py-4 bg-gray-900 hover:bg-gray-700 text-white rounded-2xl font-bold text-sm transition">
                         <Printer size={18} /> Generar PDF ({totalSeleccionados} producto{totalSeleccionados !== 1 ? "s" : ""})
                     </button>
+                </div>
+            )}
+
+            {/* Overlay iOS PWA: muestra la nota en iframe cuando window.open falla */}
+            {printHtml && (
+                <div className="fixed inset-0 z-50 bg-white flex flex-col">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0 bg-white">
+                        <button onClick={() => setPrintHtml(null)}
+                            className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 transition">
+                            <X size={16} /> Cerrar
+                        </button>
+                        <button
+                            onClick={() => iframeRef.current?.contentWindow?.print()}
+                            className="flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-700 text-white text-sm font-bold rounded-xl transition">
+                            <Printer size={15} /> Imprimir / Compartir
+                        </button>
+                    </div>
+                    <iframe
+                        ref={iframeRef}
+                        srcDoc={printHtml}
+                        className="flex-1 w-full border-0"
+                        title="Nota de Pedido"
+                    />
                 </div>
             )}
         </div>
