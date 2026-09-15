@@ -462,6 +462,20 @@ export default function NotaPedidoPage() {
             {/* Overlay iOS PWA: imagen generada con canvas */}
             {(generando || imagenUrl) && (
                 <div className="fixed inset-0 z-[9999] bg-gray-950 flex flex-col">
+                    {/* Botones arriba */}
+                    <div className="shrink-0 flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-100" style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}>
+                        <button onClick={cerrarImagen}
+                            className="flex items-center justify-center gap-1.5 px-4 py-3 border border-gray-200 rounded-2xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition flex-1">
+                            <X size={16} /> Cerrar
+                        </button>
+                        {imagenUrl && (
+                            <button onClick={compartirImagen}
+                                className="flex items-center justify-center gap-2 px-4 py-3 bg-gray-900 hover:bg-gray-700 text-white text-sm font-bold rounded-2xl transition flex-[2]">
+                                <Share2 size={16} /> Compartir / Guardar
+                            </button>
+                        )}
+                    </div>
+                    {/* Contenido */}
                     {generando ? (
                         <div className="flex-1 flex items-center justify-center">
                             <div className="text-center text-white">
@@ -474,18 +488,6 @@ export default function NotaPedidoPage() {
                             <img src={imagenUrl!} alt="Nota de pedido" className="w-full block" />
                         </div>
                     )}
-                    <div className="shrink-0 flex items-center gap-3 px-4 py-4 bg-white border-t border-gray-100">
-                        <button onClick={cerrarImagen}
-                            className="flex items-center justify-center gap-1.5 px-4 py-3 border border-gray-200 rounded-2xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition flex-1">
-                            <X size={16} /> Cerrar
-                        </button>
-                        {imagenUrl && (
-                            <button onClick={compartirImagen}
-                                className="flex items-center justify-center gap-2 px-4 py-3 bg-gray-900 hover:bg-gray-700 text-white text-sm font-bold rounded-2xl transition flex-[2]">
-                                <Share2 size={16} /> Compartir / Guardar
-                            </button>
-                        )}
-                    </div>
                 </div>
             )}
         </div>
