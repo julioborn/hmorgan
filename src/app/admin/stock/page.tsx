@@ -47,8 +47,8 @@ function Modal({ onClose, title, children, footer }: {
     children: React.ReactNode; footer: React.ReactNode;
 }) {
     return (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 pt-14">
-            <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[88vh]">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 pt-14" style={{ height: "100dvh" }}>
+            <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col" style={{ maxHeight: "88dvh" }}>
                 <div className="flex items-center px-5 py-4 border-b border-gray-100 shrink-0">
                     <h2 className="font-black text-gray-900 flex-1 text-base">{title}</h2>
                     <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition">
