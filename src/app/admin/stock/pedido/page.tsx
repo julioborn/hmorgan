@@ -38,6 +38,7 @@ export default function NotaPedidoPage() {
     const [imagenUrl, setImagenUrl] = useState<string | null>(null);
     const [generando, setGenerando] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const draftBlockedRef = useRef(false);
 
     const loadProductos = useCallback(() => {
         setLoading(true);
@@ -58,10 +59,11 @@ export default function NotaPedidoPage() {
 
     useEffect(() => { loadProductos(); }, [loadProductos]);
 
-    // Auto-guardar borrador solo si el usuario hizo algún cambio
+    // Auto-guardar borrador solo si el usuario hizo algún cambio y no descartó
     useEffect(() => {
-        if (!isDirty) return;
+        if (!isDirty || draftBlockedRef.current) return;
         const t = setTimeout(() => {
+            if (draftBlockedRef.current) return;
             try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ seleccionados, cantidades, notas, savedAt: Date.now() })); }
             catch { /* ignore */ }
         }, 600);
@@ -74,6 +76,7 @@ export default function NotaPedidoPage() {
         setCantidades(borrador.cantidades ?? {});
         setNotas(borrador.notas ?? "");
         setBorrador(null);
+        draftBlockedRef.current = false;
         setIsDirty(true);
     }
 
@@ -81,9 +84,10 @@ export default function NotaPedidoPage() {
         localStorage.removeItem(DRAFT_KEY);
         setBorrador(null);
         setIsDirty(false);
+        draftBlockedRef.current = true;
     }
 
-    const markDirty = () => { if (!isDirty) setIsDirty(true); };
+    const markDirty = () => { draftBlockedRef.current = false; if (!isDirty) setIsDirty(true); };
 
     const toggleProducto = (id: string) => {
         markDirty();

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronDown, ChevronUp, Save, ClipboardList, Trash2, Loader2, DollarSign, RotateCcw, PlusCircle } from "lucide-react";
 
@@ -78,6 +78,10 @@ export default function CargarStockPage() {
     const [loadingProd, setLoadingProd] = useState(true);
     const [productosLoaded, setProductosLoaded] = useState(false);
 
+    // refs para bloquear auto-save después de descartar
+    const draftBlockedRef = useRef(false);
+    const draftAgregarBlockedRef = useRef(false);
+
     // vista principal
     const [vista, setVista] = useState<"cargar" | "historial" | "agregar">("cargar");
 
@@ -143,10 +147,11 @@ export default function CargarStockPage() {
 
     useEffect(() => { loadProductos(); loadConteos(); }, [loadProductos, loadConteos]);
 
-    // Auto-guardar borrador cargar (solo si el usuario hizo algún cambio)
+    // Auto-guardar borrador cargar (solo si el usuario hizo algún cambio y no descartó)
     useEffect(() => {
-        if (!productosLoaded || vista !== "cargar" || !isDirty) return;
+        if (!productosLoaded || vista !== "cargar" || !isDirty || draftBlockedRef.current) return;
         const t = setTimeout(() => {
+            if (draftBlockedRef.current) return;
             try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ cantidades, notas, precios, savedAt: Date.now() })); }
             catch { /* ignore */ }
         }, 600);
@@ -155,8 +160,9 @@ export default function CargarStockPage() {
 
     // Auto-guardar borrador agregar
     useEffect(() => {
-        if (vista !== "agregar" || !conteoObjetivo || !isDirtyAgregar) return;
+        if (vista !== "agregar" || !conteoObjetivo || !isDirtyAgregar || draftAgregarBlockedRef.current) return;
         const t = setTimeout(() => {
+            if (draftAgregarBlockedRef.current) return;
             try {
                 localStorage.setItem(DRAFT_AGREGAR_KEY, JSON.stringify({
                     conteoId: conteoObjetivo._id,
@@ -172,17 +178,17 @@ export default function CargarStockPage() {
 
     // Wrappers que marcan dirty solo cuando el usuario edita
     const editCantidades = (fn: (p: Record<string, string>) => Record<string, string>) => {
-        setIsDirty(true); setCantidades(fn);
+        draftBlockedRef.current = false; setIsDirty(true); setCantidades(fn);
     };
     const editFracciones = (fn: (p: Record<string, number>) => Record<string, number>) => {
-        setIsDirty(true); setFracciones(fn);
+        draftBlockedRef.current = false; setIsDirty(true); setFracciones(fn);
     };
     const editFraccionesAgregar = (fn: (p: Record<string, number>) => Record<string, number>) => {
-        setIsDirtyAgregar(true); setFraccionesAgregar(fn);
+        draftAgregarBlockedRef.current = false; setIsDirtyAgregar(true); setFraccionesAgregar(fn);
     };
-    const editNotas = (v: string) => { setIsDirty(true); setNotas(v); };
+    const editNotas = (v: string) => { draftBlockedRef.current = false; setIsDirty(true); setNotas(v); };
     const editPrecios = (fn: (p: Record<string, string>) => Record<string, string>) => {
-        setIsDirty(true); setPrecios(fn);
+        draftBlockedRef.current = false; setIsDirty(true); setPrecios(fn);
     };
 
     function restaurarBorrador() {
@@ -199,6 +205,7 @@ export default function CargarStockPage() {
         localStorage.removeItem(DRAFT_KEY);
         setBorrador(null);
         setIsDirty(false);
+        draftBlockedRef.current = true;
     }
 
     function cambiarVista(v: "cargar" | "historial") {
@@ -293,13 +300,14 @@ export default function CargarStockPage() {
         productos.forEach(p => { init[p._id] = ""; });
         setCantAgregar(init); setPreciosAgregar({});
         setIsDirtyAgregar(false);
+        draftAgregarBlockedRef.current = true;
     }
 
     const editCantAgregar = (fn: (p: Record<string, string>) => Record<string, string>) => {
-        setIsDirtyAgregar(true); setCantAgregar(fn);
+        draftAgregarBlockedRef.current = false; setIsDirtyAgregar(true); setCantAgregar(fn);
     };
     const editPreciosAgregar = (fn: (p: Record<string, string>) => Record<string, string>) => {
-        setIsDirtyAgregar(true); setPreciosAgregar(fn);
+        draftAgregarBlockedRef.current = false; setIsDirtyAgregar(true); setPreciosAgregar(fn);
     };
 
     async function guardarAgregar() {
