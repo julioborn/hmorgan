@@ -419,6 +419,13 @@ export default function AdminMenuPage() {
     const getPosition = (cat: string) => categoryConfigMap[cat]?.imagePosition || "50% 50%";
 
     const todasCats = Array.from(new Set(items.map(i => i.categoria)));
+    const allRealCats = [
+        ...MAIN_ORDER.filter(c => c !== "BEBIDAS" && c !== "PICADAS Y FRITURAS"),
+        ...BEBIDAS_CATS,
+        ...PICAR_CATS,
+        ...todasCats.filter(c => !MAIN_ORDER.includes(c) && !BEBIDAS_CATS.includes(c) && !PICAR_CATS.includes(c)),
+    ].filter((c, i, a) => a.indexOf(c) === i).sort();
+
     const categoriasNavegacion = [
         ...(items.some(i => i.categoria === "MENÚ DEL DÍA") ? ["MENÚ DEL DÍA"] : []),
         ...MAIN_ORDER.filter(cat =>
@@ -657,6 +664,18 @@ export default function AdminMenuPage() {
                                                 setEditando({ ...editando, precio: parseFloat(e.target.value.replace(/\./g, "")) || 0 })
                                             }
                                         />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-black text-gray-400 uppercase tracking-wide mb-1">Mover a categoría</p>
+                                        <select
+                                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-black focus:outline-none focus:ring-2 focus:ring-red-500"
+                                            value={editando.categoria}
+                                            onChange={(e) => setEditando({ ...editando, categoria: e.target.value })}
+                                        >
+                                            {allRealCats.map(cat => (
+                                                <option key={cat} value={cat}>{cat}</option>
+                                            ))}
+                                        </select>
                                     </div>
 
                                     {/* ── Editor de opciones ── */}
