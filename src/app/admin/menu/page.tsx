@@ -560,7 +560,7 @@ export default function AdminMenuPage() {
 
     /* ── Vista BEBIDAS: subcategorías ── */
     if (categoriaActiva === "BEBIDAS") {
-        const subCats = BEBIDAS_CATS.filter((bc) => items.some((i) => i.categoria === bc));
+        const subCats = BEBIDAS_CATS;
         return (
             <div className="bg-white min-h-screen">
                 <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
