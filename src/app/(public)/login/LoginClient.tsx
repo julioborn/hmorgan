@@ -40,36 +40,27 @@ export default function LoginPage() {
         setLoading(true);
         setErrors((p) => ({ ...p, general: undefined }));
 
-        const res = await fetch("/api/auth/login", {
-            method: "POST",
-            body: JSON.stringify({ username, password }),
-            headers: { "Content-Type": "application/json" },
-            cache: "no-store",
-            credentials: "same-origin",
-        });
-
-        setLoading(false);
-
-        if (!res.ok) {
-            const data = await res.json().catch(() => ({}));
-            setErrors((p) => ({ ...p, general: data.error || "No se pudo iniciar sesión" }));
-            return;
-        }
-
-        // ✅ NO dejes que push/refresh bloqueen el redirect
         try {
-            //await refresh();
-        } catch (err) {
-            console.warn("refresh falló:", err);
-        }
+            const res = await fetch("/api/auth/login", {
+                method: "POST",
+                body: JSON.stringify({ username, password }),
+                headers: { "Content-Type": "application/json" },
+                cache: "no-store",
+                credentials: "same-origin",
+            });
 
-        try {
-            //await ensurePushAfterLogin();
-        } catch (err) {
-            console.warn("ensurePushAfterLogin falló:", err);
-        }
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                setErrors((p) => ({ ...p, general: data.error || "No se pudo iniciar sesión" }));
+                return;
+            }
 
-        window.location.href = "/";
+            window.location.href = "/";
+        } catch {
+            setErrors((p) => ({ ...p, general: "Error de conexión. Intentá de nuevo." }));
+        } finally {
+            setLoading(false);
+        }
 
     }
 
