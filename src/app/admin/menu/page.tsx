@@ -38,13 +38,14 @@ type MenuItem = {
 const formatPrice = (value: number) =>
     new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(value);
 
-const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
+const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "ESPUMANTES Y SIDRAS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
 const PICAR_CATS   = ["PICADAS", "FRITURAS"];
-const MAIN_ORDER   = ["PARRILLA", "PIZZAS", "HAMBURGUESAS", "SANDWICHES", "PICADAS Y FRITURAS", "ENSALADAS", "BEBIDAS", "POSTRE Y CAFE"];
+const MAIN_ORDER   = ["PARRILLA", "PIZZAS", "MILANESAS", "HAMBURGUESAS", "SANDWICHES", "PICADAS Y FRITURAS", "ENSALADAS", "BEBIDAS", "POSTRE Y CAFE"];
 
 const categoryImages: Record<string, string> = {
     PARRILLA: "/parrilla.jpg",
     PIZZAS: "/pizzas.jpg",
+    MILANESAS: "/milanesas.jpg",
     HAMBURGUESAS: "/hamburguesas.jpg",
     SANDWICHES: "/sandwiches.jpg",
     "PICADAS Y FRITURAS": "/picada.jpg",

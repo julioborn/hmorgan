@@ -27,7 +27,7 @@ const fetcher = (url: string) => fetch(url, { cache: "no-store" }).then((r) => r
 const formatPrice = (v: number) =>
     new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(v);
 
-const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
+const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "ESPUMANTES Y SIDRAS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
 const PICAR_CATS   = ["PICADAS", "FRITURAS"];
 const MAIN_ORDER   = ["PARRILLA", "PIZZAS", "MILANESAS", "HAMBURGUESAS", "SANDWICHES", "PICADAS Y FRITURAS", "ENSALADAS", "BEBIDAS", "POSTRE Y CAFE"];
 
