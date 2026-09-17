@@ -1,58 +1,64 @@
-// ✅ H MORGAN BAR - SERVICE WORKER v31
-const CACHE = "hmorgan-v33";
-const ASSETS = ["/", "/favicon.ico", "/manifest.json", "/icon-192x192.png", "/icon-512x512.png"];
+// ✅ H MORGAN BAR - SERVICE WORKER v34
+const CACHE = "hmorgan-v34";
+const STATIC_ASSETS = ["/favicon.ico", "/manifest.json", "/icon-192x192.png", "/icon-512x512.png"];
 
 self.addEventListener("install", (event) => {
     event.waitUntil(
-        (async () => {
-            const cache = await caches.open(CACHE);
-            await cache.addAll(ASSETS);
-            self.skipWaiting();
-        })()
+        caches.open(CACHE).then(cache => cache.addAll(STATIC_ASSETS))
     );
+    self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
     event.waitUntil(
         (async () => {
-            // 🧹 Limpiar caches viejos
+            // Limpiar caches viejos
             const keys = await caches.keys();
-            await Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)));
-
-            // 🔁 Reclamar control inmediatamente
+            await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
             await self.clients.claim();
 
-            // 🔄 Notificar a los clientes activos para recargar
+            // Notificar a los clientes activos para recargar
             const clientsArr = await self.clients.matchAll({ type: "window" });
             for (const client of clientsArr) {
-                try {
-                    client.postMessage({ type: "RELOAD_PAGE" }); // ✅ en lugar de navigate()
-                } catch (e) {
-                    console.warn("No se pudo enviar mensaje de recarga:", e);
-                }
+                try { client.postMessage({ type: "RELOAD_PAGE" }); } catch { }
             }
         })()
     );
 });
 
-// ✅ Interceptar fetch (modo cache-first)
 self.addEventListener("fetch", (event) => {
     const { request } = event;
     if (request.method !== "GET") return;
 
+    const url = new URL(request.url);
+
+    // 🚫 API: nunca cachear
+    if (url.pathname.startsWith("/api/")) return;
+
+    // ✅ Bundles de Next.js (/_next/static/): cache-first
+    // Tienen hash único por deploy → nuevos bundles = nueva URL → siempre frescos
+    if (url.pathname.startsWith("/_next/static/")) {
+        event.respondWith(
+            caches.match(request).then(cached => {
+                if (cached) return cached;
+                return fetch(request).then(response => {
+                    caches.open(CACHE).then(cache => cache.put(request, response.clone()));
+                    return response;
+                }).catch(() => Response.error());
+            })
+        );
+        return;
+    }
+
+    // ✅ Todo lo demás (HTML, páginas, imágenes públicas): network-first
+    // Así siempre se sirve el código más reciente; la caché es solo fallback offline
     event.respondWith(
-        (async () => {
-            const cached = await caches.match(request);
-            if (cached) return cached;
-            try {
-                const response = await fetch(request);
-                const cache = await caches.open(CACHE);
-                cache.put(request, response.clone());
-                return response;
-            } catch {
-                return cached || Response.error();
-            }
-        })()
+        fetch(request).then(response => {
+            // Cachear copia fresca para uso offline
+            const clone = response.clone();
+            caches.open(CACHE).then(cache => cache.put(request, clone));
+            return response;
+        }).catch(() => caches.match(request).then(cached => cached || Response.error()))
     );
 });
 
@@ -65,11 +71,9 @@ self.addEventListener("push", (event) => {
         self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
             const focused = clients.find((c) => c.visibilityState === "visible");
             if (focused) {
-                // App en primer plano: enviar al cliente para mostrar toast in-app
                 focused.postMessage({ type: "PUSH_NOTIFICATION", title: data.title || "", body: data.body || "" });
                 return;
             }
-            // App en background: mostrar notificación del sistema
             return self.registration.showNotification(data.title || "Morgan", {
                 body: data.body || "",
                 icon: "/morganwhite.png",

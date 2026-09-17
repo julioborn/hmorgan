@@ -28,12 +28,16 @@ export default function RegisterSW() {
                     console.log("🆕 Service Worker actualizado en background.");
                 });
 
-                // 🔔 Recibir push en primer plano desde el SW
+                // 🔔 Recibir mensajes del SW
                 navigator.serviceWorker.addEventListener("message", (event) => {
                     if (event.data?.type === "PUSH_NOTIFICATION") {
                         window.dispatchEvent(new CustomEvent("push-notification", {
                             detail: { title: event.data.title, body: event.data.body },
                         }));
+                    }
+                    // 🔄 Nuevo SW activado: recargar para servir código fresco
+                    if (event.data?.type === "RELOAD_PAGE") {
+                        window.location.reload();
                     }
                 });
             } catch (err) {
