@@ -1,10 +1,9 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { swalBase } from "@/lib/swalConfig";
 import {
     Plus, TrendingUp, TrendingDown, AlertTriangle,
-    X, History, Edit2, Trash2, Loader2, ChevronLeft, ClipboardList, Settings, DollarSign, Package, FileText,
+    Edit2, Loader2, ChevronLeft, ClipboardList, Settings, DollarSign, Package, FileText, Trash2, X,
 } from "lucide-react";
 
 type Tipo = "cocina" | "bebida";
@@ -16,21 +15,12 @@ type StockItem = {
     activo: boolean; unidadesPorCaja?: number; presentaciones?: Presentacion[];
     precioUnitario?: number;
 };
-type StockMovimiento = {
-    _id: string; tipo: "entrada" | "salida"; cantidad: number;
-    motivo: string; precioUnitario?: number; notas?: string; createdAt: string;
-};
 
 const TIPO_META: Record<Tipo, { label: string; emoji: string; color: string; bg: string; border: string; accent: string }> = {
     cocina: { label: "Cocina", emoji: "🍳", color: "text-orange-700", bg: "bg-orange-50", border: "border-orange-200", accent: "bg-orange-600" },
     bebida: { label: "Bebida", emoji: "🍺", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-200", accent: "bg-blue-600" },
 };
 
-const EMPTY_ITEM = (tipo: Tipo, categoria = ""): Omit<StockItem, "_id"> => ({
-    nombre: "", descripcion: "", tipo, categoria,
-    unidad: "unidades", stockActual: 0, stockMinimo: 0, activo: true,
-    unidadesPorCaja: undefined, presentaciones: [],
-});
 
 const EMPTY_MOV = {
     tipo: "entrada" as "entrada" | "salida",
@@ -103,15 +93,11 @@ export default function StockPage() {
     const [vista, setVista] = useState<Tipo | null>(null);
     const [subcatVista, setSubcatVista] = useState<string | null>(null);
 
-    const [editModal, setEditModal] = useState<{ open: boolean; item: Partial<StockItem> & { _id?: string } }>({ open: false, item: EMPTY_ITEM("cocina") });
     const [movModal, setMovModal] = useState<{ open: boolean; item: StockItem | null }>({ open: false, item: null });
-    const [histModal, setHistModal] = useState<{ open: boolean; item: StockItem | null; movs: StockMovimiento[] }>({ open: false, item: null, movs: [] });
     const [subcatModal, setSubcatModal] = useState(false);
-    const [histLoading, setHistLoading] = useState(false);
 
     const [movForm, setMovForm] = useState(EMPTY_MOV);
     const [movSaving, setMovSaving] = useState(false);
-    const [editSaving, setEditSaving] = useState(false);
     const [search, setSearch] = useState("");
     const [mostrarValorizacion, setMostrarValorizacion] = useState(false);
     const [precios, setPrecios] = useState<Record<string, string>>({});
@@ -152,26 +138,6 @@ export default function StockPage() {
     function volverATipo() { setSubcatVista(null); setSearch(""); }
     function volverAMain() { setVista(null); setSubcatVista(null); setSearch(""); }
 
-    async function saveItem() {
-        const { _id, ...body } = editModal.item as any;
-        if (!body.nombre?.trim()) return;
-        setEditSaving(true);
-        try {
-            const url = _id ? `/api/superadmin/stock/${_id}` : "/api/superadmin/stock";
-            const method = _id ? "PATCH" : "POST";
-            const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(body) });
-            if (res.ok) { setEditModal({ open: false, item: EMPTY_ITEM(vista ?? "cocina") }); loadItems(); }
-        } finally { setEditSaving(false); }
-    }
-
-    async function deleteItem(id: string, nombre: string) {
-        const r = await swalBase.fire({ title: `¿Eliminar "${nombre}"?`, icon: "warning", showCancelButton: true, confirmButtonText: "Sí, eliminar", cancelButtonText: "Cancelar" });
-        if (!r.isConfirmed) return;
-        await fetch(`/api/superadmin/stock/${id}`, { method: "DELETE", credentials: "include" });
-        setEditModal({ open: false, item: EMPTY_ITEM(vista ?? "cocina") });
-        loadItems();
-    }
-
     async function registrarMovimiento() {
         if (!movModal.item) return;
         const cantFinal = movForm.presentacionSel
@@ -189,16 +155,6 @@ export default function StockPage() {
             });
             if (res.ok) { setMovModal({ open: false, item: null }); setMovForm(EMPTY_MOV); loadItems(); }
         } finally { setMovSaving(false); }
-    }
-
-    async function openHistorial(item: StockItem) {
-        setHistModal({ open: true, item, movs: [] });
-        setHistLoading(true);
-        try {
-            const res = await fetch(`/api/superadmin/stock/${item._id}`, { credentials: "include" });
-            const data = await res.json();
-            setHistModal(prev => ({ ...prev, movs: data.movimientos || [] }));
-        } finally { setHistLoading(false); }
     }
 
     async function guardarPrecio(itemId: string, valor: string) {
@@ -376,7 +332,7 @@ export default function StockPage() {
                         <p className={`text-xs font-bold ${meta.color}`}>{meta.emoji} {meta.label}</p>
                         <h1 className="text-xl font-extrabold text-black truncate">{subcatVista}</h1>
                     </div>
-                    <button onClick={() => setEditModal({ open: true, item: { ...EMPTY_ITEM(vista, subcatVista) } })}
+                    <button onClick={() => router.push(`/admin/stock/editar/nuevo?tipo=${vista}&categoria=${encodeURIComponent(subcatVista ?? "")}`)}
                         className="flex items-center gap-1.5 bg-gray-900 hover:bg-gray-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition shrink-0">
                         <Plus size={15} /> Nuevo
                     </button>
@@ -431,7 +387,7 @@ export default function StockPage() {
                                         </div>
                                         {/* Acciones */}
                                         <div className="flex items-center gap-1.5 shrink-0">
-                                            <button onClick={() => setEditModal({ open: true, item: { ...item } })}
+                                            <button onClick={() => router.push(`/admin/stock/editar/${item._id}`)}
                                                 className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition" title="Editar">
                                                 <Edit2 size={14} className="text-gray-600" />
                                             </button>
@@ -463,115 +419,6 @@ export default function StockPage() {
                     </div>
                 )}
             </div>
-
-            {/* ── MODAL EDITAR / NUEVO ── */}
-            {editModal.open && (
-                <Modal
-                    title={editModal.item._id ? "Editar producto" : "Nuevo producto"}
-                    onClose={() => setEditModal({ open: false, item: EMPTY_ITEM(vista, subcatVista ?? "") })}
-                    footer={
-                        <div className="space-y-2">
-                            <ModalFooter
-                                onCancel={() => setEditModal({ open: false, item: EMPTY_ITEM(vista, subcatVista ?? "") })}
-                                onConfirm={saveItem}
-                                confirmLabel={editSaving ? "Guardando..." : "Guardar"}
-                                confirmDisabled={editSaving || !editModal.item.nombre?.trim()}
-                            />
-                            {editModal.item._id && (
-                                <div className="flex gap-2 pt-1">
-                                    <button onClick={() => { setEditModal({ open: false, item: EMPTY_ITEM(vista, subcatVista ?? "") }); openHistorial(editModal.item as StockItem); }}
-                                        className="flex-1 py-2 flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-gray-800 border border-gray-200 rounded-xl hover:bg-gray-50 transition">
-                                        <History size={13} /> Historial de movimientos
-                                    </button>
-                                    <button onClick={() => deleteItem(editModal.item._id!, editModal.item.nombre ?? "")}
-                                        className="flex-1 py-2 flex items-center justify-center gap-1.5 text-xs font-semibold text-red-500 hover:text-red-700 border border-red-100 rounded-xl hover:bg-red-50 transition">
-                                        <Trash2 size={13} /> Eliminar
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    }>
-                    {/* Sección */}
-                    <Field label="Sección">
-                        <div className="flex gap-2">
-                            {(["cocina", "bebida"] as Tipo[]).map(t => (
-                                <button key={t} onClick={() => setEditModal(p => ({ ...p, item: { ...p.item, tipo: t, categoria: "" } }))}
-                                    className={`flex-1 py-2.5 rounded-xl text-sm font-bold border transition ${editModal.item.tipo === t ? TIPO_META[t].accent + " text-white border-transparent" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
-                                    {TIPO_META[t].emoji} {TIPO_META[t].label}
-                                </button>
-                            ))}
-                        </div>
-                    </Field>
-                    {/* Nombre */}
-                    <Field label="Nombre *">
-                        <input value={editModal.item.nombre || ""} onChange={e => setEditModal(p => ({ ...p, item: { ...p.item, nombre: e.target.value } }))}
-                            placeholder="Ej: Cerveza Quilmes" className={inputCls} />
-                    </Field>
-                    {/* Subcategoría */}
-                    <Field label="Subcategoría">
-                        {getSubcats(editModal.item.tipo ?? "cocina").length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 mb-2">
-                                {getSubcats(editModal.item.tipo ?? "cocina").map(s => (
-                                    <button key={s._id} onClick={() => setEditModal(p => ({ ...p, item: { ...p.item, categoria: s.nombre } }))}
-                                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition border ${editModal.item.categoria === s.nombre ? (editModal.item.tipo === "bebida" ? "bg-blue-600 text-white border-blue-600" : "bg-orange-600 text-white border-orange-600") : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"}`}>
-                                        {s.nombre}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                        <input value={editModal.item.categoria || ""} onChange={e => setEditModal(p => ({ ...p, item: { ...p.item, categoria: e.target.value } }))}
-                            placeholder="O escribí una personalizada" className={inputCls} />
-                    </Field>
-                    {/* Unidad */}
-                    <Field label="Unidad">
-                        <input value={editModal.item.unidad || ""} onChange={e => setEditModal(p => ({ ...p, item: { ...p.item, unidad: e.target.value } }))}
-                            placeholder="kg, lts, unidades, cajas…" className={inputCls} />
-                    </Field>
-                    {/* Presentaciones */}
-                    <Field label="Presentaciones (cajón, caja, etc.)">
-                        <div className="space-y-2">
-                            {(editModal.item.presentaciones ?? []).map((p, idx) => (
-                                <div key={idx} className="flex gap-2 items-center">
-                                    <input value={p.nombre}
-                                        onChange={e => setEditModal(prev => { const arr = [...(prev.item.presentaciones ?? [])]; arr[idx] = { ...arr[idx], nombre: e.target.value }; return { ...prev, item: { ...prev.item, presentaciones: arr } }; })}
-                                        placeholder="Nombre (ej: Cajón)" className={inputCls + " flex-1"} />
-                                    <div className="flex items-center gap-1 shrink-0">
-                                        <input type="number" min="0.001" step="any" inputMode="decimal" value={p.unidades}
-                                            onChange={e => setEditModal(prev => { const arr = [...(prev.item.presentaciones ?? [])]; arr[idx] = { ...arr[idx], unidades: Number(e.target.value) }; return { ...prev, item: { ...prev.item, presentaciones: arr } }; })}
-                                            placeholder="Cant." className={inputCls + " w-20"} />
-                                        <span className="text-xs text-gray-400 whitespace-nowrap">{editModal.item.unidad || "u."}</span>
-                                    </div>
-                                    <button onClick={() => setEditModal(prev => { const arr = (prev.item.presentaciones ?? []).filter((_, i) => i !== idx); return { ...prev, item: { ...prev.item, presentaciones: arr } }; })}
-                                        className="p-2 text-red-400 hover:text-red-600 transition shrink-0"><X size={14} /></button>
-                                </div>
-                            ))}
-                            <button onClick={() => setEditModal(prev => ({ ...prev, item: { ...prev.item, presentaciones: [...(prev.item.presentaciones ?? []), { nombre: "", unidades: 1 }] } }))}
-                                className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-900 font-semibold py-1.5 px-2 rounded-lg hover:bg-gray-100 transition">
-                                <Plus size={13} /> Agregar presentación
-                            </button>
-                        </div>
-                    </Field>
-                    {/* Stock mínimo */}
-                    <div className="grid grid-cols-2 gap-3">
-                        <Field label="Stock actual">
-                            <div className={inputCls + " text-gray-400 bg-gray-50 cursor-default"}>
-                                {formatNum(editModal.item.stockActual ?? 0)}
-                            </div>
-                        </Field>
-                        <Field label="Stock mínimo">
-                            <input type="number" min="0" value={editModal.item.stockMinimo ?? ""} onChange={e => setEditModal(p => ({ ...p, item: { ...p.item, stockMinimo: Number(e.target.value) } }))}
-                                className={inputCls} />
-                        </Field>
-                    </div>
-                    {editModal.item._id && (
-                        <div className="flex items-center gap-2">
-                            <input type="checkbox" id="activo" checked={editModal.item.activo ?? true}
-                                onChange={e => setEditModal(p => ({ ...p, item: { ...p.item, activo: e.target.checked } }))} className="w-4 h-4 accent-gray-700" />
-                            <label htmlFor="activo" className="text-sm text-gray-600">Producto activo</label>
-                        </div>
-                    )}
-                </Modal>
-            )}
 
             {/* ── MODAL MOVIMIENTO ── */}
             {movModal.open && movModal.item && (() => {
@@ -659,36 +506,6 @@ export default function StockPage() {
                 );
             })()}
 
-            {/* ── MODAL HISTORIAL ── */}
-            {histModal.open && histModal.item && (
-                <Modal
-                    title={`Historial · ${histModal.item.nombre}`}
-                    onClose={() => setHistModal({ open: false, item: null, movs: [] })}
-                    footer={<button onClick={() => setHistModal({ open: false, item: null, movs: [] })} className="w-full py-2.5 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-gray-700 transition">Cerrar</button>}>
-                    {histLoading ? (
-                        <div className="flex justify-center py-8"><Loader2 className="animate-spin text-gray-400" size={24} /></div>
-                    ) : histModal.movs.length === 0 ? (
-                        <p className="text-sm text-gray-400 text-center py-6">Sin movimientos registrados</p>
-                    ) : (
-                        <div className="space-y-2">
-                            {histModal.movs.map(m => (
-                                <div key={m._id} className="flex items-center gap-3 py-2.5 border-b border-gray-50">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${m.tipo === "entrada" ? "bg-emerald-100" : "bg-red-100"}`}>
-                                        {m.tipo === "entrada" ? <TrendingUp size={13} className="text-emerald-600" /> : <TrendingDown size={13} className="text-red-600" />}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-semibold text-gray-900 truncate">{m.motivo}</p>
-                                        <p className="text-xs text-gray-400">{new Date(m.createdAt).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</p>
-                                    </div>
-                                    <p className={`text-sm font-black shrink-0 ${m.tipo === "entrada" ? "text-emerald-600" : "text-red-600"}`}>
-                                        {m.tipo === "entrada" ? "+" : "−"}{formatNum(m.cantidad)} <span className="text-xs font-normal text-gray-400">{histModal.item!.unidad}</span>
-                                    </p>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </Modal>
-            )}
         </div>
     );
 }
