@@ -437,18 +437,24 @@ export default function StockPage() {
                                             </button>
                                         </div>
                                     </div>
-                                    {/* Fila de precio (solo cuando valorizar está activo) */}
-                                    {mostrarValorizacion && (
+                                    {/* Fila de precio */}
+                                    {(mostrarValorizacion || precios[item._id]) && (
                                         <div className="px-4 pb-3 flex items-center gap-2 border-t border-gray-50 pt-2">
-                                            <span className="text-xs text-gray-400">$ por {item.unidad}</span>
-                                            <input
-                                                type="number" min="0" step="any" inputMode="decimal"
-                                                value={precios[item._id] ?? ""}
-                                                onChange={e => setPrecios(p => ({ ...p, [item._id]: e.target.value }))}
-                                                onBlur={e => guardarPrecio(item._id, e.target.value)}
-                                                placeholder="Precio unitario"
-                                                className="flex-1 border border-emerald-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-emerald-50 text-emerald-800"
-                                            />
+                                            <span className="text-xs text-gray-400 shrink-0">$ por {item.unidad}</span>
+                                            {mostrarValorizacion ? (
+                                                <input
+                                                    type="number" min="0" step="any" inputMode="decimal"
+                                                    value={precios[item._id] ?? ""}
+                                                    onChange={e => setPrecios(p => ({ ...p, [item._id]: e.target.value }))}
+                                                    onBlur={e => guardarPrecio(item._id, e.target.value)}
+                                                    placeholder="Precio unitario"
+                                                    className="flex-1 border border-emerald-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-emerald-50 text-emerald-800"
+                                                />
+                                            ) : (
+                                                <span className="text-sm font-bold text-emerald-700">
+                                                    {new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", minimumFractionDigits: 0 }).format(Number(precios[item._id]))}
+                                                </span>
+                                            )}
                                         </div>
                                     )}
                                 </div>
