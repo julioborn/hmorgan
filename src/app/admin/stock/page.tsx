@@ -14,6 +14,7 @@ type StockItem = {
     _id: string; nombre: string; descripcion?: string; tipo: Tipo;
     categoria: string; unidad: string; stockActual: number; stockMinimo: number;
     activo: boolean; unidadesPorCaja?: number; presentaciones?: Presentacion[];
+    precioUnitario?: number;
 };
 type StockMovimiento = {
     _id: string; tipo: "entrada" | "salida"; cantidad: number;
@@ -121,7 +122,17 @@ export default function StockPage() {
         setLoading(true);
         fetch("/api/superadmin/stock", { credentials: "include" })
             .then(r => r.json())
-            .then(data => { if (Array.isArray(data)) setItems(data); })
+            .then(data => {
+                if (Array.isArray(data)) {
+                    setItems(data);
+                    // Inicializar precios desde la base
+                    const pMap: Record<string, string> = {};
+                    data.forEach((i: StockItem) => {
+                        if (i.precioUnitario != null) pMap[i._id] = String(i.precioUnitario);
+                    });
+                    setPrecios(prev => ({ ...pMap, ...prev }));
+                }
+            })
             .catch(() => {})
             .finally(() => setLoading(false));
     }, []);
@@ -188,6 +199,16 @@ export default function StockPage() {
             const data = await res.json();
             setHistModal(prev => ({ ...prev, movs: data.movimientos || [] }));
         } finally { setHistLoading(false); }
+    }
+
+    async function guardarPrecio(itemId: string, valor: string) {
+        const precio = valor === "" ? null : Number(valor);
+        await fetch(`/api/superadmin/stock/${itemId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ precioUnitario: precio }),
+        });
     }
 
     async function crearSubcat() {
@@ -424,6 +445,7 @@ export default function StockPage() {
                                                 type="number" min="0" step="any" inputMode="decimal"
                                                 value={precios[item._id] ?? ""}
                                                 onChange={e => setPrecios(p => ({ ...p, [item._id]: e.target.value }))}
+                                                onBlur={e => guardarPrecio(item._id, e.target.value)}
                                                 placeholder="Precio unitario"
                                                 className="flex-1 border border-emerald-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-emerald-50 text-emerald-800"
                                             />
@@ -507,9 +529,12 @@ export default function StockPage() {
                                     <input value={p.nombre}
                                         onChange={e => setEditModal(prev => { const arr = [...(prev.item.presentaciones ?? [])]; arr[idx] = { ...arr[idx], nombre: e.target.value }; return { ...prev, item: { ...prev.item, presentaciones: arr } }; })}
                                         placeholder="Nombre (ej: Cajón)" className={inputCls + " flex-1"} />
-                                    <input type="number" min="1" step="1" value={p.unidades}
-                                        onChange={e => setEditModal(prev => { const arr = [...(prev.item.presentaciones ?? [])]; arr[idx] = { ...arr[idx], unidades: Number(e.target.value) }; return { ...prev, item: { ...prev.item, presentaciones: arr } }; })}
-                                        placeholder="Unids" className={inputCls + " w-20"} />
+                                    <div className="flex items-center gap-1 shrink-0">
+                                        <input type="number" min="0.001" step="any" inputMode="decimal" value={p.unidades}
+                                            onChange={e => setEditModal(prev => { const arr = [...(prev.item.presentaciones ?? [])]; arr[idx] = { ...arr[idx], unidades: Number(e.target.value) }; return { ...prev, item: { ...prev.item, presentaciones: arr } }; })}
+                                            placeholder="Cant." className={inputCls + " w-20"} />
+                                        <span className="text-xs text-gray-400 whitespace-nowrap">{editModal.item.unidad || "u."}</span>
+                                    </div>
                                     <button onClick={() => setEditModal(prev => { const arr = (prev.item.presentaciones ?? []).filter((_, i) => i !== idx); return { ...prev, item: { ...prev.item, presentaciones: arr } }; })}
                                         className="p-2 text-red-400 hover:text-red-600 transition shrink-0"><X size={14} /></button>
                                 </div>

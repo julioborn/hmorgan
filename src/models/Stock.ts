@@ -14,6 +14,7 @@ const StockSchema = new Schema({
         nombre:   { type: String, required: true },
         unidades: { type: Number, required: true },
     }],
+    precioUnitario: { type: Number },
 }, { timestamps: true });
 
 export const Stock = models.Stock || model("Stock", StockSchema);
