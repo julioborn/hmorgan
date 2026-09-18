@@ -199,12 +199,14 @@ export default function EditarStockPage() {
                             <div key={idx} className="flex gap-2 items-center bg-gray-50 rounded-xl p-3">
                                 <input value={p.nombre}
                                     onChange={e => updatePresentacion(idx, "nombre", e.target.value)}
-                                    placeholder="Nombre (ej: Cajón)" className={inputCls + " flex-1"} />
+                                    placeholder="Nombre (ej: Cajón)"
+                                    className="flex-1 min-w-0 px-3 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 bg-white" />
                                 <div className="flex items-center gap-1 shrink-0">
                                     <input type="number" min="0.001" step="any" inputMode="decimal"
                                         value={p.unidades}
                                         onChange={e => updatePresentacion(idx, "unidades", Number(e.target.value))}
-                                        placeholder="Cant." className={inputCls + " w-20"} />
+                                        placeholder="0"
+                                        className="w-16 px-3 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 bg-white" />
                                     <span className="text-xs text-gray-400 whitespace-nowrap">{form.unidad || "u."}</span>
                                 </div>
                                 <button onClick={() => removePresentacion(idx)}
