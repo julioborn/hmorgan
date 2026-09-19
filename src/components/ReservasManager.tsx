@@ -445,8 +445,20 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
     }
 
     async function toggleFecha(iso: string) {
+        const estaBloqueada = fechasBloqueadas.includes(iso);
+        const fechaFormato = new Date(iso + "T12:00:00").toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+        const r = await swalBase.fire({
+            title: estaBloqueada ? "¿Desbloquear este día?" : "¿Bloquear este día?",
+            text: `${fechaFormato.charAt(0).toUpperCase() + fechaFormato.slice(1)} — ${estaBloqueada ? "los clientes podrán volver a reservar." : "los clientes NO podrán reservar."}`,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: estaBloqueada ? "Sí, desbloquear" : "Sí, bloquear",
+            cancelButtonText: "Cancelar",
+        });
+        if (!r.isConfirmed) return;
+
         const anteriores = fechasBloqueadas;
-        const nuevas = fechasBloqueadas.includes(iso)
+        const nuevas = estaBloqueada
             ? fechasBloqueadas.filter(f => f !== iso)
             : [...fechasBloqueadas, iso];
         setFechasBloqueadas(nuevas);
