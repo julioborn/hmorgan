@@ -6,7 +6,7 @@ import {
     CalendarDays, Clock, Users, CheckCircle, XCircle,
     Loader2, Plus, X, Pencil,
 } from "lucide-react";
-import { hoyArgentina, formatArgDate } from "@/lib/argentina-time";
+import { hoyArgentina, ahoraArgentina, formatArgDate } from "@/lib/argentina-time";
 
 type Reserva = {
     _id: string;
@@ -55,22 +55,22 @@ export default function ClienteReservasPage() {
     const [editSuccess, setEditSuccess]   = useState(false);
     const [editError, setEditError]       = useState("");
 
-    const [now, setNow] = useState(() => new Date());
+    const [nowArg, setNowArg] = useState(() => ahoraArgentina());
     useEffect(() => {
-        const iv = setInterval(() => setNow(new Date()), 60000);
+        const iv = setInterval(() => setNowArg(ahoraArgentina()), 60000);
         return () => clearInterval(iv);
     }, []);
 
-    // Horas disponibles para nueva reserva
+    // Horas disponibles para nueva reserva — compara en horario Argentina
     const isToday = form.fecha === hoyArgentina();
     const horasDisponibles = useMemo(() => {
         if (!isToday) return HORAS;
+        const nowMin = nowArg.h * 60 + nowArg.m;
         return HORAS.filter(h => {
             const [hh, mm] = h.split(":").map(Number);
-            const slot = new Date(); slot.setHours(hh, mm, 0, 0);
-            return slot > now;
+            return hh * 60 + mm > nowMin;
         });
-    }, [isToday, now]);
+    }, [isToday, nowArg]);
 
     useEffect(() => {
         if (horasDisponibles.length > 0 && !horasDisponibles.includes(form.hora))
@@ -81,12 +81,12 @@ export default function ClienteReservasPage() {
     const isEditToday = editForm.fecha === hoyArgentina();
     const horasDisponiblesEdit = useMemo(() => {
         if (!isEditToday) return HORAS;
+        const nowMin = nowArg.h * 60 + nowArg.m;
         return HORAS.filter(h => {
             const [hh, mm] = h.split(":").map(Number);
-            const slot = new Date(); slot.setHours(hh, mm, 0, 0);
-            return slot > now;
+            return hh * 60 + mm > nowMin;
         });
-    }, [isEditToday, now]);
+    }, [isEditToday, nowArg]);
 
     useEffect(() => {
         if (horasDisponiblesEdit.length > 0 && !horasDisponiblesEdit.includes(editForm.hora))
