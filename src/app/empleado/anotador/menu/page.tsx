@@ -31,7 +31,7 @@ type SalonElPlano = { _id: string; tipo: string; label: string; x: number; y: nu
 
 const formatPrice = (v: number) => new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(v);
 
-const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
+const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "ESPUMANTES Y SIDRAS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
 const PICAR_CATS   = ["PICADAS", "FRITURAS"];
 const MAIN_ORDER   = ["PARRILLA","PIZZAS","MILANESAS","HAMBURGUESAS","SANDWICHES","PICADAS Y FRITURAS","ENSALADAS","BEBIDAS","POSTRE Y CAFE"];
 const categoryImages: Record<string, string> = { PARRILLA:"/parrilla.jpg", PIZZAS:"/pizzas.jpg", MILANESAS:"/milanesas.jpg", HAMBURGUESAS:"/hamburguesas.jpg", SANDWICHES:"/sandwiches.jpg", "PICADAS Y FRITURAS":"/picada.jpg", ENSALADAS:"/ensaladas.jpg", BEBIDAS:"/bebidas.jpeg","POSTRE Y CAFE":"/postreycafe.jpeg", "MENÚ DEL DÍA":"/menu-del-dia.jpeg", CERVEZAS:"/subcategoria-bebidas/cervezas.png", VINOS:"/subcategoria-bebidas/vinos.png", GASEOSAS:"/subcategoria-bebidas/gaseosas.png", JARROS:"/subcategoria-bebidas/jarros.png", COCKTAILS:"/subcategoria-bebidas/cocktails.png", WHISKY:"/subcategoria-bebidas/whisky.png", MEDIDAS:"/subcategoria-bebidas/medidas.png" };
@@ -184,7 +184,7 @@ function AnotadorMenuContent() {
     }, [categoriaActiva]);
 
     useEffect(() => {
-        fetch("/api/menu?bar=true").then(r => r.json()).then(d => {
+        fetch("/api/menu?bar=true", { cache: "no-store" }).then(r => r.json()).then(d => {
             setMenuItems(Array.isArray(d) ? d : []);
         }).catch(() => {}).finally(() => setLoadingMenu(false));
     }, []);
