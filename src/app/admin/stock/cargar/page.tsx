@@ -125,7 +125,7 @@ export default function CargarStockPage() {
                     const activos = data.filter((i: StockItem) => i.stockActual >= 0);
                     setProductos(activos);
                     const init: Record<string, string> = {};
-                    activos.forEach((i: StockItem) => { init[i._id] = String(i.stockActual); });
+                    activos.forEach((i: StockItem) => { init[i._id] = ""; });
                     setCantidades(init);
                     try {
                         const raw = localStorage.getItem(DRAFT_KEY);
@@ -208,6 +208,9 @@ export default function CargarStockPage() {
         setNotas("");
         setPrecios({});
         setFracciones({});
+        const reset: Record<string, string> = {};
+        productos.forEach(p => { reset[p._id] = ""; });
+        setCantidades(reset);
         draftBlockedRef.current = true;
     }
 
