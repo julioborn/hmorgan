@@ -205,6 +205,9 @@ export default function CargarStockPage() {
         localStorage.removeItem(DRAFT_KEY);
         setBorrador(null);
         setIsDirty(false);
+        setNotas("");
+        setPrecios({});
+        setFracciones({});
         draftBlockedRef.current = true;
     }
 

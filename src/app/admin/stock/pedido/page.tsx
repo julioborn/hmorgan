@@ -83,6 +83,9 @@ export default function NotaPedidoPage() {
     function descartarBorrador() {
         localStorage.removeItem(DRAFT_KEY);
         setBorrador(null);
+        setSeleccionados({});
+        setCantidades({});
+        setNotas("");
         setIsDirty(false);
         draftBlockedRef.current = true;
     }
