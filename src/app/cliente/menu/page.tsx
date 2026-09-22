@@ -148,8 +148,8 @@ export default function ClienteMenuPage() {
         return (
             <div className="bg-white min-h-screen">
                 <div className="px-5 pt-6 pb-4">
-                    <h1 className="text-3xl font-black text-black tracking-tight mb-1">Menú</h1>
-                    <p className="text-sm text-gray-400">Elegí una categoría</p>
+                    <h1 className="text-2xl font-black text-gray-900">Menú</h1>
+                    <p className="text-xs text-gray-400 mt-0.5">Elegí una categoría</p>
                 </div>
                 <div className="px-5 pb-10 grid grid-cols-2 gap-3">
                     {categoriasNavegacion.map((cat, idx) => (

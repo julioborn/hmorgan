@@ -86,8 +86,8 @@ export default function RewardsClientePage() {
 
     return (
         <div className="p-6 min-h-screen">
-            <h1 className="text-4xl font-extrabold mb-2 text-center text-black">Canjes</h1>
-            <p className="text-center text-sm text-gray-500 mb-8">Tus puntos: <span className="font-black text-red-600">{puntos} pts</span></p>
+            <h1 className="text-2xl font-black text-gray-900 mb-0.5">Canjes</h1>
+            <p className="text-xs text-gray-400 mb-8">Tus puntos: <span className="font-black text-red-600">{puntos} pts</span></p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                 {rewards.map((r) =>

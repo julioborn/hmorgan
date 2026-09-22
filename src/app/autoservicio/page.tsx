@@ -389,7 +389,7 @@ export default function AutoservicioPage() {
             <div className="px-5 pt-6 pb-3">
                 <div className="flex items-center gap-2 mb-0.5">
                     <Tablet size={20} className="text-purple-600" />
-                    <h1 className="text-3xl font-black text-black tracking-tight">Autoservicio</h1>
+                    <h1 className="text-2xl font-black text-gray-900">Autoservicio</h1>
                 </div>
                 <p className="text-sm text-purple-500 font-semibold">
                     Mesa{sesion.mesasNombres.length > 1 ? "s" : ""} {sesion.mesasNombres.join(", ")}
