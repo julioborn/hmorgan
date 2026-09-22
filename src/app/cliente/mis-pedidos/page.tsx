@@ -199,16 +199,14 @@ export default function MisPedidosPage() {
         <div className="min-h-screen bg-white pb-20">
             {/* Header */}
             <div className="bg-white border-b border-gray-100 px-4 pt-4 pb-3">
-                <div className="max-w-xl mx-auto flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-black text-gray-900">Mis Pedidos</h1>
-                        <p className="text-xs text-gray-400 mt-0.5">Seguí el estado de tus pedidos</p>
-                    </div>
+                <div className="max-w-xl mx-auto">
+                    <h1 className="text-2xl font-black text-gray-900">Mis Pedidos</h1>
+                    <p className="text-xs text-gray-400 mt-0.5">Seguí el estado de tus pedidos</p>
                     <Link
                         href="/cliente/pedidos"
-                        className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl font-bold text-sm transition active:scale-[0.97]"
+                        className="mt-4 flex items-center justify-center gap-2 w-full bg-red-600 hover:bg-red-700 active:scale-[0.97] text-white py-4 rounded-2xl font-black text-lg transition shadow-md"
                     >
-                        <PackagePlus size={16} /> Nuevo
+                        <PackagePlus size={22} /> ¡Hacer un pedido!
                     </Link>
                 </div>
             </div>
