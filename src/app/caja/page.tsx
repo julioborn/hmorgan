@@ -221,6 +221,7 @@ export default function CajaPage() {
     const [pedidosActivos, setPedidosActivos] = useState(true);
     const [reservasActivas, setReservasActivas] = useState(true);
     const [deliveryActivo, setDeliveryActivo] = useState(true);
+    const [autoservicioActivo, setAutoservicioActivo] = useState(true);
     const [fechasBloqueadas, setFechasBloqueadas] = useState<string[]>([]);
     const [reservasPendientes, setReservasPendientes] = useState(0);
     const [pedidos, setPedidos] = useState<Pedido[]>([]);
@@ -767,6 +768,7 @@ export default function CajaPage() {
             setFechasBloqueadas(d.fechasBloqueadas ?? []);
         });
         fetch("/api/config/delivery").then(r => r.json()).then(d => setDeliveryActivo(d.activo ?? true));
+        fetch("/api/config/autoservicio").then(r => r.json()).then(d => setAutoservicioActivo(d.activo ?? true));
     }, []);
 
     useEffect(() => {
@@ -911,6 +913,12 @@ export default function CajaPage() {
         const next = !deliveryActivo;
         setDeliveryActivo(next);
         await fetch("/api/config/delivery", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activo: next }) });
+    }
+
+    async function toggleAutoservicioActivo() {
+        const next = !autoservicioActivo;
+        setAutoservicioActivo(next);
+        await fetch("/api/config/autoservicio", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activo: next }) });
     }
 
     async function toggleReservasActivas() {
@@ -2338,6 +2346,13 @@ export default function CajaPage() {
                         <button onClick={toggleReservasActivas}
                             className={`relative flex h-5 w-9 shrink-0 cursor-pointer rounded-full items-center transition-colors duration-200 ${reservasActivas ? "bg-red-500" : "bg-gray-600"}`}>
                             <span className={`absolute h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-200 ${reservasActivas ? "translate-x-[18px]" : "translate-x-[2px]"}`} />
+                        </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-white/80">Autoservicio</span>
+                        <button onClick={toggleAutoservicioActivo}
+                            className={`relative flex h-5 w-9 shrink-0 cursor-pointer rounded-full items-center transition-colors duration-200 ${autoservicioActivo ? "bg-red-500" : "bg-gray-600"}`}>
+                            <span className={`absolute h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-200 ${autoservicioActivo ? "translate-x-[18px]" : "translate-x-[2px]"}`} />
                         </button>
                     </div>
                 </div>
