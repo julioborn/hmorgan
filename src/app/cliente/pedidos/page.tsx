@@ -383,10 +383,10 @@ function CartDrawer({
                 {/* Método de pago preferido */}
                 <div className="mt-4">
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">¿Cómo vas a pagar?</p>
-                    <div className="flex gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                         {/* Efectivo */}
                         <button onClick={() => setMetodoPago("efectivo")}
-                            className="relative flex-1 py-4 rounded-xl border-2 border-emerald-500 bg-white transition flex flex-col items-center justify-center gap-1.5">
+                            className={`relative py-4 rounded-xl border-2 transition flex flex-col items-center justify-center gap-1.5 ${metodoPago === "efectivo" ? "border-emerald-500 bg-emerald-50" : "border-gray-200 bg-white"}`}>
                             {metodoPago === "efectivo" && (
                                 <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
                                     <svg viewBox="0 0 12 12" width="10" height="10" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="2 6 5 9 10 3"/></svg>
@@ -395,22 +395,31 @@ function CartDrawer({
                             <span className="text-2xl">💵</span>
                             <span className="text-xs font-bold text-emerald-600">Efectivo</span>
                         </button>
-                        {/* Mercado Pago */}
-                        {MERCADOPAGO_ACTIVO && (
-                            <button onClick={() => setMetodoPago("mercadopago")}
-                                className="relative flex-1 py-4 rounded-xl border-2 border-[#009EE3] bg-white transition flex flex-col items-center justify-center gap-1">
-                                {metodoPago === "mercadopago" && (
-                                    <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
-                                        <svg viewBox="0 0 12 12" width="10" height="10" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="2 6 5 9 10 3"/></svg>
-                                    </span>
-                                )}
-                                <img src="/MP_RGB_HANDSHAKE_color_horizontal.svg" className="shrink-0 w-[80%] max-w-[120px]" alt="Mercado Pago" />
-                            </button>
-                        )}
+                        {/* Transferencia */}
+                        <button onClick={() => setMetodoPago("transferencia")}
+                            className={`relative py-4 rounded-xl border-2 transition flex flex-col items-center justify-center gap-1.5 ${metodoPago === "transferencia" ? "border-blue-500 bg-blue-50" : "border-gray-200 bg-white"}`}>
+                            {metodoPago === "transferencia" && (
+                                <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
+                                    <svg viewBox="0 0 12 12" width="10" height="10" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="2 6 5 9 10 3"/></svg>
+                                </span>
+                            )}
+                            <span className="text-2xl">🏦</span>
+                            <span className="text-xs font-bold text-blue-600">Transferencia</span>
+                            <span className="text-[10px] text-blue-400 font-medium">Alias: morgan.bar</span>
+                        </button>
                     </div>
-                    <p className="mt-2 text-center text-xs text-gray-400">
-                        O transferí al alias <span className="font-semibold text-gray-500">morgan.bar</span>
-                    </p>
+                    {/* Mercado Pago — ancho completo */}
+                    {MERCADOPAGO_ACTIVO && (
+                        <button onClick={() => setMetodoPago("mercadopago")}
+                            className={`relative w-full mt-2 py-3 rounded-xl border-2 transition flex items-center justify-center ${metodoPago === "mercadopago" ? "border-[#009EE3] bg-sky-50" : "border-gray-200 bg-white"}`}>
+                            {metodoPago === "mercadopago" && (
+                                <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
+                                    <svg viewBox="0 0 12 12" width="10" height="10" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="2 6 5 9 10 3"/></svg>
+                                </span>
+                            )}
+                            <img src="/MP_RGB_HANDSHAKE_color_horizontal.svg" className="h-7 max-w-[120px]" alt="Mercado Pago" />
+                        </button>
+                    )}
                 </div>
 
                 <div className="flex gap-3 mt-4">
@@ -705,7 +714,7 @@ export default function PedidosClientePage() {
         const totalFinalConfirm = total + (tipoEntrega === "envio" ? costoEnvio : 0);
         const { isConfirmed } = await swalBase.fire({
             title: "¿Confirmás el pedido?",
-            html: `<p class="text-gray-600 text-sm">Total: <strong>$${formatPrice(totalFinalConfirm)}</strong>${tipoEntrega === "envio" ? " · Con envío a domicilio" : " · Retirás en el bar"}</p>${MERCADOPAGO_ACTIVO && metodoPago === "mercadopago" ? '<p class="text-blue-600 text-sm font-semibold mt-1">💳 Vas a pagar con Mercado Pago</p>' : ""}`,
+            html: `<p class="text-gray-600 text-sm">Total: <strong>$${formatPrice(totalFinalConfirm)}</strong>${tipoEntrega === "envio" ? " · Con envío a domicilio" : " · Retirás en el bar"}</p>${MERCADOPAGO_ACTIVO && metodoPago === "mercadopago" ? '<p class="text-blue-600 text-sm font-semibold mt-1">💳 Vas a pagar con Mercado Pago</p>' : metodoPago === "transferencia" ? '<p class="text-blue-600 text-sm font-semibold mt-1">🏦 Recordá transferir al alias <strong>morgan.bar</strong></p>' : ""}`,
             icon: "question",
             showCancelButton: true,
             confirmButtonText: MERCADOPAGO_ACTIVO && metodoPago === "mercadopago" ? "Ir a pagar" : "Sí, confirmar",
