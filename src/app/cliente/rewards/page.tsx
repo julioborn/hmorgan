@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import useSWR from "swr";
-import { Gift, CheckCircle, Clock } from "lucide-react";
+import { Clock } from "lucide-react";
 import Loader from "@/components/Loader";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
@@ -85,87 +85,160 @@ export default function RewardsClientePage() {
     const puntos = user?.puntos ?? 0;
 
     return (
-        <div className="p-6 min-h-screen">
-            <h1 className="text-2xl font-black text-gray-900 mb-0.5">Canjes</h1>
-            <p className="text-xs text-gray-400 mb-8">Tus puntos: <span className="font-black text-red-600">{puntos} pts</span></p>
+        <div className="min-h-screen bg-gray-50 px-4 pt-5 pb-20">
+            <div className="mb-6">
+                <h1 className="text-2xl font-black text-gray-900">Canjes</h1>
+                <p className="text-xs text-gray-400 mt-0.5">
+                    Tus puntos: <span className="font-black text-red-600">{puntos} pts</span>
+                </p>
+            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            <div className="flex flex-col gap-5">
                 {rewards.map((r) =>
                     r.tema === "argentina"
-                        ? <ArgentinaRewardCard key={r._id} r={r} puntos={puntos} solicitado={solicitados.has(r._id)} solicitando={solicitando === r._id} onCanjear={() => canjear(r)} />
-                        : (
-                            <div key={r._id}
-                                className="relative bg-white text-black rounded-2xl shadow-md border border-gray-200 p-5 flex flex-col gap-3 overflow-visible">
-                                <span className="absolute -left-3 top-1/2 w-6 h-6 bg-gray-100 border border-gray-300 rounded-full shadow-sm" />
-                                <span className="absolute -right-3 top-1/2 w-6 h-6 bg-gray-100 border border-gray-300 rounded-full shadow-sm" />
-                                <div className="flex items-start justify-between gap-2">
-                                    <div className="flex flex-col gap-1 flex-1 min-w-0">
-                                        <h2 className="text-lg font-extrabold leading-tight">{r.titulo}</h2>
-                                        {r.descripcion
-                                            ? <p className="text-sm text-gray-600">{r.descripcion}</p>
-                                            : <p className="text-sm text-gray-400 italic">Canje</p>}
-                                        <span className="text-sm font-semibold text-red-600">{r.puntos} pts</span>
-                                    </div>
-                                    <img src="/icon-192x192.png" alt="Logo" className="h-8 w-8 object-contain opacity-60 shrink-0" />
-                                </div>
-                                <CanjearButton r={r} puntos={puntos} solicitado={solicitados.has(r._id)} solicitando={solicitando === r._id} onCanjear={() => canjear(r)} />
-                            </div>
-                        )
+                        ? <ArgentinaTicket key={r._id} r={r} puntos={puntos} solicitado={solicitados.has(r._id)} solicitando={solicitando === r._id} onCanjear={() => canjear(r)} />
+                        : <Ticket key={r._id} r={r} puntos={puntos} solicitado={solicitados.has(r._id)} solicitando={solicitando === r._id} onCanjear={() => canjear(r)} />
                 )}
             </div>
         </div>
     );
 }
 
-function CanjearButton({ r, puntos, solicitado, solicitando, onCanjear }: { r: Reward; puntos: number; solicitado: boolean; solicitando: boolean; onCanjear: () => void }) {
-    if (solicitado) return (
-        <button disabled className="w-full flex items-center justify-center gap-2 bg-emerald-100 text-emerald-700 font-bold py-2.5 rounded-xl text-sm">
-            <Clock size={14} /> Pendiente de aprobación
-        </button>
-    );
-    if (solicitando) return (
-        <button disabled className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-500 font-bold py-2.5 rounded-xl text-sm">
-            Solicitando...
-        </button>
-    );
+type TicketProps = { r: Reward; puntos: number; solicitado: boolean; solicitando: boolean; onCanjear: () => void };
+
+function Ticket({ r, puntos, solicitado, solicitando, onCanjear }: TicketProps) {
     const puedo = puntos >= r.puntos;
+
     return (
-        <button onClick={onCanjear} disabled={!puedo}
-            className={`w-full flex items-center justify-center gap-2 font-bold py-2.5 rounded-xl text-sm transition active:scale-95 ${puedo ? "bg-red-600 hover:bg-red-700 text-white" : "bg-gray-100 text-gray-400 cursor-not-allowed"}`}>
-            <Gift size={14} />
-            {puedo ? "Canjear" : "Sin puntos suficientes"}
-        </button>
+        /* Outer wrapper: overflow-visible so notch circles aren't clipped */
+        <div className="relative">
+            {/* Notch circles at the perforation line — bg-gray-50 matches page, creating "hole" illusion */}
+            <span
+                className="absolute z-20 w-5 h-5 rounded-full bg-gray-50"
+                style={{ top: 0, left: "68%", transform: "translate(-50%, -50%)", boxShadow: "inset 0 1px 3px rgba(0,0,0,0.12)" }}
+            />
+            <span
+                className="absolute z-20 w-5 h-5 rounded-full bg-gray-50"
+                style={{ bottom: 0, left: "68%", transform: "translate(-50%, 50%)", boxShadow: "inset 0 -1px 3px rgba(0,0,0,0.12)" }}
+            />
+
+            {/* Inner card: overflow-hidden so both halves clip to rounded corners */}
+            <div className="flex rounded-2xl shadow-sm overflow-hidden border border-gray-200" style={{ minHeight: 112 }}>
+
+                {/* Left — ticket body */}
+                <div className="bg-white flex flex-col justify-between px-5 py-4" style={{ width: "68%" }}>
+                    <div className="flex items-center gap-1.5">
+                        <img src="/icon-192x192.png" alt="" className="h-4 w-4 object-contain opacity-30" />
+                        <span className="text-[9px] font-black uppercase tracking-[0.18em] text-gray-400">H. Morgan Bar</span>
+                    </div>
+                    <div>
+                        <h2 className="text-base font-black text-gray-900 leading-snug">{r.titulo}</h2>
+                        <p className="text-xs text-gray-500 mt-0.5 line-clamp-2 leading-snug">
+                            {r.descripcion || "Premio de fidelidad"}
+                        </p>
+                    </div>
+                </div>
+
+                {/* Perforation */}
+                <div
+                    className="self-stretch shrink-0 border-l-2 border-dashed"
+                    style={{ width: 0, borderColor: "#D1D5DB" }}
+                />
+
+                {/* Right — stub */}
+                <div
+                    className="flex flex-col items-center justify-center gap-1.5 px-3 py-4 shrink-0"
+                    style={{ width: "32%", background: puedo ? "#B91C1C" : "#9CA3AF" }}
+                >
+                    <span className="text-[8px] font-black uppercase tracking-[0.15em] text-white/60">puntos</span>
+                    <span className="text-3xl font-black text-white leading-none">{r.puntos}</span>
+
+                    {solicitado ? (
+                        <span className="mt-0.5 text-[8px] font-black uppercase tracking-wide text-emerald-300 flex items-center gap-0.5">
+                            <Clock size={8} /> Pendiente
+                        </span>
+                    ) : solicitando ? (
+                        <span className="mt-0.5 text-[8px] text-white/50 font-bold animate-pulse">...</span>
+                    ) : (
+                        <button
+                            onClick={onCanjear}
+                            disabled={!puedo}
+                            className={`mt-0.5 w-full py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide transition active:scale-95 ${puedo ? "bg-white text-red-700 hover:bg-red-50" : "bg-white/10 text-white/30 cursor-not-allowed"}`}
+                        >
+                            {puedo ? "Canjear" : "Sin pts"}
+                        </button>
+                    )}
+                </div>
+            </div>
+        </div>
     );
 }
 
-function ArgentinaRewardCard({ r, puntos, solicitado, solicitando, onCanjear }: { r: Reward; puntos: number; solicitado: boolean; solicitando: boolean; onCanjear: () => void }) {
+function ArgentinaTicket({ r, puntos, solicitado, solicitando, onCanjear }: TicketProps) {
+    const puedo = puntos >= r.puntos;
+
     return (
-        <div className="relative rounded-2xl shadow-2xl overflow-visible border-2 border-[#74ACDF]"
-            style={{ filter: "drop-shadow(0 4px 24px rgba(116,172,223,0.35))" }}>
-            <div
-                className="relative rounded-2xl p-5 flex flex-col justify-between overflow-hidden gap-3"
-                style={{ background: "repeating-linear-gradient(90deg,#74ACDF 0px,#74ACDF 26px,white 26px,white 52px)" }}
-            >
-                <div className="absolute inset-0 bg-white/55 rounded-2xl" />
+        <div className="relative" style={{ filter: "drop-shadow(0 4px 20px rgba(116,172,223,0.3))" }}>
+            <span
+                className="absolute z-20 w-5 h-5 rounded-full bg-gray-50"
+                style={{ top: 0, left: "68%", transform: "translate(-50%, -50%)", boxShadow: "inset 0 1px 3px rgba(0,0,0,0.12)" }}
+            />
+            <span
+                className="absolute z-20 w-5 h-5 rounded-full bg-gray-50"
+                style={{ bottom: 0, left: "68%", transform: "translate(-50%, 50%)", boxShadow: "inset 0 -1px 3px rgba(0,0,0,0.12)" }}
+            />
 
-                <span className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-[#74ACDF] rounded-full shadow" />
-                <span className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white border-2 border-[#74ACDF] rounded-full shadow" />
+            <div className="flex rounded-2xl overflow-hidden border-2 border-[#74ACDF]" style={{ minHeight: 112 }}>
 
-                <div className="relative z-10 flex items-center justify-between">
-                    <div className="flex gap-0.5 text-yellow-400 text-lg drop-shadow">★★★</div>
-                    <span className="text-[9px] font-black text-white bg-[#003DA5] px-2 py-0.5 rounded-full uppercase tracking-widest">
-                        Mundial 2026
-                    </span>
+                {/* Left — Argentina body */}
+                <div
+                    className="flex flex-col justify-between px-5 py-4 relative overflow-hidden"
+                    style={{ width: "68%", background: "repeating-linear-gradient(90deg,#74ACDF 0px,#74ACDF 16px,white 16px,white 32px)" }}
+                >
+                    <div className="absolute inset-0 bg-white/60" />
+                    <div className="relative z-10 flex items-center gap-1.5">
+                        <span className="text-yellow-400 text-sm drop-shadow leading-none">★★★</span>
+                        <span className="text-[8px] font-black text-white bg-[#003DA5] px-2 py-0.5 rounded-full uppercase tracking-widest">
+                            Mundial 2026
+                        </span>
+                    </div>
+                    <div className="relative z-10">
+                        <h2 className="text-base font-black text-[#003DA5] leading-snug">{r.titulo}</h2>
+                        {r.descripcion && (
+                            <p className="text-xs text-[#003DA5]/70 mt-0.5 line-clamp-2">{r.descripcion}</p>
+                        )}
+                    </div>
                 </div>
 
-                <div className="relative z-10 flex flex-col gap-1">
-                    <h2 className="text-xl font-extrabold text-[#003DA5] leading-tight">{r.titulo}</h2>
-                    {r.descripcion && <p className="text-xs text-[#003DA5]/70">{r.descripcion}</p>}
-                    <span className="text-sm font-extrabold text-white bg-[#003DA5] px-3 py-1 rounded-full shadow self-start">{r.puntos} pts</span>
-                </div>
+                {/* Perforation */}
+                <div
+                    className="self-stretch shrink-0 border-l-2 border-dashed"
+                    style={{ width: 0, borderColor: "#74ACDF" }}
+                />
 
-                <div className="relative z-10">
-                    <CanjearButton r={r} puntos={puntos} solicitado={solicitado} solicitando={solicitando} onCanjear={onCanjear} />
+                {/* Right — stub */}
+                <div
+                    className="flex flex-col items-center justify-center gap-1.5 px-3 py-4 shrink-0 bg-[#003DA5]"
+                    style={{ width: "32%" }}
+                >
+                    <span className="text-[8px] font-black uppercase tracking-[0.15em] text-white/60">puntos</span>
+                    <span className="text-3xl font-black text-white leading-none">{r.puntos}</span>
+
+                    {solicitado ? (
+                        <span className="mt-0.5 text-[8px] font-black uppercase tracking-wide text-emerald-300 flex items-center gap-0.5">
+                            <Clock size={8} /> Pendiente
+                        </span>
+                    ) : solicitando ? (
+                        <span className="mt-0.5 text-[8px] text-white/50 font-bold animate-pulse">...</span>
+                    ) : (
+                        <button
+                            onClick={onCanjear}
+                            disabled={!puedo}
+                            className={`mt-0.5 w-full py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide transition active:scale-95 ${puedo ? "bg-white text-[#003DA5] hover:bg-blue-50" : "bg-white/10 text-white/30 cursor-not-allowed"}`}
+                        >
+                            {puedo ? "Canjear" : "Sin pts"}
+                        </button>
+                    )}
                 </div>
             </div>
         </div>
