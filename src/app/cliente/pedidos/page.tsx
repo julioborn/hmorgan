@@ -405,7 +405,7 @@ function CartDrawer({
                                         <svg viewBox="0 0 12 12" width="10" height="10" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="2 6 5 9 10 3"/></svg>
                                     </span>
                                 )}
-                                <img src="/MP_RGB_HANDSHAKE_color_horizontal.svg" className="h-7 max-w-[110px]" alt="Mercado Pago" />
+                                <img src="/MP_RGB_HANDSHAKE_color_horizontal.svg" className="h-10 max-w-[130px]" alt="Mercado Pago" />
                             </button>
                         ) : <div />}
                     </div>
@@ -428,7 +428,7 @@ function CartDrawer({
                         )}
                         <span className="text-2xl">🏦</span>
                         <div className="flex flex-col items-start">
-                            <span className="text-sm font-bold text-blue-600">Transferencia bancaria</span>
+                            <span className="text-sm font-bold text-blue-600">Transferencia</span>
                             <span className="text-xs text-blue-400 font-medium">Alias: morgan.bar</span>
                         </div>
                     </button>
