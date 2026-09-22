@@ -2184,6 +2184,8 @@ export default function CajaPage() {
 
     // Filtro por fuente/tipo
     const pedidosFiltrados = pedidos.filter(p => {
+        // Ocultar pedidos de MP no confirmados (sin pago aprobado)
+        if (p.metodoPago === "mercadopago" && p.mpEstadoPago !== "aprobado") return false;
         if (filtroFuente === "todos") return true;
         const esApp      = p.fuente === "cliente";
         const esDelivery = p.tipoEntrega === "envio";
