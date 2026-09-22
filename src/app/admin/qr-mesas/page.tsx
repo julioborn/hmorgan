@@ -89,8 +89,15 @@ export default function QrMesasPage() {
           let dxf =
             "0\nSECTION\n2\nHEADER\n" +
             "9\n$ACADVER\n1\nAC1009\n" +
-            "9\n$INSUNITS\n70\n4\n" +   // 4 = milímetros
-            "0\nENDSEC\n0\nSECTION\n2\nENTITIES\n";
+            "9\n$INSUNITS\n70\n4\n" +
+            "0\nENDSEC\n" +
+            // Definir capa "QR" con color negro (índice 7 = negro sobre fondo blanco)
+            "0\nSECTION\n2\nTABLES\n" +
+            "0\nTABLE\n2\nLAYER\n70\n1\n" +
+            "0\nLAYER\n2\nQR\n70\n0\n62\n7\n6\nCONTINUOUS\n" +
+            "0\nENDTAB\n" +
+            "0\nENDSEC\n" +
+            "0\nSECTION\n2\nENTITIES\n";
 
           for (let row = 0; row < size; row++) {
             for (let col = 0; col < size; col++) {
@@ -99,9 +106,9 @@ export default function QrMesasPage() {
                 const y1 = (size - row - 1 + margin) * mm;
                 const x2 = x1 + mm;
                 const y2 = y1 + mm;
-                // SOLID: cuadrado relleno (orden correcto DXF: BL, BR, TL, TR)
+                // SOLID en capa QR con color explícito negro (62\n7)
                 dxf +=
-                  `0\nSOLID\n8\n0\n` +
+                  `0\nSOLID\n8\nQR\n62\n7\n` +
                   `10\n${x1}\n20\n${y1}\n30\n0.0\n` +
                   `11\n${x2}\n21\n${y1}\n31\n0.0\n` +
                   `12\n${x1}\n22\n${y2}\n32\n0.0\n` +
