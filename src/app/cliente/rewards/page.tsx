@@ -110,19 +110,7 @@ function Ticket({ r, puntos, solicitado, solicitando, onCanjear }: TicketProps) 
     const puedo = puntos >= r.puntos;
 
     return (
-        /* Outer wrapper: overflow-visible so notch circles aren't clipped */
         <div className="relative">
-            {/* Notch circles at the perforation line — bg-gray-50 matches page, creating "hole" illusion */}
-            <span
-                className="absolute z-20 w-5 h-5 rounded-full bg-gray-50"
-                style={{ top: 0, left: "68%", transform: "translate(-50%, -50%)", boxShadow: "inset 0 1px 3px rgba(0,0,0,0.12)" }}
-            />
-            <span
-                className="absolute z-20 w-5 h-5 rounded-full bg-gray-50"
-                style={{ bottom: 0, left: "68%", transform: "translate(-50%, 50%)", boxShadow: "inset 0 -1px 3px rgba(0,0,0,0.12)" }}
-            />
-
-            {/* Inner card: overflow-hidden so both halves clip to rounded corners */}
             <div className="flex rounded-2xl shadow-sm overflow-hidden border border-gray-200" style={{ minHeight: 112 }}>
 
                 {/* Left — ticket body */}
@@ -179,15 +167,6 @@ function ArgentinaTicket({ r, puntos, solicitado, solicitando, onCanjear }: Tick
 
     return (
         <div className="relative" style={{ filter: "drop-shadow(0 4px 20px rgba(116,172,223,0.3))" }}>
-            <span
-                className="absolute z-20 w-5 h-5 rounded-full bg-gray-50"
-                style={{ top: 0, left: "68%", transform: "translate(-50%, -50%)", boxShadow: "inset 0 1px 3px rgba(0,0,0,0.12)" }}
-            />
-            <span
-                className="absolute z-20 w-5 h-5 rounded-full bg-gray-50"
-                style={{ bottom: 0, left: "68%", transform: "translate(-50%, 50%)", boxShadow: "inset 0 -1px 3px rgba(0,0,0,0.12)" }}
-            />
-
             <div className="flex rounded-2xl overflow-hidden border-2 border-[#74ACDF]" style={{ minHeight: 112 }}>
 
                 {/* Left — Argentina body */}
