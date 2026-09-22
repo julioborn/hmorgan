@@ -2530,7 +2530,7 @@ export default function CajaPage() {
 
                             {/* Filtro por tipo */}
                             {(() => {
-                                const activos = pedidos.filter(p => !["cerrado","cancelado"].includes(p.estado));
+                                const activos = pedidos.filter(p => !["cerrado","cancelado"].includes(p.estado) && !(p.metodoPago === "mercadopago" && p.mpEstadoPago !== "aprobado"));
                                 const cntBar      = activos.filter(p => p.fuente !== "cliente" && p.tipoEntrega !== "envio" && !p.eventoId).length;
                                 const cntDelivery = activos.filter(p => p.fuente === "cliente" || p.tipoEntrega === "envio").length;
                                 const cntEventos  = activos.filter(p => !!p.eventoId).length;
