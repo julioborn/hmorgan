@@ -72,6 +72,59 @@ export default function QrMesasPage() {
     }
   }
 
+  async function descargarDxfZip() {
+    setDescargando(true);
+    try {
+      const zip = new JSZip();
+      for (const { sector, numeros } of MESAS) {
+        const nombreCarpeta = sector.replace(/[/\\:*?"<>|]/g, "-");
+        const carpeta = zip.folder(nombreCarpeta)!;
+        for (const num of numeros) {
+          const url = `${BASE_URL}/mesa/${num}`;
+          const qr = (QRCode as any).create(url, { errorCorrectionLevel: "M" });
+          const { data, size } = qr.modules as { data: Uint8Array; size: number };
+          const mm = 1;     // 1mm por módulo
+          const margin = 4; // zona silenciosa de 4 módulos
+
+          let dxf =
+            "0\nSECTION\n2\nHEADER\n" +
+            "9\n$ACADVER\n1\nAC1009\n" +
+            "9\n$INSUNITS\n70\n4\n" +   // 4 = milímetros
+            "0\nENDSEC\n0\nSECTION\n2\nENTITIES\n";
+
+          for (let row = 0; row < size; row++) {
+            for (let col = 0; col < size; col++) {
+              if (data[row * size + col]) {
+                const x1 = (col + margin) * mm;
+                const y1 = (size - row - 1 + margin) * mm;
+                const x2 = x1 + mm;
+                const y2 = y1 + mm;
+                // SOLID: cuadrado relleno (orden correcto DXF: BL, BR, TL, TR)
+                dxf +=
+                  `0\nSOLID\n8\n0\n` +
+                  `10\n${x1}\n20\n${y1}\n30\n0.0\n` +
+                  `11\n${x2}\n21\n${y1}\n31\n0.0\n` +
+                  `12\n${x1}\n22\n${y2}\n32\n0.0\n` +
+                  `13\n${x2}\n23\n${y2}\n33\n0.0\n`;
+              }
+            }
+          }
+
+          dxf += "0\nENDSEC\n0\nEOF\n";
+          carpeta.file(`mesa-${num}.dxf`, dxf);
+        }
+      }
+      const blob = await zip.generateAsync({ type: "blob" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "qr-mesas-hmorgan-dxf.zip";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } finally {
+      setDescargando(false);
+    }
+  }
+
   if (loading) return <div className="flex justify-center py-20"><Loader size={56} /></div>;
   if (!user || !["admin", "superadmin"].includes(user.role)) return null;
 
@@ -82,13 +135,22 @@ export default function QrMesasPage() {
           <h1 className="text-2xl font-black text-gray-900">QR de Mesas</h1>
           <p className="text-sm text-gray-400 mt-0.5">{MESAS.reduce((t, s) => t + s.numeros.length, 0)} mesas · {MESAS.length} sectores</p>
         </div>
-        <button
-          onClick={descargarZip}
-          disabled={generating || descargando}
-          className="bg-gray-900 text-white font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-gray-700 transition disabled:opacity-50"
-        >
-          {descargando ? "Generando ZIP…" : "Descargar SVGs (.zip)"}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={descargarZip}
+            disabled={generating || descargando}
+            className="bg-gray-200 text-gray-800 font-bold px-4 py-2.5 rounded-xl text-sm hover:bg-gray-300 transition disabled:opacity-50"
+          >
+            {descargando ? "…" : "SVG (.zip)"}
+          </button>
+          <button
+            onClick={descargarDxfZip}
+            disabled={generating || descargando}
+            className="bg-gray-900 text-white font-bold px-4 py-2.5 rounded-xl text-sm hover:bg-gray-700 transition disabled:opacity-50"
+          >
+            {descargando ? "Generando…" : "DXF para láser (.zip)"}
+          </button>
+        </div>
       </div>
 
       {generating && (
