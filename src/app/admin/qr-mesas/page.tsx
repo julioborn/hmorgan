@@ -88,13 +88,13 @@ export default function QrMesasPage() {
 
           let dxf =
             "0\nSECTION\n2\nHEADER\n" +
-            "9\n$ACADVER\n1\nAC1009\n" +
+            "9\n$ACADVER\n1\nAC1015\n" +   // AC1015 = AutoCAD 2000, soporta color RGB verdadero
             "9\n$INSUNITS\n70\n4\n" +
             "0\nENDSEC\n" +
-            // Capa "ENGRAVE" con color 1 (rojo) — visible en cualquier software de láser
+            // Capa "QR" con color RGB negro (420 = true color, valor 0 = 0,0,0)
             "0\nSECTION\n2\nTABLES\n" +
             "0\nTABLE\n2\nLAYER\n70\n1\n" +
-            "0\nLAYER\n2\nENGRAVE\n70\n0\n62\n1\n6\nCONTINUOUS\n" +
+            "0\nLAYER\n2\nQR\n70\n0\n62\n7\n6\nCONTINUOUS\n420\n0\n" +
             "0\nENDTAB\n" +
             "0\nENDSEC\n" +
             "0\nSECTION\n2\nENTITIES\n";
@@ -106,9 +106,9 @@ export default function QrMesasPage() {
                 const y1 = (size - row - 1 + margin) * mm;
                 const x2 = x1 + mm;
                 const y2 = y1 + mm;
-                // SOLID en capa ENGRAVE con color 1 (rojo — siempre visible en láser)
+                // SOLID con color RGB negro verdadero (420\n0 = RGB 0,0,0)
                 dxf +=
-                  `0\nSOLID\n8\nENGRAVE\n62\n1\n` +
+                  `0\nSOLID\n8\nQR\n62\n7\n420\n0\n` +
                   `10\n${x1}\n20\n${y1}\n30\n0.0\n` +
                   `11\n${x2}\n21\n${y1}\n31\n0.0\n` +
                   `12\n${x1}\n22\n${y2}\n32\n0.0\n` +
