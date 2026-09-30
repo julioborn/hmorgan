@@ -58,7 +58,28 @@ export default function QrMesasPage() {
         const nombreCarpeta = sector.replace(/[/\\:*?"<>|]/g, "-");
         const carpeta = zip.folder(nombreCarpeta)!;
         for (const num of numeros) {
-          if (qrSvgs[num]) carpeta.file(`mesa-${num}.svg`, qrSvgs[num]);
+          const url = `${BASE_URL}/mesa/${num}`;
+          const qr = (QRCode as any).create(url, { errorCorrectionLevel: "M" });
+          const { data, size } = qr.modules as { data: Uint8Array; size: number };
+          const margin = 4;
+          const total = size + margin * 2;
+
+          let rects = "";
+          for (let row = 0; row < size; row++) {
+            for (let col = 0; col < size; col++) {
+              if (data[row * size + col]) {
+                rects += `<rect x="${col + margin}" y="${row + margin}" width="1" height="1" fill="#000000"/>`;
+              }
+            }
+          }
+
+          const svg =
+            `<?xml version="1.0" encoding="UTF-8"?>\n` +
+            `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${total} ${total}" width="${total}mm" height="${total}mm">\n` +
+            `<rect x="0" y="0" width="${total}" height="${total}" fill="#ffffff"/>\n` +
+            rects + `\n</svg>`;
+
+          carpeta.file(`mesa-${num}.svg`, svg);
         }
       }
       const blob = await zip.generateAsync({ type: "blob" });
