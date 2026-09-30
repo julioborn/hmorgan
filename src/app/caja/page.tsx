@@ -742,9 +742,9 @@ export default function CajaPage() {
                 .catch(() => { });
         fetchLlamadas();
         const fetchReservasPending = () =>
-            fetch("/api/reservas", { credentials: "include" })
+            fetch("/api/reservas?count=true", { credentials: "include" })
                 .then(r => r.json())
-                .then(d => { if (Array.isArray(d)) setReservasPendientes(d.filter((r: any) => r.estado === "pendiente").length); })
+                .then(d => { if (typeof d?.pendientes === "number") setReservasPendientes(d.pendientes); })
                 .catch(() => { });
         fetchReservasPending();
         const fetchAutoservActivas = () =>
@@ -863,7 +863,7 @@ export default function CajaPage() {
     useEffect(() => {
         if (tab !== "mesas") return;
         // Cargar reservas de hoy y sesiones de autoservicio cada vez que se entra al tab de mesas
-        fetch("/api/reservas", { credentials: "include" })
+        fetch("/api/reservas?desde=hoy", { credentials: "include" })
             .then(r => r.json())
             .then(data => {
                 if (!Array.isArray(data)) return;
@@ -1811,7 +1811,7 @@ export default function CajaPage() {
         const [mRes, elRes, resRes] = await Promise.all([
             fetch("/api/admin/mesas?all=true", { credentials: "include" }),
             fetch("/api/superadmin/salon", { credentials: "include" }),
-            fetch("/api/reservas", { credentials: "include" }),
+            fetch("/api/reservas?desde=hoy", { credentials: "include" }),
         ]);
         const [mData, elData, resData] = await Promise.all([mRes.json().catch(() => []), elRes.json().catch(() => []), resRes.json().catch(() => [])]);
         setEventoModalMesasPlano(Array.isArray(mData) ? mData.filter((m: any) => m.activa) : []);

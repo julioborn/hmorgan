@@ -272,7 +272,10 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
     const fetchReservas = useCallback(async (intentos = 3) => {
         for (let i = 0; i < intentos; i++) {
             try {
-                const r = await fetch("/api/reservas", { credentials: "include", cache: "no-store" });
+                // Limita a últimos 30 días + futuras para no traer todo el historial
+                const hace30 = new Date(); hace30.setDate(hace30.getDate() - 30);
+                const desde = hace30.toISOString().slice(0, 10);
+                const r = await fetch(`/api/reservas?desde=${desde}`, { credentials: "include", cache: "no-store" });
                 if (!r.ok) { if (i < intentos - 1) { await new Promise(res => setTimeout(res, 1500)); continue; } return; }
                 const d = await r.json();
                 if (Array.isArray(d)) {
@@ -318,7 +321,7 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
             } catch { }
         };
         init();
-        const iv = setInterval(fetchReservas, 5000);
+        const iv = setInterval(fetchReservas, 15000);
         return () => clearInterval(iv);
     }, [fetchReservas]);
 

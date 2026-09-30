@@ -44,8 +44,24 @@ export async function GET(req: NextRequest) {
     if (!payload) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     try {
         await connectMongoDB();
-        const query = isStaff(payload.role) ? {} : { userId: payload.sub };
-        const reservas = await Reserva.find(query)
+        const { searchParams } = new URL(req.url);
+        const soloCount = searchParams.get("count") === "true";
+        const desde = searchParams.get("desde"); // "hoy" o ISO date "YYYY-MM-DD"
+
+        const baseQuery: Record<string, unknown> = isStaff(payload.role) ? {} : { userId: payload.sub };
+
+        if (desde) {
+            const fechaDesde = desde === "hoy" ? new Date(hoyArgentina()) : new Date(desde);
+            baseQuery.fecha = { $gte: fechaDesde };
+        }
+
+        // Endpoint liviano solo para conteo del badge
+        if (soloCount) {
+            const pendientes = await Reserva.countDocuments({ ...baseQuery, estado: "pendiente" });
+            return NextResponse.json({ pendientes });
+        }
+
+        const reservas = await Reserva.find(baseQuery)
             .populate("userId", "nombre apellido telefono email")
             .populate("mesaId", "nombre forma")
             .populate("canjeId", "tipo")
