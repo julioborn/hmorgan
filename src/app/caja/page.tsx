@@ -252,6 +252,7 @@ export default function CajaPage() {
     const [clientesResultadosCaja, setClientesResultadosCaja] = useState<{ _id: string; nombre: string; apellido: string; telefono?: string }[]>([]);
     const [buscandoClienteCaja, setBuscandoClienteCaja] = useState(false);
     const [confirmarCuentaId, setConfirmarCuentaId] = useState<string | null>(null);
+    const [cuentaDescuentoPct, setCuentaDescuentoPct] = useState("");
 
     type CPItem = { itemId: string; nombre: string; precio: number; max: number; selected: number };
     const [cpModal, setCpModal] = useState<Pedido | null>(null);
@@ -1460,7 +1461,7 @@ export default function CajaPage() {
         } catch { /* silencioso */ }
     }
 
-    async function printCuenta(pedido: Pedido) {
+    async function printCuenta(pedido: Pedido, descPct = 0) {
         const hora = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
         const fecha = new Date().toLocaleDateString("es-AR");
         const printItems = (() => {
@@ -1475,8 +1476,10 @@ export default function CajaPage() {
             }
             return Array.from(grouped.values());
         })();
-        const total = pedido.total ?? 0;
+        const totalBruto = pedido.total ?? 0;
         const costoEnvioVal = pedido.tipoEntrega === "envio" ? (pedido.costoEnvio || costoDelivery) : 0;
+        const montoDescuento = descPct > 0 ? Math.round(totalBruto * descPct / 100) : 0;
+        const total = totalBruto - montoDescuento;
 
         try {
             const ctrl = new AbortController();
@@ -1491,7 +1494,7 @@ export default function CajaPage() {
                     items: printItems,
                     total,
                     costoEnvio: costoEnvioVal,
-                    descuento: 0,
+                    descuento: montoDescuento,
                     pagos: [],
                     vuelto: 0,
                     sinPago: true,
@@ -1507,7 +1510,7 @@ export default function CajaPage() {
                 method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
                 body: JSON.stringify({
                     tipo: "ticket", impresora: "Barra",
-                    payload: { mesa: pedido.mesa || "—", fecha, hora, items: printItems, total, costoEnvio: costoEnvioVal, descuento: 0, pagos: [], vuelto: 0, sinPago: true },
+                    payload: { mesa: pedido.mesa || "—", fecha, hora, items: printItems, total, costoEnvio: costoEnvioVal, descuento: montoDescuento, pagos: [], vuelto: 0, sinPago: true },
                 }),
             });
         } catch { /* silencioso */ }
@@ -3009,26 +3012,42 @@ export default function CajaPage() {
                                                                 )}
                                                             </div>
                                                             {confirmarCuentaId === p._id ? (
-                                                                <div className="w-full flex gap-1.5">
-                                                                    <button
-                                                                        onClick={async () => {
-                                                                            if (printingCuentaId === p._id) return;
-                                                                            setConfirmarCuentaId(null);
-                                                                            setPrintingCuentaId(p._id);
-                                                                            try { await printCuenta(p); }
-                                                                            finally { setPrintingCuentaId(null); }
-                                                                        }}
-                                                                        disabled={printingCuentaId === p._id}
-                                                                        className="flex-1 flex items-center justify-center gap-1 bg-gray-800 text-white font-bold py-2 rounded-xl text-sm transition disabled:opacity-50">
-                                                                        <Printer size={13} /> Sí, imprimir
-                                                                    </button>
-                                                                    <button onClick={() => setConfirmarCuentaId(null)}
-                                                                        className="flex-1 border border-gray-300 bg-white text-gray-500 font-bold py-2 rounded-xl text-sm hover:bg-gray-50 transition">
-                                                                        Cancelar
-                                                                    </button>
+                                                                <div className="w-full flex flex-col gap-1.5">
+                                                                    <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+                                                                        <span className="text-xs font-semibold text-gray-600 whitespace-nowrap">Descuento %</span>
+                                                                        <input
+                                                                            type="number"
+                                                                            min="0" max="100"
+                                                                            placeholder="0"
+                                                                            value={cuentaDescuentoPct}
+                                                                            onChange={e => setCuentaDescuentoPct(e.target.value)}
+                                                                            className="w-full text-right font-bold text-gray-900 bg-transparent outline-none text-sm"
+                                                                        />
+                                                                        <span className="text-xs font-semibold text-gray-500">%</span>
+                                                                    </div>
+                                                                    <div className="flex gap-1.5">
+                                                                        <button
+                                                                            onClick={async () => {
+                                                                                if (printingCuentaId === p._id) return;
+                                                                                const desc = Math.min(100, Math.max(0, Number(cuentaDescuentoPct) || 0));
+                                                                                setConfirmarCuentaId(null);
+                                                                                setCuentaDescuentoPct("");
+                                                                                setPrintingCuentaId(p._id);
+                                                                                try { await printCuenta(p, desc); }
+                                                                                finally { setPrintingCuentaId(null); }
+                                                                            }}
+                                                                            disabled={printingCuentaId === p._id}
+                                                                            className="flex-1 flex items-center justify-center gap-1 bg-gray-800 text-white font-bold py-2 rounded-xl text-sm transition disabled:opacity-50">
+                                                                            <Printer size={13} /> Imprimir
+                                                                        </button>
+                                                                        <button onClick={() => { setConfirmarCuentaId(null); setCuentaDescuentoPct(""); }}
+                                                                            className="flex-1 border border-gray-300 bg-white text-gray-500 font-bold py-2 rounded-xl text-sm hover:bg-gray-50 transition">
+                                                                            Cancelar
+                                                                        </button>
+                                                                    </div>
                                                                 </div>
                                                             ) : (
-                                                                <button onClick={() => setConfirmarCuentaId(p._id)}
+                                                                <button onClick={() => { setConfirmarCuentaId(p._id); setCuentaDescuentoPct(""); }}
                                                                     className="w-full flex items-center justify-center gap-1.5 border border-gray-300 bg-white text-gray-700 font-bold py-2 rounded-xl text-sm hover:bg-gray-50 transition">
                                                                     <Printer size={13} /> Imprimir cuenta
                                                                 </button>
@@ -3242,27 +3261,43 @@ export default function CajaPage() {
                                             {/* ── Botones cobrar ── */}
                                             <div className="px-3 pb-3 flex flex-col gap-2">
                                                 {confirmarCuentaId === p._id ? (
-                                                    <div className="w-full flex gap-2">
-                                                        <button
-                                                            onClick={async () => {
-                                                                if (printingCuentaId === p._id) return;
-                                                                setConfirmarCuentaId(null);
-                                                                setPrintingCuentaId(p._id);
-                                                                try { await printCuenta(p); }
-                                                                finally { setPrintingCuentaId(null); }
-                                                            }}
-                                                            disabled={printingCuentaId === p._id}
-                                                            className="flex-1 flex items-center justify-center gap-1.5 bg-gray-800 text-white font-bold py-2.5 rounded-xl text-sm tracking-wide transition disabled:opacity-50">
-                                                            <Printer size={14} /> Sí, imprimir
-                                                        </button>
-                                                        <button onClick={() => setConfirmarCuentaId(null)}
-                                                            className="flex-1 border border-gray-300 bg-white text-gray-500 font-bold py-2.5 rounded-xl text-sm tracking-wide hover:bg-gray-50 transition">
-                                                            Cancelar
-                                                        </button>
+                                                    <div className="w-full flex flex-col gap-1.5">
+                                                        <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+                                                            <span className="text-xs font-semibold text-gray-600 whitespace-nowrap">Descuento %</span>
+                                                            <input
+                                                                type="number"
+                                                                min="0" max="100"
+                                                                placeholder="0"
+                                                                value={cuentaDescuentoPct}
+                                                                onChange={e => setCuentaDescuentoPct(e.target.value)}
+                                                                className="w-full text-right font-bold text-gray-900 bg-transparent outline-none text-sm"
+                                                            />
+                                                            <span className="text-xs font-semibold text-gray-500">%</span>
+                                                        </div>
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={async () => {
+                                                                    if (printingCuentaId === p._id) return;
+                                                                    const desc = Math.min(100, Math.max(0, Number(cuentaDescuentoPct) || 0));
+                                                                    setConfirmarCuentaId(null);
+                                                                    setCuentaDescuentoPct("");
+                                                                    setPrintingCuentaId(p._id);
+                                                                    try { await printCuenta(p, desc); }
+                                                                    finally { setPrintingCuentaId(null); }
+                                                                }}
+                                                                disabled={printingCuentaId === p._id}
+                                                                className="flex-1 flex items-center justify-center gap-1.5 bg-gray-800 text-white font-bold py-2.5 rounded-xl text-sm tracking-wide transition disabled:opacity-50">
+                                                                <Printer size={14} /> Imprimir
+                                                            </button>
+                                                            <button onClick={() => { setConfirmarCuentaId(null); setCuentaDescuentoPct(""); }}
+                                                                className="flex-1 border border-gray-300 bg-white text-gray-500 font-bold py-2.5 rounded-xl text-sm tracking-wide hover:bg-gray-50 transition">
+                                                                Cancelar
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 ) : (
                                                     <button
-                                                        onClick={() => setConfirmarCuentaId(p._id)}
+                                                        onClick={() => { setConfirmarCuentaId(p._id); setCuentaDescuentoPct(""); }}
                                                         className="w-full flex items-center justify-center gap-2 border border-gray-300 bg-white text-gray-700 font-bold py-2.5 rounded-xl text-sm tracking-wide hover:bg-gray-50 transition">
                                                         <Printer size={14} /> Imprimir cuenta
                                                     </button>
