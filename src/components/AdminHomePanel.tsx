@@ -5,7 +5,7 @@ import {
   Package, CalendarDays, Wallet, TrendingUp, Users,
   LayoutGrid, ClipboardList, Ticket, Star, UserCog,
   Utensils, Images, BarChart2, Settings, Bell, ChevronRight,
-  CheckSquare, QrCode,
+  CheckSquare, QrCode, Clock,
 } from "lucide-react";
 import { hoyArgentina } from "@/lib/argentina-time";
 
@@ -364,6 +364,7 @@ export function AdminHome() {
             </p>
             <div className="grid grid-cols-2 gap-2.5">
               <AdminCard href="/admin/empleados" title="Empleados" Icon={UserCog} color="zinc" />
+              <AdminCard href="/admin/turnos" title="Turnos" Icon={Clock} color="sky" />
               <AdminCard href="/admin/estadisticas" title="Estadísticas" Icon={BarChart2} color="emerald" />
               <AdminCard href="/admin/configuracion" title="Ajustes" Icon={Settings} color="zinc" full />
             </div>

@@ -9,7 +9,7 @@ import { hoyArgentina } from "@/lib/argentina-time";
 import { swalBase } from "@/lib/swalConfig";
 
 const BarMap = dynamic(() => import("@/components/BarMap"), { ssr: false });
-import { QrCode, Users, Bell, PackagePlus, Package, Utensils, Ticket, History, ScanQrCode, ScanText, Settings, Star, BarChart2, ClipboardList, LayoutGrid, Images, CalendarDays, Wallet, TrendingUp, UserCog, Truck, Gift, X, Clock, Tablet, Receipt, CheckSquare } from "lucide-react";
+import { QrCode, Users, Bell, PackagePlus, Package, Utensils, Ticket, History, ScanQrCode, ScanText, Settings, Star, BarChart2, ClipboardList, LayoutGrid, Images, CalendarDays, Wallet, TrendingUp, UserCog, Truck, Gift, X, Clock, Tablet, Receipt, CheckSquare, LogIn, LogOut } from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 import Loader from "@/components/Loader";
@@ -1182,6 +1182,7 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
   const [autoservActivasCount, setAutoservActivasCount] = useState(0);
   const [tareasPendientes, setTareasPendientes] = useState(0);
   const [eventosActivosCount, setEventosActivosCount] = useState(0);
+  const [turnoAbierto, setTurnoAbierto] = useState<boolean | null>(null);
 
   useEffect(() => {
     const tick = setInterval(() => setHora(new Date().getHours()), 60000);
@@ -1232,6 +1233,13 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
     fetch("/api/eventos?activo=true", { credentials: "include" })
       .then(r => r.json())
       .then(d => setEventosActivosCount(Array.isArray(d) ? d.length : 0))
+      .catch(() => { });
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/turnos", { credentials: "include" })
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setTurnoAbierto(d.some((t: any) => !t.salida)); })
       .catch(() => { });
   }, []);
 
@@ -1356,6 +1364,19 @@ function EmployeeHome({ nombre }: { nombre?: string }) {
           <div>
             <p className="font-extrabold text-base leading-tight">Menú</p>
             <p className="text-gray-400 text-xs mt-0.5">Ver la carta del restaurante</p>
+          </div>
+        </Link>
+
+        <Link href="/empleado/turnos"
+          className="h-full flex flex-col items-center justify-center text-center gap-3 bg-blue-700 hover:bg-blue-800 text-white rounded-2xl px-4 py-6 transition shadow-sm active:scale-[0.98] block">
+          <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+            {turnoAbierto ? <LogOut className="h-7 w-7" /> : <LogIn className="h-7 w-7" />}
+          </div>
+          <div>
+            <p className="font-extrabold text-base leading-tight">Mi Turno</p>
+            <p className="text-blue-200 text-xs mt-0.5">
+              {turnoAbierto === null ? "Cargando..." : turnoAbierto ? "En turno · Marcar salida" : "Marcar ingreso"}
+            </p>
           </div>
         </Link>
 

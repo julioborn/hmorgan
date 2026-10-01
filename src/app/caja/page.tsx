@@ -207,7 +207,9 @@ const VISTA_MAP: Record<string, Vista> = {
 export default function CajaPage() {
     const router = useRouter();
     const categoryConfigMap = useCategoryConfigs();
-    const [tab, setTab] = useState<"pedidos" | "caja" | "reservas" | "mesas" | "eventos" | "canjes" | "menu">("pedidos");
+    const [tab, setTab] = useState<"pedidos" | "caja" | "reservas" | "mesas" | "eventos" | "canjes" | "menu" | "turnos">("pedidos");
+    const [turnos, setTurnos] = useState<any[]>([]);
+    const [turnosFiltro, setTurnosFiltro] = useState<"hoy" | "semana" | "todos">("hoy");
     const [canjesPendientes, setCanjesPendientes] = useState<CanjePendiente[]>([]);
     const [canjesHistorial, setCanjesHistorial] = useState<CanjePendiente[]>([]);
     const [canjeProcessing, setCanjeProcessing] = useState<string | null>(null);
@@ -2510,6 +2512,16 @@ export default function CajaPage() {
                                 }`}>
                             <UtensilsCrossed size={15} /> Menú
                         </button>
+                        <button onClick={() => {
+                            setTab("turnos");
+                            const hace7 = new Date(); hace7.setDate(hace7.getDate() - 7);
+                            fetch(`/api/turnos?desde=${hace7.toISOString().slice(0, 10)}`, { credentials: "include" })
+                                .then(r => r.json()).then(d => { if (Array.isArray(d)) setTurnos(d); }).catch(() => {});
+                        }}
+                            className={`flex-1 py-3.5 text-sm font-black transition flex items-center justify-center gap-2 ${tab === "turnos" ? "text-gray-900 border-b-2 border-black" : "text-gray-700 hover:text-gray-600"
+                                }`}>
+                            <Clock size={15} /> Turnos
+                        </button>
                     </div>
 
                     {/* ── TAB PEDIDOS ── */}
@@ -4022,6 +4034,56 @@ export default function CajaPage() {
                                     </div>
                                 )}
                             </section>
+                        </div>
+                    )}
+
+                    {/* ── TAB TURNOS ── */}
+                    {tab === "turnos" && (
+                        <div className="max-w-2xl mx-auto px-4 pt-4 pb-10 space-y-4">
+                            <div className="flex items-center justify-between flex-wrap gap-2">
+                                <h2 className="font-black text-gray-900 text-lg">Turnos del personal</h2>
+                                {turnos.some((t: any) => !t.salida) && (
+                                    <span className="flex items-center gap-1.5 bg-emerald-100 text-emerald-700 text-xs font-black px-3 py-1.5 rounded-full">
+                                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                        {turnos.filter((t: any) => !t.salida).length} en turno
+                                    </span>
+                                )}
+                            </div>
+                            {turnos.length === 0 ? (
+                                <p className="text-sm text-gray-400 text-center py-10">Sin registros recientes</p>
+                            ) : (
+                                <div className="space-y-2">
+                                    {turnos.map((t: any) => {
+                                        const mins = Math.floor(((t.salida ? new Date(t.salida) : new Date()).getTime() - new Date(t.ingreso).getTime()) / 60000);
+                                        const dur = mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h ${mins % 60 > 0 ? mins % 60 + "m" : ""}`.trim();
+                                        return (
+                                            <div key={t._id} className={`bg-white rounded-2xl border px-4 py-3 flex items-center justify-between shadow-sm ${!t.salida ? "border-emerald-300" : "border-gray-200"}`}>
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${!t.salida ? "bg-emerald-100" : "bg-gray-100"}`}>
+                                                        <Clock size={15} className={!t.salida ? "text-emerald-600" : "text-gray-500"} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-black text-gray-900">
+                                                            {t.userId ? `${t.userId.nombre} ${t.userId.apellido}`.trim() : "Empleado"}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500">
+                                                            {new Date(t.ingreso).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}
+                                                            {" · "}
+                                                            {new Date(t.ingreso).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                                                            {" → "}
+                                                            {t.salida
+                                                                ? new Date(t.salida).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })
+                                                                : <span className="text-emerald-600 font-semibold">En turno</span>
+                                                            }
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <p className="text-sm font-black text-gray-600">{dur}</p>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                     )}
 
