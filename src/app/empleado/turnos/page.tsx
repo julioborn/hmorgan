@@ -44,7 +44,7 @@ export default function TurnosPage() {
     const [form, setForm] = useState<{ accion: "ingreso" | "salida"; hora: string } | null>(null);
 
     useEffect(() => {
-        if (!loading && user && !["empleado", "admin", "superadmin"].includes(user.role)) {
+        if (!loading && user && !["empleado", "cocina", "limpieza", "admin", "superadmin"].includes(user.role)) {
             router.replace("/");
         }
     }, [user, loading, router]);

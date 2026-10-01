@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
     const payload = getPayload(req);
     if (!payload) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    if (!["empleado", "admin", "superadmin"].includes(payload.role)) {
+    if (!["empleado", "cocina", "limpieza", "admin", "superadmin"].includes(payload.role)) {
         return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
     }
 
