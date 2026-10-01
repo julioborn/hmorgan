@@ -125,6 +125,57 @@ function esCumpleaños(fechaNacimiento?: string): boolean {
   return fn.getUTCMonth() + 1 === mesHoy && fn.getUTCDate() === diaHoy;
 }
 
+function HangingSign() {
+  const [swinging, setSwinging] = useState(false);
+
+  function swing() {
+    if (swinging) return;
+    setSwinging(true);
+    setTimeout(() => setSwinging(false), 900);
+  }
+
+  return (
+    <>
+      <style>{`
+        @keyframes hangSwing {
+          0%   { transform: rotate(0deg); }
+          15%  { transform: rotate(9deg); }
+          35%  { transform: rotate(-7deg); }
+          55%  { transform: rotate(4deg); }
+          70%  { transform: rotate(-2deg); }
+          85%  { transform: rotate(1deg); }
+          100% { transform: rotate(0deg); }
+        }
+        .hang-swing { animation: hangSwing 0.9s ease-out; }
+      `}</style>
+
+      <div className="flex justify-center -mt-1 select-none" onClick={swing}>
+        {/* Cuerdas */}
+        <div className="flex justify-center gap-16 w-full max-w-[220px]">
+          <div className="w-px h-5 bg-gray-400" />
+          <div className="w-px h-5 bg-gray-400" />
+        </div>
+      </div>
+
+      <div className="flex justify-center -mt-0 select-none cursor-pointer" onClick={swing}>
+        <div
+          className={`relative bg-red-600 text-white rounded-2xl px-6 py-4 shadow-lg max-w-[260px] w-full text-center ${swinging ? "hang-swing" : ""}`}
+          style={{ transformOrigin: "top center" }}
+        >
+          {/* Tornillos decorativos */}
+          <span className="absolute top-2 left-3 w-2 h-2 rounded-full bg-white/30 block" />
+          <span className="absolute top-2 right-3 w-2 h-2 rounded-full bg-white/30 block" />
+
+          <p className="text-xs font-bold uppercase tracking-widest text-red-200 mb-1">Promoción</p>
+          <p className="text-3xl font-black leading-none">10% OFF</p>
+          <p className="text-sm font-semibold text-red-100 mt-1">comiendo en el bar</p>
+          <p className="text-[10px] text-red-200 mt-2">Tocame 👆</p>
+        </div>
+      </div>
+    </>
+  );
+}
+
 function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: string; puntos: number; userId?: string; fechaNacimiento?: string }) {
   const isOwner = userId === "68b212ac8a60afb869a18626";
   const esCumple = esCumpleaños(fechaNacimiento);
@@ -448,6 +499,9 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
           </div>
         </div>
       )}
+
+      {/* ── Cartel colgante descuento ── */}
+      <HangingSign />
 
       {/* Saludo + puntos */}
       <div className="flex items-center justify-between px-1">
