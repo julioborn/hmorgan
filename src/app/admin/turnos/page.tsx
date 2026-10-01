@@ -2,9 +2,10 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
-import { Clock } from "lucide-react";
+import { Clock, Trash2 } from "lucide-react";
 import Loader from "@/components/Loader";
 import { hoyArgentina } from "@/lib/argentina-time";
+import { swalBase } from "@/lib/swalConfig";
 
 interface Turno {
     _id: string;
@@ -47,6 +48,31 @@ export default function AdminTurnosPage() {
             router.replace("/");
         }
     }, [user, loading, router]);
+
+    async function eliminar(id: string, nombre: string) {
+        const paso1 = await swalBase.fire({
+            icon: "warning",
+            title: "¿Eliminar registro?",
+            text: `Se eliminará el turno de ${nombre}. Esta acción no se puede deshacer.`,
+            showCancelButton: true,
+            confirmButtonText: "Sí, eliminar",
+            cancelButtonText: "Cancelar",
+        });
+        if (!paso1.isConfirmed) return;
+
+        const paso2 = await swalBase.fire({
+            icon: "error",
+            title: "¿Estás seguro?",
+            text: "Confirmá que querés eliminar este registro de asistencia.",
+            showCancelButton: true,
+            confirmButtonText: "Eliminar definitivamente",
+            cancelButtonText: "Cancelar",
+        });
+        if (!paso2.isConfirmed) return;
+
+        await fetch(`/api/turnos?id=${id}`, { method: "DELETE", credentials: "include" });
+        setTurnos(prev => prev.filter(t => t._id !== id));
+    }
 
     const cargar = useCallback(async () => {
         setCargando(true);
@@ -126,9 +152,16 @@ export default function AdminTurnosPage() {
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="text-xs text-gray-400">Duración</p>
-                                            <p className="text-sm font-black text-gray-700">{duracion(t.ingreso, t.salida)}</p>
+                                        <div className="flex items-center gap-3">
+                                            <div className="text-right">
+                                                <p className="text-xs text-gray-400">Duración</p>
+                                                <p className="text-sm font-black text-gray-700">{duracion(t.ingreso, t.salida)}</p>
+                                            </div>
+                                            <button
+                                                onClick={() => eliminar(t._id, nombreEmpleado(t))}
+                                                className="p-2 rounded-xl hover:bg-red-50 text-gray-300 hover:text-red-500 transition">
+                                                <Trash2 size={15} />
+                                            </button>
                                         </div>
                                     </div>
                                 ))}

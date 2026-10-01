@@ -92,3 +92,17 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ error: "Acción inválida" }, { status: 400 });
 }
+
+// DELETE — admin elimina un turno
+export async function DELETE(req: NextRequest) {
+    const payload = getPayload(req);
+    if (!payload || !isStaff(payload.role)) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+
+    await connectMongoDB();
+    const id = new URL(req.url).searchParams.get("id");
+    if (!id) return NextResponse.json({ error: "Falta id" }, { status: 400 });
+
+    const { default: mongoose } = await import("mongoose");
+    await TurnoEmpleado.findByIdAndDelete(new mongoose.Types.ObjectId(id));
+    return NextResponse.json({ ok: true });
+}
