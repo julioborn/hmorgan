@@ -52,15 +52,31 @@ export async function POST(req: NextRequest) {
     }
 
     await connectMongoDB();
-    const { accion } = await req.json(); // "ingreso" | "salida"
-    const ahora = new Date();
+    const { accion, horaManual } = await req.json(); // accion: "ingreso"|"salida", horaManual: "HH:mm" opcional
+
+    // Construir timestamp: si viene horaManual, usamos hoy + esa hora (en hora local AR)
+    function buildTimestamp(horaStr?: string): Date {
+        if (!horaStr || !/^\d{2}:\d{2}$/.test(horaStr)) return new Date();
+        const [h, m] = horaStr.split(":").map(Number);
+        const ahora = new Date();
+        // Ajustar a Argentina (UTC-3)
+        const arOffset = -3 * 60;
+        const localOffset = ahora.getTimezoneOffset();
+        const ar = new Date(ahora.getTime() + (localOffset - (-arOffset)) * 60000);
+        ar.setHours(h, m, 0, 0);
+        // Volver a UTC
+        const utc = new Date(ar.getTime() - (localOffset - (-arOffset)) * 60000);
+        return utc;
+    }
+
+    const timestamp = buildTimestamp(horaManual);
 
     if (accion === "ingreso") {
         const turnoAbierto = await TurnoEmpleado.findOne({ userId: payload.sub, salida: null });
         if (turnoAbierto) {
             return NextResponse.json({ error: "Ya tenés un turno abierto" }, { status: 400 });
         }
-        const turno = await TurnoEmpleado.create({ userId: payload.sub, ingreso: ahora });
+        const turno = await TurnoEmpleado.create({ userId: payload.sub, ingreso: timestamp });
         return NextResponse.json(turno, { status: 201 });
     }
 
@@ -69,7 +85,7 @@ export async function POST(req: NextRequest) {
         if (!turnoAbierto) {
             return NextResponse.json({ error: "No tenés un turno abierto" }, { status: 400 });
         }
-        turnoAbierto.salida = ahora;
+        turnoAbierto.salida = timestamp;
         await turnoAbierto.save();
         return NextResponse.json(turnoAbierto);
     }

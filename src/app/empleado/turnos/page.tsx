@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
-import { Clock, LogIn, LogOut, ChevronLeft } from "lucide-react";
+import { Clock, LogIn, LogOut, ChevronLeft, Check, X } from "lucide-react";
 import Link from "next/link";
 import { swalBase } from "@/lib/swalConfig";
 import Loader from "@/components/Loader";
@@ -30,12 +30,18 @@ function duracion(ingreso: string, salida: string | null) {
     return `${h}h ${m > 0 ? m + "m" : ""}`.trim();
 }
 
+function horaActual() {
+    const now = new Date();
+    return now.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false }).replace(".", ":");
+}
+
 export default function TurnosPage() {
     const { user, loading } = useAuth();
     const router = useRouter();
     const [turnos, setTurnos] = useState<Turno[]>([]);
     const [cargando, setCargando] = useState(true);
     const [marcando, setMarcando] = useState(false);
+    const [form, setForm] = useState<{ accion: "ingreso" | "salida"; hora: string } | null>(null);
 
     useEffect(() => {
         if (!loading && user && !["empleado", "admin", "superadmin"].includes(user.role)) {
@@ -53,30 +59,26 @@ export default function TurnosPage() {
 
     const turnoAbierto = turnos.find(t => !t.salida);
 
-    async function marcar(accion: "ingreso" | "salida") {
-        const confirmar = await swalBase.fire({
-            icon: "question",
-            title: accion === "ingreso" ? "¿Marcar ingreso?" : "¿Marcar salida?",
-            text: accion === "ingreso" ? "Se registrará tu hora de entrada." : "Se registrará tu hora de salida.",
-            showCancelButton: true,
-            confirmButtonText: "Sí, confirmar",
-            cancelButtonText: "Cancelar",
-        });
-        if (!confirmar.isConfirmed) return;
+    function abrirForm(accion: "ingreso" | "salida") {
+        setForm({ accion, hora: horaActual() });
+    }
 
+    async function confirmar() {
+        if (!form) return;
         setMarcando(true);
         try {
             const r = await fetch("/api/turnos", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
-                body: JSON.stringify({ accion }),
+                body: JSON.stringify({ accion: form.accion, horaManual: form.hora }),
             });
             const data = await r.json();
             if (!r.ok) {
                 await swalBase.fire({ icon: "error", title: "Error", text: data.error });
                 return;
             }
+            setForm(null);
             await cargar();
         } finally {
             setMarcando(false);
@@ -112,27 +114,53 @@ export default function TurnosPage() {
                         </p>
                     </div>
                 </div>
-                {turnoAbierto
-                    ? <LogOut size={20} className="opacity-60" />
-                    : <LogIn size={20} className="opacity-60" />
-                }
+                {turnoAbierto ? <LogOut size={20} className="opacity-60" /> : <LogIn size={20} className="opacity-60" />}
             </div>
 
-            {/* Botón principal */}
-            {turnoAbierto ? (
-                <button
-                    onClick={() => marcar("salida")}
-                    disabled={marcando}
-                    className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-black py-4 rounded-2xl text-lg transition shadow-md active:scale-[0.97]">
-                    <LogOut size={22} /> Marcar salida
-                </button>
+            {/* Formulario de marcado */}
+            {form ? (
+                <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-4">
+                    <p className="text-sm font-black text-gray-700">
+                        {form.accion === "ingreso" ? "¿A qué hora entraste?" : "¿A qué hora salís?"}
+                    </p>
+                    <div className="flex items-center gap-3">
+                        <Clock size={18} className="text-gray-400 shrink-0" />
+                        <input
+                            type="time"
+                            value={form.hora}
+                            onChange={e => setForm(f => f ? { ...f, hora: e.target.value } : f)}
+                            className="flex-1 text-3xl font-black text-gray-900 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition"
+                        />
+                    </div>
+                    <p className="text-xs text-gray-400 text-center">Podés ajustar la hora si lo marcás tarde</p>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={confirmar}
+                            disabled={marcando}
+                            className={`flex-1 flex items-center justify-center gap-2 font-black py-3.5 rounded-2xl text-white transition disabled:opacity-50 ${form.accion === "ingreso" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-600 hover:bg-red-700"}`}>
+                            <Check size={18} /> Confirmar
+                        </button>
+                        <button
+                            onClick={() => setForm(null)}
+                            className="flex-1 flex items-center justify-center gap-2 border border-gray-300 bg-white text-gray-600 font-bold py-3.5 rounded-2xl hover:bg-gray-50 transition">
+                            <X size={18} /> Cancelar
+                        </button>
+                    </div>
+                </div>
             ) : (
-                <button
-                    onClick={() => marcar("ingreso")}
-                    disabled={marcando}
-                    className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black py-4 rounded-2xl text-lg transition shadow-md active:scale-[0.97]">
-                    <LogIn size={22} /> Marcar ingreso
-                </button>
+                turnoAbierto ? (
+                    <button
+                        onClick={() => abrirForm("salida")}
+                        className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-black py-4 rounded-2xl text-lg transition shadow-md active:scale-[0.97]">
+                        <LogOut size={22} /> Marcar salida
+                    </button>
+                ) : (
+                    <button
+                        onClick={() => abrirForm("ingreso")}
+                        className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-2xl text-lg transition shadow-md active:scale-[0.97]">
+                        <LogIn size={22} /> Marcar horario
+                    </button>
+                )
             )}
 
             {/* Historial */}
