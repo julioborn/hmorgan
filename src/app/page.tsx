@@ -162,7 +162,7 @@ function HangingSign() {
       <div
         style={{
           position: "fixed",
-          top: "calc(env(safe-area-inset-top) + 18px)",
+          top: "calc(env(safe-area-inset-top) + 35px)",
           left: "50%",
           marginLeft: `${-W / 2}px`,
           zIndex: 25,
