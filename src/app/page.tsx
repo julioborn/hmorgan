@@ -162,24 +162,23 @@ function MorganJamBanner() {
         ))}
 
         {/* Contenido */}
-        <div className="relative z-10 px-5 pt-5 pb-4">
+        <div className="relative z-10 px-5 pt-4 pb-3">
 
           {/* Chip fecha */}
-          <span className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full mb-4"
+          <span className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full mb-3"
             style={{ background:"rgba(185,28,28,0.25)", border:"1px solid rgba(239,68,68,0.35)", color:"#fca5a5" }}>
             🎸 11 de Octubre
           </span>
 
           {/* Título */}
           <div className="mb-1">
-            <p className="text-xs font-bold uppercase tracking-[0.25em] text-gray-500 mb-0.5">H. Morgan Bar presenta</p>
-            <h2 className="text-5xl font-black leading-none tracking-tight"
+            <h2 className="text-4xl font-black leading-none tracking-tight"
               style={{ fontFamily:"system-ui,-apple-system,sans-serif",
                 background:"linear-gradient(90deg,#ffffff 0%,#fca5a5 60%,#ef4444 100%)",
                 WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>
               MORGAN
             </h2>
-            <h2 className="text-5xl font-black leading-none tracking-tight -mt-1"
+            <h2 className="text-4xl font-black leading-none tracking-tight -mt-1"
               style={{ fontFamily:"system-ui,-apple-system,sans-serif", color:"#ef4444",
                 textShadow:"0 0 30px rgba(239,68,68,0.5)" }}>
               JAM
@@ -187,12 +186,12 @@ function MorganJamBanner() {
           </div>
 
           {/* Subtítulo */}
-          <p className="text-sm text-gray-400 mt-2 mb-5 leading-snug">
-            Música en vivo · Una noche para disfrutar
+          <p className="text-xs text-gray-400 mt-1.5 mb-4 leading-snug">
+            Música en vivo
           </p>
 
           {/* Ecualizador animado */}
-          <div className="flex items-end gap-[3px]" style={{ height: 36 }}>
+          <div className="flex items-end gap-[3px]" style={{ height: 28 }}>
             {[
               ["eq1","0s","#ef4444"],["eq2","0.12s","#f87171"],["eq3","0.06s","#dc2626"],
               ["eq4","0.18s","#ef4444"],["eq5","0.09s","#fca5a5"],["eq1","0.21s","#ef4444"],
