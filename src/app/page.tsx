@@ -134,7 +134,7 @@ function MorganJamBanner() {
         @keyframes eq3 { 0%,100%{height:26px} 30%{height:14px} 60%{height:6px} 80%{height:22px} }
         @keyframes eq4 { 0%,100%{height:10px} 30%{height:30px} 60%{height:20px} 80%{height:6px} }
         @keyframes eq5 { 0%,100%{height:22px} 30%{height:6px} 60%{height:26px} 80%{height:14px} }
-        @keyframes noteRise { 0%{transform:translateY(0) rotate(-8deg);opacity:0.18} 100%{transform:translateY(-36px) rotate(8deg);opacity:0} }
+        @keyframes noteRise { 0%{transform:translateY(0) rotate(-8deg);opacity:0} 15%{opacity:1} 85%{opacity:0.9} 100%{transform:translateY(-44px) rotate(10deg);opacity:0} }
         .mj-bar { width:3px; border-radius:2px; animation-timing-function:ease-in-out; animation-iteration-count:infinite; }
       `}</style>
 
@@ -142,20 +142,22 @@ function MorganJamBanner() {
         className="relative overflow-hidden rounded-3xl shadow-2xl"
         style={{ background: "linear-gradient(145deg,#0a0a0a 0%,#1c0303 55%,#0d0d0d 100%)" }}
       >
-        {/* Halo rojo central */}
+        {/* Halo rojo */}
         <div className="absolute inset-0 pointer-events-none"
-          style={{ background: "radial-gradient(ellipse 70% 60% at 50% 20%,rgba(185,28,28,0.28),transparent 70%)" }} />
+          style={{ background: "radial-gradient(ellipse 70% 60% at 50% 30%,rgba(185,28,28,0.28),transparent 70%)" }} />
 
-        {/* Notas flotantes */}
-        {[
-          { ch:"♪", top:"12%", left:"6%",  size:20, delay:"0s",   dur:"3.2s" },
-          { ch:"♫", top:"8%",  right:"8%", size:26, delay:"1.1s", dur:"4s"   },
-          { ch:"♩", top:"18%", left:"28%", size:14, delay:"0.5s", dur:"3.6s" },
-          { ch:"♬", top:"14%", right:"22%",size:18, delay:"2s",   dur:"4.4s" },
-        ].map((n, i) => (
+        {/* Notas flotantes — más cantidad y más marcadas a la derecha */}
+        {([
+          { ch:"♪", top:"55%", left:"5%",   size:16, delay:"0s",    dur:"3.2s", opacity:0.22 },
+          { ch:"♩", top:"60%", left:"22%",  size:13, delay:"0.6s",  dur:"3.6s", opacity:0.18 },
+          { ch:"♫", top:"50%", right:"6%",  size:28, delay:"0.3s",  dur:"3.4s", opacity:0.55 },
+          { ch:"♬", top:"58%", right:"18%", size:22, delay:"1.0s",  dur:"4.0s", opacity:0.45 },
+          { ch:"♪", top:"45%", right:"10%", size:18, delay:"1.8s",  dur:"3.8s", opacity:0.50 },
+          { ch:"♩", top:"62%", right:"30%", size:16, delay:"2.4s",  dur:"3.2s", opacity:0.35 },
+          { ch:"♫", top:"52%", right:"38%", size:14, delay:"0.9s",  dur:"4.2s", opacity:0.28 },
+        ] as {ch:string;top:string;left?:string;right?:string;size:number;delay:string;dur:string;opacity:number}[]).map((n, i) => (
           <span key={i} className="absolute pointer-events-none select-none"
-            style={{ top: n.top, left: (n as any).left, right: (n as any).right,
-              fontSize: n.size, color:"#ef4444",
+            style={{ top:n.top, left:n.left, right:n.right, fontSize:n.size, color:"#ef4444",
               animation:`noteRise ${n.dur} ${n.delay} ease-in-out infinite` }}>
             {n.ch}
           </span>
@@ -170,28 +172,30 @@ function MorganJamBanner() {
             🎸 11 de Octubre
           </span>
 
-          {/* Título */}
-          <div className="mb-1">
-            <h2 className="text-4xl font-black leading-none tracking-tight"
-              style={{ fontFamily:"system-ui,-apple-system,sans-serif",
-                background:"linear-gradient(90deg,#ffffff 0%,#fca5a5 60%,#ef4444 100%)",
-                WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>
-              MORGAN
-            </h2>
-            <h2 className="text-4xl font-black leading-none tracking-tight -mt-1"
-              style={{ fontFamily:"system-ui,-apple-system,sans-serif", color:"#ef4444",
-                textShadow:"0 0 30px rgba(239,68,68,0.5)" }}>
-              JAM
-            </h2>
-          </div>
+          {/* Título — SVG para que "MORGAN JAM" ocupe todo el ancho */}
+          <svg viewBox="0 0 220 52" width="100%" style={{ display:"block", marginBottom:2, overflow:"visible" }}>
+            <defs>
+              <linearGradient id="mj-title-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%"   stopColor="#ffffff" />
+                <stop offset="55%"  stopColor="#fca5a5" />
+                <stop offset="100%" stopColor="#ef4444" />
+              </linearGradient>
+            </defs>
+            <text x="0" y="48"
+              textLength="220" lengthAdjust="spacingAndGlyphs"
+              fill="url(#mj-title-grad)"
+              fontFamily="system-ui,-apple-system,sans-serif"
+              fontWeight="900" fontSize="46"
+              style={{ filter:"drop-shadow(0 0 18px rgba(239,68,68,0.45))" }}>
+              MORGAN JAM
+            </text>
+          </svg>
 
           {/* Subtítulo */}
-          <p className="text-xs text-gray-400 mt-1.5 mb-4 leading-snug">
-            Música en vivo
-          </p>
+          <p className="text-xs text-gray-400 mb-4 leading-snug">Música en vivo</p>
 
           {/* Ecualizador animado */}
-          <div className="flex items-end gap-[3px]" style={{ height: 28 }}>
+          <div className="flex items-end gap-[3px]" style={{ height:28 }}>
             {[
               ["eq1","0s","#ef4444"],["eq2","0.12s","#f87171"],["eq3","0.06s","#dc2626"],
               ["eq4","0.18s","#ef4444"],["eq5","0.09s","#fca5a5"],["eq1","0.21s","#ef4444"],
@@ -200,7 +204,7 @@ function MorganJamBanner() {
               ["eq3","0.12s","#dc2626"],["eq4","0.21s","#ef4444"],["eq5","0.03s","#fca5a5"],
             ].map(([anim, delay, color], i) => (
               <div key={i} className="mj-bar"
-                style={{ animation:`${anim} ${0.7 + i * 0.04}s ${delay} infinite`,
+                style={{ animation:`${anim} ${0.7+i*0.04}s ${delay} infinite`,
                   background:`linear-gradient(to top,${color},rgba(255,255,255,0.25))`,
                   minHeight:6, alignSelf:"flex-end" }} />
             ))}
