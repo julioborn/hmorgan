@@ -192,7 +192,7 @@ function MorganJamBanner() {
           </svg>
 
           {/* Subtítulo */}
-          <p className="text-xs text-gray-400 mb-4 leading-snug">Música en vivo</p>
+          <p className="text-sm font-semibold text-gray-300 mb-4 leading-snug">Música en vivo</p>
 
           {/* Ecualizador animado */}
           <div className="flex items-end gap-[3px]" style={{ height:28 }}>
