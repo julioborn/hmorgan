@@ -227,8 +227,9 @@ function HangingSign() {
   }
 
   const W = 168, hookX = 84, hookY = 7, hookR = 7;
+  const barY = 20;        // barra horizontal
+  const lx = 34, rx = 134; // puntos donde cuelgan las cuerdas (paralelas)
   const ropeY = 62;
-  const lx = 13, rx = 155;
   const sH = 62;
   const svgH = ropeY + sH + 4;
 
@@ -271,12 +272,20 @@ function HangingSign() {
           className={swinging ? "hang-swing" : ""}
           style={{ transformOrigin: `${hookX}px ${hookY}px`, overflow: "visible", display: "block" }}
         >
+          {/* Gancho central */}
           <circle cx={hookX} cy={hookY} r={hookR} fill="#e5e7eb" stroke="#9ca3af" strokeWidth="1.2" />
-          <line x1={hookX} y1={hookY + hookR} x2={lx} y2={ropeY} stroke="#b0b0b0" strokeWidth="2.5" strokeLinecap="round" />
-          <line x1={hookX} y1={hookY + hookR} x2={rx} y2={ropeY} stroke="#b0b0b0" strokeWidth="2.5" strokeLinecap="round" />
+          {/* Línea del gancho a la barra */}
+          <line x1={hookX} y1={hookY + hookR} x2={hookX} y2={barY} stroke="#b0b0b0" strokeWidth="2.5" strokeLinecap="round" />
+          {/* Barra horizontal */}
+          <line x1={lx} y1={barY} x2={rx} y2={barY} stroke="#9ca3af" strokeWidth="3" strokeLinecap="round" />
+          {/* Cuerdas verticales paralelas */}
+          <line x1={lx} y1={barY} x2={lx} y2={ropeY} stroke="#b0b0b0" strokeWidth="2.5" strokeLinecap="round" />
+          <line x1={rx} y1={barY} x2={rx} y2={ropeY} stroke="#b0b0b0" strokeWidth="2.5" strokeLinecap="round" />
+          {/* Cartel */}
           <rect x={0} y={ropeY} width={W} height={sH} rx={14} fill="#b91c1c" />
           <rect x={0} y={ropeY} width={W} height={sH} rx={14} fill="none" stroke="#7f1d1d" strokeWidth="1" />
           <rect x={7} y={ropeY + 7} width={W - 14} height={sH - 14} rx={8} fill="none" stroke="white" strokeWidth="1.8" strokeOpacity="0.55" />
+          {/* Argollas donde la cuerda se une al cartel */}
           <circle cx={lx} cy={ropeY} r={5} fill="#991b1b" stroke="#e5e7eb" strokeWidth="1.5" />
           <circle cx={rx} cy={ropeY} r={5} fill="#991b1b" stroke="#e5e7eb" strokeWidth="1.5" />
           <text x={hookX} y={ropeY + sH / 2 - 7}
