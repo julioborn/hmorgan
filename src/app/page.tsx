@@ -139,37 +139,33 @@ function HangingSign() {
       <style>{`
         @keyframes hangSwing {
           0%   { transform: rotate(0deg); }
-          15%  { transform: rotate(9deg); }
-          35%  { transform: rotate(-7deg); }
-          55%  { transform: rotate(4deg); }
-          70%  { transform: rotate(-2deg); }
-          85%  { transform: rotate(1deg); }
+          15%  { transform: rotate(7deg); }
+          35%  { transform: rotate(-5deg); }
+          55%  { transform: rotate(3deg); }
+          72%  { transform: rotate(-1.5deg); }
+          88%  { transform: rotate(0.5deg); }
           100% { transform: rotate(0deg); }
         }
         .hang-swing { animation: hangSwing 0.9s ease-out; }
       `}</style>
 
-      <div className="flex justify-center -mt-1 select-none" onClick={swing}>
+      {/* Cuerdas + cartel, pegado al top del contenido */}
+      <div className="-mt-8 -mx-4 sm:-mx-6 lg:-mx-8 select-none cursor-pointer" onClick={swing}>
         {/* Cuerdas */}
-        <div className="flex justify-center gap-16 w-full max-w-[220px]">
-          <div className="w-px h-5 bg-gray-400" />
-          <div className="w-px h-5 bg-gray-400" />
+        <div className="flex justify-center gap-24">
+          <div className="w-px h-4 bg-gray-400" />
+          <div className="w-px h-4 bg-gray-400" />
         </div>
-      </div>
-
-      <div className="flex justify-center -mt-0 select-none cursor-pointer" onClick={swing}>
+        {/* Cartel */}
         <div
-          className={`relative bg-red-600 text-white rounded-2xl px-6 py-4 shadow-lg max-w-[260px] w-full text-center ${swinging ? "hang-swing" : ""}`}
+          className={`relative bg-red-600 text-white mx-0 flex items-center justify-between px-6 py-3 shadow-md ${swinging ? "hang-swing" : ""}`}
           style={{ transformOrigin: "top center" }}
         >
-          {/* Tornillos decorativos */}
-          <span className="absolute top-2 left-3 w-2 h-2 rounded-full bg-white/30 block" />
-          <span className="absolute top-2 right-3 w-2 h-2 rounded-full bg-white/30 block" />
-
-          <p className="text-xs font-bold uppercase tracking-widest text-red-200 mb-1">Promoción</p>
-          <p className="text-3xl font-black leading-none">10% OFF</p>
-          <p className="text-sm font-semibold text-red-100 mt-1">comiendo en el bar</p>
-          <p className="text-[10px] text-red-200 mt-2">Tocame 👆</p>
+          <span className="absolute top-2 left-4 w-2 h-2 rounded-full bg-white/25 block" />
+          <span className="absolute top-2 right-4 w-2 h-2 rounded-full bg-white/25 block" />
+          <p className="text-xs font-bold uppercase tracking-widest text-red-200">Promoción</p>
+          <p className="text-2xl font-black leading-none">10% OFF</p>
+          <p className="text-sm font-semibold text-red-100">comiendo en el bar</p>
         </div>
       </div>
     </>
@@ -465,6 +461,9 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
       style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
     >
 
+      {/* ── Cartel colgante descuento ── */}
+      <HangingSign />
+
       {/* Banner de cumpleaños */}
       {esCumple && (
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-pink-500 via-red-500 to-orange-400 p-5 text-white shadow-xl">
@@ -499,9 +498,6 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
           </div>
         </div>
       )}
-
-      {/* ── Cartel colgante descuento ── */}
-      <HangingSign />
 
       {/* Saludo + puntos */}
       <div className="flex items-center justify-between px-1">
