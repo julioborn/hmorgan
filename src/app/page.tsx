@@ -128,8 +128,14 @@ function esCumpleaños(fechaNacimiento?: string): boolean {
 function HangingSign() {
   const [swinging, setSwinging] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [visible, setVisible] = useState(true);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+    function onScroll() { setVisible(window.scrollY < 40); }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   function swing() {
     if (swinging) return;
@@ -168,6 +174,10 @@ function HangingSign() {
           zIndex: 25,
           cursor: "pointer",
           userSelect: "none",
+          opacity: visible ? 1 : 0,
+          transform: visible ? "translateY(0)" : "translateY(-16px)",
+          transition: "opacity 0.3s ease, transform 0.3s ease",
+          pointerEvents: visible ? "auto" : "none",
         }}
         onClick={swing}
       >
