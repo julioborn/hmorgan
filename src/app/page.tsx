@@ -164,7 +164,7 @@ function HangingSign() {
       <div
         style={{
           position: "fixed",
-          top: "calc(env(safe-area-inset-top) + 72px)",
+          top: "calc(env(safe-area-inset-top) + 40px)",
           left: "50%",
           marginLeft: `${-W / 2}px`,
           zIndex: 25,
@@ -214,7 +214,7 @@ function HangingSign() {
           El cartel visible (debajo del header) mide svgH - hookR = 136px.
           El contenido en flujo ya arranca con py-8 (32px), entonces el espaciador
           compensa los 87px restantes hasta el borde inferior del cartel. */}
-      <div style={{ height: "87px" }} />
+      <div style={{ height: "55px" }} />
     </>
   );
 }
