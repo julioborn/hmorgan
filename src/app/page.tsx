@@ -148,16 +148,14 @@ function MorganJamBanner() {
 
         {/* Notas flotantes — más cantidad y más marcadas a la derecha */}
         {([
-          { ch:"♪", top:"55%", left:"5%",   size:16, delay:"0s",    dur:"3.2s", opacity:0.22 },
-          { ch:"♩", top:"60%", left:"22%",  size:13, delay:"0.6s",  dur:"3.6s", opacity:0.18 },
-          { ch:"♫", top:"50%", right:"6%",  size:28, delay:"0.3s",  dur:"3.4s", opacity:0.55 },
-          { ch:"♬", top:"58%", right:"18%", size:22, delay:"1.0s",  dur:"4.0s", opacity:0.45 },
-          { ch:"♪", top:"45%", right:"10%", size:18, delay:"1.8s",  dur:"3.8s", opacity:0.50 },
-          { ch:"♩", top:"62%", right:"30%", size:16, delay:"2.4s",  dur:"3.2s", opacity:0.35 },
-          { ch:"♫", top:"52%", right:"38%", size:14, delay:"0.9s",  dur:"4.2s", opacity:0.28 },
-        ] as {ch:string;top:string;left?:string;right?:string;size:number;delay:string;dur:string;opacity:number}[]).map((n, i) => (
+          { ch:"♫", top:"18%", right:"5%",  size:28, delay:"0s",   dur:"3.4s" },
+          { ch:"♬", top:"30%", right:"18%", size:22, delay:"1.0s", dur:"4.0s" },
+          { ch:"♪", top:"12%", right:"22%", size:18, delay:"1.8s", dur:"3.8s" },
+          { ch:"♩", top:"42%", right:"8%",  size:16, delay:"0.5s", dur:"3.2s" },
+          { ch:"♫", top:"50%", right:"28%", size:14, delay:"2.2s", dur:"4.2s" },
+        ] as {ch:string;top:string;right:string;size:number;delay:string;dur:string}[]).map((n, i) => (
           <span key={i} className="absolute pointer-events-none select-none"
-            style={{ top:n.top, left:n.left, right:n.right, fontSize:n.size, color:"#ef4444",
+            style={{ top:n.top, right:n.right, fontSize:n.size, color:"#ef4444",
               animation:`noteRise ${n.dur} ${n.delay} ease-in-out infinite` }}>
             {n.ch}
           </span>
