@@ -134,10 +134,10 @@ function HangingSign() {
     setTimeout(() => setSwinging(false), 1000);
   }
 
-  const W = 220, hookX = 110, hookY = 8, hookR = 8;
-  const ropeY = 58;
-  const lx = 16, rx = 204;
-  const sH = 82;
+  const W = 168, hookX = 84, hookY = 7, hookR = 7;
+  const ropeY = 62;
+  const lx = 13, rx = 155;
+  const sH = 62;
   const svgH = ropeY + sH + 4;
 
   return (
@@ -164,7 +164,7 @@ function HangingSign() {
       <div
         style={{
           position: "fixed",
-          top: "calc(env(safe-area-inset-top) + 40px)",
+          top: "calc(env(safe-area-inset-top) + 18px)",
           left: "50%",
           marginLeft: `${-W / 2}px`,
           zIndex: 25,
@@ -202,11 +202,11 @@ function HangingSign() {
           <text x={hookX} y={ropeY + sH / 2 - 7}
             textAnchor="middle" dominantBaseline="middle"
             fill="white" fontFamily="system-ui,-apple-system,sans-serif"
-            fontWeight="900" fontSize="26" letterSpacing="0.5">10% OFF</text>
-          <text x={hookX} y={ropeY + sH / 2 + 18}
+            fontWeight="900" fontSize="22" letterSpacing="0.5">10% OFF</text>
+          <text x={hookX} y={ropeY + sH / 2 + 15}
             textAnchor="middle" dominantBaseline="middle"
-            fill="rgba(255,255,255,0.7)" fontFamily="system-ui,-apple-system,sans-serif"
-            fontWeight="600" fontSize="12" letterSpacing="0.3">comiendo en el bar</text>
+            fill="rgba(255,255,255,0.72)" fontFamily="system-ui,-apple-system,sans-serif"
+            fontWeight="600" fontSize="11" letterSpacing="0.3">comiendo en el bar</text>
         </svg>
       </div>
 
@@ -214,7 +214,7 @@ function HangingSign() {
           El cartel visible (debajo del header) mide svgH - hookR = 136px.
           El contenido en flujo ya arranca con py-8 (32px), entonces el espaciador
           compensa los 87px restantes hasta el borde inferior del cartel. */}
-      <div style={{ height: "55px" }} />
+      <div style={{ height: "20px" }} />
     </>
   );
 }
