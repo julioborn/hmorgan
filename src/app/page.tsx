@@ -131,43 +131,90 @@ function HangingSign() {
   function swing() {
     if (swinging) return;
     setSwinging(true);
-    setTimeout(() => setSwinging(false), 900);
+    setTimeout(() => setSwinging(false), 1000);
   }
+
+  const W = 220, hookX = 110, hookY = 8, hookR = 8;
+  const ropeY = 58;
+  const lx = 16, rx = 204;
+  const sH = 82;
+  const svgH = ropeY + sH + 4;
 
   return (
     <>
       <style>{`
         @keyframes hangSwing {
           0%   { transform: rotate(0deg); }
-          15%  { transform: rotate(7deg); }
-          35%  { transform: rotate(-5deg); }
-          55%  { transform: rotate(3deg); }
-          72%  { transform: rotate(-1.5deg); }
-          88%  { transform: rotate(0.5deg); }
+          14%  { transform: rotate(9deg); }
+          34%  { transform: rotate(-6deg); }
+          52%  { transform: rotate(3.5deg); }
+          68%  { transform: rotate(-1.5deg); }
+          82%  { transform: rotate(0.8deg); }
           100% { transform: rotate(0deg); }
         }
-        .hang-swing { animation: hangSwing 0.9s ease-out; }
+        .hang-swing { animation: hangSwing 1s ease-out; }
       `}</style>
 
-      {/* Cuerdas + cartel, pegado al top del contenido */}
-      <div className="-mt-8 -mx-4 sm:-mx-6 lg:-mx-8 select-none cursor-pointer" onClick={swing}>
-        {/* Cuerdas */}
-        <div className="flex justify-center gap-24">
-          <div className="w-px h-4 bg-gray-400" />
-          <div className="w-px h-4 bg-gray-400" />
-        </div>
-        {/* Cartel */}
-        <div
-          className={`relative bg-red-600 text-white mx-0 flex items-center justify-between px-6 py-3 shadow-md ${swinging ? "hang-swing" : ""}`}
-          style={{ transformOrigin: "top center" }}
+      {/*
+        position:fixed pegado al borde inferior del header.
+        Header = env(safe-area-inset-top) + 80px.
+        Gancho en y=8 del SVG → top = env + 72 para que el gancho quede en env+80.
+        z-index 25 < header z-30, así el gancho queda "bajo" el header.
+      */}
+      <div
+        style={{
+          position: "fixed",
+          top: "calc(env(safe-area-inset-top) + 72px)",
+          left: "50%",
+          marginLeft: `${-W / 2}px`,
+          zIndex: 25,
+          cursor: "pointer",
+          userSelect: "none",
+        }}
+        onClick={swing}
+      >
+        <svg
+          width={W}
+          height={svgH}
+          viewBox={`0 0 ${W} ${svgH}`}
+          className={swinging ? "hang-swing" : ""}
+          style={{ transformOrigin: `${hookX}px ${hookY}px`, overflow: "visible", display: "block" }}
         >
-          <span className="absolute top-2 left-4 w-2 h-2 rounded-full bg-white/25 block" />
-          <span className="absolute top-2 right-4 w-2 h-2 rounded-full bg-white/25 block" />
-          <p className="text-xs font-bold uppercase tracking-widest text-red-200">Promoción</p>
-          <p className="text-2xl font-black leading-none">10% OFF</p>
-          <p className="text-sm font-semibold text-red-100">comiendo en el bar</p>
-        </div>
+          {/* Gancho */}
+          <circle cx={hookX} cy={hookY} r={hookR} fill="#e5e7eb" stroke="#9ca3af" strokeWidth="1.2" />
+
+          {/* Cuerdas en V */}
+          <line x1={hookX} y1={hookY + hookR} x2={lx} y2={ropeY} stroke="#b0b0b0" strokeWidth="2.5" strokeLinecap="round" />
+          <line x1={hookX} y1={hookY + hookR} x2={rx} y2={ropeY} stroke="#b0b0b0" strokeWidth="2.5" strokeLinecap="round" />
+
+          {/* Cartel */}
+          <rect x={0} y={ropeY} width={W} height={sH} rx={14} fill="#b91c1c" />
+          <rect x={0} y={ropeY} width={W} height={sH} rx={14} fill="none" stroke="#7f1d1d" strokeWidth="1" />
+
+          {/* Borde interior blanco */}
+          <rect x={7} y={ropeY + 7} width={W - 14} height={sH - 14} rx={8} fill="none" stroke="white" strokeWidth="1.8" strokeOpacity="0.55" />
+
+          {/* Anillos de sujeción */}
+          <circle cx={lx} cy={ropeY} r={5} fill="#991b1b" stroke="#e5e7eb" strokeWidth="1.5" />
+          <circle cx={rx} cy={ropeY} r={5} fill="#991b1b" stroke="#e5e7eb" strokeWidth="1.5" />
+
+          {/* Texto */}
+          <text x={hookX} y={ropeY + sH / 2 - 7}
+            textAnchor="middle" dominantBaseline="middle"
+            fill="white" fontFamily="system-ui,-apple-system,sans-serif"
+            fontWeight="900" fontSize="26" letterSpacing="0.5">10% OFF</text>
+          <text x={hookX} y={ropeY + sH / 2 + 18}
+            textAnchor="middle" dominantBaseline="middle"
+            fill="rgba(255,255,255,0.7)" fontFamily="system-ui,-apple-system,sans-serif"
+            fontWeight="600" fontSize="12" letterSpacing="0.3">comiendo en el bar</text>
+        </svg>
       </div>
+
+      {/* Espaciador en el flujo normal para que el contenido no quede tapado por el cartel fijo.
+          El cartel visible (debajo del header) mide svgH - hookR = 136px.
+          El contenido en flujo ya arranca con py-8 (32px), entonces el espaciador
+          compensa los 87px restantes hasta el borde inferior del cartel. */}
+      <div style={{ height: "87px" }} />
     </>
   );
 }
