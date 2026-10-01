@@ -29,7 +29,7 @@ export interface IUser extends Document {
   direcciones?: string[];
 
   passwordHash: string;
-  role: "cliente" | "admin" | "empleado" | "superadmin" | "cajero" | "delivery" | "cocina" | "limpieza";
+  role: "cliente" | "admin" | "empleado" | "superadmin" | "cajero" | "delivery" | "cocina" | "limpieza" | "pantalla-cocina";
 
   tokenFCM?: string;
   fcmTokens?: string[];
@@ -79,7 +79,7 @@ const UserSchema = new Schema<IUser>({
   resetToken: { type: String, default: undefined },
   resetTokenExp: { type: Date, default: undefined },
 
-  role: { type: String, enum: ["cliente", "admin", "empleado", "superadmin", "cajero", "delivery", "cocina", "limpieza"], required: true },
+  role: { type: String, enum: ["cliente", "admin", "empleado", "superadmin", "cajero", "delivery", "cocina", "limpieza", "pantalla-cocina"], required: true },
 
   qrToken: { type: String, required: true },
   puntos: { type: Number, default: 0 },

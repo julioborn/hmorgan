@@ -13,7 +13,7 @@ function authCocina(req: NextRequest) {
     if (!token) return null;
     try {
         const p = jwt.verify(token, SECRET) as any;
-        if (!["cocina","empleado","admin","superadmin"].includes(p.role)) return null;
+        if (!["pantalla-cocina","empleado","admin","superadmin"].includes(p.role)) return null;
         return p;
     } catch { return null; }
 }
