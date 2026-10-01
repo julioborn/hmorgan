@@ -127,6 +127,9 @@ function esCumpleaños(fechaNacimiento?: string): boolean {
 
 function HangingSign() {
   const [swinging, setSwinging] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   function swing() {
     if (swinging) return;
@@ -140,7 +143,9 @@ function HangingSign() {
   const sH = 62;
   const svgH = ropeY + sH + 4;
 
-  return (
+  // Portal al body para que position:fixed no sea afectado por
+  // will-change-transform en #app-content (que lo rompe al hacer pull-to-refresh)
+  const sign = (
     <>
       <style>{`
         @keyframes hangSwing {
@@ -154,13 +159,6 @@ function HangingSign() {
         }
         .hang-swing { animation: hangSwing 1s ease-out; }
       `}</style>
-
-      {/*
-        position:fixed pegado al borde inferior del header.
-        Header = env(safe-area-inset-top) + 80px.
-        Gancho en y=8 del SVG → top = env + 72 para que el gancho quede en env+80.
-        z-index 25 < header z-30, así el gancho queda "bajo" el header.
-      */}
       <div
         style={{
           position: "fixed",
@@ -180,25 +178,14 @@ function HangingSign() {
           className={swinging ? "hang-swing" : ""}
           style={{ transformOrigin: `${hookX}px ${hookY}px`, overflow: "visible", display: "block" }}
         >
-          {/* Gancho */}
           <circle cx={hookX} cy={hookY} r={hookR} fill="#e5e7eb" stroke="#9ca3af" strokeWidth="1.2" />
-
-          {/* Cuerdas en V */}
           <line x1={hookX} y1={hookY + hookR} x2={lx} y2={ropeY} stroke="#b0b0b0" strokeWidth="2.5" strokeLinecap="round" />
           <line x1={hookX} y1={hookY + hookR} x2={rx} y2={ropeY} stroke="#b0b0b0" strokeWidth="2.5" strokeLinecap="round" />
-
-          {/* Cartel */}
           <rect x={0} y={ropeY} width={W} height={sH} rx={14} fill="#b91c1c" />
           <rect x={0} y={ropeY} width={W} height={sH} rx={14} fill="none" stroke="#7f1d1d" strokeWidth="1" />
-
-          {/* Borde interior blanco */}
           <rect x={7} y={ropeY + 7} width={W - 14} height={sH - 14} rx={8} fill="none" stroke="white" strokeWidth="1.8" strokeOpacity="0.55" />
-
-          {/* Anillos de sujeción */}
           <circle cx={lx} cy={ropeY} r={5} fill="#991b1b" stroke="#e5e7eb" strokeWidth="1.5" />
           <circle cx={rx} cy={ropeY} r={5} fill="#991b1b" stroke="#e5e7eb" strokeWidth="1.5" />
-
-          {/* Texto */}
           <text x={hookX} y={ropeY + sH / 2 - 7}
             textAnchor="middle" dominantBaseline="middle"
             fill="white" fontFamily="system-ui,-apple-system,sans-serif"
@@ -209,11 +196,13 @@ function HangingSign() {
             fontWeight="600" fontSize="11" letterSpacing="0.3">comiendo en el bar</text>
         </svg>
       </div>
+    </>
+  );
 
-      {/* Espaciador en el flujo normal para que el contenido no quede tapado por el cartel fijo.
-          El cartel visible (debajo del header) mide svgH - hookR = 136px.
-          El contenido en flujo ya arranca con py-8 (32px), entonces el espaciador
-          compensa los 87px restantes hasta el borde inferior del cartel. */}
+  return (
+    <>
+      {mounted && createPortal(sign, document.body)}
+      {/* Espaciador en el flujo para que el contenido no quede tapado */}
       <div style={{ height: "20px" }} />
     </>
   );
