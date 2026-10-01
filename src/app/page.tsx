@@ -172,24 +172,18 @@ function MorganJamBanner() {
             🎸 11 de Octubre
           </span>
 
-          {/* Título — SVG para que "MORGAN JAM" ocupe todo el ancho */}
-          <svg viewBox="0 0 220 52" width="100%" style={{ display:"block", marginBottom:2, overflow:"visible" }}>
-            <defs>
-              <linearGradient id="mj-title-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%"   stopColor="#ffffff" />
-                <stop offset="55%"  stopColor="#fca5a5" />
-                <stop offset="100%" stopColor="#ef4444" />
-              </linearGradient>
-            </defs>
-            <text x="0" y="48"
-              textLength="220" lengthAdjust="spacingAndGlyphs"
-              fill="url(#mj-title-grad)"
-              fontFamily="system-ui,-apple-system,sans-serif"
-              fontWeight="900" fontSize="46"
-              style={{ filter:"drop-shadow(0 0 18px rgba(239,68,68,0.45))" }}>
-              MORGAN JAM
-            </text>
-          </svg>
+          {/* Título — dos líneas compactas */}
+          <div className="mb-0.5">
+            <p className="text-3xl font-black leading-tight tracking-tight"
+              style={{ background:"linear-gradient(90deg,#ffffff 0%,#fca5a5 70%,#ef4444 100%)",
+                WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>
+              MORGAN
+            </p>
+            <p className="text-3xl font-black leading-tight tracking-tight"
+              style={{ color:"#ef4444", textShadow:"0 0 24px rgba(239,68,68,0.5)", marginTop:"-2px" }}>
+              JAM
+            </p>
+          </div>
 
           {/* Subtítulo */}
           <p className="text-sm font-semibold text-gray-300 mb-4 leading-snug">Música en vivo</p>
