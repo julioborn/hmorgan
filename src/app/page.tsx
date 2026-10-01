@@ -125,6 +125,93 @@ function esCumpleaños(fechaNacimiento?: string): boolean {
   return fn.getUTCMonth() + 1 === mesHoy && fn.getUTCDate() === diaHoy;
 }
 
+function MorganJamBanner() {
+  return (
+    <>
+      <style>{`
+        @keyframes eq1 { 0%,100%{height:6px} 30%{height:26px} 60%{height:14px} 80%{height:30px} }
+        @keyframes eq2 { 0%,100%{height:18px} 30%{height:8px} 60%{height:28px} 80%{height:12px} }
+        @keyframes eq3 { 0%,100%{height:26px} 30%{height:14px} 60%{height:6px} 80%{height:22px} }
+        @keyframes eq4 { 0%,100%{height:10px} 30%{height:30px} 60%{height:20px} 80%{height:6px} }
+        @keyframes eq5 { 0%,100%{height:22px} 30%{height:6px} 60%{height:26px} 80%{height:14px} }
+        @keyframes noteRise { 0%{transform:translateY(0) rotate(-8deg);opacity:0.18} 100%{transform:translateY(-36px) rotate(8deg);opacity:0} }
+        .mj-bar { width:3px; border-radius:2px; animation-timing-function:ease-in-out; animation-iteration-count:infinite; }
+      `}</style>
+
+      <div
+        className="relative overflow-hidden rounded-3xl shadow-2xl"
+        style={{ background: "linear-gradient(145deg,#0a0a0a 0%,#1c0303 55%,#0d0d0d 100%)" }}
+      >
+        {/* Halo rojo central */}
+        <div className="absolute inset-0 pointer-events-none"
+          style={{ background: "radial-gradient(ellipse 70% 60% at 50% 20%,rgba(185,28,28,0.28),transparent 70%)" }} />
+
+        {/* Notas flotantes */}
+        {[
+          { ch:"♪", top:"12%", left:"6%",  size:20, delay:"0s",   dur:"3.2s" },
+          { ch:"♫", top:"8%",  right:"8%", size:26, delay:"1.1s", dur:"4s"   },
+          { ch:"♩", top:"18%", left:"28%", size:14, delay:"0.5s", dur:"3.6s" },
+          { ch:"♬", top:"14%", right:"22%",size:18, delay:"2s",   dur:"4.4s" },
+        ].map((n, i) => (
+          <span key={i} className="absolute pointer-events-none select-none"
+            style={{ top: n.top, left: (n as any).left, right: (n as any).right,
+              fontSize: n.size, color:"#ef4444",
+              animation:`noteRise ${n.dur} ${n.delay} ease-in-out infinite` }}>
+            {n.ch}
+          </span>
+        ))}
+
+        {/* Contenido */}
+        <div className="relative z-10 px-5 pt-5 pb-4">
+
+          {/* Chip fecha */}
+          <span className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full mb-4"
+            style={{ background:"rgba(185,28,28,0.25)", border:"1px solid rgba(239,68,68,0.35)", color:"#fca5a5" }}>
+            🎸 11 de Octubre
+          </span>
+
+          {/* Título */}
+          <div className="mb-1">
+            <p className="text-xs font-bold uppercase tracking-[0.25em] text-gray-500 mb-0.5">H. Morgan Bar presenta</p>
+            <h2 className="text-5xl font-black leading-none tracking-tight"
+              style={{ fontFamily:"system-ui,-apple-system,sans-serif",
+                background:"linear-gradient(90deg,#ffffff 0%,#fca5a5 60%,#ef4444 100%)",
+                WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>
+              MORGAN
+            </h2>
+            <h2 className="text-5xl font-black leading-none tracking-tight -mt-1"
+              style={{ fontFamily:"system-ui,-apple-system,sans-serif", color:"#ef4444",
+                textShadow:"0 0 30px rgba(239,68,68,0.5)" }}>
+              JAM
+            </h2>
+          </div>
+
+          {/* Subtítulo */}
+          <p className="text-sm text-gray-400 mt-2 mb-5 leading-snug">
+            Música en vivo · Una noche para disfrutar
+          </p>
+
+          {/* Ecualizador animado */}
+          <div className="flex items-end gap-[3px]" style={{ height: 36 }}>
+            {[
+              ["eq1","0s","#ef4444"],["eq2","0.12s","#f87171"],["eq3","0.06s","#dc2626"],
+              ["eq4","0.18s","#ef4444"],["eq5","0.09s","#fca5a5"],["eq1","0.21s","#ef4444"],
+              ["eq2","0.03s","#f87171"],["eq3","0.15s","#dc2626"],["eq4","0.09s","#ef4444"],
+              ["eq5","0.18s","#fca5a5"],["eq1","0.06s","#ef4444"],["eq2","0.24s","#f87171"],
+              ["eq3","0.12s","#dc2626"],["eq4","0.21s","#ef4444"],["eq5","0.03s","#fca5a5"],
+            ].map(([anim, delay, color], i) => (
+              <div key={i} className="mj-bar"
+                style={{ animation:`${anim} ${0.7 + i * 0.04}s ${delay} infinite`,
+                  background:`linear-gradient(to top,${color},rgba(255,255,255,0.25))`,
+                  minHeight:6, alignSelf:"flex-end" }} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 function HangingSign() {
   const [swinging, setSwinging] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -544,6 +631,9 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
           </div>
         </div>
       )}
+
+      {/* ── Evento: Morgan Jam ── */}
+      <MorganJamBanner />
 
       {/* Saludo + puntos */}
       <div className="flex items-center justify-between px-1">
