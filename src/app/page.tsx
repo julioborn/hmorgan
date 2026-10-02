@@ -288,11 +288,11 @@ function HangingSign() {
           {/* Argollas donde la cuerda se une al cartel */}
           <circle cx={lx} cy={ropeY} r={5} fill="#991b1b" stroke="#e5e7eb" strokeWidth="1.5" />
           <circle cx={rx} cy={ropeY} r={5} fill="#991b1b" stroke="#e5e7eb" strokeWidth="1.5" />
-          <text x={hookX} y={ropeY + sH / 2 - 9}
+          <text x={hookX} y={ropeY + sH / 2 - 4}
             textAnchor="middle" dominantBaseline="middle"
             fill="white" fontFamily="system-ui,-apple-system,sans-serif"
             fontWeight="900" fontSize="22" letterSpacing="0.5">10% OFF</text>
-          <text x={hookX} y={ropeY + sH / 2 + 9}
+          <text x={hookX} y={ropeY + sH / 2 + 14}
             textAnchor="middle" dominantBaseline="middle"
             fill="rgba(255,255,255,0.72)" fontFamily="system-ui,-apple-system,sans-serif"
             fontWeight="600" fontSize="11" letterSpacing="0.3">comiendo en el bar</text>
