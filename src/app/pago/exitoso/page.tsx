@@ -26,16 +26,27 @@ function formatPrice(n: number) {
 function ExitosoContent() {
     const params = useSearchParams();
     const pedidoId = params.get("external_reference");
+    const paymentId = params.get("payment_id") || params.get("collection_id");
     const [pedido, setPedido] = useState<PedidoData | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         if (!pedidoId) { setLoading(false); return; }
+
+        // Confirmar pago con MP como fallback al webhook
+        if (paymentId) {
+            fetch("/api/pagos/mp/confirmar", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ pedidoId, paymentId }),
+            }).catch(() => {});
+        }
+
         fetch(`/api/pagos/mp/pedido-publico?id=${pedidoId}`)
             .then(r => r.json())
             .then(data => { setPedido(data); setLoading(false); })
             .catch(() => setLoading(false));
-    }, [pedidoId]);
+    }, [pedidoId, paymentId]);
 
     const total = pedido ? pedido.subtotal + pedido.costoEnvio : 0;
 
