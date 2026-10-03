@@ -14,4 +14,7 @@ const ReservaSchema = new Schema({
     canjeId:    { type: Schema.Types.ObjectId, ref: "Canje", default: undefined },
 }, { timestamps: true });
 
+ReservaSchema.index({ estado: 1, fecha: 1 });
+ReservaSchema.index({ fecha: 1 });
+
 export const Reserva = models.Reserva || model("Reserva", ReservaSchema);

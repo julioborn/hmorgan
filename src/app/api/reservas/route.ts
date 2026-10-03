@@ -61,12 +61,17 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ pendientes });
         }
 
-        const reservas = await Reserva.find(baseQuery)
+        const estadoParam = searchParams.get("estado");
+        if (estadoParam) baseQuery.estado = estadoParam;
+
+        // Pendientes: sin populate de canjeId para ser más rápido
+        const esPendientes = estadoParam === "pendiente";
+        let q = Reserva.find(baseQuery)
             .populate("userId", "nombre apellido telefono email")
-            .populate("mesaId", "nombre forma")
-            .populate("canjeId", "tipo")
-            .sort({ fecha: 1, hora: 1 })
-            .lean();
+            .populate("mesaId", "nombre forma");
+        if (!esPendientes) q = q.populate("canjeId", "tipo") as typeof q;
+
+        const reservas = await q.sort({ fecha: 1, hora: 1 }).lean();
         return NextResponse.json(reservas);
     } catch (err) {
         console.error("GET /api/reservas error:", err);
