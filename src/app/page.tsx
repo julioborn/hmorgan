@@ -600,7 +600,7 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
     >
 
       {/* ── Cartel colgante descuento ── */}
-      <HangingSign />
+      {/* <HangingSign /> */}
 
       {/* Banner de cumpleaños */}
       {esCumple && (
