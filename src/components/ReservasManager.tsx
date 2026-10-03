@@ -269,34 +269,27 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
     const [editSaving, setEditSaving]       = useState(false);
     const [editError, setEditError]         = useState("");
 
-    const fetchReservas = useCallback(async () => {
-        const hoy = hoyArgentina();
-
-        // Fase 1: solo pendientes desde hoy — rápido, sin canjeId populate
-        try {
-            const r1 = await fetch(`/api/reservas?desde=hoy&estado=pendiente`, { credentials: "include", cache: "no-store" });
-            if (r1.ok) {
-                const d1 = await r1.json();
-                if (Array.isArray(d1)) setReservas(d1);
-            }
-        } catch { }
-
-        // Fase 2: historial completo (últimos 30 días + futuras) en background
-        try {
-            const hace30 = new Date(); hace30.setDate(hace30.getDate() - 30);
-            const desde = hace30.toISOString().slice(0, 10);
-            const r2 = await fetch(`/api/reservas?desde=${desde}`, { credentials: "include", cache: "no-store" });
-            if (r2.ok) {
-                const d2 = await r2.json();
-                if (Array.isArray(d2)) {
-                    setReservas(d2);
+    const fetchReservas = useCallback(async (intentos = 3) => {
+        for (let i = 0; i < intentos; i++) {
+            try {
+                const hace30 = new Date(); hace30.setDate(hace30.getDate() - 30);
+                const desde = hace30.toISOString().slice(0, 10);
+                const r = await fetch(`/api/reservas?desde=${desde}`, { credentials: "include", cache: "no-store" });
+                if (!r.ok) { if (i < intentos - 1) { await new Promise(res => setTimeout(res, 1500)); continue; } return; }
+                const d = await r.json();
+                if (Array.isArray(d)) {
+                    setReservas(d);
+                    const hoy = hoyArgentina();
                     setReservadasHoy(new Set(
-                        d2.filter((r: any) => r.estado !== "cancelada" && r.mesaId && r.fecha?.slice(0, 10) === hoy)
-                           .map((r: any) => String(r.mesaId?._id || r.mesaId))
+                        d.filter((r: any) => r.estado !== "cancelada" && r.mesaId && r.fecha?.slice(0, 10) === hoy)
+                         .map((r: any) => String(r.mesaId?._id || r.mesaId))
                     ));
                 }
+                return;
+            } catch {
+                if (i < intentos - 1) await new Promise(res => setTimeout(res, 1500));
             }
-        } catch { }
+        }
     }, []);
 
     useEffect(() => {
