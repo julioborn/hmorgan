@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
-import { Clock, Trash2 } from "lucide-react";
+import { Clock, Trash2, Pencil, Check, X } from "lucide-react";
 import Loader from "@/components/Loader";
 import { hoyArgentina } from "@/lib/argentina-time";
 import { swalBase } from "@/lib/swalConfig";
@@ -42,12 +42,40 @@ export default function AdminTurnosPage() {
     const [turnos, setTurnos] = useState<Turno[]>([]);
     const [cargando, setCargando] = useState(true);
     const [filtro, setFiltro] = useState<"hoy" | "semana" | "todos">("hoy");
+    const [editId, setEditId] = useState<string | null>(null);
+    const [editIngreso, setEditIngreso] = useState("");
+    const [editSalida, setEditSalida] = useState("");
+    const [guardando, setGuardando] = useState(false);
 
     useEffect(() => {
         if (!loading && user && !["admin", "superadmin", "cajero"].includes(user.role)) {
             router.replace("/");
         }
     }, [user, loading, router]);
+
+    function abrirEdicion(t: Turno) {
+        setEditId(t._id);
+        setEditIngreso(formatHora(t.ingreso));
+        setEditSalida(t.salida ? formatHora(t.salida) : "");
+    }
+
+    async function guardarEdicion(t: Turno) {
+        setGuardando(true);
+        try {
+            const body: Record<string, unknown> = { id: t._id, ingreso: editIngreso };
+            if (editSalida) body.salida = editSalida;
+            else if (t.salida) body.salida = null;
+            const r = await fetch("/api/turnos", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify(body),
+            });
+            if (r.ok) { setEditId(null); await cargar(); }
+        } finally {
+            setGuardando(false);
+        }
+    }
 
     async function eliminar(id: string, nombre: string) {
         const paso1 = await swalBase.fire({
@@ -140,29 +168,64 @@ export default function AdminTurnosPage() {
                             <h2 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2 capitalize">{fecha}</h2>
                             <div className="space-y-2">
                                 {lista.map(t => (
-                                    <div key={t._id} className={`bg-white rounded-2xl border px-4 py-3 flex items-center justify-between shadow-sm ${!t.salida ? "border-emerald-300" : "border-gray-200"}`}>
-                                        <div className="flex items-center gap-3">
-                                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${!t.salida ? "bg-emerald-100" : "bg-gray-100"}`}>
-                                                <Clock size={16} className={!t.salida ? "text-emerald-600" : "text-gray-500"} />
-                                            </div>
-                                            <div>
+                                    <div key={t._id} className={`bg-white rounded-2xl border shadow-sm ${!t.salida ? "border-emerald-300" : "border-gray-200"}`}>
+                                        {editId === t._id ? (
+                                            /* ── Modo edición ── */
+                                            <div className="px-4 py-3 space-y-3">
                                                 <p className="text-sm font-black text-gray-900">{nombreEmpleado(t)}</p>
-                                                <p className="text-xs text-gray-500">
-                                                    {formatHora(t.ingreso)} → {t.salida ? formatHora(t.salida) : <span className="text-emerald-600 font-semibold">En turno</span>}
-                                                </p>
+                                                <div className="flex gap-3">
+                                                    <div className="flex-1">
+                                                        <p className="text-xs text-gray-400 mb-1">Entrada</p>
+                                                        <input type="time" value={editIngreso} onChange={e => setEditIngreso(e.target.value)}
+                                                            className="w-full text-sm font-bold bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-gray-400" />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <p className="text-xs text-gray-400 mb-1">Salida</p>
+                                                        <input type="time" value={editSalida} onChange={e => setEditSalida(e.target.value)}
+                                                            className="w-full text-sm font-bold bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-gray-400" />
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => guardarEdicion(t)} disabled={guardando}
+                                                        className="flex-1 flex items-center justify-center gap-1.5 bg-gray-900 text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50 transition">
+                                                        <Check size={15} /> Guardar
+                                                    </button>
+                                                    <button onClick={() => setEditId(null)}
+                                                        className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-600 text-sm font-bold py-2.5 rounded-xl hover:bg-gray-50 transition">
+                                                        <X size={15} /> Cancelar
+                                                    </button>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <div className="text-right">
-                                                <p className="text-xs text-gray-400">Duración</p>
-                                                <p className="text-sm font-black text-gray-700">{duracion(t.ingreso, t.salida)}</p>
+                                        ) : (
+                                            /* ── Modo lectura ── */
+                                            <div className="px-4 py-3 flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${!t.salida ? "bg-emerald-100" : "bg-gray-100"}`}>
+                                                        <Clock size={16} className={!t.salida ? "text-emerald-600" : "text-gray-500"} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-black text-gray-900">{nombreEmpleado(t)}</p>
+                                                        <p className="text-xs text-gray-500">
+                                                            {formatHora(t.ingreso)} → {t.salida ? formatHora(t.salida) : <span className="text-emerald-600 font-semibold">En turno</span>}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="text-right mr-1">
+                                                        <p className="text-xs text-gray-400">Duración</p>
+                                                        <p className="text-sm font-black text-gray-700">{duracion(t.ingreso, t.salida)}</p>
+                                                    </div>
+                                                    <button onClick={() => abrirEdicion(t)}
+                                                        className="p-2 rounded-xl hover:bg-blue-50 text-gray-300 hover:text-blue-500 transition">
+                                                        <Pencil size={15} />
+                                                    </button>
+                                                    <button onClick={() => eliminar(t._id, nombreEmpleado(t))}
+                                                        className="p-2 rounded-xl hover:bg-red-50 text-gray-300 hover:text-red-500 transition">
+                                                        <Trash2 size={15} />
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <button
-                                                onClick={() => eliminar(t._id, nombreEmpleado(t))}
-                                                className="p-2 rounded-xl hover:bg-red-50 text-gray-300 hover:text-red-500 transition">
-                                                <Trash2 size={15} />
-                                            </button>
-                                        </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>

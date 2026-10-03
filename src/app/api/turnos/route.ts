@@ -93,6 +93,37 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Acción inválida" }, { status: 400 });
 }
 
+// PATCH — admin edita horarios de un turno
+export async function PATCH(req: NextRequest) {
+    const payload = getPayload(req);
+    if (!payload || !isStaff(payload.role)) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+
+    await connectMongoDB();
+    const { id, ingreso, salida } = await req.json(); // ingreso y salida como "HH:mm"
+    if (!id) return NextResponse.json({ error: "Falta id" }, { status: 400 });
+
+    const { default: mongoose } = await import("mongoose");
+    const turno = await TurnoEmpleado.findById(new mongoose.Types.ObjectId(id));
+    if (!turno) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
+
+    function aplicarHora(base: Date, horaStr: string): Date {
+        const [h, m] = horaStr.split(":").map(Number);
+        const d = new Date(base);
+        // Ajustar a Argentina (UTC-3)
+        const arOffset = -3 * 60;
+        const localOffset = d.getTimezoneOffset();
+        const ar = new Date(d.getTime() + (localOffset - (-arOffset)) * 60000);
+        ar.setHours(h, m, 0, 0);
+        return new Date(ar.getTime() - (localOffset - (-arOffset)) * 60000);
+    }
+
+    if (ingreso) turno.ingreso = aplicarHora(turno.ingreso, ingreso);
+    if (salida) turno.salida = aplicarHora(turno.ingreso, salida);
+    if (salida === null) turno.salida = null;
+    await turno.save();
+    return NextResponse.json(turno);
+}
+
 // DELETE — admin elimina un turno
 export async function DELETE(req: NextRequest) {
     const payload = getPayload(req);
