@@ -147,12 +147,21 @@ export async function POST(req: NextRequest) {
                 mesa: { $regex: mesasArray.map(m => `(?:^|,\\s*)${m.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:\\s*,|$)`).join("|") },
                 fuente: "empleado",
                 estado: { $nin: ["cerrado", "cancelado"] },
-            }).lean();
+            });
             if (comandaActiva) {
-                return NextResponse.json(
-                    { message: `La mesa ${mesasArray.join(", ")} ya tiene una comanda abierta.` },
-                    { status: 409 }
-                );
+                if (items?.length) {
+                    const menuItemsJoin = await MenuItem.find({ _id: { $in: items.map((i: any) => i.menuItemId) } });
+                    const totalNuevo = (items as any[]).reduce((acc: number, i: any) => {
+                        const m = menuItemsJoin.find((x: any) => x._id.toString() === i.menuItemId);
+                        return acc + (m?.precio || 0) * i.cantidad;
+                    }, 0);
+                    (comandaActiva.items as any[]).push(...(items as any[]).map((i: any) => ({
+                        menuItemId: i.menuItemId, cantidad: i.cantidad, nota: i.nota || undefined, impreso: false, listo: false,
+                    })));
+                    comandaActiva.total = (comandaActiva.total || 0) + totalNuevo;
+                    await comandaActiva.save();
+                }
+                return NextResponse.json({ ok: true, pedido: comandaActiva }, { status: 200 });
             }
         }
 
