@@ -84,7 +84,7 @@ export default function AdminCobrarPage() {
             body: JSON.stringify({
                 tipo: "ticket",
                 impresora: "Barra",
-                payload: { mesa: p.mesa || "—", fecha, hora, items, total: sinPago ? p.total : totalFinal, descuento: desc, pagos: sinPago ? [] : pagosArr, vuelto, sinPago },
+                payload: { mesa: p.mesa || "—", fecha, hora, items, total: p.total, descuento: desc, pagos: sinPago ? [] : pagosArr, vuelto, sinPago },
             }),
         });
     }
