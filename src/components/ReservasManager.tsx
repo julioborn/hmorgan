@@ -400,8 +400,8 @@ export default function ReservasManager({ onPendingCountChange }: { onPendingCou
     async function deleteReserva(id: string) {
         const r = await swalBase.fire({ title: "¿Cancelar reserva?", text: "Se notificará al cliente si tiene cuenta.", icon: "warning", showCancelButton: true, confirmButtonText: "Sí, cancelar", cancelButtonText: "No" });
         if (!r.isConfirmed) return;
-        await fetch(`/api/reservas?id=${id}`, { method: "DELETE", credentials: "include" });
-        setReservas(p => p.filter(r => r._id !== id));
+        const res = await fetch("/api/reservas", { method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ id, estado: "cancelada" }) });
+        if (res.ok) { const updated = await res.json(); setReservas(p => p.map(rv => rv._id === id ? updated : rv)); }
     }
 
     function openPicker(reservaId: string, currentMesaId?: string) {
