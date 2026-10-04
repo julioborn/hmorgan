@@ -130,6 +130,7 @@ export async function POST(req: NextRequest) {
         const esEmpleado = ["empleado", "cajero", "admin", "superadmin"].includes(payload.role);
 
         // Empleados no pueden crear comandas en mesas con sesión de autoservicio activa
+        // ni en mesas que ya tienen una comanda activa (evita duplicados)
         if (esEmpleado && mesa && !esAutoservicio) {
             const mesasArray = String(mesa).split(",").map((s: string) => s.trim()).filter(Boolean);
             const sesionActiva = await AutoservicioSesion.findOne({
@@ -139,6 +140,17 @@ export async function POST(req: NextRequest) {
             if (sesionActiva) {
                 return NextResponse.json(
                     { message: "Esta mesa tiene un autoservicio activo. No se pueden crear nuevas comandas." },
+                    { status: 409 }
+                );
+            }
+            const comandaActiva = await Pedido.findOne({
+                mesa: { $regex: mesasArray.map(m => `(?:^|,\\s*)${m.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:\\s*,|$)`).join("|") },
+                fuente: "empleado",
+                estado: { $nin: ["cerrado", "cancelado"] },
+            }).lean();
+            if (comandaActiva) {
+                return NextResponse.json(
+                    { message: `La mesa ${mesasArray.join(", ")} ya tiene una comanda abierta.` },
                     { status: 409 }
                 );
             }

@@ -411,7 +411,7 @@ function AnotadorMenuContent() {
         if (Array.isArray(pData)) {
             const ocupadas = new Set<string>();
             pData
-                .filter((p: any) => p.mesa && !["pendiente", "cancelado", "cerrado"].includes(p.estado))
+                .filter((p: any) => p.mesa && !["cancelado", "cerrado"].includes(p.estado))
                 .forEach((p: any) => String(p.mesa).split(",").forEach(n => ocupadas.add(n.trim())));
             setOcupadasPlano(ocupadas);
         }
