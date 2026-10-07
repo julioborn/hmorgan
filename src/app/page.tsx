@@ -180,7 +180,7 @@ function MorganJamBanner() {
             </p>
             <p className="text-3xl font-black leading-tight tracking-tight"
               style={{ color:"#ef4444", textShadow:"0 0 24px rgba(239,68,68,0.5)", marginTop:"-2px" }}>
-              JAM
+              JAM SESSION
             </p>
           </div>
 
