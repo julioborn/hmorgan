@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Printer, CheckCircle, Truck, Clock, Banknote, CreditCard, ArrowLeftRight, X, Plus, Trash2, LockKeyhole, Wallet, AlertCircle, Loader2 } from "lucide-react";
+import { Printer, CheckCircle, Truck, Clock, Banknote, CreditCard, ArrowLeftRight, X, Plus, Trash2, LockKeyhole, Wallet, AlertCircle, Loader2, UserPlus } from "lucide-react";
 import Link from "next/link";
 import Loader from "@/components/Loader";
 
@@ -50,6 +50,10 @@ export default function AdminPedidosPage() {
     const [cpItems, setCpItems]   = useState<CPItem[]>([]);
     const [cpMetodo, setCpMetodo] = useState<"efectivo" | "tarjeta" | "transferencia">("efectivo");
     const [cpSaving, setCpSaving] = useState(false);
+    const [mozoModal, setMozoModal] = useState<Pedido | null>(null);
+    const [mozosList, setMozosList] = useState<{ _id: string; nombre: string; apellido: string }[]>([]);
+    const [mozoSel, setMozoSel] = useState("");
+    const [mozoGuardando, setMozoGuardando] = useState(false);
 
     useEffect(() => {
         fetch("/api/caja/status", { credentials: "include" }).then(r => r.json()).then(d => setCajaAbierta(!!d.abierta)).catch(() => setCajaAbierta(false));
@@ -249,6 +253,27 @@ export default function AdminPedidosPage() {
         } finally { setCpSaving(false); }
     }
 
+    async function loadMozos() {
+        try {
+            const r = await fetch("/api/superadmin/empleados", { credentials: "include" });
+            if (r.ok) { const d = await r.json(); setMozosList(Array.isArray(d) ? d : []); }
+        } catch { setMozosList([]); }
+    }
+
+    async function confirmarCambioMozo(pedido: Pedido) {
+        if (!mozoSel) return;
+        setMozoGuardando(true);
+        try {
+            const r = await fetch(`/api/pedidos/${pedido._id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ accion: "cambiarMozo", nuevoMozoId: mozoSel }),
+            });
+            if (r.ok) { setMozoModal(null); setMozoSel(""); await cargar(); }
+        } finally { setMozoGuardando(false); }
+    }
+
     const totalConDesc = (p: Pedido) => Math.max(0, p.total - (Number(descuento) || 0));
     const calcVuelto = () => {
         if (!cobrarPedido) return 0;
@@ -400,6 +425,13 @@ export default function AdminPedidosPage() {
                                             <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${tipoBadge.cls}`}>
                                                 {tipoBadge.label}
                                             </span>
+                                            {esMozo && (
+                                                <button onClick={() => { setMozoModal(p); setMozoSel((p.userId as any)?._id || ""); loadMozos(); }}
+                                                    className="p-1 rounded-full bg-white/20 hover:bg-white/40 text-white transition"
+                                                    title="Cambiar mozo">
+                                                    <UserPlus size={12} />
+                                                </button>
+                                            )}
                                         </div>
                                         <span className="text-[10px] text-white/40 flex items-center gap-1"><Clock size={10}/>{hora}</span>
                                     </div>
@@ -723,6 +755,59 @@ export default function AdminPedidosPage() {
                     </div>
                 );
             })()}
+
+            {mozoModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
+                    onClick={() => { setMozoModal(null); setMozoSel(""); }}>
+                    <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl"
+                        onClick={e => e.stopPropagation()}>
+                        <div className="bg-black px-4 py-3 flex items-center justify-between">
+                            <div>
+                                <p className="font-black text-white text-sm">Cambiar mozo</p>
+                                <p className="text-xs text-white/60">
+                                    Mesa: <span className="text-white font-bold">{mozoModal.mesa ? `Mesa ${mozoModal.mesa}` : "—"}</span>
+                                </p>
+                            </div>
+                            <button onClick={() => { setMozoModal(null); setMozoSel(""); }} className="text-white/60 hover:text-white transition">
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className="p-4 flex flex-col gap-4">
+                            <div>
+                                <p className="text-xs text-gray-500 mb-1">Mozo actual</p>
+                                <p className="font-semibold text-gray-800 text-sm">
+                                    {[(mozoModal.userId as any)?.nombre, (mozoModal.userId as any)?.apellido].filter(Boolean).join(" ") || "—"}
+                                </p>
+                            </div>
+                            <div>
+                                <label className="text-xs text-gray-500 mb-1 block">Nuevo mozo</label>
+                                <select
+                                    value={mozoSel}
+                                    onChange={e => setMozoSel(e.target.value)}
+                                    className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black">
+                                    <option value="">Seleccioná un mozo...</option>
+                                    {mozosList.map(m => (
+                                        <option key={m._id} value={m._id}>
+                                            {[m.nombre, m.apellido].filter(Boolean).join(" ")}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="flex gap-2">
+                                <button onClick={() => { setMozoModal(null); setMozoSel(""); }}
+                                    className="flex-1 py-2 rounded-xl border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 transition">
+                                    Cancelar
+                                </button>
+                                <button onClick={() => confirmarCambioMozo(mozoModal)}
+                                    disabled={!mozoSel || mozoGuardando}
+                                    className="flex-1 py-2 rounded-xl bg-black text-white text-sm font-semibold hover:bg-gray-800 transition disabled:opacity-50">
+                                    {mozoGuardando ? "Guardando..." : "Confirmar"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

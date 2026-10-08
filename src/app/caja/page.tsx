@@ -245,7 +245,7 @@ export default function CajaPage() {
     const [openForm, setOpenForm] = useState({ montoInicial: "", notas: "" });
     const [openSaving, setOpenSaving] = useState(false);
     const [cobrarModal, setCobrarModal] = useState<{ open: boolean; pedido: Pedido | null }>({ open: false, pedido: null });
-    const [cobrarForm, setCobrarForm] = useState<{ descuento: string; pagos: { metodo: typeof METODOS[number] | ""; monto: string }[] }>({ descuento: "", pagos: [{ metodo: "", monto: "" }] });
+    const [cobrarForm, setCobrarForm] = useState<{ descuento: string; descuentoTipo: "monto" | "pct"; pagos: { metodo: typeof METODOS[number] | ""; monto: string }[] }>({ descuento: "", descuentoTipo: "monto", pagos: [{ metodo: "", monto: "" }] });
     const [cobrarSaving, setCobrarSaving] = useState(false);
     const [comensalesModalCaja, setComensalesModalCaja] = useState<Pedido | null>(null);
     const [comensalesCountCaja, setComensalesCountCaja] = useState(0);
@@ -303,6 +303,10 @@ export default function CajaPage() {
     const [reservasHoy, setReservasHoy] = useState<ReservaHoy[]>([]);
     const [reservaDetalle, setReservaDetalle] = useState<ReservaHoy | null>(null);
     const [cambiarMesaModal, setCambiarMesaModal] = useState<Pedido | null>(null);
+    const [mozoModal, setMozoModal] = useState<Pedido | null>(null);
+    const [mozosList, setMozosList] = useState<{ _id: string; nombre: string; apellido: string }[]>([]);
+    const [mozoSel, setMozoSel] = useState("");
+    const [mozoGuardando, setMozoGuardando] = useState(false);
     const [editDireccionModal, setEditDireccionModal] = useState<{ pedidoId: string; direccion: string } | null>(null);
     const [savingDireccion, setSavingDireccion] = useState(false);
     const [cambiarEntregaModal, setCambiarEntregaModal] = useState<{ pedidoId: string } | null>(null);
@@ -1064,6 +1068,34 @@ export default function CajaPage() {
         loadData();
     }
 
+    async function loadMozos() {
+        try {
+            const r = await fetch("/api/superadmin/empleados", { credentials: "include" });
+            if (r.ok) { const d = await r.json(); setMozosList(Array.isArray(d) ? d : []); }
+        } catch { setMozosList([]); }
+    }
+
+    async function confirmarCambioMozo(pedido: Pedido) {
+        if (!mozoSel) return;
+        setMozoGuardando(true);
+        try {
+            const r = await fetch(`/api/pedidos/${pedido._id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ accion: "cambiarMozo", nuevoMozoId: mozoSel }),
+            });
+            if (r.ok) {
+                setMozoModal(null);
+                setMozoSel("");
+                loadData();
+            } else {
+                const err = await r.json();
+                await swalBase.fire({ title: "Error", text: err.error || "No se pudo cambiar el mozo", icon: "error" });
+            }
+        } finally { setMozoGuardando(false); }
+    }
+
     async function eliminarPedidoCaja(p: Pedido) {
         const titulo = p.mesa ? mesaLabel(p.mesa) : p.nombreComanda || (p.userId ? `${p.userId.nombre}` : "Pedido");
         const r1 = await swalBase.fire({
@@ -1381,7 +1413,10 @@ export default function CajaPage() {
         if (!cobrarModal.pedido) return;
         setCobrarSaving(true);
         const ped = cobrarModal.pedido;
-        const descuento = Math.max(0, Number(cobrarForm.descuento) || 0);
+        const descRaw = Math.max(0, Number(cobrarForm.descuento) || 0);
+        const descuento = cobrarForm.descuentoTipo === "pct"
+            ? Math.round(ped.total * Math.min(100, descRaw) / 100)
+            : descRaw;
         const totalConDescuento = Math.max(0, ped.total - descuento);
         const pagos = cobrarForm.pagos.filter(p => p.metodo !== "").map(p => ({ metodo: p.metodo as "efectivo"|"tarjeta"|"transferencia", monto: Number(p.monto) || 0 }));
         const totalPagado = pagos.reduce((a, p) => a + p.monto, 0);
@@ -1396,7 +1431,7 @@ export default function CajaPage() {
             });
             if (res.ok) {
                 setCobrarModal({ open: false, pedido: null });
-                setCobrarForm({ descuento: "", pagos: [{ metodo: "", monto: "" }] });
+                setCobrarForm({ descuento: "", descuentoTipo: "monto", pagos: [{ metodo: "", monto: "" }] });
                 setPedidos(prev => prev.map(p => p._id === ped._id ? { ...p, estado: "cerrado" } : p));
                 printTicket(ped, pagos, descuento, totalConDescuento, vuelto);
                 await loadData();
@@ -2741,6 +2776,13 @@ export default function CajaPage() {
                                                                         <ArrowLeftRight size={12} />
                                                                     </button>
                                                                 )}
+                                                                {!esApp && p.fuente === "empleado" && (
+                                                                    <button onClick={() => { setMozoModal(p); setMozoSel((p.userId as any)?._id || ""); loadMozos(); }}
+                                                                        className="p-1.5 rounded-full bg-white/20 hover:bg-white/40 text-white transition"
+                                                                        title="Cambiar mozo">
+                                                                        <UserPlus size={12} />
+                                                                    </button>
+                                                                )}
                                                                 {p.tipoEntrega !== "envio" && p.fuente !== "autoservicio" && (
                                                                     <button onClick={() => abrirComensalesModalCaja(p)}
                                                                         className="p-1.5 rounded-full bg-white/20 hover:bg-white/40 text-white transition"
@@ -3076,7 +3118,7 @@ export default function CajaPage() {
                                                                         <CheckCircle size={13} /> Marcar como entregado
                                                                     </button>
                                                                 ) : (
-                                                                    <button onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", pagos: [{ metodo: "", monto: "" }] }); }}
+                                                                    <button onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", descuentoTipo: "monto", pagos: [{ metodo: "", monto: "" }] }); }}
                                                                         className="w-full flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-xl text-sm transition">
                                                                         <Wallet size={13} /> Cobrar
                                                                     </button>
@@ -3325,7 +3367,7 @@ export default function CajaPage() {
                                                     </button>
                                                 ) : (
                                                     <button
-                                                        onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", pagos: [{ metodo: "", monto: "" }] }); }}
+                                                        onClick={() => { setCobrarModal({ open: true, pedido: p }); setCobrarForm({ descuento: "", descuentoTipo: "monto", pagos: [{ metodo: "", monto: "" }] }); }}
                                                         className={`w-full text-white font-black py-3 rounded-xl text-base tracking-wide transition ${cobrarBg}`}>
                                                         Cobrar todo
                                                     </button>
@@ -4830,7 +4872,10 @@ export default function CajaPage() {
             {/* Modal cobrar */}
             {cobrarModal.open && cobrarModal.pedido && (() => {
                 const ped = cobrarModal.pedido;
-                const descuento = Math.max(0, Number(cobrarForm.descuento) || 0);
+                const descRawModal = Math.max(0, Number(cobrarForm.descuento) || 0);
+                const descuento = cobrarForm.descuentoTipo === "pct"
+                    ? Math.round(ped.total * Math.min(100, descRawModal) / 100)
+                    : descRawModal;
                 const totalConDescuento = Math.max(0, ped.total - descuento);
                 const totalPagado = cobrarForm.pagos.reduce((a, p) => a + (Number(p.monto) || 0), 0);
                 const pendiente = totalConDescuento - totalPagado;
@@ -4923,13 +4968,25 @@ export default function CajaPage() {
                                 </div>
 
                                 {/* Descuento — sección secundaria */}
-                                <div className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-2.5">
-                                    <span className="text-xs font-bold text-gray-500 shrink-0">Descuento $</span>
-                                    <input type="number" min="0" max={ped.total}
+                                <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2.5">
+                                    <span className="text-xs font-bold text-gray-500 shrink-0">Descuento</span>
+                                    <div className="flex rounded-lg overflow-hidden border border-gray-200 shrink-0">
+                                        <button
+                                            onClick={() => setCobrarForm(p => ({ ...p, descuentoTipo: "monto", descuento: "" }))}
+                                            className={`px-2 py-0.5 text-xs font-bold transition ${cobrarForm.descuentoTipo === "monto" ? "bg-black text-white" : "bg-white text-gray-500"}`}>
+                                            $
+                                        </button>
+                                        <button
+                                            onClick={() => setCobrarForm(p => ({ ...p, descuentoTipo: "pct", descuento: "" }))}
+                                            className={`px-2 py-0.5 text-xs font-bold transition ${cobrarForm.descuentoTipo === "pct" ? "bg-black text-white" : "bg-white text-gray-500"}`}>
+                                            %
+                                        </button>
+                                    </div>
+                                    <input type="number" min="0" max={cobrarForm.descuentoTipo === "pct" ? 100 : ped.total}
                                         value={cobrarForm.descuento}
                                         onChange={e => setCobrarForm(p => ({ ...p, descuento: e.target.value }))}
                                         placeholder="0"
-                                        className="flex-1 text-sm font-bold focus:outline-none text-gray-900 bg-transparent text-right" />
+                                        className="flex-1 w-0 text-sm font-bold focus:outline-none text-gray-900 bg-transparent text-right" />
                                     {descuento > 0 && (
                                         <span className="text-xs font-black text-red-600 shrink-0">{formatMoney(totalConDescuento)}</span>
                                     )}
@@ -5679,7 +5736,7 @@ export default function CajaPage() {
                                 <button onClick={() => {
                                     const p = mesaDetalle.pedido;
                                     setCobrarModal({ open: true, pedido: p });
-                                    setCobrarForm({ descuento: "", pagos: [{ metodo: "efectivo", monto: String(p.total) }] });
+                                    setCobrarForm({ descuento: "", descuentoTipo: "monto", pagos: [{ metodo: "efectivo", monto: String(p.total) }] });
                                     setMesaDetalle(null);
                                 }} className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition">
                                     Cobrar
@@ -6290,6 +6347,59 @@ export default function CajaPage() {
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {mozoModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
+                    onClick={() => { setMozoModal(null); setMozoSel(""); }}>
+                    <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl"
+                        onClick={e => e.stopPropagation()}>
+                        <div className="bg-black px-4 py-3 flex items-center justify-between">
+                            <div>
+                                <p className="font-black text-white text-sm">Cambiar mozo</p>
+                                <p className="text-xs text-white/60">
+                                    Mesa: <span className="text-white font-bold">{mozoModal.mesa ? mesaLabel(mozoModal.mesa) : "—"}</span>
+                                </p>
+                            </div>
+                            <button onClick={() => { setMozoModal(null); setMozoSel(""); }} className="text-white/60 hover:text-white transition">
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className="p-4 flex flex-col gap-4">
+                            <div>
+                                <p className="text-xs text-gray-500 mb-1">Mozo actual</p>
+                                <p className="font-semibold text-gray-800 text-sm">
+                                    {[(mozoModal.userId as any)?.nombre, (mozoModal.userId as any)?.apellido].filter(Boolean).join(" ") || "—"}
+                                </p>
+                            </div>
+                            <div>
+                                <label className="text-xs text-gray-500 mb-1 block">Nuevo mozo</label>
+                                <select
+                                    value={mozoSel}
+                                    onChange={e => setMozoSel(e.target.value)}
+                                    className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black">
+                                    <option value="">Seleccioná un mozo...</option>
+                                    {mozosList.map(m => (
+                                        <option key={m._id} value={m._id}>
+                                            {[m.nombre, m.apellido].filter(Boolean).join(" ")}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="flex gap-2">
+                                <button onClick={() => { setMozoModal(null); setMozoSel(""); }}
+                                    className="flex-1 py-2 rounded-xl border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 transition">
+                                    Cancelar
+                                </button>
+                                <button onClick={() => confirmarCambioMozo(mozoModal)}
+                                    disabled={!mozoSel || mozoGuardando}
+                                    className="flex-1 py-2 rounded-xl bg-black text-white text-sm font-semibold hover:bg-gray-800 transition disabled:opacity-50">
+                                    {mozoGuardando ? "Guardando..." : "Confirmar"}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

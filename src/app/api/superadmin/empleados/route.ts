@@ -12,7 +12,7 @@ async function authorize(req: NextRequest) {
     if (!token) return null;
     try {
         const decoded = jwt.verify(token, SECRET) as any;
-        if (!["superadmin", "admin"].includes(decoded.role)) return null;
+        if (!["superadmin", "admin", "cajero"].includes(decoded.role)) return null;
         return decoded;
     } catch { return null; }
 }

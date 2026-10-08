@@ -100,6 +100,21 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         return NextResponse.json({ ok: true, pedido });
     }
 
+    // ── Transferir mozo ────────────────────────────────────────────────────
+    if (body.accion === "cambiarMozo") {
+        if (!["cajero", "admin", "superadmin"].includes(payload.role)) {
+            return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+        }
+        const { nuevoMozoId } = body;
+        if (!nuevoMozoId) return NextResponse.json({ error: "Mozo requerido" }, { status: 400 });
+        const nuevoMozo = await User.findById(nuevoMozoId).lean<any>();
+        if (!nuevoMozo) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+        (pedido as any).userId = nuevoMozoId;
+        await pedido.save();
+        const pedidoConMozo = await Pedido.findById(pedido._id).populate("userId", "nombre apellido role").lean();
+        return NextResponse.json({ ok: true, pedido: pedidoConMozo });
+    }
+
     // ── Transferir mesa ────────────────────────────────────────────────────
     if (body.accion === "cambiarMesa") {
         const { mesa: nuevaMesa } = body;

@@ -45,26 +45,33 @@ export async function GET(req: NextRequest) {
             .populate("items.menuItemId", "nombre precio categoria")
             .lean();
 
-        const entregados = pedidos.filter((p: any) => p.estado === "entregado");
-        const cancelados = pedidos.filter((p: any) => p.estado === "cancelado");
+        // Completados = cerrado (cobrado en caja) + entregado (delivery entregado)
+        const completados = pedidos.filter((p: any) => p.estado === "cerrado" || p.estado === "entregado");
+        const cancelados  = pedidos.filter((p: any) => p.estado === "cancelado");
+        // No cancelados = todos menos cancelados (para gráficos de actividad)
+        const noCancelados = pedidos.filter((p: any) => p.estado !== "cancelado");
 
-        const totalIngresos = entregados.reduce((acc: number, p: any) => acc + (p.total || 0), 0);
-        const ticketPromedio = entregados.length > 0 ? Math.round(totalIngresos / entregados.length) : 0;
+        // Revenue: usar montoPagado si existe (refleja descuentos), si no usar total
+        const ingresoReal = (p: any) => p.montoPagado ?? p.total ?? 0;
+
+        const totalIngresos = completados.reduce((acc: number, p: any) => acc + ingresoReal(p), 0);
+        const ticketPromedio = completados.length > 0 ? Math.round(totalIngresos / completados.length) : 0;
         const tasaCancelacion = pedidos.length > 0
             ? Math.round((cancelados.length / pedidos.length) * 100)
             : 0;
 
         const conteos = {
-            pendiente: pedidos.filter((p: any) => p.estado === "pendiente").length,
+            pendiente:  pedidos.filter((p: any) => p.estado === "pendiente").length,
             preparando: pedidos.filter((p: any) => p.estado === "preparando").length,
-            listo: pedidos.filter((p: any) => p.estado === "listo").length,
-            entregado: entregados.length,
-            cancelado: cancelados.length,
+            listo:      pedidos.filter((p: any) => p.estado === "listo").length,
+            entregado:  pedidos.filter((p: any) => p.estado === "entregado").length,
+            cerrado:    pedidos.filter((p: any) => p.estado === "cerrado").length,
+            cancelado:  cancelados.length,
         };
 
-        // Items más pedidos en el período
+        // Items más pedidos — solo de pedidos no cancelados
         const itemsMap: Record<string, { nombre: string; cantidad: number; categoria: string }> = {};
-        for (const pedido of pedidos) {
+        for (const pedido of noCancelados) {
             for (const item of (pedido as any).items) {
                 const id = item.menuItemId?._id?.toString();
                 if (!id || !item.menuItemId?.nombre) continue;
@@ -78,7 +85,7 @@ export async function GET(req: NextRequest) {
             .sort((a, b) => b.cantidad - a.cantidad)
             .slice(0, 8);
 
-        // Pedidos e ingresos por día en el rango (max 31 días individuales, sino por semana)
+        // Pedidos e ingresos por período — pedidos no cancelados / ingresos de completados
         const diffDays = Math.ceil((hasta.getTime() - desde.getTime()) / 86_400_000);
         const pedidosPorDia: { fecha: string; cantidad: number }[] = [];
         const ingresosPorDia: { fecha: string; total: number }[] = [];
@@ -90,33 +97,32 @@ export async function GET(req: NextRequest) {
                 const inicio = startOfDay(dia);
                 const fin = endOfDay(dia);
 
-                const del_dia = pedidos.filter((p: any) => {
+                const del_dia = noCancelados.filter((p: any) => {
                     const f = new Date(p.createdAt);
                     return f >= inicio && f <= fin;
                 });
                 const ingreso = del_dia
-                    .filter((p: any) => p.estado === "entregado")
-                    .reduce((acc: number, p: any) => acc + (p.total || 0), 0);
+                    .filter((p: any) => p.estado === "cerrado" || p.estado === "entregado")
+                    .reduce((acc: number, p: any) => acc + ingresoReal(p), 0);
 
                 const label = inicio.toLocaleDateString("es-AR", { day: "numeric", month: "short" });
                 pedidosPorDia.push({ fecha: label, cantidad: del_dia.length });
                 ingresosPorDia.push({ fecha: label, total: ingreso });
             }
         } else {
-            // Agrupar por semana
             let cursor = new Date(desde);
             while (cursor <= hasta) {
                 const weekEnd = new Date(cursor);
                 weekEnd.setDate(weekEnd.getDate() + 6);
                 if (weekEnd > hasta) weekEnd.setTime(hasta.getTime());
 
-                const del_periodo = pedidos.filter((p: any) => {
+                const del_periodo = noCancelados.filter((p: any) => {
                     const f = new Date(p.createdAt);
                     return f >= cursor && f <= weekEnd;
                 });
                 const ingreso = del_periodo
-                    .filter((p: any) => p.estado === "entregado")
-                    .reduce((acc: number, p: any) => acc + (p.total || 0), 0);
+                    .filter((p: any) => p.estado === "cerrado" || p.estado === "entregado")
+                    .reduce((acc: number, p: any) => acc + ingresoReal(p), 0);
 
                 const label = cursor.toLocaleDateString("es-AR", { day: "numeric", month: "short" });
                 pedidosPorDia.push({ fecha: label, cantidad: del_periodo.length });
@@ -126,16 +132,15 @@ export async function GET(req: NextRequest) {
             }
         }
 
-        // Hora pico
+        // Hora pico — solo pedidos no cancelados
         const horasCount: Record<number, number> = {};
-        for (const p of pedidos) {
+        for (const p of noCancelados) {
             const hora = new Date((p as any).createdAt).getHours();
             horasCount[hora] = (horasCount[hora] || 0) + 1;
         }
         const horaPicoEntry = Object.entries(horasCount).sort(([, a], [, b]) => b - a)[0];
         const horaPico = horaPicoEntry ? Number(horaPicoEntry[0]) : null;
 
-        // Top 6 horas para el chart
         const horasPorHora = Array.from({ length: 24 }, (_, h) => ({
             hora: h,
             cantidad: horasCount[h] || 0,
@@ -146,7 +151,7 @@ export async function GET(req: NextRequest) {
         const canjesCount = canjesEnPeriodo.length;
         const puntosCanjeados = canjesEnPeriodo.reduce((acc, c) => acc + (c.puntosGastados || 0), 0);
 
-        // Globales (no filtrados por fecha)
+        // Usuarios
         const totalUsuarios = await User.countDocuments({ role: "cliente" });
         const nuevosUsuarios = await User.countDocuments({
             role: "cliente",
@@ -158,32 +163,37 @@ export async function GET(req: NextRequest) {
         ]);
         const totalPuntos = puntosAgg[0]?.total || 0;
 
-        const pedidosEmpleado = pedidos.filter((p: any) => p.fuente === "empleado").length;
-        const pedidosCliente = pedidos.filter((p: any) => (p.fuente || "cliente") === "cliente").length;
-        const pedidosAutoservicio = pedidos.filter((p: any) => p.fuente === "autoservicio").length;
+        // Origen de pedidos — solo no cancelados
+        const pedidosEmpleado     = noCancelados.filter((p: any) => p.fuente === "empleado").length;
+        const pedidosCliente      = noCancelados.filter((p: any) => (p.fuente || "cliente") === "cliente").length;
+        const pedidosAutoservicio = noCancelados.filter((p: any) => p.fuente === "autoservicio").length;
 
-        // Tipo de entrega
+        // Tipo de entrega — solo no cancelados
         const tipoEntregaSplit: Record<string, number> = { retira: 0, envio: 0 };
-        for (const p of pedidos) {
+        for (const p of noCancelados) {
             const tipo = (p as any).tipoEntrega || "retira";
             tipoEntregaSplit[tipo] = (tipoEntregaSplit[tipo] || 0) + 1;
         }
 
-        // Método de pago (pedidos entregados con metodoPago definido)
+        // Método de pago — solo completados
         const metodoPagoSplit: Record<string, number> = {};
-        for (const p of entregados) {
+        for (const p of completados) {
             const metodo = (p as any).metodoPago;
             if (metodo) metodoPagoSplit[metodo] = (metodoPagoSplit[metodo] || 0) + 1;
         }
 
-        // Ingresos por categoría
+        // Ingresos por categoría — solo completados, usando ingresoReal
         const categoriasMap: Record<string, { total: number; cantidad: number }> = {};
-        for (const pedido of entregados) {
+        for (const pedido of completados) {
+            const totalPed = ingresoReal(pedido);
+            const totalBruto = (pedido as any).total || 0;
+            // Factor de descuento proporcional si hay montoPagado < total
+            const factor = totalBruto > 0 ? totalPed / totalBruto : 1;
             for (const item of (pedido as any).items) {
                 const cat = item.menuItemId?.categoria || "Otros";
                 const precio = item.menuItemId?.precio || 0;
                 if (!categoriasMap[cat]) categoriasMap[cat] = { total: 0, cantidad: 0 };
-                categoriasMap[cat].total += precio * item.cantidad;
+                categoriasMap[cat].total += Math.round(precio * item.cantidad * factor);
                 categoriasMap[cat].cantidad += item.cantidad;
             }
         }
@@ -194,6 +204,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({
             totalIngresos,
             totalPedidos: pedidos.length,
+            totalCompletados: completados.length,
             ticketPromedio,
             tasaCancelacion,
             conteos,

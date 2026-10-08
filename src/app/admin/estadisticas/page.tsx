@@ -12,9 +12,10 @@ import {
 type Stats = {
     totalIngresos: number;
     totalPedidos: number;
+    totalCompletados: number;
     ticketPromedio: number;
     tasaCancelacion: number;
-    conteos: { pendiente: number; preparando: number; listo: number; entregado: number; cancelado: number };
+    conteos: { pendiente: number; preparando: number; listo: number; entregado: number; cerrado: number; cancelado: number };
     itemsPopulares: { nombre: string; cantidad: number; categoria: string }[];
     pedidosPorDia: { fecha: string; cantidad: number }[];
     ingresosPorDia: { fecha: string; total: number }[];
@@ -334,8 +335,9 @@ function StatsContent({ stats }: { stats: Stats }) {
                 />
                 <StatCard
                     icon={<Package className="w-5 h-5 text-red-600" />}
-                    label="Pedidos totales"
-                    value={stats.totalPedidos}
+                    label="Pedidos completados"
+                    value={stats.totalCompletados}
+                    sub={`${stats.totalPedidos} en total`}
                     color="bg-red-50 border-red-200"
                 />
                 <StatCard
@@ -442,9 +444,21 @@ function StatsContent({ stats }: { stats: Stats }) {
                         <p className="text-2xl font-extrabold text-orange-700">{stats.conteos.preparando}</p>
                         <p className="text-xs text-orange-700 font-medium">Preparando</p>
                     </div>
+                    <div className="bg-blue-50 rounded-xl p-3 border border-blue-200">
+                        <p className="text-2xl font-extrabold text-blue-700">{stats.conteos.entregado}</p>
+                        <p className="text-xs text-blue-700 font-medium">Entregados</p>
+                    </div>
                     <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-200">
-                        <p className="text-2xl font-extrabold text-emerald-700">{stats.conteos.entregado}</p>
-                        <p className="text-xs text-emerald-700 font-medium">Entregados</p>
+                        <p className="text-2xl font-extrabold text-emerald-700">{stats.conteos.cerrado}</p>
+                        <p className="text-xs text-emerald-700 font-medium">Cobrados</p>
+                    </div>
+                    <div className="bg-red-50 rounded-xl p-3 border border-red-200">
+                        <p className="text-2xl font-extrabold text-red-700">{stats.conteos.cancelado}</p>
+                        <p className="text-xs text-red-700 font-medium">Cancelados</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-3 border border-gray-200">
+                        <p className="text-2xl font-extrabold text-gray-700">{stats.conteos.listo}</p>
+                        <p className="text-xs text-gray-700 font-medium">Listos</p>
                     </div>
                 </div>
             </div>
