@@ -3,7 +3,7 @@ import { connectMongoDB } from "@/lib/mongodb";
 import { Pedido } from "@/models/Pedido";
 import { User } from "@/models/User";
 import { Canje } from "@/models/Canje";
-import "@/models/MenuItem";
+import { MenuItem } from "@/models/MenuItem";
 import jwt from "jsonwebtoken";
 
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET!;
@@ -201,6 +201,29 @@ export async function GET(req: NextRequest) {
             .map(([categoria, data]) => ({ categoria, ...data }))
             .sort((a, b) => b.total - a.total);
 
+        // Ventas por producto — todos los ítems activos del menú cruzados con ventas del período
+        const allMenuItems = await MenuItem.find({ activo: true }).lean();
+        const itemsVentasMap: Record<string, { cantidadVendida: number; ingresoTotal: number }> = {};
+        for (const pedido of completados) {
+            for (const item of (pedido as any).items) {
+                const id = item.menuItemId?._id?.toString();
+                if (!id) continue;
+                const precio = item.menuItemId?.precio || 0;
+                if (!itemsVentasMap[id]) itemsVentasMap[id] = { cantidadVendida: 0, ingresoTotal: 0 };
+                itemsVentasMap[id].cantidadVendida += item.cantidad;
+                itemsVentasMap[id].ingresoTotal += precio * item.cantidad;
+            }
+        }
+        const ventasPorProducto = (allMenuItems as any[]).map((mi) => ({
+            _id: mi._id.toString(),
+            nombre: mi.nombre,
+            categoria: mi.categoria,
+            categoriasExtra: mi.categoriasExtra || [],
+            precio: mi.precio,
+            cantidadVendida: itemsVentasMap[mi._id.toString()]?.cantidadVendida || 0,
+            ingresoTotal: itemsVentasMap[mi._id.toString()]?.ingresoTotal || 0,
+        })).sort((a, b) => b.cantidadVendida - a.cantidadVendida);
+
         return NextResponse.json({
             totalIngresos,
             totalPedidos: pedidos.length,
@@ -224,6 +247,7 @@ export async function GET(req: NextRequest) {
             tipoEntregaSplit,
             metodoPagoSplit,
             ingresosPorCategoria,
+            ventasPorProducto,
         });
     } catch (error) {
         console.error("Error estadísticas:", error);

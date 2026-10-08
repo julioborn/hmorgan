@@ -32,6 +32,15 @@ type Stats = {
     tipoEntregaSplit: Record<string, number>;
     metodoPagoSplit: Record<string, number>;
     ingresosPorCategoria: { categoria: string; total: number; cantidad: number }[];
+    ventasPorProducto: {
+        _id: string;
+        nombre: string;
+        categoria: string;
+        categoriasExtra: string[];
+        precio: number;
+        cantidadVendida: number;
+        ingresoTotal: number;
+    }[];
 };
 
 function toInputDate(d: Date) {
@@ -528,10 +537,10 @@ function StatsContent({ stats }: { stats: Stats }) {
                 </div>
             )}
 
-            {/* Productos más pedidos */}
+            {/* Productos más pedidos — top 8 rápido */}
             {stats.itemsPopulares.length > 0 && (
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                    <h2 className="font-bold text-lg text-gray-900 mb-4">Productos más pedidos</h2>
+                    <h2 className="font-bold text-lg text-gray-900 mb-4">Top 8 más pedidos</h2>
                     <div className="space-y-3">
                         {stats.itemsPopulares.map((item, i) => (
                             <div key={i} className="flex items-center gap-3">
@@ -548,6 +557,198 @@ function StatsContent({ stats }: { stats: Stats }) {
                             </div>
                         ))}
                     </div>
+                </div>
+            )}
+
+            {/* Ventas por sección */}
+            {stats.ventasPorProducto.length > 0 && (
+                <VentasPorSeccion productos={stats.ventasPorProducto} />
+            )}
+        </div>
+    );
+}
+
+/* ─── Ventas por Sección ────────────────────────────────────────── */
+type Producto = {
+    _id: string;
+    nombre: string;
+    categoria: string;
+    categoriasExtra: string[];
+    precio: number;
+    cantidadVendida: number;
+    ingresoTotal: number;
+};
+
+function VentasPorSeccion({ productos }: { productos: Producto[] }) {
+    const categorias = ["Todas", ...Array.from(new Set(productos.map(p => p.categoria))).sort()];
+    const [catActiva, setCatActiva] = useState("Todas");
+    const [orden, setOrden] = useState<"mas" | "menos">("mas");
+    const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
+
+    const filtrados = catActiva === "Todas" ? productos : productos.filter(p => p.categoria === catActiva);
+    const vendidos = filtrados.filter(p => p.cantidadVendida > 0);
+    const noVendidos = filtrados.filter(p => p.cantidadVendida === 0);
+
+    const ordenados = orden === "mas"
+        ? [...vendidos].sort((a, b) => b.cantidadVendida - a.cantidadVendida)
+        : [...vendidos].sort((a, b) => a.cantidadVendida - b.cantidadVendida);
+
+    const maxCantidad = Math.max(...vendidos.map(p => p.cantidadVendida), 1);
+
+    // Resumen por categoría cuando "Todas" está activa
+    const resumenCategorias = Array.from(
+        productos.reduce((map, p) => {
+            const cat = p.categoria;
+            if (!map.has(cat)) map.set(cat, { cat, cantidad: 0, ingreso: 0, productos: 0, noVendidos: 0 });
+            const r = map.get(cat)!;
+            r.cantidad += p.cantidadVendida;
+            r.ingreso += p.ingresoTotal;
+            r.productos += 1;
+            if (p.cantidadVendida === 0) r.noVendidos += 1;
+            return map;
+        }, new Map<string, { cat: string; cantidad: number; ingreso: number; productos: number; noVendidos: number }>())
+        .values()
+    ).sort((a, b) => b.ingreso - a.ingreso);
+
+    const maxIngresoCat = Math.max(...resumenCategorias.map(c => c.ingreso), 1);
+
+    const COLORES = ["#ef4444","#f59e0b","#10b981","#3b82f6","#8b5cf6","#06b6d4","#f43f5e","#84cc16","#ec4899","#14b8a6"];
+    const colorCat = (cat: string) => COLORES[categorias.indexOf(cat) % COLORES.length] || "#6b7280";
+
+    return (
+        <div className="space-y-4">
+            {/* Header + orden */}
+            <div className="flex items-center justify-between">
+                <h2 className="font-bold text-lg text-gray-900">Ventas por sección</h2>
+                <div className="flex rounded-xl overflow-hidden border border-gray-200">
+                    <button onClick={() => setOrden("mas")}
+                        className={`px-3 py-1.5 text-xs font-bold transition ${orden === "mas" ? "bg-black text-white" : "bg-white text-gray-500"}`}>
+                        Más vendidos
+                    </button>
+                    <button onClick={() => setOrden("menos")}
+                        className={`px-3 py-1.5 text-xs font-bold transition ${orden === "menos" ? "bg-black text-white" : "bg-white text-gray-500"}`}>
+                        Menos vendidos
+                    </button>
+                </div>
+            </div>
+
+            {/* Selector de categoría */}
+            <div className="flex gap-2 overflow-x-auto pb-1 -mx-0">
+                {categorias.map(cat => (
+                    <button key={cat} onClick={() => setCatActiva(cat)}
+                        className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
+                            catActiva === cat
+                                ? "bg-black text-white border-black"
+                                : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                        }`}>
+                        {cat}
+                    </button>
+                ))}
+            </div>
+
+            {/* Resumen por categoría (solo cuando "Todas") */}
+            {catActiva === "Todas" && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Resumen por categoría</p>
+                    {resumenCategorias.map(({ cat, cantidad, ingreso, productos: total, noVendidos: nv }) => {
+                        const pct = Math.round((ingreso / maxIngresoCat) * 100);
+                        const color = colorCat(cat);
+                        const expanded = expandidos.has(cat);
+                        return (
+                            <div key={cat}>
+                                <button className="w-full text-left" onClick={() => {
+                                    setExpandidos(prev => {
+                                        const next = new Set(prev);
+                                        next.has(cat) ? next.delete(cat) : next.add(cat);
+                                        return next;
+                                    });
+                                }}>
+                                    <div className="flex justify-between items-center mb-1">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                                            <span className="text-sm font-bold text-gray-800 capitalize">{cat}</span>
+                                            <span className="text-xs text-gray-400">({total} productos{nv > 0 ? `, ${nv} sin venta` : ""})</span>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-xs font-semibold text-gray-500">×{cantidad}</span>
+                                            <span className="text-sm font-black text-gray-900">${ingreso.toLocaleString("es-AR")}</span>
+                                            <span className="text-gray-400 text-xs">{expanded ? "▲" : "▼"}</span>
+                                        </div>
+                                    </div>
+                                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
+                                    </div>
+                                </button>
+                                {expanded && (
+                                    <div className="mt-2 ml-4 space-y-1.5 border-l-2 pl-3" style={{ borderColor: color }}>
+                                        {productos
+                                            .filter(p => p.categoria === cat)
+                                            .sort((a, b) => b.cantidadVendida - a.cantidadVendida)
+                                            .map(p => (
+                                                <div key={p._id} className="flex justify-between items-center text-sm">
+                                                    <span className={`truncate max-w-[55%] ${p.cantidadVendida === 0 ? "text-gray-300" : "text-gray-700"}`}>
+                                                        {p.nombre}
+                                                    </span>
+                                                    <div className="flex items-center gap-2 shrink-0">
+                                                        {p.cantidadVendida > 0 ? (
+                                                            <>
+                                                                <span className="text-xs text-gray-400">×{p.cantidadVendida}</span>
+                                                                <span className="text-xs font-bold text-gray-800">${p.ingresoTotal.toLocaleString("es-AR")}</span>
+                                                            </>
+                                                        ) : (
+                                                            <span className="text-xs text-gray-300">Sin ventas</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+
+            {/* Lista de productos de la categoría seleccionada */}
+            {catActiva !== "Todas" && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 capitalize">{catActiva}</p>
+                    {ordenados.length === 0 && noVendidos.length === 0 && (
+                        <p className="text-sm text-gray-400 text-center py-4">Sin datos en este período</p>
+                    )}
+                    <div className="space-y-3">
+                        {ordenados.map((p, i) => (
+                            <div key={p._id} className="flex items-center gap-3">
+                                <span className="text-xs font-bold text-gray-400 w-5 text-right shrink-0">{i + 1}</span>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex justify-between items-center mb-1 gap-2">
+                                        <span className="text-sm font-medium text-gray-800 truncate">{p.nombre}</span>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <span className="text-xs text-gray-500">×{p.cantidadVendida}</span>
+                                            <span className="text-xs font-black text-gray-900">${p.ingresoTotal.toLocaleString("es-AR")}</span>
+                                        </div>
+                                    </div>
+                                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                        <div className="h-full rounded-full transition-all"
+                                            style={{ width: `${(p.cantidadVendida / maxCantidad) * 100}%`, backgroundColor: colorCat(catActiva) }} />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    {noVendidos.length > 0 && (
+                        <div className="mt-5 pt-4 border-t border-gray-100">
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Sin ventas en el período ({noVendidos.length})</p>
+                            <div className="space-y-1.5">
+                                {noVendidos.map(p => (
+                                    <div key={p._id} className="flex justify-between text-sm text-gray-300">
+                                        <span className="truncate max-w-[70%]">{p.nombre}</span>
+                                        <span className="text-xs">${p.precio.toLocaleString("es-AR")}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
