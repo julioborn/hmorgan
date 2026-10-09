@@ -201,6 +201,48 @@ export async function GET(req: NextRequest) {
             .map(([categoria, data]) => ({ categoria, ...data }))
             .sort((a, b) => b.total - a.total);
 
+        // Top clientes reales por gasto en el período
+        const clientesAgg = await Pedido.aggregate([
+            {
+                $match: {
+                    createdAt: { $gte: desde, $lte: hasta },
+                    estado: { $in: ["cerrado", "entregado"] },
+                    userId: { $exists: true, $ne: null },
+                }
+            },
+            {
+                $group: {
+                    _id: "$userId",
+                    totalGastado: { $sum: { $ifNull: ["$montoPagado", "$total"] } },
+                    pedidos: { $sum: 1 },
+                    ultimoPedido: { $max: "$createdAt" },
+                }
+            },
+            { $sort: { totalGastado: -1 } },
+            { $limit: 50 },
+        ]);
+
+        const clienteUserIds = clientesAgg.map((c: any) => c._id);
+        const clienteUsers = await User.find({ _id: { $in: clienteUserIds } })
+            .select("nombre apellido puntos")
+            .lean();
+        const clienteUsersMap = new Map((clienteUsers as any[]).map(u => [u._id.toString(), u]));
+
+        const topClientes = clientesAgg
+            .map((c: any) => {
+                const u = clienteUsersMap.get(c._id.toString()) as any;
+                if (!u) return null;
+                return {
+                    _id: c._id.toString(),
+                    nombre: `${u.nombre || ""} ${u.apellido || ""}`.trim(),
+                    totalGastado: c.totalGastado,
+                    pedidos: c.pedidos,
+                    puntos: u.puntos || 0,
+                    ultimoPedido: c.ultimoPedido,
+                };
+            })
+            .filter(Boolean);
+
         // Ventas por producto — todos los ítems activos del menú cruzados con ventas del período
         const allMenuItems = await MenuItem.find({ activo: true }).lean();
         const itemsVentasMap: Record<string, { cantidadVendida: number; ingresoTotal: number }> = {};
@@ -248,6 +290,7 @@ export async function GET(req: NextRequest) {
             metodoPagoSplit,
             ingresosPorCategoria,
             ventasPorProducto,
+            topClientes,
         });
     } catch (error) {
         console.error("Error estadísticas:", error);

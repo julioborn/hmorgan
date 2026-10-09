@@ -41,6 +41,14 @@ type Stats = {
         cantidadVendida: number;
         ingresoTotal: number;
     }[];
+    topClientes: {
+        _id: string;
+        nombre: string;
+        totalGastado: number;
+        pedidos: number;
+        puntos: number;
+        ultimoPedido: string;
+    }[];
 };
 
 function toInputDate(d: Date) {
@@ -530,6 +538,7 @@ function StatsContent({ stats }: { stats: Stats }) {
             {/* ── CLIENTES ── */}
             {tab === "clientes" && (
                 <div className="space-y-5">
+                    {/* KPIs */}
                     <div className="grid grid-cols-2 gap-3">
                         <StatCard icon={<Users className="w-5 h-5 text-blue-600" />}
                             label="Clientes totales" value={stats.totalUsuarios} color="bg-blue-50 border-blue-200" />
@@ -543,6 +552,43 @@ function StatsContent({ stats }: { stats: Stats }) {
                             sub={stats.puntosCanjeados > 0 ? `${stats.puntosCanjeados.toLocaleString("es-AR")} pts` : undefined}
                             color="bg-purple-50 border-purple-200" />
                     </div>
+
+                    {/* Lista de clientes */}
+                    {stats.topClientes.length > 0 ? (
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                                <h2 className="font-bold text-lg text-gray-900">Clientes del período</h2>
+                                <span className="text-xs text-gray-400 font-medium">{stats.topClientes.length} clientes</span>
+                            </div>
+                            <div className="divide-y divide-gray-50">
+                                {stats.topClientes.map((c, i) => {
+                                    const fecha = new Date(c.ultimoPedido).toLocaleDateString("es-AR", { day: "numeric", month: "short" });
+                                    return (
+                                        <div key={c._id} className="flex items-center gap-3 px-5 py-3">
+                                            <span className="text-xs font-black text-gray-300 w-5 shrink-0 text-right">{i + 1}</span>
+                                            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                                                <span className="text-sm font-black text-gray-500">{c.nombre.charAt(0).toUpperCase()}</span>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-bold text-gray-900 truncate">{c.nombre}</p>
+                                                <p className="text-xs text-gray-400">{c.pedidos} pedido{c.pedidos !== 1 ? "s" : ""} · último {fecha}</p>
+                                            </div>
+                                            <div className="text-right shrink-0">
+                                                <p className="text-sm font-black text-gray-900">${c.totalGastado.toLocaleString("es-AR")}</p>
+                                                {c.puntos > 0 && (
+                                                    <p className="text-xs text-yellow-600 font-semibold">{c.puntos.toLocaleString("es-AR")} pts</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+                            <p className="text-gray-400 text-sm">Sin clientes con compras en este período</p>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
