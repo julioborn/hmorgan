@@ -201,12 +201,13 @@ export async function GET(req: NextRequest) {
             .map(([categoria, data]) => ({ categoria, ...data }))
             .sort((a, b) => b.total - a.total);
 
-        // Top clientes reales por gasto en el período
+        // Top clientes reales (fuente: "cliente") por gasto en el período
         const clientesAgg = await Pedido.aggregate([
             {
                 $match: {
                     createdAt: { $gte: desde, $lte: hasta },
                     estado: { $in: ["cerrado", "entregado"] },
+                    fuente: "cliente",
                     userId: { $exists: true, $ne: null },
                 }
             },
@@ -239,6 +240,47 @@ export async function GET(req: NextRequest) {
                     pedidos: c.pedidos,
                     puntos: u.puntos || 0,
                     ultimoPedido: c.ultimoPedido,
+                };
+            })
+            .filter(Boolean);
+
+        // Top mozos/empleados por ventas generadas en el período
+        const mozosAgg = await Pedido.aggregate([
+            {
+                $match: {
+                    createdAt: { $gte: desde, $lte: hasta },
+                    estado: { $in: ["cerrado", "entregado"] },
+                    fuente: "empleado",
+                    userId: { $exists: true, $ne: null },
+                }
+            },
+            {
+                $group: {
+                    _id: "$userId",
+                    totalVendido: { $sum: { $ifNull: ["$montoPagado", "$total"] } },
+                    comandas: { $sum: 1 },
+                    ultimaComanda: { $max: "$createdAt" },
+                }
+            },
+            { $sort: { totalVendido: -1 } },
+        ]);
+
+        const mozoUserIds = mozosAgg.map((m: any) => m._id);
+        const mozoUsers = await User.find({ _id: { $in: mozoUserIds } })
+            .select("nombre apellido role")
+            .lean();
+        const mozoUsersMap = new Map((mozoUsers as any[]).map(u => [u._id.toString(), u]));
+
+        const topMozos = mozosAgg
+            .map((m: any) => {
+                const u = mozoUsersMap.get(m._id.toString()) as any;
+                if (!u) return null;
+                return {
+                    _id: m._id.toString(),
+                    nombre: `${u.nombre || ""} ${u.apellido || ""}`.trim(),
+                    totalVendido: m.totalVendido,
+                    comandas: m.comandas,
+                    ultimaComanda: m.ultimaComanda,
                 };
             })
             .filter(Boolean);
@@ -291,6 +333,7 @@ export async function GET(req: NextRequest) {
             ingresosPorCategoria,
             ventasPorProducto,
             topClientes,
+            topMozos,
         });
     } catch (error) {
         console.error("Error estadísticas:", error);

@@ -49,6 +49,13 @@ type Stats = {
         puntos: number;
         ultimoPedido: string;
     }[];
+    topMozos: {
+        _id: string;
+        nombre: string;
+        totalVendido: number;
+        comandas: number;
+        ultimaComanda: string;
+    }[];
 };
 
 function toInputDate(d: Date) {
@@ -326,6 +333,7 @@ const TABS_STATS = [
     { key: "ventas",    label: "Ventas" },
     { key: "productos", label: "Productos" },
     { key: "clientes",  label: "Clientes" },
+    { key: "empleados", label: "Empleados" },
 ] as const;
 type TabStats = typeof TABS_STATS[number]["key"];
 
@@ -587,6 +595,52 @@ function StatsContent({ stats }: { stats: Stats }) {
                     ) : (
                         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
                             <p className="text-gray-400 text-sm">Sin clientes con compras en este período</p>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* ── EMPLEADOS ── */}
+            {tab === "empleados" && (
+                <div className="space-y-5">
+                    {stats.topMozos.length > 0 ? (
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                                <h2 className="font-bold text-lg text-gray-900">Ventas por empleado</h2>
+                                <span className="text-xs text-gray-400 font-medium">{stats.topMozos.length} empleado{stats.topMozos.length !== 1 ? "s" : ""}</span>
+                            </div>
+                            <div className="divide-y divide-gray-50">
+                                {stats.topMozos.map((m, i) => {
+                                    const fecha = new Date(m.ultimaComanda).toLocaleDateString("es-AR", { day: "numeric", month: "short" });
+                                    const maxVendido = stats.topMozos[0]?.totalVendido || 1;
+                                    const pct = Math.round((m.totalVendido / maxVendido) * 100);
+                                    return (
+                                        <div key={m._id} className="px-5 py-4">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <span className="text-xs font-black text-gray-300 w-5 shrink-0 text-right">{i + 1}</span>
+                                                <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center shrink-0">
+                                                    <span className="text-sm font-black text-purple-600">{m.nombre.charAt(0).toUpperCase()}</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-bold text-gray-900 truncate">{m.nombre}</p>
+                                                    <p className="text-xs text-gray-400">{m.comandas} comanda{m.comandas !== 1 ? "s" : ""} · última {fecha}</p>
+                                                </div>
+                                                <div className="text-right shrink-0">
+                                                    <p className="text-sm font-black text-gray-900">${m.totalVendido.toLocaleString("es-AR")}</p>
+                                                    <p className="text-xs text-gray-400">${Math.round(m.totalVendido / m.comandas).toLocaleString("es-AR")} prom.</p>
+                                                </div>
+                                            </div>
+                                            <div className="ml-8 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                                <div className="h-full bg-purple-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+                            <p className="text-gray-400 text-sm">Sin comandas de empleados en este período</p>
                         </div>
                     )}
                 </div>
