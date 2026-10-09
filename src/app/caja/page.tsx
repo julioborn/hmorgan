@@ -1516,7 +1516,7 @@ export default function CajaPage() {
         const totalBruto = pedido.total ?? 0;
         const costoEnvioVal = pedido.tipoEntrega === "envio" ? (pedido.costoEnvio || costoDelivery) : 0;
         const montoDescuento = descPct > 0 ? Math.round(totalBruto * descPct / 100) : 0;
-        const total = totalBruto - montoDescuento;
+        // Enviar totalBruto (sin descontar) — el servidor de impresión ya resta el descuento para mostrar "A COBRAR"
 
         try {
             const ctrl = new AbortController();
@@ -1529,7 +1529,7 @@ export default function CajaPage() {
                     mesa: pedido.mesa || "—",
                     fecha, hora,
                     items: printItems,
-                    total,
+                    total: totalBruto,
                     costoEnvio: costoEnvioVal,
                     descuento: montoDescuento,
                     pagos: [],
@@ -1547,7 +1547,7 @@ export default function CajaPage() {
                 method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
                 body: JSON.stringify({
                     tipo: "ticket", impresora: "Barra",
-                    payload: { mesa: pedido.mesa || "—", fecha, hora, items: printItems, total, costoEnvio: costoEnvioVal, descuento: montoDescuento, pagos: [], vuelto: 0, sinPago: true },
+                    payload: { mesa: pedido.mesa || "—", fecha, hora, items: printItems, total: totalBruto, costoEnvio: costoEnvioVal, descuento: montoDescuento, pagos: [], vuelto: 0, sinPago: true },
                 }),
             });
         } catch { /* silencioso */ }
