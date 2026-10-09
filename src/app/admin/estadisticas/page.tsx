@@ -690,7 +690,7 @@ function VentasPorSeccion({ productos }: { productos: Producto[] }) {
             return map;
         }, new Map<string, { cat: string; cantidad: number; ingreso: number; productos: number; noVendidos: number }>())
         .values()
-    ).sort((a, b) => b.ingreso - a.ingreso);
+    ).sort((a, b) => orden === "mas" ? b.ingreso - a.ingreso : a.ingreso - b.ingreso);
 
     const maxIngresoCat = Math.max(...resumenCategorias.map(c => c.ingreso), 1);
 
