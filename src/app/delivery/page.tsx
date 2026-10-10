@@ -194,6 +194,9 @@ export default function DeliveryPage() {
                                         <p className="font-bold text-gray-700 text-sm break-words">
                                             {p.nombreComanda || `${p.userId?.nombre ?? ""} ${p.userId?.apellido ?? ""}`.trim() || "Cliente"}
                                         </p>
+                                        <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                                            <Clock size={10} /> {new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                                        </p>
                                         {p.direccion && (
                                             <a href={mapsUrl(p)} target="_blank" rel="noopener noreferrer"
                                                 className="text-xs text-blue-500 break-words flex items-start gap-1 mt-0.5">
@@ -245,12 +248,16 @@ export default function DeliveryPage() {
 
 /* ── Card "en preparación" (solo lectura) ───────────────────────── */
 function PreparacionCard({ p }: { p: Pedido }) {
+    const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
     return (
         <div className="bg-orange-50 rounded-2xl border border-orange-200 overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3">
                 <div className="min-w-0 flex-1">
                     <p className="font-black text-gray-900 break-words">
                         {p.nombreComanda || `${p.userId?.nombre ?? ""} ${p.userId?.apellido ?? ""}`.trim() || "Cliente"}
+                    </p>
+                    <p className="text-xs text-orange-400 mt-0.5 flex items-center gap-1">
+                        <Clock size={10} /> {hora}
                     </p>
                     {p.direccion && (
                         <a href={mapsUrl(p)} target="_blank" rel="noopener noreferrer"
