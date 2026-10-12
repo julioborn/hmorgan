@@ -1114,32 +1114,37 @@ export default function PedidosClientePage() {
                                 </div>
                                 <p className="text-sm text-gray-500 mb-5">Elegí tus preferencias para este producto</p>
 
-                                {opcionModal.item.opciones!.map((op) => (
-                                    <div key={op.titulo} className="mb-5">
-                                        <p className="text-sm font-black text-gray-700 uppercase tracking-wide mb-2">{op.titulo}</p>
-                                        <div className="space-y-2">
-                                            {op.choices.map((choice) => (
-                                                <button
-                                                    key={choice}
-                                                    onClick={() => setOpcionModal(prev => prev ? {
-                                                        ...prev,
-                                                        seleccion: { ...prev.seleccion, [op.titulo]: choice },
-                                                    } : null)}
-                                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition text-left ${opcionModal.seleccion[op.titulo] === choice ? "border-red-500 bg-red-50" : "border-gray-200 bg-white hover:border-gray-300"}`}
-                                                >
-                                                    <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${opcionModal.seleccion[op.titulo] === choice ? "border-red-500 bg-red-500" : "border-gray-300"}`}>
-                                                        {opcionModal.seleccion[op.titulo] === choice && <span className="w-2 h-2 rounded-full bg-white" />}
-                                                    </span>
-                                                    <span className={`font-semibold ${opcionModal.seleccion[op.titulo] === choice ? "text-red-700" : "text-gray-800"}`}>{choice}</span>
-                                                </button>
-                                            ))}
+                                {opcionModal.item.opciones!.map((op) => {
+                                    const validChoices = op.choices.filter(c => c.trim());
+                                    if (validChoices.length === 0) return null;
+                                    return (
+                                        <div key={op.titulo} className="mb-5">
+                                            <p className="text-sm font-black text-gray-700 uppercase tracking-wide mb-2">{op.titulo}</p>
+                                            <div className="space-y-2">
+                                                {validChoices.map((choice) => (
+                                                    <button
+                                                        key={choice}
+                                                        onClick={() => setOpcionModal(prev => prev ? {
+                                                            ...prev,
+                                                            seleccion: { ...prev.seleccion, [op.titulo]: choice },
+                                                        } : null)}
+                                                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition text-left ${opcionModal.seleccion[op.titulo] === choice ? "border-red-500 bg-red-50" : "border-gray-200 bg-white hover:border-gray-300"}`}
+                                                    >
+                                                        <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${opcionModal.seleccion[op.titulo] === choice ? "border-red-500 bg-red-500" : "border-gray-300"}`}>
+                                                            {opcionModal.seleccion[op.titulo] === choice && <span className="w-2 h-2 rounded-full bg-white" />}
+                                                        </span>
+                                                        <span className={`font-semibold ${opcionModal.seleccion[op.titulo] === choice ? "text-red-700" : "text-gray-800"}`}>{choice}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
 
                                 <button
                                     onClick={() => {
-                                        const todas = (opcionModal.item.opciones || []).every(op => opcionModal.seleccion[op.titulo]);
+                                        const opcionesValidas = (opcionModal.item.opciones || []).filter(op => op.choices.some(c => c.trim()));
+                                        const todas = opcionesValidas.every(op => opcionModal.seleccion[op.titulo]);
                                         if (!todas) {
                                             swalBase.fire("⚠️", "Tenés que elegir todas las opciones antes de agregar.", "warning");
                                             return;
