@@ -270,14 +270,22 @@ export async function POST(req: NextRequest) {
             deliveryNumero = cnt.seq;
         }
 
+        // Comandas de mozo en barra (no delivery): arrancan directo en "preparando"
+        // La caja detecta los items con impreso:false y los imprime automáticamente
+        const esBarComanda = esEmpleado && tipoEntrega !== "envio";
+        const estadoInicial = esBarComanda ? "preparando" : "pendiente";
+        const itemsParaCrear = esBarComanda && items?.length
+            ? (items as any[]).map((i: any) => ({ ...i, impreso: false, listo: false }))
+            : items;
+
         const pedido = await Pedido.create({
             userId: user._id,
-            items,
+            items: itemsParaCrear,
             tipoEntrega,
             total: total + costoEnvio + extraCarnes,
             costoEnvio,
             direccion: tipoEntrega === "envio" ? direccion : undefined,
-            estado: "pendiente",
+            estado: estadoInicial,
             cancelableUntil,
             fuente: esAutoservicio ? "autoservicio" : esPedidoApp ? "cliente" : "empleado",
             numeroDia,
