@@ -280,6 +280,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     pedido.total = await recalcularTotal(pedido.items as any[]);
     if (notaEmpleado) pedido.notaEmpleado = notaEmpleado;
+    (pedido as any).ultimoItemAt = new Date();
 
     // Revisar categorías de los ítems nuevos (necesario para ambas condiciones siguientes)
     const newMenuItemIds = items.map((i: any) => i.menuItemId);

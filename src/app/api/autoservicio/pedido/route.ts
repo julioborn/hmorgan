@@ -80,6 +80,7 @@ export async function POST(req: NextRequest) {
             (pedidoExistente.items as any[]).push(it);
         }
         pedidoExistente.total = await recalcularTotal(pedidoExistente.items as any[]);
+        (pedidoExistente as any).ultimoItemAt = new Date();
 
         // Si estaba "listo" y hay ítems de comida → volver a preparando
         if (pedidoExistente.estado === "listo") {

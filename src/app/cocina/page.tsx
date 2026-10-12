@@ -51,6 +51,7 @@ type Pase = {
     createdAt: string;
     updatedAt: string;
     primeraComidaAt?: string;
+    ultimoItemAt?: string;
 };
 
 type MenuItemLite = {
@@ -342,7 +343,7 @@ export default function CocinaPage() {
         const { finalizado = false } = opts;
         const isNuevo    = !finalizado && nuevosIds.has(p._id);
         const isMarcando = !finalizado && marcando === p._id;
-        const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
+        const hora = new Date(p.ultimoItemAt ?? p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
         const esDelivery = p.tipoEntrega === "envio";
         const esApp      = p.fuente === "cliente";
         const esEvento   = !!p.eventoId;

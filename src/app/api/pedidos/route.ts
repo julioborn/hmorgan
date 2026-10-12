@@ -159,6 +159,7 @@ export async function POST(req: NextRequest) {
                         menuItemId: i.menuItemId, cantidad: i.cantidad, nota: i.nota || undefined, impreso: false, listo: false,
                     })));
                     comandaActiva.total = (comandaActiva.total || 0) + totalNuevo;
+                    (comandaActiva as any).ultimoItemAt = new Date();
                     await comandaActiva.save();
                 }
                 return NextResponse.json({ ok: true, pedido: comandaActiva }, { status: 200 });
