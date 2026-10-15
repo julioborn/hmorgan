@@ -11,6 +11,7 @@ import jwt from "jsonwebtoken";
 import { sendPushToSubscriptions, sendPushAndCollectInvalid } from "@/lib/push-server";
 import { enviarNotificacionFCM, isFCMTokenInvalid } from "@/lib/firebase-admin";
 import Config from "@/models/Config";
+import { CajaSession } from "@/models/CajaSession";
 import { getPointsRatio } from "@/lib/getPointsRatio";
 import { hoyArgentina } from "@/lib/argentina-time";
 // Numeración diaria de pedidos de la app (se reinicia cada día, hora Argentina)
@@ -172,6 +173,26 @@ export async function POST(req: NextRequest) {
                 { message: "Los pedidos están desactivados temporalmente" },
                 { status: 403 }
             );
+        }
+
+        // Delivery bloqueado si la caja está cerrada o si deliveryActivo es false
+        if (tipoEntrega === "envio" && payload.role === "cliente") {
+            const [cajaAbierta, deliveryOk] = await Promise.all([
+                CajaSession.findOne({ estado: "abierta" }),
+                Promise.resolve(config?.deliveryActivo !== false),
+            ]);
+            if (!cajaAbierta) {
+                return NextResponse.json(
+                    { message: "El delivery no está disponible porque la caja está cerrada" },
+                    { status: 403 }
+                );
+            }
+            if (!deliveryOk) {
+                return NextResponse.json(
+                    { message: "El delivery está desactivado temporalmente" },
+                    { status: 403 }
+                );
+            }
         }
 
         // Clientes siempre necesitan ítems; empleados pueden crear pedidos sin ítems (asignación de mesa)
