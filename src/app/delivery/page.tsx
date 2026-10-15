@@ -256,8 +256,8 @@ function PreparacionCard({ p }: { p: Pedido }) {
                     <p className="font-black text-gray-900 break-words">
                         {p.nombreComanda || `${p.userId?.nombre ?? ""} ${p.userId?.apellido ?? ""}`.trim() || "Cliente"}
                     </p>
-                    <p className="text-xs text-orange-400 mt-0.5 flex items-center gap-1">
-                        <Clock size={10} /> {hora}
+                    <p className="text-xs text-gray-500 mt-0.5">
+                        {hora}
                     </p>
                     {p.direccion && (
                         <a href={mapsUrl(p)} target="_blank" rel="noopener noreferrer"
