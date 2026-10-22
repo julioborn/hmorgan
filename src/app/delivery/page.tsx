@@ -195,8 +195,13 @@ export default function DeliveryPage() {
                                             {p.nombreComanda || `${p.userId?.nombre ?? ""} ${p.userId?.apellido ?? ""}`.trim() || "Cliente"}
                                         </p>
                                         <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
-                                            <Clock size={10} /> {new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                                            <Clock size={10} /> Pedido a las {new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
                                         </p>
+                                        {p.horarioPreferido && (
+                                            <p className="text-xs font-bold text-amber-700 mt-0.5 flex items-center gap-1">
+                                                <Clock size={10} /> Entregar: {p.horarioPreferido}
+                                            </p>
+                                        )}
                                         {p.direccion && (
                                             <a href={mapsUrl(p)} target="_blank" rel="noopener noreferrer"
                                                 className="text-xs text-blue-500 break-words flex items-start gap-1 mt-0.5">
@@ -256,9 +261,12 @@ function PreparacionCard({ p }: { p: Pedido }) {
                     <p className="font-black text-gray-900 break-words">
                         {p.nombreComanda || `${p.userId?.nombre ?? ""} ${p.userId?.apellido ?? ""}`.trim() || "Cliente"}
                     </p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                        {hora}
-                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">Pedido a las {hora}</p>
+                    {p.horarioPreferido && (
+                        <p className="text-xs font-bold text-amber-700 mt-0.5 flex items-center gap-1">
+                            <Clock size={10} /> Entregar: {p.horarioPreferido}
+                        </p>
+                    )}
                     {p.direccion && (
                         <a href={mapsUrl(p)} target="_blank" rel="noopener noreferrer"
                             className="text-xs text-blue-500 mt-0.5 flex items-start gap-1 break-words">
@@ -304,8 +312,13 @@ function PedidoCard({ p, avisandoId, updatingId, onAvisar, onEntregado }: {
                         {p.nombreComanda || `${p.userId?.nombre ?? ""} ${p.userId?.apellido ?? ""}`.trim() || "Cliente"}
                     </p>
                     <p className="text-xs text-gray-400 mt-0.5">
-                        {new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                        Pedido a las {new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
                     </p>
+                    {p.horarioPreferido && (
+                        <p className="text-xs font-bold text-amber-700 mt-0.5 flex items-center gap-1">
+                            <Clock size={10} /> Entregar: {p.horarioPreferido}
+                        </p>
+                    )}
                 </div>
                 <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 border border-blue-200 shrink-0 ml-2">
                     En camino
