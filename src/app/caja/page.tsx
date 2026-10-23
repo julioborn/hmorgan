@@ -170,8 +170,8 @@ const categoryImages: Record<string, string> = {
 
 const DEMORA_MS = 25 * 60 * 1000;
 const METODOS = ["efectivo", "tarjeta", "transferencia"] as const;
-const METODO_LABEL: Record<string, string> = { efectivo: "Efectivo", tarjeta: "Tarjeta", transferencia: "Transferencia" };
-const METODO_ICON: Record<string, React.ElementType> = { efectivo: Banknote, tarjeta: CreditCard, transferencia: Send };
+const METODO_LABEL: Record<string, string> = { efectivo: "Efectivo", tarjeta: "Tarjeta", transferencia: "Transferencia", mercadopago: "Mercado Pago" };
+const METODO_ICON: Record<string, React.ElementType> = { efectivo: Banknote, tarjeta: CreditCard, transferencia: Send, mercadopago: Wallet };
 const formatMoney = (n: number) => new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", minimumFractionDigits: 0 }).format(n);
 
 const ESTADOS = [
@@ -4354,19 +4354,19 @@ export default function CajaPage() {
 
                                     {/* Desglose por método */}
                                     <p className="text-[10px] font-black text-gray-700 uppercase tracking-wider">Recaudado por método</p>
-                                    {METODOS.map(met => {
+                                    {Object.keys(cierreResumen).map(met => {
                                         const r = cierreResumen[met];
                                         const ingreso = r?.ingreso || 0;
                                         const egreso = r?.egreso || 0;
                                         const excedente = r?.excedente || 0;
                                         const neto = ingreso - egreso;
                                         if (neto <= 0) return null;
-                                        const Icon = METODO_ICON[met];
+                                        const Icon = METODO_ICON[met] || Wallet;
                                         return (
                                             <div key={met} className="bg-gray-50 rounded-xl px-4 py-3 space-y-1">
                                                 <div className="flex items-center justify-between">
                                                     <span className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                                                        <Icon size={14} />{METODO_LABEL[met]}
+                                                        <Icon size={14} />{METODO_LABEL[met] || met}
                                                     </span>
                                                     <span className="font-black text-gray-900">{formatMoney(neto)}</span>
                                                 </div>
@@ -4427,7 +4427,7 @@ export default function CajaPage() {
                                     <div className="flex items-center justify-between bg-black rounded-2xl px-4 py-3.5">
                                         <span className="text-sm font-black text-white">Total general</span>
                                         <span className="text-xl font-black text-white">
-                                            {formatMoney(METODOS.reduce((acc, met) => acc + ((cierreResumen[met]?.ingreso || 0) - (cierreResumen[met]?.egreso || 0)), 0))}
+                                            {formatMoney(Object.values(cierreResumen).reduce((acc, r) => acc + ((r?.ingreso || 0) - (r?.egreso || 0)), 0))}
                                         </span>
                                     </div>
                                 </div>
