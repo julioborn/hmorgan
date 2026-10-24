@@ -1575,7 +1575,7 @@ export default function CajaPage() {
     }
 
     function comandaHtml(p: Pedido, titulo: string, items: Pedido["items"]) {
-        const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+        const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Argentina/Buenos_Aires" });
         const { mesa, cliente, mozo, direccion } = datosComanda(p);
         const filas = items.map(it =>
             `<tr>
@@ -1629,7 +1629,7 @@ export default function CajaPage() {
         const bebidas = p.items.filter(it => BEBIDAS_CATS.includes(it.menuItemId?.categoria || ""));
         const comida = p.items.filter(it => !BEBIDAS_CATS.includes(it.menuItemId?.categoria || ""));
 
-        const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+        const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Argentina/Buenos_Aires" });
         const { mesa, cliente, mozo, direccion } = datosComanda(p);
         const nota = p.notaEmpleado || p.notaCliente || "";
 
@@ -1689,7 +1689,7 @@ export default function CajaPage() {
         const comida = itemsNuevos.filter(it => !BEBIDAS_CATS.includes(it.menuItemId?.categoria || ""));
         if (bebidas.length === 0 && comida.length === 0) return;
 
-        const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+        const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Argentina/Buenos_Aires" });
         const { mesa, cliente, mozo, direccion } = datosComanda(p);
         const nota = p.notaEmpleado || p.notaCliente || "";
 
