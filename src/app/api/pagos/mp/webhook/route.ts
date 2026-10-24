@@ -42,21 +42,29 @@ export async function POST(req: NextRequest) {
         if (mpEstadoPago === "aprobado" && pedido) {
             const sesionAbierta = await CajaSession.findOne({ estado: "abierta" });
             if (sesionAbierta) {
-                const numero = pedido.numeroDia ? ` #${pedido.numeroDia}` : "";
-                await CajaMovement.create({
+                // Evitar doble registro si MP envía el webhook más de una vez
+                const yaExiste = await CajaMovement.findOne({
                     sesionId:   sesionAbierta._id,
-                    tipo:       "ingreso",
-                    concepto:   `Pago Mercado Pago - Delivery${numero}`,
-                    monto,
-                    metodoPago: "mercadopago",
                     pedidoId:   pedido._id,
-                    userId:     pedido.userId,
-                    items:      pedido.items?.map((it: any) => ({
-                        nombre:   it.menuItemId?.nombre ?? "Ítem",
-                        cantidad: it.cantidad,
-                        precio:   it.menuItemId?.precio ?? 0,
-                    })) ?? [],
+                    metodoPago: "mercadopago",
                 });
+                if (!yaExiste) {
+                    const numero = pedido.numeroDia ? ` #${pedido.numeroDia}` : "";
+                    await CajaMovement.create({
+                        sesionId:   sesionAbierta._id,
+                        tipo:       "ingreso",
+                        concepto:   `Pago Mercado Pago - Delivery${numero}`,
+                        monto,
+                        metodoPago: "mercadopago",
+                        pedidoId:   pedido._id,
+                        userId:     pedido.userId,
+                        items:      pedido.items?.map((it: any) => ({
+                            nombre:   it.menuItemId?.nombre ?? "Ítem",
+                            cantidad: it.cantidad,
+                            precio:   it.menuItemId?.precio ?? 0,
+                        })) ?? [],
+                    });
+                }
             }
         }
 
