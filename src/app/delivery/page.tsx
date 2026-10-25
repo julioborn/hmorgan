@@ -195,7 +195,7 @@ export default function DeliveryPage() {
                                             {p.nombreComanda || `${p.userId?.nombre ?? ""} ${p.userId?.apellido ?? ""}`.trim() || "Cliente"}
                                         </p>
                                         <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
-                                            <Clock size={10} /> Pedido a las {new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                                            <Clock size={10} /> Pedido a las {new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Argentina/Buenos_Aires" })}
                                         </p>
                                         {p.horarioPreferido && (
                                             <p className="text-xs font-bold text-amber-700 mt-0.5 flex items-center gap-1">
@@ -253,7 +253,7 @@ export default function DeliveryPage() {
 
 /* ── Card "en preparación" (solo lectura) ───────────────────────── */
 function PreparacionCard({ p }: { p: Pedido }) {
-    const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+    const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Argentina/Buenos_Aires" });
     return (
         <div className="bg-orange-50 rounded-2xl border border-orange-200 overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3">
@@ -312,7 +312,7 @@ function PedidoCard({ p, avisandoId, updatingId, onAvisar, onEntregado }: {
                         {p.nombreComanda || `${p.userId?.nombre ?? ""} ${p.userId?.apellido ?? ""}`.trim() || "Cliente"}
                     </p>
                     <p className="text-xs text-gray-400 mt-0.5">
-                        Pedido a las {new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                        Pedido a las {new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Argentina/Buenos_Aires" })}
                     </p>
                     {p.horarioPreferido && (
                         <p className="text-xs font-bold text-amber-700 mt-0.5 flex items-center gap-1">
@@ -380,7 +380,7 @@ function PedidoCard({ p, avisandoId, updatingId, onAvisar, onEntregado }: {
 /* ── Comanda de historial (solo lectura, sin precios) ───────────── */
 function ComandaHistorial({ p }: { p: Pedido }) {
     const fecha = new Date(p.createdAt).toLocaleDateString("es-AR", { weekday: "short", day: "2-digit", month: "2-digit" });
-    const hora  = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+    const hora  = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Argentina/Buenos_Aires" });
     const nombreCliente = p.nombreComanda || `${p.userId?.nombre ?? ""} ${p.userId?.apellido ?? ""}`.trim() || "Cliente";
     const telefono = p.telefonoContacto || p.userId?.telefono;
 

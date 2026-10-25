@@ -549,7 +549,7 @@ export default function AnotadorPage() {
                                         {/* Hora + total en fila inferior */}
                                         <div className="flex items-center justify-between mt-2 pr-1">
                                             <p className="text-xs text-gray-400">
-                                                {new Date(c.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                                                {new Date(c.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Argentina/Buenos_Aires" })}
                                             </p>
                                             <p className="text-base font-black text-gray-900">${fmt(c.total)}</p>
                                         </div>

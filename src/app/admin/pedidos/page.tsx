@@ -407,7 +407,7 @@ export default function AdminPedidosPage() {
                                             ? { label: "Pedido",       cls: "bg-red-500 text-white"   }
                                             : { label: "Bar",          cls: "bg-white text-black"     };
 
-                        const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+                        const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Argentina/Buenos_Aires" });
                         const isBusy = updatingId === p._id || imprimiendoId === p._id;
                         const thisConfirm = confirm?.id === p._id ? confirm.accion : null;
                         const esAlerta = alertasPedidos.has(p._id) && (Date.now() - (alertasPedidos.get(p._id) ?? 0)) < 35000;

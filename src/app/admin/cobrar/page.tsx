@@ -285,7 +285,7 @@ function PedidoCard({ pedido, onCobrar, onImprimirCuenta, imprimiendo }: {
     imprimiendo: boolean;
 }) {
     const fmt = (n: number) => "$" + new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0 }).format(Math.round(n));
-    const hora = new Date(pedido.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+    const hora = new Date(pedido.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Argentina/Buenos_Aires" });
     return (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">

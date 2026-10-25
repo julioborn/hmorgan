@@ -429,7 +429,7 @@ export default function EmpleadoAutoservicioPage() {
                                                         : "bg-emerald-100 text-emerald-700"
                                                     }`}>{p.estado}</span>
                                                     <span className="text-xs text-gray-400 flex items-center gap-1">
-                                                        <Clock size={11}/>{new Date(p.createdAt).toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"})}
+                                                        <Clock size={11}/>{new Date(p.createdAt).toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"America/Argentina/Buenos_Aires"})}
                                                     </span>
                                                 </div>
                                                 <span className="font-black text-gray-900 text-sm">${fmt(p.total)}</span>
