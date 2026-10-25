@@ -151,7 +151,9 @@ export default function CocinaPage() {
                             if (local) result.push(local);
                         }
                     }
-                    return result;
+                    return result.sort((a: Pase, b: Pase) =>
+                        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+                    );
                 });
             } else {
                 setPases(data);
