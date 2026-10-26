@@ -28,6 +28,8 @@ export async function POST(req: NextRequest) {
     const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
 
     const costoEnvio = (pedido as any).costoEnvio ?? 0;
+    const itemsSubtotal = pedido.items.reduce((acc: number, it: any) => acc + (it.menuItemId.precio ?? 0) * it.cantidad, 0);
+    const extraCarnes = Math.max(0, ((pedido as any).total ?? 0) - itemsSubtotal - costoEnvio);
     const mpItems = [
         ...pedido.items.map((item: any) => ({
             id: item.menuItemId._id.toString(),
@@ -41,6 +43,13 @@ export async function POST(req: NextRequest) {
             title: "Costo de envío",
             quantity: 1,
             unit_price: costoEnvio as number,
+            currency_id: "ARS",
+        }] : []),
+        ...(extraCarnes > 0 ? [{
+            id: "extra-carnes",
+            title: "Carne extra",
+            quantity: 1,
+            unit_price: extraCarnes,
             currency_id: "ARS",
         }] : []),
     ];
