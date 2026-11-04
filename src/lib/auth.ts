@@ -29,7 +29,7 @@ export const authOptions: NextAuthOptions = {
         }),
     ],
 
-    session: { strategy: "jwt" },
+    session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 365 * 100 }, // 100 años, prácticamente para siempre
 
     callbacks: {
         async jwt({ token, user }) {
