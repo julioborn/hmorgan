@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
+import { PointTransaction } from "@/models/PointTransaction";
 import { requireAdmin } from "@/lib/require-admin";
 
 type Params = { params: { id: string } };
@@ -35,6 +36,20 @@ export async function PUT(req: NextRequest, { params }: Params) {
         const p = Number(body.puntos);
         if (!Number.isFinite(p)) return NextResponse.json({ error: "puntos inválido" }, { status: 400 });
         update.puntos = p;
+
+        // Registrar la diferencia como transacción de ajuste: el saldo se
+        // recalcula a partir de PointTransaction en /api/puntos, así que si
+        // no queda asentado acá el próximo recálculo pisa el valor editado.
+        const actual = await User.findById(id).select("puntos").lean<{ puntos?: number }>();
+        const delta = p - (actual?.puntos ?? 0);
+        if (delta !== 0) {
+            await PointTransaction.create({
+                userId: id,
+                source: "ajuste",
+                amount: delta,
+                notes: "Ajuste manual desde admin",
+            });
+        }
     }
 
     const doc = await User.findByIdAndUpdate(id, { $set: update }, { new: true })
