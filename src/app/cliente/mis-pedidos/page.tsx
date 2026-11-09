@@ -81,6 +81,7 @@ const formatPrice = (n: number) =>
 export default function MisPedidosPage() {
     const [pedidos, setPedidos] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [pedidosActivosConfig, setPedidosActivosConfig] = useState(true);
     const [vista, setVista] = useState<"activos" | "completados">("activos");
     const [page, setPage] = useState(1);
     const PAGE_SIZE = 5;
@@ -95,6 +96,13 @@ export default function MisPedidosPage() {
         fetch("/api/cliente/perfil", { cache: "no-store" })
             .then(r => r.json())
             .then(d => { if (d?.direccion) setDireccionGuardada(d.direccion); })
+            .catch(() => {});
+    }, []);
+
+    useEffect(() => {
+        fetch("/api/config/pedidos", { cache: "no-store" })
+            .then(r => r.json())
+            .then(d => setPedidosActivosConfig(d?.activo ?? true))
             .catch(() => {});
     }, []);
 
@@ -202,12 +210,18 @@ export default function MisPedidosPage() {
                 <div className="max-w-xl mx-auto">
                     <h1 className="text-2xl font-black text-gray-900">Mis Pedidos</h1>
                     <p className="text-xs text-gray-400 mt-0.5">Seguí el estado de tus pedidos</p>
-                    <Link
-                        href="/cliente/pedidos"
-                        className="mt-4 flex items-center justify-center gap-2 w-full bg-red-600 hover:bg-red-700 active:scale-[0.97] text-white py-4 rounded-2xl font-black text-lg transition shadow-md"
-                    >
-                        <PackagePlus size={22} /> ¡Hacer un pedido!
-                    </Link>
+                    {pedidosActivosConfig ? (
+                        <Link
+                            href="/cliente/pedidos"
+                            className="mt-4 flex items-center justify-center gap-2 w-full bg-red-600 hover:bg-red-700 active:scale-[0.97] text-white py-4 rounded-2xl font-black text-lg transition shadow-md"
+                        >
+                            <PackagePlus size={22} /> ¡Hacer un pedido!
+                        </Link>
+                    ) : (
+                        <div className="mt-4 flex items-center justify-center gap-2 w-full bg-gray-200 text-gray-400 py-4 rounded-2xl font-black text-lg cursor-not-allowed">
+                            <PackagePlus size={22} /> Pedidos desactivados
+                        </div>
+                    )}
                 </div>
             </div>
 

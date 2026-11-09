@@ -980,7 +980,6 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
           Icon={Truck}
           accent="from-red-600 to-red-800"
           notificationCount={pedidosActivosCount}
-          disabled={!pedidosActivos}
         />
         <ActionCard
           href="/cliente/rewards"
