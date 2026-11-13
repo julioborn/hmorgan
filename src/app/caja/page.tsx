@@ -1697,7 +1697,7 @@ export default function CajaPage() {
         const comida = itemsNuevos.filter(it => !BEBIDAS_CATS.includes(it.menuItemId?.categoria || ""));
         if (bebidas.length === 0 && comida.length === 0) return;
 
-        const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Argentina/Buenos_Aires" });
+        const hora = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Argentina/Buenos_Aires" });
         const { mesa, cliente, mozo, direccion } = datosComanda(p);
         const nota = p.notaEmpleado || p.notaCliente || "";
 
