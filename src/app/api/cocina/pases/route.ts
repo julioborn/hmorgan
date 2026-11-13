@@ -58,11 +58,16 @@ export async function GET(req: NextRequest) {
         return NextResponse.json(result);
     }
 
-    // Solo preparando: la caja ya los aceptó
+    // Solo preparando: la caja ya los aceptó.
+    // Orden: ultimoItemAt si existe (la comanda recibió un ítem nuevo —incluye
+    // el caso de volver de "listo" a "preparando"— y debe pasar al final de la
+    // cola), si no createdAt (orden normal de llegada).
     const pedidos = await Pedido.find({ estado: "preparando" })
         .populate("userId", "nombre apellido")
-        .sort({ createdAt: 1 })
         .lean<any[]>();
+    pedidos.sort((a: any, b: any) =>
+        new Date(a.ultimoItemAt ?? a.createdAt).getTime() - new Date(b.ultimoItemAt ?? b.createdAt).getTime()
+    );
     const result = await enrichPedidos(pedidos);
     return NextResponse.json(result);
 }

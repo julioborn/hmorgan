@@ -153,7 +153,7 @@ export default function CocinaPage() {
                         }
                     }
                     return result.sort((a: Pase, b: Pase) =>
-                        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+                        new Date(a.ultimoItemAt ?? a.createdAt).getTime() - new Date(b.ultimoItemAt ?? b.createdAt).getTime()
                     );
                 });
             } else {
