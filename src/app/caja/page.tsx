@@ -231,6 +231,7 @@ export default function CajaPage() {
     const prevPedidoStatesRef = useRef<Record<string, string>>({});
     const prevItemListosRef   = useRef<Record<string, Set<string>>>({});
     const initialLoadDoneRef  = useRef(false);
+    const sesionAperturaRef   = useRef<Date | null>(null);
     const [alertasPedidos, setAlertasPedidos] = useState<Map<string, number>>(new Map());
     const [listosToast, setListosToast] = useState<{ id: string; label: string; ts: number }[]>([]);
     const [vista, setVista] = useState<Vista>("pendientes");
@@ -644,16 +645,22 @@ export default function CajaPage() {
                 fetch("/api/pedidos", { credentials: "include" }),
             ]);
             // Solo actualizar sesión si la respuesta es válida (evita que un
-            // error de auth transite falso null y muestre pantalla de apertura)
-            if (!cajaRes.ok) return;
-            const [cajaData, pedData] = await Promise.all([cajaRes.json(), pedRes.json()]);
-            setSesion(cajaData.sesion || null);
-            setEgresos((cajaData.movimientos || []).filter((m: any) => m.tipo === "egreso"));
-            setCobrosParcialesMovs((cajaData.movimientos || []).filter((m: any) => m.tipo === "ingreso" && m.pedidoId && m.concepto?.startsWith("Parcial")));
+            // error de auth transite falso null y muestre pantalla de apertura).
+            // Pero un fallo puntual de este endpoint no debe congelar la lista
+            // de pedidos: esa se actualiza igual con el último dato de sesión
+            // conocido (sesionAperturaRef), si /api/pedidos sí respondió bien.
+            let cajaData: any = null;
+            if (cajaRes.ok) {
+                cajaData = await cajaRes.json();
+                setSesion(cajaData.sesion || null);
+                setEgresos((cajaData.movimientos || []).filter((m: any) => m.tipo === "egreso"));
+                setCobrosParcialesMovs((cajaData.movimientos || []).filter((m: any) => m.tipo === "ingreso" && m.pedidoId && m.concepto?.startsWith("Parcial")));
+                sesionAperturaRef.current = cajaData.sesion?.fechaApertura ? new Date(cajaData.sesion.fechaApertura) : null;
+            }
+            if (pedRes.ok) {
+                const pedData = await pedRes.json();
             if (Array.isArray(pedData)) {
-                const sesionApertura = cajaData.sesion?.fechaApertura
-                    ? new Date(cajaData.sesion.fechaApertura)
-                    : null;
+                const sesionApertura = sesionAperturaRef.current;
                 const filtrados = pedData.filter((p: Pedido) =>
                     p.estado !== "cancelado" &&
                     (p.estado !== "cerrado" || (
@@ -707,6 +714,7 @@ export default function CajaPage() {
                         return next;
                     });
                 }
+            }
             }
         } finally { setLoading(false); }
     }, []);
