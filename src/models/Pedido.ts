@@ -12,6 +12,8 @@ const PedidoSchema = new Schema(
                 // false = se agregó después de aceptada y todavía no se imprimió en BARRA/COCINA
                 impreso: { type: Boolean, default: true },
                 listo: { type: Boolean, default: false },
+                // Hora en que se agregó este ítem puntual (no la de la comanda completa)
+                creadoEn: { type: Date, default: Date.now },
             },
         ],
         tipoEntrega: { type: String, enum: ["retira", "envio"], default: "retira" },

@@ -29,6 +29,7 @@ type ItemPase = {
     nota?: string;
     listo: boolean;
     opcionesSeleccionadas?: Record<string, string>;
+    creadoEn?: string;
 };
 
 type Pase = {
@@ -345,7 +346,10 @@ export default function CocinaPage() {
         const { finalizado = false } = opts;
         const isNuevo    = !finalizado && nuevosIds.has(p._id);
         const isMarcando = !finalizado && marcando === p._id;
-        const hora = new Date(p.updatedAt ?? p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Argentina/Buenos_Aires" });
+        // Hora de la comanda: siempre la de creación, no se mueve por agregar/marcar ítems después
+        const hora = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Argentina/Buenos_Aires" });
+        const horaItem = (it: ItemPase) =>
+            new Date(it.creadoEn ?? p.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Argentina/Buenos_Aires" });
         const esDelivery = p.tipoEntrega === "envio";
         const esApp      = p.fuente === "cliente";
         const esEvento   = !!p.eventoId;
@@ -478,7 +482,7 @@ export default function CocinaPage() {
                                         </div>
                                         <div className="bg-gray-800 px-3 py-1 flex items-center gap-1.5">
                                             <Clock size={11} className="text-gray-300 shrink-0" />
-                                            <span className="text-xs font-black text-white tracking-wide">Pedido a las {hora}</span>
+                                            <span className="text-xs font-black text-white tracking-wide">Pedido a las {horaItem(it)}</span>
                                         </div>
                                     </div>
                                 );

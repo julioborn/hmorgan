@@ -157,7 +157,7 @@ export async function POST(req: NextRequest) {
                         return acc + (m?.precio || 0) * i.cantidad;
                     }, 0);
                     (comandaActiva.items as any[]).push(...(items as any[]).map((i: any) => ({
-                        menuItemId: i.menuItemId, cantidad: i.cantidad, nota: i.nota || undefined, impreso: false, listo: false,
+                        menuItemId: i.menuItemId, cantidad: i.cantidad, nota: i.nota || undefined, impreso: false, listo: false, creadoEn: new Date(),
                     })));
                     comandaActiva.total = (comandaActiva.total || 0) + totalNuevo;
                     (comandaActiva as any).ultimoItemAt = new Date();
@@ -268,6 +268,7 @@ export async function POST(req: NextRequest) {
                     nota: i.nota || undefined,
                     impreso: false,
                     listo: false,
+                    creadoEn: new Date(),
                 }));
                 (comandaActiva.items as any[]).push(...nuevosItems);
                 comandaActiva.total = (comandaActiva.total || 0) + total;
