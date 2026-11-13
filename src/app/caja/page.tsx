@@ -581,14 +581,20 @@ export default function CajaPage() {
     // para no dispararlos dos veces si el poll de 5s cae justo en el medio.
     const itemsImprimiendoRef = useRef<Set<string>>(new Set());
 
-    async function marcarItemsImpresos(pedidoId: string, itemIds: string[]) {
-        if (itemIds.length === 0) return;
+    // Devuelve los ids que esta llamada realmente marcó como impresos (ganó la carrera).
+    // Si falla la request, devuelve [] para no imprimir: el item sigue impreso:false
+    // en la base y se reintenta solo en el próximo poll.
+    async function marcarItemsImpresos(pedidoId: string, itemIds: string[]): Promise<string[]> {
+        if (itemIds.length === 0) return [];
         try {
-            await fetch(`/api/pedidos/${pedidoId}`, {
+            const res = await fetch(`/api/pedidos/${pedidoId}`, {
                 method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
                 body: JSON.stringify({ accion: "marcarImpreso", itemIds }),
             });
-        } catch { /* si falla, sigue "impreso: false" y se reintenta en el próximo poll */ }
+            if (!res.ok) return [];
+            const data = await res.json();
+            return Array.isArray(data.impresos) ? data.impresos : [];
+        } catch { return []; /* si falla, sigue "impreso: false" y se reintenta en el próximo poll */ }
     }
 
     // Detecta ítems agregados a comandas ya aceptadas (impreso: false en la base, no en
@@ -601,10 +607,15 @@ export default function CajaPage() {
             if (pendientes.length === 0) continue;
             const ids = pendientes.map(it => it._id!);
             ids.forEach(id => itemsImprimiendoRef.current.add(id));
-            // Marcar ANTES de imprimir: si hay otro dispositivo con la caja abierta,
-            // ya verá impreso:true y no volverá a imprimir los mismos ítems.
+            // Marcar ANTES de imprimir: el servidor decide atómicamente quién "gana" cada
+            // ítem (por si hay otro dispositivo con la caja abierta detectando lo mismo),
+            // así que solo se imprimen los que esta llamada ganó de verdad.
             marcarItemsImpresos(p._id, ids)
-                .then(() => printItemsAgregados(p, pendientes))
+                .then((ganados) => {
+                    if (ganados.length === 0) return;
+                    const itemsGanados = pendientes.filter(it => ganados.includes(it._id!));
+                    return printItemsAgregados(p, itemsGanados);
+                })
                 .finally(() => ids.forEach(id => itemsImprimiendoRef.current.delete(id)));
         }
     }

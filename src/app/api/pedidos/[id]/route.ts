@@ -125,14 +125,26 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     // ── Marcar ítems como ya impresos en BARRA/COCINA ───────────────────────
+    // Atómico a nivel de documento: si dos dispositivos con la caja abierta
+    // detectan el mismo ítem nuevo al mismo tiempo, el arrayFilter con
+    // impreso:false solo deja pasar al primero que llegue. El que llega
+    // segundo ve en "antes" que ya estaba impreso y no imprime, evitando
+    // el ticket duplicado.
     if (body.accion === "marcarImpreso") {
-        const { itemIds } = body;
-        const idSet = new Set<string>(itemIds || []);
-        for (const it of pedido.items as any[]) {
-            if (idSet.has(it._id.toString())) it.impreso = true;
-        }
-        await pedido.save();
-        return NextResponse.json({ ok: true, pedido });
+        const ids: string[] = Array.isArray(body.itemIds) ? body.itemIds : [];
+        if (ids.length === 0) return NextResponse.json({ ok: true, impresos: [] });
+
+        const antes = await Pedido.findOneAndUpdate(
+            { _id: pedido._id, "items._id": { $in: ids } },
+            { $set: { "items.$[elem].impreso": true } },
+            { arrayFilters: [{ "elem._id": { $in: ids }, "elem.impreso": false }], new: false }
+        ).lean<any>();
+
+        const impresos = ids.filter((id) =>
+            (antes?.items || []).some((it: any) => it._id.toString() === id && it.impreso === false)
+        );
+
+        return NextResponse.json({ ok: true, impresos });
     }
 
     // ── Actualizar comensales (count + opcional agregar/quitar userId) ────────
