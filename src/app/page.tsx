@@ -241,7 +241,6 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
   const [invitaciones, setInvitaciones] = useState<Invitacion[]>([]);
   const [pedidosActivosCount, setPedidosActivosCount] = useState(0);
   const [pedidosActivos, setPedidosActivos] = useState(true);
-  const [reservasActivas, setReservasActivas] = useState(true);
   const [sesionAutoserv, setSesionAutoserv] = useState(false);
   const [autoservicioActivo, setAutoservicioActivo] = useState(true);
   const [repartidorAfuera, setRepartidorAfuera] = useState(false);
@@ -353,9 +352,6 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
     fetch("/api/config/pedidos", { cache: "no-store" })
       .then(res => res.json())
       .then(data => { setPedidosActivos(data.activo); });
-    fetch("/api/config/reservas", { cache: "no-store" })
-      .then(res => res.json())
-      .then(data => { setReservasActivas(data.activo ?? true); });
     fetch("/api/config/autoservicio", { cache: "no-store" })
       .then(res => res.json())
       .then(data => { setAutoservicioActivo(data.activo ?? true); });
@@ -1000,7 +996,6 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
           title="Reservas"
           Icon={CalendarDays}
           accent="from-red-600 to-red-800"
-          disabled={!reservasActivas}
         />
       </div>
 
