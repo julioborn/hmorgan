@@ -2049,35 +2049,6 @@ export default function CajaPage() {
         } finally { setTarjetasSaving(false); }
     }
 
-    function ventaEventoHtml(titulo: string, items: CartItem[], cliente: string, hora: string) {
-        const filas = items.map(it =>
-            `<tr>
-                <td style="font-size:22px;font-weight:900;padding:4px 10px 4px 0;white-space:nowrap">${it.cantidad}x</td>
-                <td style="font-size:20px;font-weight:700;padding:4px 0">${it.nombre}</td>
-            </tr>`
-        ).join("");
-        return `<!DOCTYPE html><html><head><meta charset="utf-8">
-        <style>
-            * { margin:0; padding:0; box-sizing:border-box; }
-            body { font-family: 'Courier New', monospace; width: 80mm; padding: 8px; }
-            .centro { text-align:center; }
-            .sep { border-top: 2px dashed #000; margin: 8px 0; }
-            .badge { font-size:26px; font-weight:900; text-transform:uppercase; }
-            .meta { font-size:14px; margin:4px 0; }
-            .meta-grande { font-size:18px; font-weight:700; margin:4px 0; }
-            table { width:100%; border-collapse:collapse; }
-        </style></head><body>
-        <div class="centro"><div class="badge">⬛ ${titulo} ⬛</div></div>
-        <div class="sep"></div>
-        <div class="meta-grande">Evento: ${titulo}</div>
-        <div class="meta-grande">Pago: ${cliente}</div>
-        <div class="meta">Hora: ${hora}</div>
-        <div class="sep"></div>
-        <table>${filas}</table>
-        <div class="sep"></div>
-        </body></html>`;
-    }
-
     async function printVentaEvento(evento: Evento, cart: CartItem[], pagos: { metodoPago: string; monto: number }[]) {
         const bebidas = cart.filter(it => BEBIDAS_CATS.includes(it.categoria));
         const comida = cart.filter(it => !BEBIDAS_CATS.includes(it.categoria));
@@ -2091,33 +2062,31 @@ export default function CajaPage() {
         const cliente = pagoLabel;
         const titulo = evento.nombre.toUpperCase();
 
-        try {
-            const promesas: Promise<Response>[] = [];
-            if (comida.length > 0) promesas.push(
-                fetch(`${PRINT_SERVER}/imprimir/comanda`, {
-                    method: "POST", headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        impresora: "Cocina", titulo,
-                        mesa: evento.nombre, cliente, mozo: "-", hora, nota: "",
-                        items: comida.map(it => ({ cantidad: it.cantidad, nombre: it.nombre })),
-                    }),
-                })
-            );
-            if (bebidas.length > 0) promesas.push(
-                fetch(`${PRINT_SERVER}/imprimir/comanda`, {
-                    method: "POST", headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        impresora: "Barra", titulo,
-                        mesa: evento.nombre, cliente, mozo: "-", hora, nota: "",
-                        items: bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.nombre })),
-                    }),
-                })
-            );
-            if (promesas.length > 0) { await Promise.all(promesas); return; }
-        } catch { /* fallback */ }
+        const payloadCocina = {
+            impresora: "Cocina" as const, titulo,
+            mesa: evento.nombre, cliente, mozo: "-", hora, nota: "",
+            items: comida.map(it => ({ cantidad: it.cantidad, nombre: it.nombre })),
+        };
+        const payloadBarra = {
+            impresora: "Barra" as const, titulo,
+            mesa: evento.nombre, cliente, mozo: "-", hora, nota: "",
+            items: bebidas.map(it => ({ cantidad: it.cantidad, nombre: it.nombre })),
+        };
 
-        if (comida.length > 0) abrirEImprimir(ventaEventoHtml(titulo, comida, cliente, hora));
-        if (bebidas.length > 0) setTimeout(() => abrirEImprimir(ventaEventoHtml(titulo, bebidas, cliente, hora)), 600);
+        // Servidor local: ping rápido (800ms) para verificar disponibilidad, luego fire-and-forget
+        try {
+            const pingCtrl = new AbortController();
+            setTimeout(() => pingCtrl.abort(), 800);
+            await fetch(`${PRINT_SERVER}/estado`, { signal: pingCtrl.signal });
+
+            if (comida.length > 0) fetch(`${PRINT_SERVER}/imprimir/comanda`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payloadCocina) }).catch(() => {});
+            if (bebidas.length > 0) fetch(`${PRINT_SERVER}/imprimir/comanda`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payloadBarra) }).catch(() => {});
+            return; // local activo → no usar cloud
+        } catch { /* servidor caído → cloud */ }
+
+        // Fallback: encolar via cloud polling (el print server lo levanta en ~3s)
+        if (comida.length > 0) await crearPrintJobComanda("Cocina", payloadCocina);
+        if (bebidas.length > 0) await crearPrintJobComanda("Barra", payloadBarra);
     }
 
     async function abrirVentaModal(eventoId: string) {
