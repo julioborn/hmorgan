@@ -285,8 +285,9 @@ export async function GET(req: NextRequest) {
             })
             .filter(Boolean);
 
-        // Ventas por producto — todos los ítems activos del menú cruzados con ventas del período
-        const allMenuItems = await MenuItem.find({ activo: true }).lean();
+        // Ventas por producto — todos los ítems del menú (activos o no) cruzados con ventas del período,
+        // para que desactivar un producto/categoría no lo borre de las estadísticas históricas
+        const allMenuItems = await MenuItem.find({}).lean();
         const itemsVentasMap: Record<string, { cantidadVendida: number; ingresoTotal: number }> = {};
         for (const pedido of completados) {
             for (const item of (pedido as any).items) {
