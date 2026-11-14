@@ -221,8 +221,7 @@ export default function ClienteReservasPage() {
                 {!reservasActivas && (
                     <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-8 text-center">
                         <CalendarDays size={40} className="text-amber-400 mx-auto mb-3" />
-                        <p className="font-bold text-amber-800">El local desactivó las reservas temporalmente</p>
-                        <p className="text-sm text-amber-600 mt-1">No es un error de la app. Consultanos por las redes o visitanos directamente.</p>
+                        <p className="font-bold text-amber-800">El bar no está tomando reservas en este momento</p>
                     </div>
                 )}
 

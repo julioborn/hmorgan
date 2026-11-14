@@ -930,8 +930,7 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
                       e.preventDefault();
                       swalBase.fire({
                         icon: "info",
-                        title: "Pedidos desactivados",
-                        text: "El local desactivó temporalmente los pedidos por la app. Probá de nuevo más tarde o consultá directamente en el bar.",
+                        title: "El bar no está haciendo pedidos en este momento",
                         confirmButtonText: "Entendido",
                       });
                     }
