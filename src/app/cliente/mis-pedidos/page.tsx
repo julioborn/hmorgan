@@ -220,8 +220,8 @@ export default function MisPedidosPage() {
                             <PackagePlus size={22} /> ¡Hacer un pedido!
                         </Link>
                     ) : (
-                        <div className="mt-4 flex items-center justify-center gap-2 w-full bg-gray-200 text-gray-400 py-4 rounded-2xl font-black text-lg cursor-not-allowed">
-                            <PackagePlus size={22} /> Pedidos desactivados
+                        <div className="mt-4 flex items-center justify-center gap-2 w-full bg-gray-200 text-gray-400 py-4 rounded-2xl font-black text-sm text-center cursor-not-allowed">
+                            <PackagePlus size={22} className="shrink-0" /> El bar no está tomando pedidos en este momento
                         </div>
                     )}
                 </div>
