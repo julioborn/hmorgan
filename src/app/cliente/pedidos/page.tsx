@@ -582,7 +582,14 @@ export default function PedidosClientePage() {
     }, []);
 
     useEffect(() => {
-        if (!cargandoConfig && !activo) router.replace("/");
+        if (!cargandoConfig && !activo) {
+            swalBase.fire({
+                icon: "info",
+                title: "Pedidos desactivados",
+                text: "El local desactivó temporalmente los pedidos por la app. Probá de nuevo más tarde o consultá directamente en el bar.",
+                confirmButtonText: "Entendido",
+            }).then(() => router.replace("/"));
+        }
     }, [activo, cargandoConfig, router]);
 
     async function pedirTelefono(): Promise<boolean> {

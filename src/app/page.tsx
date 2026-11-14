@@ -923,7 +923,21 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
           >
             {menuDelDia.map(item => (
               <SwiperSlide key={item._id}>
-                <Link href={pedidosActivos ? "/cliente/pedidos" : "#"} onClick={e => { if (!pedidosActivos) e.preventDefault(); }} className={`block${!pedidosActivos ? " cursor-default" : ""}`}>
+                <Link
+                  href={pedidosActivos ? "/cliente/pedidos" : "#"}
+                  onClick={e => {
+                    if (!pedidosActivos) {
+                      e.preventDefault();
+                      swalBase.fire({
+                        icon: "info",
+                        title: "Pedidos desactivados",
+                        text: "El local desactivó temporalmente los pedidos por la app. Probá de nuevo más tarde o consultá directamente en el bar.",
+                        confirmButtonText: "Entendido",
+                      });
+                    }
+                  }}
+                  className={`block${!pedidosActivos ? " cursor-default" : ""}`}
+                >
                   <div className="relative rounded-2xl overflow-hidden shadow-lg h-56">
                     <img
                       src={item.imagen || categoryConfigMap["MENÚ DEL DÍA"]?.imageUrl || "/menu-del-dia.jpeg"}
