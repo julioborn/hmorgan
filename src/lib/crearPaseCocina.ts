@@ -1,7 +1,7 @@
 import { PaseCocina } from "@/models/PaseCocina";
 import { MenuItem } from "@/models/MenuItem";
 
-const BEBIDAS_CATS = new Set(["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"]);
+const BEBIDAS_CATS = new Set(["CERVEZAS", "VINOS", "ESPUMANTES Y SIDRAS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"]);
 
 type ItemInput = { menuItemId: string; cantidad: number; nota?: string };
 

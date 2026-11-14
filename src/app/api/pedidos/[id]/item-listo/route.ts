@@ -10,7 +10,7 @@ const SECRET = process.env.NEXTAUTH_SECRET!;
 
 // Categorías que maneja el bar, no la cocina — no bloquean el "todo listo"
 const BEBIDAS_CATS = new Set([
-    "CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS", "BEBIDAS",
+    "CERVEZAS", "VINOS", "ESPUMANTES Y SIDRAS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS", "BEBIDAS",
 ]);
 
 function auth(req: NextRequest) {

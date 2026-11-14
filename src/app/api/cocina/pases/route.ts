@@ -6,7 +6,7 @@ import { CajaSession } from "@/models/CajaSession";
 import jwt from "jsonwebtoken";
 
 const SECRET = process.env.NEXTAUTH_SECRET!;
-const BEBIDAS_CATS = new Set(["CERVEZAS","VINOS","GASEOSAS","JARROS","COCKTAILS","WHISKY","MEDIDAS"]);
+const BEBIDAS_CATS = new Set(["CERVEZAS","VINOS","ESPUMANTES Y SIDRAS","GASEOSAS","JARROS","COCKTAILS","WHISKY","MEDIDAS"]);
 
 function authCocina(req: NextRequest) {
     const token = req.cookies.get("session")?.value;

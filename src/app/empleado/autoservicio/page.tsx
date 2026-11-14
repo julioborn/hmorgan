@@ -17,7 +17,7 @@ type Sesion = { _id: string; mesasNombres: string[]; usuariosIds: { _id: string;
 type MenuItem = { _id: string; nombre: string; precio: number; categoria: string; activo: boolean };
 
 const fmt = (n: number) => new Intl.NumberFormat("es-AR", { minimumFractionDigits: 0 }).format(n);
-const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
+const BEBIDAS_CATS = ["CERVEZAS", "VINOS", "ESPUMANTES Y SIDRAS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"];
 const MAIN_ORDER = ["PARRILLA", "PIZZAS", "HAMBURGUESAS", "SANDWICHES", "PICADAS", "ENSALADAS", "FRITURAS", "BEBIDAS", "POSTRE Y CAFE"];
 
 type PageView = "sesiones" | "asignar";

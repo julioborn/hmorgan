@@ -8,7 +8,7 @@ import jwt from "jsonwebtoken";
 
 const SECRET = process.env.NEXTAUTH_SECRET!;
 
-const BEBIDAS_CATS = new Set(["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"]);
+const BEBIDAS_CATS = new Set(["CERVEZAS", "VINOS", "ESPUMANTES Y SIDRAS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"]);
 
 async function recalcularTotal(items: { menuItemId: any; cantidad: number }[]) {
     const menuItems = await MenuItem.find({ _id: { $in: items.map((i) => i.menuItemId) } });

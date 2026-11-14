@@ -283,7 +283,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const { items, notaEmpleado } = body;
     if (!items?.length) return NextResponse.json({ error: "Sin ítems" }, { status: 400 });
 
-    const BEBIDAS_CATS_SERVER = new Set(["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"]);
+    const BEBIDAS_CATS_SERVER = new Set(["CERVEZAS", "VINOS", "ESPUMANTES Y SIDRAS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"]);
 
     // Push directo al DocumentArray de Mongoose para garantizar impreso: false en MongoDB
     for (const newItem of items) {

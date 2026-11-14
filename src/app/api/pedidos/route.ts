@@ -429,7 +429,7 @@ export async function PUT(req: NextRequest) {
             }
         }
 
-        const BEBIDAS_CATS_SERVER = new Set(["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"]);
+        const BEBIDAS_CATS_SERVER = new Set(["CERVEZAS", "VINOS", "ESPUMANTES Y SIDRAS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"]);
         const update: Record<string, unknown> = { estado };
         if (estado === "entregado") update.repartidorAfuera = false;
         // Al marcar como listo, todos los ítems quedan listo:true para que caja y mozo los muestren en verde

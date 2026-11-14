@@ -6,7 +6,7 @@ import { CheckCircle, ChefHat, LogOut, Clock, X, UtensilsCrossed, ChevronLeft, P
 import MenuImg from "@/components/MenuImg";
 import { useCategoryConfigs } from "@/hooks/useCategoryConfigs";
 
-const BEBIDAS_CATS = new Set(["CERVEZAS", "VINOS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"]);
+const BEBIDAS_CATS = new Set(["CERVEZAS", "VINOS", "ESPUMANTES Y SIDRAS", "GASEOSAS", "JARROS", "COCKTAILS", "WHISKY", "MEDIDAS"]);
 const PICAR_CATS   = ["PICADAS", "FRITURAS"];
 const MENU_ORDER   = ["PARRILLA","PIZZAS","HAMBURGUESAS","SANDWICHES","PICADAS Y FRITURAS","ENSALADAS","BEBIDAS","POSTRE Y CAFE"];
 const DEMORA_MS    = 25 * 60 * 1000;
