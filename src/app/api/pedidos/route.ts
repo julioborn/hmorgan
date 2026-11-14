@@ -170,23 +170,26 @@ export async function POST(req: NextRequest) {
         // Pedidos desactivados no bloquean autoservicio (el cliente ya está en el bar)
         if (!config.pedidosActivos && payload.role === "cliente" && !esAutoservicio) {
             return NextResponse.json(
-                { message: "Los pedidos están desactivados temporalmente" },
+                { message: "El bar no está haciendo pedidos en este momento" },
                 { status: 403 }
             );
         }
 
-        // Delivery bloqueado si la caja está cerrada o si deliveryActivo es false
-        if (tipoEntrega === "envio" && payload.role === "cliente") {
-            const [cajaAbierta, deliveryOk] = await Promise.all([
-                CajaSession.findOne({ estado: "abierta" }),
-                Promise.resolve(config?.deliveryActivo !== false),
-            ]);
+        // Caja cerrada = nadie gestionando pedidos: bloquea cualquier pedido de cliente
+        // (no bloquea autoservicio, el cliente ya está en el bar)
+        if (payload.role === "cliente" && !esAutoservicio) {
+            const cajaAbierta = await CajaSession.findOne({ estado: "abierta" });
             if (!cajaAbierta) {
                 return NextResponse.json(
-                    { message: "El delivery no está disponible porque la caja está cerrada" },
+                    { message: "El bar no está haciendo pedidos en este momento" },
                     { status: 403 }
                 );
             }
+        }
+
+        // Delivery bloqueado si deliveryActivo es false
+        if (tipoEntrega === "envio" && payload.role === "cliente") {
+            const deliveryOk = config?.deliveryActivo !== false;
             if (!deliveryOk) {
                 return NextResponse.json(
                     { message: "El delivery está desactivado temporalmente" },

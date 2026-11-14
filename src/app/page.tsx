@@ -349,9 +349,12 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
   }, [esCumple]);
 
   useEffect(() => {
-    fetch("/api/config/pedidos", { cache: "no-store" })
-      .then(res => res.json())
-      .then(data => { setPedidosActivos(data.activo); });
+    Promise.all([
+      fetch("/api/config/pedidos", { cache: "no-store" }).then(res => res.json()),
+      fetch("/api/caja/status", { credentials: "include" }).then(res => res.json()).catch(() => ({ abierta: true })),
+    ]).then(([cfg, cajaStatus]) => {
+      setPedidosActivos(!!cfg.activo && !!cajaStatus.abierta);
+    });
     fetch("/api/config/autoservicio", { cache: "no-store" })
       .then(res => res.json())
       .then(data => { setAutoservicioActivo(data.activo ?? true); });

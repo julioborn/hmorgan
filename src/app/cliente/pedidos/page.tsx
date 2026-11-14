@@ -567,9 +567,13 @@ export default function PedidosClientePage() {
     useEffect(() => {
         (async () => {
             try {
-                const cfg = await fetch("/api/config/pedidos", { cache: "no-store" }).then((r) => r.json());
-                setActivo(cfg.activo);
-                if (cfg.activo) {
+                const [cfg, cajaStatus] = await Promise.all([
+                    fetch("/api/config/pedidos", { cache: "no-store" }).then((r) => r.json()),
+                    fetch("/api/caja/status", { credentials: "include" }).then((r) => r.json()).catch(() => ({ abierta: true })),
+                ]);
+                const habilitado = !!cfg.activo && !!cajaStatus.abierta;
+                setActivo(habilitado);
+                if (habilitado) {
                     const data = await fetch("/api/menu?cliente=true").then(r => r.json());
                     setMenu(data);
                 }

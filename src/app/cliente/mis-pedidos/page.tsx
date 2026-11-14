@@ -100,10 +100,12 @@ export default function MisPedidosPage() {
     }, []);
 
     useEffect(() => {
-        fetch("/api/config/pedidos", { cache: "no-store" })
-            .then(r => r.json())
-            .then(d => setPedidosActivosConfig(d?.activo ?? true))
-            .catch(() => {});
+        Promise.all([
+            fetch("/api/config/pedidos", { cache: "no-store" }).then(r => r.json()),
+            fetch("/api/caja/status", { credentials: "include" }).then(r => r.json()).catch(() => ({ abierta: true })),
+        ]).then(([cfg, cajaStatus]) => {
+            setPedidosActivosConfig(!!(cfg?.activo ?? true) && !!cajaStatus.abierta);
+        }).catch(() => {});
     }, []);
 
     useEffect(() => {
