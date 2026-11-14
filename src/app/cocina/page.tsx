@@ -70,6 +70,7 @@ export default function CocinaPage() {
     const categoryConfigMap = useCategoryConfigs();
     const [tab, setTab] = useState<"comandas" | "menu">("comandas");
     const [subTab, setSubTab] = useState<"pendientes" | "finalizados">("pendientes");
+    const [filtro, setFiltro] = useState<"todos" | "bar" | "delivery">("todos");
 
     // ── Pases pendientes ──────────────────────────────────────────────────────
     const [pases, setPases] = useState<Pase[]>([]);
@@ -336,6 +337,15 @@ export default function CocinaPage() {
 
     const paseAConfirmar = confirmarId ? pases.find(p => p._id === confirmarId) : null;
 
+    function pasaFiltro(p: Pase) {
+        if (filtro === "todos") return true;
+        const esDeliveryPase = p.tipoEntrega === "envio";
+        return filtro === "delivery" ? esDeliveryPase : !esDeliveryPase;
+    }
+
+    const pasesFiltrados = pases.filter(pasaFiltro);
+    const pasesListoFiltrados = pasesListo.filter(pasaFiltro);
+
     function mesaLabel(p: Pase) {
         if (p.tipoEntrega === "envio") return p.deliveryNumero ? `Delivery #${p.deliveryNumero}` : "Delivery";
         if (p.fuente === "cliente") return p.numeroDia ? `Pedido #${p.numeroDia}` : "App";
@@ -543,7 +553,7 @@ export default function CocinaPage() {
                 <div className="flex items-center gap-3">
                     {tab === "comandas" && subTab === "pendientes" && (
                         <span className="text-sm text-gray-400 font-medium">
-                            {pases.length} orden{pases.length !== 1 ? "es" : ""}
+                            {pasesFiltrados.length} orden{pasesFiltrados.length !== 1 ? "es" : ""}
                         </span>
                     )}
                     <button onClick={logout} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition">
@@ -579,17 +589,33 @@ export default function CocinaPage() {
                         </div>
                     </div>
 
+                    {/* Filtro Bar / Delivery */}
+                    <div className="px-4 pt-2.5 pb-2.5 bg-white border-b border-gray-100">
+                        <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+                            {([
+                                { key: "todos", label: "Todos" },
+                                { key: "bar", label: "Bar" },
+                                { key: "delivery", label: "Delivery" },
+                            ] as const).map(f => (
+                                <button key={f.key} onClick={() => setFiltro(f.key)}
+                                    className={`flex-1 py-2 text-xs font-black uppercase tracking-widest rounded-lg transition ${filtro === f.key ? "bg-white text-black shadow-sm" : "text-gray-400 hover:text-gray-600"}`}>
+                                    {f.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
                     {subTab === "pendientes" && (
                         loading ? (
                             <div className="flex items-center justify-center py-32 text-gray-400 text-sm">Cargando...</div>
-                        ) : pases.length === 0 ? (
+                        ) : pasesFiltrados.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-32 space-y-3 text-gray-300">
                                 <ChefHat size={52} />
                                 <p className="text-lg font-semibold text-gray-400">Sin órdenes pendientes</p>
                             </div>
                         ) : (
                             <div className="max-w-2xl mx-auto px-3 pt-4 space-y-4">
-                                {pases.map(p => renderPaseCard(p))}
+                                {pasesFiltrados.map(p => renderPaseCard(p))}
                             </div>
                         )
                     )}
@@ -597,7 +623,7 @@ export default function CocinaPage() {
                     {subTab === "finalizados" && (
                         loadingListo ? (
                             <div className="flex items-center justify-center py-32 text-gray-400 text-sm">Cargando...</div>
-                        ) : pasesListo.length === 0 ? (
+                        ) : pasesListoFiltrados.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-32 space-y-3">
                                 <CheckCircle size={48} className="text-gray-200" />
                                 <p className="text-base font-semibold text-gray-400">Sin órdenes finalizadas</p>
@@ -605,11 +631,11 @@ export default function CocinaPage() {
                         ) : (
                             <div className="max-w-2xl mx-auto px-3 pt-4 space-y-4">
                                 <div className="flex items-center justify-between px-1 mb-2">
-                                    <p className="text-xs text-gray-400 font-medium">Últimas {pasesListo.length} finalizadas</p>
+                                    <p className="text-xs text-gray-400 font-medium">Últimas {pasesListoFiltrados.length} finalizadas</p>
                                     <button onClick={() => { listoLoadedRef.current = false; loadPasesListo(); }}
                                         className="text-xs font-bold text-black underline underline-offset-2">Actualizar</button>
                                 </div>
-                                {pasesListo.map(p => renderPaseCard(p, { finalizado: true }))}
+                                {pasesListoFiltrados.map(p => renderPaseCard(p, { finalizado: true }))}
                             </div>
                         )
                     )}
