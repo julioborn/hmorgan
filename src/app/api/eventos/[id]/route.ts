@@ -108,6 +108,20 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         return NextResponse.json({ ok: true, evento });
     }
 
+    // Corrige el total de entradas registradas (ej: error de tipeo al cargar).
+    // No puede bajar de lo que ya se cobró, para no dejar tarjetas "huérfanas".
+    if (body.accion === "editarEntradasRegistradas") {
+        const nueva = Number(body.cantidad);
+        if (!Number.isFinite(nueva) || nueva < 0) return NextResponse.json({ error: "Cantidad inválida" }, { status: 400 });
+        const cobradas = (evento.tarjetas as any[]).reduce((a: number, t: any) => a + t.cantidad, 0);
+        if (nueva < cobradas) {
+            return NextResponse.json({ error: `No puede ser menor a ${cobradas} (ya cobradas)` }, { status: 400 });
+        }
+        (evento as any).entradasRegistradas = nueva;
+        await evento.save();
+        return NextResponse.json({ ok: true, evento });
+    }
+
     if (body.accion === "cobrarEntradas") {
         const { cantidad, metodoPago } = body;
         if (!cantidad || !metodoPago) return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });

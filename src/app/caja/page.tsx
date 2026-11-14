@@ -3608,16 +3608,48 @@ export default function CajaPage() {
                                                 const colapsado = seccionesColapsadas.has(colKey);
                                                 return (
                                                     <div>
-                                                        <button onClick={() => toggleSeccion(colKey)}
-                                                            className="flex items-center gap-2 w-full mb-2 group">
-                                                            <p className="text-xs font-black text-gray-400 uppercase tracking-wider flex-1 text-left">
-                                                                Entradas · {entradasRegistradas} registradas
-                                                                {entradasPendientes > 0 && (
-                                                                    <span className="ml-1.5 bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full text-[10px]">{entradasPendientes} pendiente{entradasPendientes !== 1 ? "s" : ""}</span>
-                                                                )}
-                                                            </p>
-                                                            <ChevronDown size={13} className={`text-gray-400 transition-transform ${colapsado ? "-rotate-90" : ""}`} />
-                                                        </button>
+                                                        <div className="flex items-center gap-2 w-full mb-2 group">
+                                                            <button onClick={() => toggleSeccion(colKey)} className="flex items-center gap-2 flex-1 min-w-0">
+                                                                <p className="text-xs font-black text-gray-400 uppercase tracking-wider flex-1 text-left">
+                                                                    Entradas · {entradasRegistradas} registradas
+                                                                    {entradasPendientes > 0 && (
+                                                                        <span className="ml-1.5 bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full text-[10px]">{entradasPendientes} pendiente{entradasPendientes !== 1 ? "s" : ""}</span>
+                                                                    )}
+                                                                </p>
+                                                            </button>
+                                                            <button
+                                                                onClick={async () => {
+                                                                    const { value, isConfirmed } = await swalBase.fire({
+                                                                        title: "Corregir cantidad de entradas",
+                                                                        input: "number",
+                                                                        inputValue: entradasRegistradas,
+                                                                        inputAttributes: { min: String(totalTarjetas), step: "1" },
+                                                                        inputLabel: totalTarjetas > 0 ? `No puede ser menor a ${totalTarjetas} (ya cobradas)` : undefined,
+                                                                        showCancelButton: true,
+                                                                        confirmButtonText: "Guardar",
+                                                                        cancelButtonText: "Cancelar",
+                                                                    });
+                                                                    if (!isConfirmed || value === undefined || value === null || value === "") return;
+                                                                    const nueva = Number(value);
+                                                                    const res = await fetch(`/api/eventos/${ev._id}`, {
+                                                                        method: "PATCH", credentials: "include",
+                                                                        headers: { "Content-Type": "application/json" },
+                                                                        body: JSON.stringify({ accion: "editarEntradasRegistradas", cantidad: nueva }),
+                                                                    });
+                                                                    if (res.ok) {
+                                                                        const { evento: updated } = await res.json();
+                                                                        setEventosActivos(prev => prev.map(e => e._id === ev._id ? updated : e));
+                                                                    } else {
+                                                                        const err = await res.json().catch(() => ({}));
+                                                                        await swalBase.fire({ icon: "error", title: "Error", text: err.error || "No se pudo editar" });
+                                                                    }
+                                                                }}
+                                                                className="p-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-400 transition shrink-0"
+                                                                title="Corregir cantidad registrada">
+                                                                <Pencil size={11} />
+                                                            </button>
+                                                            <ChevronDown size={13} onClick={() => toggleSeccion(colKey)} className={`text-gray-400 transition-transform cursor-pointer shrink-0 ${colapsado ? "-rotate-90" : ""}`} />
+                                                        </div>
                                                         {!colapsado && (
                                                             <div className="space-y-2">
                                                                 {/* Cobros registrados */}
