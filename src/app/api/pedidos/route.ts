@@ -170,7 +170,7 @@ export async function POST(req: NextRequest) {
         // Pedidos desactivados no bloquean autoservicio (el cliente ya está en el bar)
         if (!config.pedidosActivos && payload.role === "cliente" && !esAutoservicio) {
             return NextResponse.json(
-                { message: "El bar no está haciendo pedidos en este momento" },
+                { message: "El bar no está tomando pedidos en este momento" },
                 { status: 403 }
             );
         }
@@ -181,7 +181,7 @@ export async function POST(req: NextRequest) {
             const cajaAbierta = await CajaSession.findOne({ estado: "abierta" });
             if (!cajaAbierta) {
                 return NextResponse.json(
-                    { message: "El bar no está haciendo pedidos en este momento" },
+                    { message: "El bar no está tomando pedidos en este momento" },
                     { status: 403 }
                 );
             }

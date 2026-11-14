@@ -933,7 +933,7 @@ function ClientHome({ nombre, puntos, userId, fechaNacimiento }: { nombre?: stri
                       e.preventDefault();
                       swalBase.fire({
                         icon: "info",
-                        title: "El bar no está haciendo pedidos en este momento",
+                        title: "El bar no está tomando pedidos en este momento",
                         confirmButtonText: "Entendido",
                       });
                     }
