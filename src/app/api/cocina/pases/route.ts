@@ -47,10 +47,14 @@ export async function GET(req: NextRequest) {
 
     const estadoParam = req.nextUrl.searchParams.get("estado");
 
+    // Ocultar pedidos de MP no confirmados (sin pago aprobado): si el cliente
+    // abandona el checkout, el pedido no debe llegar a cocina como si fuera real.
+    const filtroMpPendiente = { $or: [{ metodoPago: { $ne: "mercadopago" } }, { mpEstadoPago: "aprobado" }] };
+
     if (estadoParam === "listo") {
         const sesion = await CajaSession.findOne({ estado: "abierta" }).lean<any>();
         const desde = sesion?.fechaApertura ?? new Date(0);
-        const pedidos = await Pedido.find({ estado: "listo", updatedAt: { $gte: desde } })
+        const pedidos = await Pedido.find({ estado: "listo", updatedAt: { $gte: desde }, ...filtroMpPendiente })
             .populate("userId", "nombre apellido")
             .sort({ updatedAt: -1 })
             .lean<any[]>();
@@ -62,7 +66,7 @@ export async function GET(req: NextRequest) {
     // Orden: ultimoItemAt si existe (la comanda recibió un ítem nuevo —incluye
     // el caso de volver de "listo" a "preparando"— y debe pasar al final de la
     // cola), si no createdAt (orden normal de llegada).
-    const pedidos = await Pedido.find({ estado: "preparando" })
+    const pedidos = await Pedido.find({ estado: "preparando", ...filtroMpPendiente })
         .populate("userId", "nombre apellido")
         .lean<any[]>();
     pedidos.sort((a: any, b: any) =>

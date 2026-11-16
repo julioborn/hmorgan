@@ -71,8 +71,11 @@ export default function AdminPedidosPage() {
     async function cargar() {
         try {
             const r = await fetch("/api/pedidos", { cache: "no-store", credentials: "include" });
-            const d = await r.json();
-            if (!Array.isArray(d)) return;
+            const dRaw = await r.json();
+            if (!Array.isArray(dRaw)) return;
+            // Ocultar pedidos de MP no confirmados (sin pago aprobado): si el cliente
+            // abandona el checkout, el pedido no debe quedar accionable para el personal.
+            const d = dRaw.filter((p: Pedido) => !(p.metodoPago === "mercadopago" && p.mpEstadoPago !== "aprobado"));
             const nuevasAlertas: string[] = [];
             const loaded = initialLoadDoneRef.current;
             for (const p of d) {
